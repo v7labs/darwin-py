@@ -851,6 +851,7 @@ def dataset_import(
     delete_for_empty: bool = False,
     import_annotators: bool = False,
     import_reviewers: bool = False,
+    overwrite: bool = False,
     use_multi_cpu: bool = False,
     cpu_limit: Optional[int] = None,
 ) -> None:
@@ -881,6 +882,9 @@ def dataset_import(
     import_reviewers : bool, default: False
         If ``True`` it will import the reviewers from the files to the dataset, if .
         If ``False`` it will not import the reviewers.
+    overwrite : bool, default: False
+        If ``True`` it will bypass a warning that the import will overwrite the current annotations if any are present.
+        If ``False`` this warning will be skipped and the import will overwrite the current annotations.
     use_multi_cpu : bool, default: False
         If ``True`` it will use all multiple CPUs to speed up the import process.
     cpu_limit : Optional[int], default: Core count - 2
@@ -904,6 +908,7 @@ def dataset_import(
             delete_for_empty,
             import_annotators,
             import_reviewers,
+            overwrite,
             use_multi_cpu,
             cpu_limit,
         )

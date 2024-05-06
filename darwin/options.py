@@ -333,6 +333,11 @@ class Options:
             action="store_true",
             help="Import reviewers metadata from the annotation files, where available",
         )
+        parser_import.add_argument(
+            "--overwrite",
+            action="store_true",
+            help="Bypass warnings about overwiting existing annotations.",
+        )
 
         # Cpu limit for multiprocessing tasks
         def cpu_default_types(input: Any) -> Optional[int]:  # type: ignore

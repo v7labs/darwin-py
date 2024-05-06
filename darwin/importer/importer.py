@@ -673,6 +673,7 @@ def import_annotations(  # noqa: C901
     delete_for_empty: bool = False,
     import_annotators: bool = False,
     import_reviewers: bool = False,
+    overwrite: bool = False,
     use_multi_cpu: bool = False,  # Set to False to give time to resolve MP behaviours
     cpu_limit: Optional[int] = None,  # 0 because it's set later in logic
 ) -> None:
@@ -704,6 +705,9 @@ def import_annotations(  # noqa: C901
     import_reviewers : bool, default: False
         If ``True`` it will import the reviewers from the files to the dataset, if .
         If ``False`` it will not import the reviewers.
+    overwrite : bool, default: False
+        If ``True`` it will bypass a warning that the import will overwrite the current annotations if any are present.
+        If ``False`` this warning will be skipped and the import will overwrite the current annotations.
     use_multi_cpu : bool, default: True
         If ``True`` will use multiple available CPU cores to parse the annotation files.
         If ``False`` will use only the current Python process, which runs in one core.
@@ -939,7 +943,7 @@ def import_annotations(  # noqa: C901
             file for file in parsed_files if file not in files_to_not_track
         ]
         if files_to_track:
-            if not append:
+            if not append and not overwrite:
                 # Remember to add a flag that can bypass this warning!
                 # Add unit test(s) for this functionality at the end
                 continue_to_overwrite = _overwrite_warning(
