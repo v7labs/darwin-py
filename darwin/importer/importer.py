@@ -1379,15 +1379,15 @@ def _overwrite_warning(
             item_id,
             dataset.team,
         )
-        if remote_annotations:
-            files_to_overwrite.append(file)
+        if remote_annotations and file.full_path not in files_to_overwrite:
+            files_to_overwrite.append(file.full_path)
     if files_to_overwrite:
         console.print(
-            "The following dataset items already have annotations that will be overwritten by this import:",
+            f"The following {len(files_to_overwrite)} dataset items already have annotations that will be overwritten by this import:",
             style="warning",
         )
         for file in files_to_overwrite:
-            console.print(f"- {file.full_path}", style="warning")
+            console.print(f"- {file}", style="warning")
         proceed = input("Do you want to proceed with the import? [y/N] ")
         if proceed.lower() != "y":
             return False
