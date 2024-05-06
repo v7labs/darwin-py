@@ -944,8 +944,6 @@ def import_annotations(  # noqa: C901
         ]
         if files_to_track:
             if not append and not overwrite:
-                # Remember to add a flag that can bypass this warning!
-                # Add unit test(s) for this functionality at the end
                 continue_to_overwrite = _overwrite_warning(
                     dataset.client, dataset, files_to_track, remote_files, console
                 )
@@ -1376,6 +1374,28 @@ def _overwrite_warning(
     remote_files: Dict[str, Tuple[str, str]],
     console: Console,
 ) -> bool:
+    """
+    Determines if any dataset items targeted for import already have annotations that will be overwritten.
+    If they do, a warning is displayed to the user and they are prompted to confirm if they want to proceed with the import.
+
+    Parameters
+    ----------
+    client : Client
+        The Darwin Client object.
+    dataset : RemoteDataset
+        The dataset where the annotations will be imported.
+    files : List[dt.AnnotationFile]
+        The list of annotation files that will be imported.
+    remote_files : Dict[str, Tuple[str, str]]
+        A dictionary of the remote files in the dataset.
+    console : Console
+        The console object.
+
+    Returns
+    -------
+    bool
+        True if the user wants to proceed with the import, False otherwise.
+    """
     files_to_overwrite = []
     for file in files:
         item_id = remote_files[file.full_path][0]
