@@ -182,7 +182,7 @@ def _build_attribute_lookup(dataset: "RemoteDataset") -> Dict[str, Unknown]:
 
 def _get_remote_files(
     dataset: "RemoteDataset", filenames: List[str], chunk_size: int = 100
-) -> Dict[str, Tuple[int, str]]:
+) -> Dict[str, Tuple[str, str]]:
     """
     Fetches remote files from the datasets in chunks; by default 100 filenames at a time.
 
@@ -790,7 +790,7 @@ def import_annotations(  # noqa: C901
     console.print("Fetching remote file list...", style="info")
     # This call will only filter by filename; so can return a superset of matched files across different paths
     # There is logic in this function to then include paths to narrow down to the single correct matching file
-    remote_files: Dict[str, Tuple[int, str]] = {}
+    remote_files: Dict[str, Tuple[str, str]] = {}
 
     # Try to fetch files in large chunks; in case the filenames are too large and exceed the url size
     # retry in smaller chunks
@@ -939,6 +939,14 @@ def import_annotations(  # noqa: C901
             file for file in parsed_files if file not in files_to_not_track
         ]
         if files_to_track:
+            if not append:
+                # Remember to add a flag that can bypass this warning!
+                # Add unit test(s) for this functionality at the end
+                continue_to_overwrite = _overwrite_warning(
+                    dataset.client, dataset, files_to_track, remote_files, console
+                )
+                if not continue_to_overwrite:
+                    return
             _warn_unsupported_annotations(files_to_track)
             for parsed_file in track(files_to_track):
                 image_id, default_slot_name = remote_files[parsed_file.full_path]
@@ -1355,3 +1363,32 @@ def _console_theme() -> Theme:
             "info": "bold deep_sky_blue1",
         }
     )
+
+
+def _overwrite_warning(
+    client: "Client",
+    dataset: "RemoteDataset",
+    files: List[dt.AnnotationFile],
+    remote_files: Dict[str, Tuple[str, str]],
+    console: Console,
+) -> bool:
+    files_to_overwrite = []
+    for file in files:
+        item_id = remote_files[file.full_path][0]
+        remote_annotations = client.api_v2._get_remote_annotations(
+            item_id,
+            dataset.team,
+        )
+        if remote_annotations:
+            files_to_overwrite.append(file)
+    if files_to_overwrite:
+        console.print(
+            "The following dataset items already have annotations that will be overwritten by this import:",
+            style="warning",
+        )
+        for file in files_to_overwrite:
+            console.print(f"- {file.full_path}", style="warning")
+        proceed = input("Do you want to proceed with the import? [y/N] ")
+        if proceed.lower() != "y":
+            return False
+    return True
