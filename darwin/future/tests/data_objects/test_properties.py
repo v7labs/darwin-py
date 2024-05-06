@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from darwin.future.data_objects.properties import MetaDataClass
+from darwin.future.data_objects.properties import MetaDataClass, SelectedProperty
 
 
 @pytest.fixture
@@ -35,3 +35,10 @@ def test_properties_metadata_fails() -> None:
     path = Path("darwin/future/tests/data/does_not_exist")
     with pytest.raises(FileNotFoundError):
         MetaDataClass.from_path(path)
+
+
+def test_can_parse_unpopulated_required_properties() -> None:
+    selected_property = SelectedProperty(
+        frame_index=None, name="name", type="type", value=None
+    )
+    assert selected_property is not None

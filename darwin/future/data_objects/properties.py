@@ -147,7 +147,7 @@ class SelectedProperty(DefaultDarwin):
         value (str): Value of the property
     """
 
-    frame_index: int
+    frame_index: Optional[int] = None
     name: str
     type: Optional[str] = None
     value: Optional[str] = None

@@ -11,8 +11,10 @@ from typing import List, Tuple
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.StreamHandler(sys.stdout))
-logger.setLevel(logging.DEBUG) if environ.get("DEBUG") else logger.setLevel(
-    logging.INFO
+(
+    logger.setLevel(logging.DEBUG)
+    if environ.get("DEBUG")
+    else logger.setLevel(logging.INFO)
 )
 
 

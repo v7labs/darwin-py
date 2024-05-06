@@ -7,6 +7,7 @@ import numpy as np
 
 from darwin.dataset.utils import extract_classes, get_release_path
 from darwin.datatypes import PathLike
+from darwin.utils import get_annotation_files_from_dir
 
 
 @dataclass
@@ -133,7 +134,7 @@ def split_dataset(
     # List all annotation files in release
     annotation_path = release_path / "annotations"
     assert annotation_path.exists()
-    annotation_files = list(annotation_path.glob("**/*.json"))
+    annotation_files = list(get_annotation_files_from_dir(annotation_path))
 
     # Prepare the "lists" folder, which is where we are going to save the split files
     lists_path = release_path / "lists"
