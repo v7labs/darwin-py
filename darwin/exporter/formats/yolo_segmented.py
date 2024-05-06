@@ -180,13 +180,22 @@ def _handle_polygon(
 
     last_point = None
     try:
-        if "path" in data:
+        if "paths" in data:
+            paths_data = data["paths"]
+            if len(paths_data) > 1:
+                raise DarwinException from ValueError(
+                    "Complex polygon detected. The YOLOV8 format only supports simple polygons with a single path."
+                )
+            path_data = paths_data[0]
+        elif "path" in data:
+            # Continuing to support old version, in case anything relies on it.
             path_data = data["path"]
         elif "points" in data:
-            # continuing to support old version, in case anything relies on it.
+            # Continuing to support old version, in case anything relies on it.
             path_data = data["points"]
         else:
             raise DarwinException from ValueError("No path data found in annotation.")
+
         for point_index, point in enumerate(path_data):
             last_point = point_index
             x = point["x"] / im_w
