@@ -182,7 +182,7 @@ def _build_attribute_lookup(dataset: "RemoteDataset") -> Dict[str, Unknown]:
 
 def _get_remote_files(
     dataset: "RemoteDataset", filenames: List[str], chunk_size: int = 100
-) -> Dict[str, Tuple[int, str]]:
+) -> Dict[str, Tuple[str, str]]:
     """
     Fetches remote files from the datasets in chunks; by default 100 filenames at a time.
 
@@ -673,6 +673,7 @@ def import_annotations(  # noqa: C901
     delete_for_empty: bool = False,
     import_annotators: bool = False,
     import_reviewers: bool = False,
+    overwrite: bool = False,
     use_multi_cpu: bool = False,  # Set to False to give time to resolve MP behaviours
     cpu_limit: Optional[int] = None,  # 0 because it's set later in logic
 ) -> None:
@@ -704,6 +705,9 @@ def import_annotations(  # noqa: C901
     import_reviewers : bool, default: False
         If ``True`` it will import the reviewers from the files to the dataset, if .
         If ``False`` it will not import the reviewers.
+    overwrite : bool, default: False
+        If ``True`` it will bypass a warning that the import will overwrite the current annotations if any are present.
+        If ``False`` this warning will be skipped and the import will overwrite the current annotations without warning.
     use_multi_cpu : bool, default: True
         If ``True`` will use multiple available CPU cores to parse the annotation files.
         If ``False`` will use only the current Python process, which runs in one core.
@@ -790,7 +794,7 @@ def import_annotations(  # noqa: C901
     console.print("Fetching remote file list...", style="info")
     # This call will only filter by filename; so can return a superset of matched files across different paths
     # There is logic in this function to then include paths to narrow down to the single correct matching file
-    remote_files: Dict[str, Tuple[int, str]] = {}
+    remote_files: Dict[str, Tuple[str, str]] = {}
 
     # Try to fetch files in large chunks; in case the filenames are too large and exceed the url size
     # retry in smaller chunks
@@ -900,6 +904,13 @@ def import_annotations(  # noqa: C901
             "Importing annotations...\nEmpty annotations will be skipped, if you want to delete annotations rerun with '--delete-for-empty'.",
             style="info",
         )
+
+    if not append and not overwrite:
+        continue_to_overwrite = _overwrite_warning(
+            dataset.client, dataset, local_files, remote_files, console
+        )
+        if not continue_to_overwrite:
+            return
 
     # Need to re parse the files since we didn't save the annotations in memory
     for local_path in set(local_file.path for local_file in local_files):  # noqa: C401
@@ -1355,3 +1366,53 @@ def _console_theme() -> Theme:
             "info": "bold deep_sky_blue1",
         }
     )
+
+
+def _overwrite_warning(
+    client: "Client",
+    dataset: "RemoteDataset",
+    local_files: List[dt.AnnotationFile],
+    remote_files: Dict[str, Tuple[str, str]],
+    console: Console,
+) -> bool:
+    """
+    Determines if any dataset items targeted for import already have annotations that will be overwritten.
+    If they do, a warning is displayed to the user and they are prompted to confirm if they want to proceed with the import.
+
+    Parameters
+    ----------
+    client : Client
+        The Darwin Client object.
+    dataset : RemoteDataset
+        The dataset where the annotations will be imported.
+    files : List[dt.AnnotationFile]
+        The list of local annotation files to will be imported.
+    remote_files : Dict[str, Tuple[str, str]]
+        A dictionary of the remote files in the dataset.
+    console : Console
+        The console object.
+
+    Returns
+    -------
+    bool
+        True if the user wants to proceed with the import, False otherwise.
+    """
+    files_to_overwrite = []
+    for local_file in local_files:
+        remote_annotations = client.api_v2._get_remote_annotations(
+            local_file.item_id,
+            dataset.team,
+        )
+        if remote_annotations and local_file.full_path not in files_to_overwrite:
+            files_to_overwrite.append(local_file.full_path)
+    if files_to_overwrite:
+        console.print(
+            f"The following {len(files_to_overwrite)} dataset items already have annotations that will be overwritten by this import:",
+            style="warning",
+        )
+        for file in files_to_overwrite:
+            console.print(f"- {file}", style="warning")
+        proceed = input("Do you want to proceed with the import? [y/N] ")
+        if proceed.lower() != "y":
+            return False
+    return True
