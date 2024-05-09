@@ -398,7 +398,7 @@ class TestSplitVideoAnnotations:
                             "height": 1080,
                             "thumbnail_url": "",
                             "source_files": [
-                                {"file_name": "test_video.mp4", "url": ""}
+                                {"file_name": "test_video/0000000.png", "url": ""}
                             ],
                         }
                     ],
@@ -444,7 +444,7 @@ class TestSplitVideoAnnotations:
                             "height": 1080,
                             "thumbnail_url": "",
                             "source_files": [
-                                {"file_name": "test_video.mp4", "url": ""}
+                                {"file_name": "test_video/0000001.png", "url": ""}
                             ],
                         }
                     ],
@@ -479,7 +479,7 @@ class TestSplitVideoAnnotations:
                             "height": 1080,
                             "thumbnail_url": "",
                             "source_files": [
-                                {"file_name": "test_video.mp4", "url": ""}
+                                {"file_name": "test_video/0000002.png", "url": ""}
                             ],
                         }
                     ],

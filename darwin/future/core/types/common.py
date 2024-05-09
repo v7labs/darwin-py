@@ -9,7 +9,8 @@ JSONDict = Dict[str, Any]  # type: ignore
 
 
 class Implements_str(Protocol):
-    def __str__(self) -> str: ...
+    def __str__(self) -> str:
+        ...
 
 
 Stringable = Union[str, Implements_str]

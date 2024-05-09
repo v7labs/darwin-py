@@ -454,14 +454,16 @@ def get_image_path_from_stream(
         Path to the image file.
     """
     try:
+        filename = Path(darwin_json["item"]["slots"][0]["source_files"][0]["file_name"])
         if not with_folders:
-            return images_dir / Path(darwin_json["item"]["name"])
+            return images_dir / filename
         else:
             return (
                 images_dir
                 / (Path(darwin_json["item"]["path"].lstrip("/\\")))
-                / Path(darwin_json["item"]["name"])
+                / filename
             )
+        return images_dir / (Path(darwin_json["item"]["path"].lstrip("/\\"))) / filename
     except OSError:
         # Load in the JSON as normal
         darwin_json = parse_darwin_json(path=annotation_filepath)

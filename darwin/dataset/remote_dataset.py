@@ -32,6 +32,7 @@ from darwin.dataset.upload_manager import (
     UploadHandler,
 )
 from darwin.dataset.utils import (
+    _correct_source_files_name,
     exhaust_generator,
     get_annotations,
     get_classes,
@@ -162,6 +163,7 @@ class RemoteDataset(ABC):
             frame_annotations = split_video_annotation(darwin_annotation)
             for frame_annotation in frame_annotations:
                 annotation = self._build_image_annotation(frame_annotation, self.team)
+                annotation = _correct_source_files_name(annotation)
 
                 video_frame_annotations_path = annotations_path / annotation_file.stem
                 video_frame_annotations_path.mkdir(exist_ok=True, parents=True)
@@ -924,7 +926,6 @@ class RemoteDataset(ABC):
         """
         ...
 
-    @property
     def remote_path(self) -> Path:
         """Returns an URL specifying the location of the remote dataset."""
         return Path(urljoin(self.client.base_url, f"/datasets/{self.dataset_id}"))
