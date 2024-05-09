@@ -24,12 +24,12 @@ class TestObjectDetectionDatasetLoading:
                 split_types = ["random", "stratified"]
                 partitions = ["test", "train", "val"]
                 expected_splits = {
-                    "random_test": 3,
-                    "random_train": 7,
-                    "random_val": 2,
-                    "stratified_test": 3,
-                    "stratified_train": 7,
-                    "stratified_val": 2,
+                    "random_test": 11,
+                    "random_train": 37,
+                    "random_val": 6,
+                    "stratified_test": 11,
+                    "stratified_train": 37,
+                    "stratified_val": 6,
                 }
                 for split_type in split_types:
                     for partition in partitions:
@@ -66,10 +66,10 @@ class TestObjectDetectionDatasetLoading:
                 partitions = ["test", "train", "val"]
                 expected_splits = {
                     "random_test": 30,
-                    "random_train": 104,
+                    "random_train": 105,
                     "random_val": 15,
                     "stratified_test": 30,
-                    "stratified_train": 104,
+                    "stratified_train": 105,
                     "stratified_val": 15,
                 }
                 for split_type in split_types:
