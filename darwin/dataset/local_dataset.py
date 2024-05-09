@@ -159,7 +159,7 @@ class LocalDataset:
                 continue
             else:
                 raise ValueError(
-                    f"Annotation ({annotation_filepath}) does not have a corresponding image"
+                    f"Annotation ({annotation_filepath}) does not have a corresponding image, looking for image page {image_path}"
                 )
 
     def _initial_setup(self, dataset_path, release_name):
