@@ -1,13 +1,13 @@
 import json
 from pathlib import Path
 from typing import List, Tuple
-from unittest.mock import Mock, _patch, patch
+from unittest.mock import MagicMock, Mock, _patch, patch
 
 import pytest
 from rich.theme import Theme
 
 from darwin import datatypes as dt
-from darwin.importer.importer import _parse_empty_masks
+from darwin.importer.importer import _overwrite_warning, _parse_empty_masks
 
 
 def root_path(x: str) -> str:
@@ -593,3 +593,91 @@ def test_console_theme() -> None:
     from darwin.importer.importer import _console_theme
 
     assert isinstance(_console_theme(), Theme)
+
+
+def test_overwrite_warning_proceeds_with_import():
+    annotations: List[dt.AnnotationLike] = [
+        dt.Annotation(
+            dt.AnnotationClass("cat1", "polygon"),
+            {
+                "paths": [
+                    [
+                        {"x": -1, "y": -1},
+                        {"x": -1, "y": 1},
+                        {"x": 1, "y": 1},
+                        {"x": 1, "y": -1},
+                        {"x": -1, "y": -1},
+                    ]
+                ],
+                "bounding_box": {"x": -1, "y": -1, "w": 2, "h": 2},
+            },
+        )
+    ]
+    client = MagicMock()
+    dataset = MagicMock()
+    files = [
+        dt.AnnotationFile(
+            path=Path("/"),
+            filename="file1",
+            annotation_classes={a.annotation_class for a in annotations},
+            annotations=annotations,
+            remote_path="/",
+        ),
+        dt.AnnotationFile(
+            path=Path("/"),
+            filename="file2",
+            annotation_classes={a.annotation_class for a in annotations},
+            annotations=annotations,
+            remote_path="/",
+        ),
+    ]
+    remote_files = {"/file1": ("id1", "path1"), "/file2": ("id2", "path2")}
+    console = MagicMock()
+
+    with patch("builtins.input", return_value="y"):
+        result = _overwrite_warning(client, dataset, files, remote_files, console)
+        assert result is True
+
+
+def test_overwrite_warning_aborts_import():
+    annotations: List[dt.AnnotationLike] = [
+        dt.Annotation(
+            dt.AnnotationClass("cat1", "polygon"),
+            {
+                "paths": [
+                    [
+                        {"x": -1, "y": -1},
+                        {"x": -1, "y": 1},
+                        {"x": 1, "y": 1},
+                        {"x": 1, "y": -1},
+                        {"x": -1, "y": -1},
+                    ]
+                ],
+                "bounding_box": {"x": -1, "y": -1, "w": 2, "h": 2},
+            },
+        )
+    ]
+    client = MagicMock()
+    dataset = MagicMock()
+    files = [
+        dt.AnnotationFile(
+            path=Path("/"),
+            filename="file1",
+            annotation_classes={a.annotation_class for a in annotations},
+            annotations=annotations,
+            remote_path="/",
+        ),
+        dt.AnnotationFile(
+            path=Path("/"),
+            filename="file2",
+            annotation_classes={a.annotation_class for a in annotations},
+            annotations=annotations,
+            remote_path="/",
+        ),
+    ]
+    remote_files = {"/file1": ("id1", "path1"), "/file2": ("id2", "path2")}
+    console = MagicMock()
+
+    with patch("builtins.input", return_value="n"):
+        result = _overwrite_warning(client, dataset, files, remote_files, console)
+        assert result is False

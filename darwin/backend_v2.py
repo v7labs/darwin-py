@@ -253,3 +253,20 @@ class BackendV2:
         return self._client._post_raw(
             f"/v2/teams/{team_slug}/items/register_existing", payload
         )
+
+    def _get_remote_annotations(
+        self,
+        item_id: str,
+        team_slug: str,
+    ) -> List:
+        """
+        Returns the annotations currently present on a remote dataset item.
+
+        Parameters
+        ----------
+        item_id: str
+            The UUID of the item.
+        team_slug: str
+            The team slug.
+        """
+        return self._client._get(f"v2/teams/{team_slug}/items/{item_id}/annotations")
