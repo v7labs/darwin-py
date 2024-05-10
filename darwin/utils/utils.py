@@ -1472,7 +1472,7 @@ def get_annotation_files_from_dir(path: Path) -> Iterator[str]:
     return (
         str(filepath)
         for filepath in sorted(path.glob("**/*.json"))
-        if "/.v7/" not in str(filepath)
+        if "/.v7/" not in str(filepath) and "\\.v7\\" not in str(filepath)
     )
 
 
