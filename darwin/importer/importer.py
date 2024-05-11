@@ -147,6 +147,7 @@ def _find_and_parse(  # noqa: C901
     else:
         maybe_console("Using single CPU")
         parsed_files = list(map(importer, tqdm(files) if is_console else files))
+    parsed_files = [f for f in parsed_files if f is not None]
 
     maybe_console("Finished.")
     # Sometimes we have a list of lists of AnnotationFile, sometimes we have a list of AnnotationFile
@@ -163,7 +164,7 @@ def _find_and_parse(  # noqa: C901
 
 def _get_files_for_parsing(file_paths: List[PathLike]) -> List[Path]:
     packed_files = [
-        filepath.glob("**/*.json") if filepath.is_dir() else [filepath]
+        filepath.glob("**/*") if filepath.is_dir() else [filepath]
         for filepath in map(Path, file_paths)
     ]
     return [file for files in packed_files for file in files]
