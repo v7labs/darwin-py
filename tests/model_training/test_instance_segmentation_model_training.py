@@ -38,6 +38,7 @@ class TestInstanceSegmentationoDatasetLoading:
                             release_name="complete",
                             partition=partition,
                             split_type=split_type,
+                            split="7_2_3",
                         )
                         assert (
                             len(dataset_partition.annotations_path)
@@ -81,6 +82,7 @@ class TestInstanceSegmentationoDatasetLoading:
                             release_name="complete",
                             partition=partition,
                             split_type=split_type,
+                            split="105_15_30",
                         )
                         assert (
                             len(dataset_partition.annotations_path)

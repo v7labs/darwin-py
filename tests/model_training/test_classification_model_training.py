@@ -38,6 +38,7 @@ class TestClassificationDatasetLoading:
                             release_name="complete",
                             partition=partition,
                             split_type=split_type,
+                            split="140_20_40",
                         )
                         assert (
                             len(dataset_partition.annotations_path)
@@ -79,6 +80,7 @@ class TestClassificationDatasetLoading:
                             release_name="complete",
                             partition=partition,
                             split_type=split_type,
+                            split="210_30_60",
                         )
                         assert (
                             len(dataset_partition.annotations_path)

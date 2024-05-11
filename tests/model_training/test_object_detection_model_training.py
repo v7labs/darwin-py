@@ -38,6 +38,7 @@ class TestObjectDetectionDatasetLoading:
                             release_name="complete",
                             partition=partition,
                             split_type=split_type,
+                            split="37_11_6",
                         )
                         assert (
                             len(dataset_partition.annotations_path)
@@ -79,6 +80,7 @@ class TestObjectDetectionDatasetLoading:
                             release_name="complete",
                             partition=partition,
                             split_type=split_type,
+                            split="105_15_30",
                         )
                         assert (
                             len(dataset_partition.annotations_path)
