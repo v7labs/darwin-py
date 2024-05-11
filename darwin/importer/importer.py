@@ -163,7 +163,7 @@ def _find_and_parse(  # noqa: C901
 
 def _get_files_for_parsing(file_paths: List[PathLike]) -> List[Path]:
     packed_files = [
-        filepath.glob("**/*") if filepath.is_dir() else [filepath]
+        filepath.glob("**/*.json") if filepath.is_dir() else [filepath]
         for filepath in map(Path, file_paths)
     ]
     return [file for files in packed_files for file in files]
