@@ -58,7 +58,8 @@ def local_dataset_with_images(local_dataset: E2EDataset) -> E2EDataset:
 
 
 def basic_annotation(name: str) -> dict:
-    with open("e2e_tests/data/base_annotation.json", "r") as f:
+    base_annotation_path = Path(__file__).parent / "data" / "base_annotation.json"
+    with open(base_annotation_path, "r") as f:
         annotation = json.load(f)
     annotation["item"]["name"] = name
     return annotation

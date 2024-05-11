@@ -1399,8 +1399,9 @@ def _overwrite_warning(
     """
     files_to_overwrite = []
     for local_file in local_files:
+        item_id = remote_files.get(local_file.full_path)[0]
         remote_annotations = client.api_v2._get_remote_annotations(
-            local_file.item_id,
+            item_id,
             dataset.team,
         )
         if remote_annotations and local_file.full_path not in files_to_overwrite:
