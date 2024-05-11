@@ -1184,7 +1184,6 @@ def split_video_annotation(annotation: dt.AnnotationFile) -> List[dt.AnnotationF
     urls = annotation.frame_urls or [None] * (annotation.frame_count or 1)
     frame_annotations = []
     for i, frame_url in enumerate(urls):
-        print(i)
         annotations = [
             a.frames[i]
             for a in annotation.annotations

@@ -69,10 +69,10 @@ class TestInstanceSegmentationoDatasetLoading:
                 partitions = ["test", "train", "val"]
                 expected_splits = {
                     "random_test": 30,
-                    "random_train": 104,
+                    "random_train": 105,
                     "random_val": 15,
                     "stratified_test": 30,
-                    "stratified_train": 104,
+                    "stratified_train": 105,
                     "stratified_val": 15,
                 }
                 for split_type in split_types:

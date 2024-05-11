@@ -163,7 +163,7 @@ class RemoteDataset(ABC):
             frame_annotations = split_video_annotation(darwin_annotation)
             for frame_annotation in frame_annotations:
                 annotation = self._build_image_annotation(frame_annotation, self.team)
-                annotation = _correct_source_files_name(annotation)
+                annotation = _correct_source_files_name(annotation, annotation_file)
 
                 video_frame_annotations_path = annotations_path / annotation_file.stem
                 video_frame_annotations_path.mkdir(exist_ok=True, parents=True)
