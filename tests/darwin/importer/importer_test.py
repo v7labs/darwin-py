@@ -1,13 +1,20 @@
 import json
+import tempfile
 from pathlib import Path
 from typing import List, Tuple
 from unittest.mock import MagicMock, Mock, _patch, patch
+from zipfile import ZipFile
 
 import pytest
 from rich.theme import Theme
 
 from darwin import datatypes as dt
-from darwin.importer.importer import _overwrite_warning, _parse_empty_masks
+from darwin.importer import get_importer
+from darwin.importer.importer import (
+    _find_and_parse,
+    _overwrite_warning,
+    _parse_empty_masks,
+)
 
 
 def root_path(x: str) -> str:
@@ -26,8 +33,20 @@ def patch_factory(module: str) -> _patch:
 def test_build_main_annotations_lookup_table() -> None: ...  # TODO: Write this test
 
 
-@pytest.mark.skip("Not yet implemented.")  # type: ignore
-def test_find_and_parse() -> None: ...  # TODO: Write this test
+def test_find_and_parse():
+    """
+    Ensure that the function doesn't return any None values.
+    """
+    with tempfile.TemporaryDirectory() as tmpdir:
+        with ZipFile("tests/data.zip") as zfile:
+            zfile.extractall(tmpdir)
+            annotations_path = Path(tmpdir) / "v7-darwin-json-v2" / "_find_and_parse"
+            importer = get_importer("coco")
+            files = _find_and_parse(
+                importer=importer,
+                file_paths=[annotations_path],
+            )
+            assert all(isinstance(file, dt.AnnotationFile) for file in files)
 
 
 @pytest.mark.skip("Not yet implemented.")
