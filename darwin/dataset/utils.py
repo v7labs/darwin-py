@@ -973,5 +973,7 @@ def _correct_source_files_name(
         The corrected annotation.
     """
     frame_path = annotation_file.stem / Path(annotation["item"]["name"].split("/")[-1])
-    annotation["item"]["slots"][0]["source_files"][0]["file_name"] = str(frame_path)
+    annotation["item"]["slots"][0]["source_files"][0][
+        "file_name"
+    ] = frame_path.as_posix()
     return annotation
