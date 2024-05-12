@@ -1,15 +1,19 @@
 import shutil
+import tempfile
 from pathlib import Path
 from typing import Dict
 from unittest.mock import MagicMock, patch
+from zipfile import ZipFile
 
 import orjson as json
 import pytest
 
+from darwin.dataset.split_manager import split_dataset
 from darwin.dataset.utils import (
     compute_distributions,
     exhaust_generator,
     extract_classes,
+    get_annotations,
     get_external_file_type,
     get_release_path,
     parse_external_file_path,
@@ -457,22 +461,33 @@ class TestParseExternalFilePath:
         )
 
 
-'''
 class TestGetAnnotations:
     def test_basic_functionality(
         self,
         team_extracted_dataset_path,
         team_dataset_release_path,
         annotations_path,
-        split_path
+        split_path,
     ):
         """
         Basic functionality test for the `get_annotations` function.
         """
-        
-        # Test with basic setup
-        annotations = list(get_annotations(dataset_path=team_extracted_dataset_path))
-        assert len(annotations) > 0, "Expected to find some annotations"
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with ZipFile("tests/model_training_data.zip") as zfile:
+                zfile.extractall(tmpdir)
+                dataset_path = (
+                    Path(tmpdir) / "model_training_data" / "classification-test"
+                )
+                annotations = list(
+                    get_annotations(
+                        dataset_path=dataset_path,
+                        release_name="complete",
+                        annotation_type="tag",
+                        annotation_format="darwin",
+                    )
+                )
+                assert len(annotations) == 200
+                assert annotations[0]["annotations"][0]["tag"] == {}
 
         # Add more assertions here to validate the structure of the returned annotations
 
@@ -481,16 +496,50 @@ class TestGetAnnotations:
         team_extracted_dataset_path,
         team_dataset_release_path,
         annotations_path,
-        split_path
+        split_path,
     ):
         """
         Test the partition handling of the `get_annotations` function.
         """
-
-        # Assuming there's a train partition in the test dataset
-        annotations = list(get_annotations(dataset_path=team_extracted_dataset_path, partition="train"))
-        assert len(annotations) > 0, "Expected to find some annotations for the train partition"
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with ZipFile("tests/model_training_data.zip") as zfile:
+                zfile.extractall(tmpdir)
+                dataset_path = (
+                    Path(tmpdir) / "model_training_data" / "classification-test"
+                )
+                split_dataset(
+                    dataset_path=dataset_path,
+                    release_name="complete",
+                    val_percentage=0.1,
+                    test_percentage=0.2,
+                )
+                split_types = ["random", "stratified"]
+                partitions = ["test", "train", "val"]
+                expected_splits = {
+                    "random_test": 40,
+                    "random_train": 140,
+                    "random_val": 20,
+                    "stratified_test": 40,
+                    "stratified_train": 140,
+                    "stratified_val": 20,
+                }
+                for split_type in split_types:
+                    for partition in partitions:
+                        annotations = list(
+                            get_annotations(
+                                dataset_path=dataset_path,
+                                release_name="complete",
+                                annotation_type="tag",
+                                annotation_format="darwin",
+                                partition=partition,
+                                split_type=split_type,
+                            )
+                        )
+                        assert (
+                            len(annotations)
+                            == expected_splits[f"{split_type}_{partition}"]
+                        )
+                        assert annotations[0]["annotations"][0]["tag"] == {}
 
         # Add more assertions here to validate the structure of the returned annotations
         # Repeat for other partitions (e.g., val, test) if present in the mock data
-'''
