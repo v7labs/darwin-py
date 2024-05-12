@@ -9,6 +9,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Dict,
+    Generator,
     Iterable,
     Iterator,
     List,
@@ -1453,7 +1454,7 @@ def _default_schema(version: dt.AnnotationFileVersion) -> Optional[str]:
     )
 
 
-def get_annotation_files_from_dir(path: Path) -> Iterator[str]:
+def get_annotation_files_from_dir(path: Path) -> Generator[str, None, None]:
     """
     Returns an iterator of all the JSON annotation files in the given directory.
     Ignores the .v7/metadata.json properties manifest file if present.
@@ -1465,9 +1466,10 @@ def get_annotation_files_from_dir(path: Path) -> Iterator[str]:
 
     Returns
     -------
-    Iterator[str]
+    Generator[str]
         An iterator of all the JSON annotation files in the given directory.
     """
+
     return (
         str(filepath)
         for filepath in sorted(path.glob("**/*.json"))
