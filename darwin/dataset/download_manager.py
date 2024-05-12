@@ -312,7 +312,7 @@ def _download_single_slot_from_json_annotation(
     if video_frames and slot.type != "image":
         video_path: Path = parent_path / annotation_path.stem
         video_path.mkdir(exist_ok=True, parents=True)
-        # Indicates it's a long video and uses the segment  and manifest
+        # Indicates it's a long video and uses the segment and manifest
         if not slot.frame_urls:
             segment_manifests = get_segment_manifests(slot, video_path, api_key)
             for index, manifest in enumerate(segment_manifests):

@@ -523,6 +523,7 @@ class TestGetAnnotations:
                                 annotation_format="darwin",
                                 partition=partition,
                                 split_type=split_type,
+                                split="140_20_40",
                             )
                         )
                         assert (

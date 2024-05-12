@@ -510,7 +510,7 @@ def _validate_inputs(
 
     Args:
         partition (str, None): Dataset partition. Should be 'train', 'val', 'test', or None.
-        split_type (str, None): Type of dataset split. Can be 'random', 'stratified', or None.
+        split_type (str, None): Type of dataset split. Can be 'random' or 'stratified'.
         annotation_type (str): Type of annotations. Can be 'tag', 'polygon', or 'bounding_box'.
 
     Raises:
