@@ -464,10 +464,6 @@ class TestParseExternalFilePath:
 class TestGetAnnotations:
     def test_basic_functionality(
         self,
-        team_extracted_dataset_path,
-        team_dataset_release_path,
-        annotations_path,
-        split_path,
     ):
         """
         Basic functionality test for the `get_annotations` function.
@@ -489,14 +485,8 @@ class TestGetAnnotations:
                 assert len(annotations) == 200
                 assert annotations[0]["annotations"][0]["tag"] == {}
 
-        # Add more assertions here to validate the structure of the returned annotations
-
     def test_partition_handling(
         self,
-        team_extracted_dataset_path,
-        team_dataset_release_path,
-        annotations_path,
-        split_path,
     ):
         """
         Test the partition handling of the `get_annotations` function.
@@ -540,6 +530,3 @@ class TestGetAnnotations:
                             == expected_splits[f"{split_type}_{partition}"]
                         )
                         assert annotations[0]["annotations"][0]["tag"] == {}
-
-        # Add more assertions here to validate the structure of the returned annotations
-        # Repeat for other partitions (e.g., val, test) if present in the mock data
