@@ -339,9 +339,12 @@ def _download_single_slot_from_json_annotation(
         if len(slot.source_files) > 0:
             image = slot.source_files[0]
             image_url = image["url"]
-            image_path = parent_path / sanitize_filename(
-                annotation_path.stem + Path(annotation.filename).suffix
-            )
+            if not use_folders:
+                image_path = parent_path / sanitize_filename(
+                    annotation_path.stem + Path(annotation.filename).suffix
+                )
+            else:
+                image_path = parent_path / Path(image["file_name"])
 
             generator.append(
                 functools.partial(
