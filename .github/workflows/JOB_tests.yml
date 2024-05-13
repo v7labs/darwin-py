@@ -33,17 +33,20 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install dependencies
-        shell: bash # stops windows hosts from using powershell
-        run: |
-          pip install poetry pytest
-          poetry install --no-interaction --no-root -vvv --all-extras
-          poetry install --no-interaction --no-root --all-extras -vvv
-          pip install wheel
-          pip install --upgrade setuptools
-          pip install --editable ".[test,ml,medical,dev, ocv]"
+      - name: Install dependencies with retry
+        uses: nick-invision/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: |
+            bash -c "pip install poetry pytest && \
+                     poetry install --no-interaction --no-root -vvv --all-extras && \
+                     poetry install --no-interaction --no-root --all-extras -vvv && \
+                     pip install wheel && \
+                     pip install --upgrade setuptools && \
+                     pip install --editable '.[test,ml,medical,dev, ocv]'"
 
       - name: Run pytest
-        shell: bash # stops windows hosts from using powershell
+        shell: bash # Stops Windows hosts from using PowerShell
         run: |
           python -m pytest
