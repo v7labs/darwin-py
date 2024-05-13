@@ -39,12 +39,12 @@ jobs:
           timeout_minutes: 10
           max_attempts: 3
           command: |
-            pip install poetry pytest
-            poetry install --no-interaction --no-root -vvv --all-extras
-            poetry install --no-interaction --no-root --all-extras -vvv
-            pip install wheel
-            pip install --upgrade setuptools
-            pip install --editable ".[test,ml,medical,dev, ocv]"
+            bash -c "pip install poetry pytest && \
+                     poetry install --no-interaction --no-root -vvv --all-extras && \
+                     poetry install --no-interaction --no-root --all-extras -vvv && \
+                     pip install wheel && \
+                     pip install --upgrade setuptools && \
+                     pip install --editable '.[test,ml,medical,dev, ocv]'"
 
       - name: Run pytest
         shell: bash # Stops Windows hosts from using PowerShell
