@@ -50,3 +50,18 @@ class TestParsePath:
         assert annotation_files[1].filename == "image2.jpg"
         assert annotation_files[1].remote_path == "/folder"
         assert len(annotation_files[1].annotations) == 2
+
+    def test_bundles_tags_correctly(self, file_path: Path):
+        with file_path.open("w", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerow(["image1.jpg", "tag1", "tag2"])
+            writer.writerow(["image1.jpg", "tag3", "tag4"])
+            writer.writerow(["image2.jpg", "tag5", "tag6"])
+            writer.writerow(["image2.jpg", "tag7", "tag8"])
+
+        annotation_files: Optional[List[AnnotationFile]] = parse_path(file_path)
+        assert annotation_files is not None
+
+        assert len(annotation_files) == 2
+        assert len(annotation_files[0].annotations) == 4
+        assert len(annotation_files[1].annotations) == 4

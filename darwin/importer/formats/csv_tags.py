@@ -25,6 +25,7 @@ def parse_path(path: Path) -> Optional[List[dt.AnnotationFile]]:
         return None
 
     files = []
+    tags_and_files = {}
     with path.open() as f:
         reader = csv.reader(f)
         for row in reader:
@@ -32,6 +33,12 @@ def parse_path(path: Path) -> Optional[List[dt.AnnotationFile]]:
             if filename == "":
                 continue
             annotations = [dt.make_tag(tag) for tag in tags if len(tag) > 0]
+            if filename not in tags_and_files:
+                tags_and_files[filename] = [annotation for annotation in annotations]
+            else:
+                tags_and_files[filename].extend(annotations)
+
+        for filename, annotations in tags_and_files.items():
             annotation_classes = {
                 annotation.annotation_class for annotation in annotations
             }
