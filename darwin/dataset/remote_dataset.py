@@ -32,7 +32,6 @@ from darwin.dataset.upload_manager import (
     UploadHandler,
 )
 from darwin.dataset.utils import (
-    _correct_source_files_name,
     exhaust_generator,
     get_annotations,
     get_classes,
@@ -163,7 +162,13 @@ class RemoteDataset(ABC):
             frame_annotations = split_video_annotation(darwin_annotation)
             for frame_annotation in frame_annotations:
                 annotation = self._build_image_annotation(frame_annotation, self.team)
-                annotation = _correct_source_files_name(annotation, annotation_file)
+
+                # When loading annotations from a file, we refer to item.slots[0].source_files.file_name.
+                # When using split_video_annotations(), this field needs to be updated to account for
+                # the extra directory it creates.
+                annotation["item"]["slots"][0]["source_files"][0][
+                    "file_name"
+                ] = frame_annotation.filename
 
                 video_frame_annotations_path = annotations_path / annotation_file.stem
                 video_frame_annotations_path.mkdir(exist_ok=True, parents=True)

@@ -961,28 +961,3 @@ def chunk_items(items: List[Any], chunk_size: int = 500) -> Iterator[List[Any]]:
         An iterator that yields lists of items, each of length ``chunk_size``.
     """
     return (items[i : i + chunk_size] for i in range(0, len(items), chunk_size))
-
-
-def _correct_source_files_name(
-    annotation: Dict[str, Any], annotation_file: Path
-) -> Dict[str, Any]:
-    """
-    When loading annotations from a file, we refer to item.slots[0].source_files.file_name.
-    When using split_video_annotations(), this field needs to be updated to account for
-    The extra directory it creates.
-
-    Parameters
-    ----------
-    annotation : dt.AnnotationFile
-        The annotation to correct.
-
-    Returns
-    -------
-    dt.AnnotationFile
-        The corrected annotation.
-    """
-    frame_path = annotation_file.stem / Path(annotation["item"]["name"].split("/")[-1])
-    annotation["item"]["slots"][0]["source_files"][0][
-        "file_name"
-    ] = frame_path.as_posix()
-    return annotation
