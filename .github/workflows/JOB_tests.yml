@@ -34,16 +34,27 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
-        shell: bash # stops windows hosts from using powershell
+        shell: bash # Stops Windows hosts from using PowerShell
         run: |
-          pip install poetry pytest
-          poetry install --no-interaction --no-root -vvv --all-extras
-          poetry install --no-interaction --no-root --all-extras -vvv
-          pip install wheel
-          pip install --upgrade setuptools
-          pip install --editable ".[test,ml,medical,dev, ocv]"
+          max_retries=3
+          attempt=0
+          until [ $attempt -ge $max_retries ]
+          do
+            pip install poetry pytest && \
+            poetry install --no-interaction --no-root -vvv --all-extras && \
+            poetry install --no-interaction --no-root --all-extras -vvv && \
+            pip install wheel && \
+            pip install --upgrade setuptools && \
+            pip install --editable ".[test,ml,medical,dev, ocv]" && break
+            attempt=$((attempt+1))
+            sleep 5
+          done
+          if [ $attempt -eq $max_retries ]; then
+            echo "Dependency installation failed after ${max_retries} attempts."
+            exit 1
+          fi
 
       - name: Run pytest
-        shell: bash # stops windows hosts from using powershell
+        shell: bash # Stops Windows hosts from using PowerShell
         run: |
           python -m pytest
