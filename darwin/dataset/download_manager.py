@@ -308,13 +308,30 @@ def _download_single_slot_from_json_annotation(
 ) -> Iterable[Callable[[], None]]:
     slot = annotation.slots[0]
     generator = []
+    if video_frames and slot.type == "image":
+        if len(slot.source_files) > 0:
+            image = slot.source_files[0]
+            image_url = image["url"]
+            if not use_folders:
+                image_path = parent_path / sanitize_filename(
+                    annotation_path.stem + Path(annotation.filename).suffix
+                )
+            else:
+                image_path = parent_path / Path(image["file_name"])
 
-    if video_frames and slot.type != "image":
-        if not use_folders:
-            video_path: Path = parent_path / annotation_path.stem
-        else:
-            video_path: Path = parent_path / Path(annotation.filename).stem
-        video_path.mkdir(exist_ok=True, parents=True)
+            generator.append(
+                functools.partial(
+                    _download_image_with_trace,
+                    annotation,
+                    image_url,
+                    image_path,
+                    api_key,
+                )
+            )
+    else:
+        video_path: Path = parent_path / (
+            annotation_path.stem if not use_folders else Path(annotation.filename).stem
+        )
 
         # Indicates it's a long video and uses the segment and manifest
         if not slot.frame_urls:
@@ -339,26 +356,6 @@ def _download_single_slot_from_json_annotation(
                 generator.append(
                     functools.partial(_download_image, frame_url, path, api_key, slot)
                 )
-    else:
-        if len(slot.source_files) > 0:
-            image = slot.source_files[0]
-            image_url = image["url"]
-            if not use_folders:
-                image_path = parent_path / sanitize_filename(
-                    annotation_path.stem + Path(annotation.filename).suffix
-                )
-            else:
-                image_path = parent_path / Path(image["file_name"])
-
-            generator.append(
-                functools.partial(
-                    _download_image_with_trace,
-                    annotation,
-                    image_url,
-                    image_path,
-                    api_key,
-                )
-            )
     return generator
 
 
