@@ -167,7 +167,7 @@ class LocalDataset:
         release_path = get_release_path(dataset_path, release_name)
         annotations_dir = release_path / "annotations"
         assert annotations_dir.exists()
-        images_dir = dataset_path / "images"
+        images_dir = Path(dataset_path) / "images"
         assert images_dir.exists()
         return release_path, annotations_dir, images_dir
 
