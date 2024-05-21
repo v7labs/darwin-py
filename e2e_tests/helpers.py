@@ -41,7 +41,7 @@ def run_cli_command(
         The return code, stdout, and stderr.
     """
 
-    # Do ot allow directory traversal
+    # Do not allow directory traversal
     if ".." in command or (working_directory and ".." in working_directory):
         raise DarwinException("Cannot pass directory traversal to 'run_cli_command'.")
 
