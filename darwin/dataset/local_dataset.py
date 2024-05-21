@@ -147,7 +147,7 @@ class LocalDataset:
             annotation_filepath = Path(annotation_filepath)
             darwin_json = stream_darwin_json(annotation_filepath)
             image_path = get_image_path_from_stream(
-                darwin_json, images_dir, with_folders, annotation_filepath
+                darwin_json, images_dir, annotation_filepath, with_folders
             )
             if image_path.exists():
                 if not keep_empty_annotations and is_stream_list_empty(

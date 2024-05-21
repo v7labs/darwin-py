@@ -580,8 +580,10 @@ def _map_annotations_to_images(
     annotations_paths = []
     invalid_annotation_paths = []
     for annotation_path in get_annotation_files_from_dir(annotations_dir):
-        darwin_json = stream_darwin_json(annotation_path)
-        image_path = get_image_path_from_stream(darwin_json, images_dir)
+        darwin_json = stream_darwin_json(Path(annotation_path))
+        image_path = get_image_path_from_stream(
+            darwin_json, images_dir, Path(annotation_path)
+        )
         if image_path.exists():
             images_paths.append(image_path)
             annotations_paths.append(annotation_path)
