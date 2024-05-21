@@ -404,7 +404,7 @@ def get_annotations(
     split_type: Optional[str] = None,
     annotation_type: str = "polygon",
     release_name: Optional[str] = None,
-    annotation_format: Optional[str] = "coco",
+    annotation_format: str = "coco",
     ignore_inconsistent_examples: bool = False,
 ) -> Iterator[Dict[str, Any]]:
     """
@@ -498,7 +498,9 @@ def get_annotations(
     )
 
 
-def _validate_inputs(partition, split_type, annotation_type):
+def _validate_inputs(
+    partition: Union[str, None], split_type: Union[str, None], annotation_type: str
+) -> None:
     """
     Validates the input parameters for partition, split_type, and annotation_type.
 
@@ -520,7 +522,13 @@ def _validate_inputs(partition, split_type, annotation_type):
         )
 
 
-def _get_stems_from_split(release_path, split, split_type, annotation_type, partition):
+def _get_stems_from_split(
+    release_path: Path,
+    split: str,
+    split_type: Union[str, None],
+    annotation_type: str,
+    partition: Union[str, None],
+) -> Generator:
     """
     Determines the file stems based on the dataset split and other parameters.
 
@@ -559,8 +567,11 @@ def _get_stems_from_split(release_path, split, split_type, annotation_type, part
 
 
 def _map_annotations_to_images(
-    stems, annotations_dir, images_dir, ignore_inconsistent_examples
-):
+    stems: List[str],
+    annotations_dir: Path,
+    images_dir: Path,
+    ignore_inconsistent_examples: bool,
+) -> Tuple[List[Path], List[Path], List[Path]]:
     """
     Maps annotations to their corresponding images based on the file stems.
 
@@ -599,8 +610,12 @@ def _map_annotations_to_images(
 
 
 def _load_and_format_annotations(
-    images_paths, annotations_paths, annotation_format, annotation_type, classes
-):
+    images_paths: List[Path],
+    annotations_paths: List[Path],
+    annotation_format: str,
+    annotation_type: str,
+    classes: List[str],
+) -> Generator:
     """
     Loads and formats annotations based on the specified format and type.
 
