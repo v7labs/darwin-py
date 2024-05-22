@@ -797,7 +797,9 @@ def compute_distributions(
             stems: List[str] = [e.rstrip("\n\r") for e in split_file.open()]
 
             for stem in stems:
-                annotation_path: Path = annotations_dir / f"{stem}.json"
+                if not stem.endswith(".json"):
+                    stem = f"{stem}.json"
+                annotation_path: Path = annotations_dir / stem
                 annotation_file: Optional[dt.AnnotationFile] = parse_path(
                     annotation_path
                 )
