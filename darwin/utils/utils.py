@@ -432,8 +432,8 @@ def stream_darwin_json(path: Path) -> PersistentStreamingJSONObject:
 def get_image_path_from_stream(
     darwin_json: PersistentStreamingJSONObject,
     images_dir: Path,
-    with_folders: bool,
     annotation_filepath: Path,
+    with_folders: bool = True,
 ) -> Path:
     """
     Returns the path to the image file associated with the given darwin json file.
@@ -447,6 +447,8 @@ def get_image_path_from_stream(
         Path to the directory containing the images.
     with_folders: bool
         Flag to determine if the release was pulled with or without folders.
+    annotation_filepath : Path
+        Path to the annotation file. Used if loading the JSON as a stream fails.
 
     Returns
     -------
