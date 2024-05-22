@@ -448,7 +448,7 @@ def get_image_path_from_stream(
     with_folders: bool
         Flag to determine if the release was pulled with or without folders.
     annotation_filepath : Path
-        Path to the annotation file. Used if loading the JSON as a dictionary fails.
+        Path to the annotation file. Used if loading the JSON as a stream fails.
 
     Returns
     -------
