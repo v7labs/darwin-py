@@ -1,4 +1,18 @@
-from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Optional, Union
+import json
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    Iterator,
+    List,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+)
+
+from pydantic import ValidationError
+from requests.models import Response
 
 from darwin.dataset import RemoteDataset
 from darwin.dataset.release import Release
@@ -9,13 +23,26 @@ from darwin.dataset.upload_manager import (
     UploadHandler,
     UploadHandlerV2,
 )
-from darwin.dataset.utils import is_relative_to
-from darwin.datatypes import ItemId, PathLike
-from darwin.exceptions import NotFound
+from darwin.dataset.utils import (
+    chunk_items,
+    get_external_file_name,
+    get_external_file_type,
+    is_relative_to,
+    parse_external_file_path,
+)
+from darwin.datatypes import (
+    AnnotationFile,
+    ItemId,
+    ObjectStore,
+    PathLike,
+    StorageKeyDictModel,
+    StorageKeyListModel,
+)
+from darwin.exceptions import NotFound, UnknownExportVersion
+from darwin.exporter.formats.darwin import build_image_annotation
 from darwin.item import DatasetItem
 from darwin.item_sorter import ItemSorter
-from darwin.utils import find_files, urljoin
-from requests.models import Response
+from darwin.utils import SUPPORTED_EXTENSIONS, find_files, urljoin
 
 if TYPE_CHECKING:
     from darwin.client import Client
@@ -98,22 +125,32 @@ class RemoteDatasetV2(RemoteDataset):
             Returns a sorted list of available ``Release``\\s with the most recent first.
         """
         try:
-            releases_json: List[Dict[str, Any]] = self.client.api_v2.get_exports(self.slug, team_slug=self.team)
+            releases_json: List[Dict[str, Any]] = self.client.api_v2.get_exports(
+                self.slug, team_slug=self.team
+            )
         except NotFound:
             return []
 
-        releases = [Release.parse_json(self.slug, self.team, payload) for payload in releases_json]
-        return sorted(filter(lambda x: x.available, releases), key=lambda x: x.version, reverse=True)
+        releases = [
+            Release.parse_json(self.slug, self.team, payload)
+            for payload in releases_json
+        ]
+        return sorted(
+            filter(lambda x: x.available, releases),
+            key=lambda x: x.version,
+            reverse=True,
+        )
 
     def push(
         self,
-        files_to_upload: Optional[List[Union[PathLike, LocalFile]]],
+        files_to_upload: Optional[Sequence[Union[PathLike, LocalFile]]],
         *,
         blocking: bool = True,
         multi_threaded: bool = True,
         max_workers: Optional[int] = None,
         fps: int = 0,
         as_frames: bool = False,
+        extract_views: bool = False,
         files_to_exclude: Optional[List[PathLike]] = None,
         path: Optional[str] = None,
         preserve_folders: bool = False,
@@ -138,6 +175,8 @@ class RemoteDatasetV2(RemoteDataset):
             When the uploading file is a video, specify its framerate.
         as_frames: bool, default: False
             When the uploading file is a video, specify whether it's going to be uploaded as a list of frames.
+        extract_views: bool, default: False
+            When the uploading file is a volume, specify whether it's going to be split into orthogonal views.
         files_to_exclude : Optional[PathLike]], default: None
             Optional list of files to exclude from the file scan. Those can be folders.
         path: Optional[str], default: None
@@ -167,23 +206,45 @@ class RemoteDatasetV2(RemoteDataset):
         if files_to_upload is None:
             raise ValueError("No files or directory specified.")
 
-        uploading_files = [item for item in files_to_upload if isinstance(item, LocalFile)]
-        search_files = [item for item in files_to_upload if not isinstance(item, LocalFile)]
+        uploading_files = [
+            item for item in files_to_upload if isinstance(item, LocalFile)
+        ]
+        search_files = [
+            item for item in files_to_upload if not isinstance(item, LocalFile)
+        ]
 
-        generic_parameters_specified = path is not None or fps != 0 or as_frames is not False
+        generic_parameters_specified = (
+            path is not None or fps != 0 or as_frames is not False
+        )
         if uploading_files and generic_parameters_specified:
             raise ValueError("Cannot specify a path when uploading a LocalFile object.")
 
         for found_file in find_files(search_files, files_to_exclude=files_to_exclude):
             local_path = path
             if preserve_folders:
-                source_files = [source_file for source_file in search_files if is_relative_to(found_file, source_file)]
+                source_files = [
+                    source_file
+                    for source_file in search_files
+                    if is_relative_to(found_file, source_file)
+                ]
                 if source_files:
-                    local_path = str(found_file.relative_to(source_files[0]).parent)
-            uploading_files.append(LocalFile(found_file, fps=fps, as_frames=as_frames, path=local_path))
+                    local_path = str(
+                        found_file.relative_to(source_files[0]).parent.as_posix()
+                    )
+            uploading_files.append(
+                LocalFile(
+                    found_file,
+                    fps=fps,
+                    as_frames=as_frames,
+                    extract_views=extract_views,
+                    path=local_path,
+                )
+            )
 
         if not uploading_files:
-            raise ValueError("No files to upload, check your path, exclusion filters and resume flag")
+            raise ValueError(
+                "No files to upload, check your path, exclusion filters and resume flag"
+            )
 
         handler = UploadHandlerV2(self, uploading_files)
         if blocking:
@@ -199,7 +260,9 @@ class RemoteDatasetV2(RemoteDataset):
         return handler
 
     def fetch_remote_files(
-        self, filters: Optional[Dict[str, Union[str, List[str]]]] = None, sort: Optional[Union[str, ItemSorter]] = None
+        self,
+        filters: Optional[Dict[str, Union[str, List[str]]]] = None,
+        sort: Optional[Union[str, ItemSorter]] = None,
     ) -> Iterator[DatasetItem]:
         """
         Fetch and lists all files on the remote dataset.
@@ -217,30 +280,42 @@ class RemoteDatasetV2(RemoteDataset):
         Iterator[DatasetItem]
             An iterator of ``DatasetItem``.
         """
-        post_filters: Dict[str, Union[str, List[str]]] = {}
+        post_filters: List[Tuple[str, Any]] = []
         post_sort: Dict[str, str] = {}
 
         if filters:
+            # Backward compatibility with V1 filter parameter
             if "filenames" in filters:
-                # compability layer with v1
                 filters["item_names"] = filters["filenames"]
-            for list_type in ["item_names", "statuses", "item_ids"]:
+                del filters["filenames"]
+
+            for list_type in [
+                "item_names",
+                "statuses",
+                "item_ids",
+                "slot_types",
+                "item_paths",
+            ]:
                 if list_type in filters:
                     if type(filters[list_type]) is list:
-                        post_filters[list_type] = filters[list_type]
+                        for value in filters[list_type]:
+                            post_filters.append(("{}[]".format(list_type), value))
                     else:
-                        post_filters[list_type] = str(filters[list_type])
-            if "slot_types" in filters:
-                post_filters["types"] = filters["slot_types"]
+                        post_filters.append((list_type, str(filters[list_type])))
 
         if sort:
             item_sorter = ItemSorter.parse(sort)
             post_sort[f"sort[{item_sorter.field}]"] = item_sorter.direction.value
-        cursor = {"page[size]": 500}
+        cursor = {"page[size]": 500, "include_workflow_data": "true"}
         while True:
-            cursor = {**post_filters, **post_sort, **cursor}
-            response = self.client.api_v2.fetch_items(self.dataset_id, cursor, team_slug=self.team)
-            yield from [DatasetItem.parse(item) for item in response["items"]]
+            query = post_filters + list(post_sort.items()) + list(cursor.items())
+            response = self.client.api_v2.fetch_items(
+                self.dataset_id, query, team_slug=self.team
+            )
+            yield from [
+                DatasetItem.parse(item, dataset_slug=self.slug)
+                for item in response["items"]
+            ]
 
             if response["page"]["next"]:
                 cursor["page[from]"] = response["page"]["next"]
@@ -257,7 +332,10 @@ class RemoteDatasetV2(RemoteDataset):
             The ``DatasetItem``\\s to be archived.
         """
         payload: Dict[str, Any] = {
-            "filters": {"item_ids": [item.id for item in items], "dataset_ids": [self.dataset_id]}
+            "filters": {
+                "item_ids": [item.id for item in items],
+                "dataset_ids": [self.dataset_id],
+            }
         }
         self.client.api_v2.archive_items(payload, team_slug=self.team)
 
@@ -271,7 +349,10 @@ class RemoteDatasetV2(RemoteDataset):
             The ``DatasetItem``\\s to be restored.
         """
         payload: Dict[str, Any] = {
-            "filters": {"item_ids": [item.id for item in items], "dataset_ids": [self.dataset_id]}
+            "filters": {
+                "item_ids": [item.id for item in items],
+                "dataset_ids": [self.dataset_id],
+            }
         }
         self.client.api_v2.restore_archived_items(payload, team_slug=self.team)
 
@@ -338,7 +419,8 @@ class RemoteDatasetV2(RemoteDataset):
             The ``DatasetItem``\\s to be deleted.
         """
         self.client.api_v2.delete_items(
-            {"dataset_ids": [self.dataset_id], "item_ids": [item.id for item in items]}, team_slug=self.team
+            {"dataset_ids": [self.dataset_id], "item_ids": [item.id for item in items]},
+            team_slug=self.team,
         )
 
     def export(
@@ -347,6 +429,7 @@ class RemoteDatasetV2(RemoteDataset):
         annotation_class_ids: Optional[List[str]] = None,
         include_url_token: bool = False,
         include_authorship: bool = False,
+        version: Optional[str] = None,
     ) -> None:
         """
         Create a new release for this ``RemoteDataset``.
@@ -362,15 +445,33 @@ class RemoteDatasetV2(RemoteDataset):
             membership or not?
         include_authorship : bool, default: False
             If set, include annotator and reviewer metadata for each annotation.
-
+        version : Optional[str], default: None, enum: ["1.0", "2.0"]
+            When used for V2 dataset, allows to force generation of either Darwin JSON 1.0 (Legacy) or newer 2.0.
+            Omit this option to get your team's default.
         """
+        str_version = str(version)
+        if str_version == "2.0":
+            format = "darwin_json_2"
+        elif str_version == "1.0":
+            format = "json"
+        elif version is None:
+            format = None
+        else:
+            raise UnknownExportVersion(version)
+
+        filters = (
+            None
+            if not annotation_class_ids
+            else {"annotation_class_ids": list(map(int, annotation_class_ids))}
+        )
+
         self.client.api_v2.export_dataset(
-            format="json",
+            format=format,
             name=name,
             include_authorship=include_authorship,
             include_token=include_url_token,
-            annotation_class_ids=annotation_class_ids,
-            filters={},
+            annotation_class_ids=None,
+            filters=filters,
             dataset_slug=self.slug,
             team_slug=self.team,
         )
@@ -389,7 +490,9 @@ class RemoteDatasetV2(RemoteDataset):
         str
             A CSV report.
         """
-        response: Response = self.client.get_report(self.dataset_id, granularity, self.team)
+        response: Response = self.client.get_report(
+            self.dataset_id, granularity, self.team
+        )
         return response.text
 
     def workview_url_for_item(self, item: DatasetItem) -> str:
@@ -406,10 +509,19 @@ class RemoteDatasetV2(RemoteDataset):
         str
             The url.
         """
-        return urljoin(self.client.base_url, f"/workview?dataset={self.dataset_id}&item={item.id}")
+        return urljoin(
+            self.client.base_url, f"/workview?dataset={self.dataset_id}&item={item.id}"
+        )
 
     def post_comment(
-        self, item: DatasetItem, text: str, x: float, y: float, w: float, h: float, slot_name: Optional[str] = None
+        self,
+        item: DatasetItem,
+        text: str,
+        x: float,
+        y: float,
+        w: float,
+        h: float,
+        slot_name: Optional[str] = None,
     ):
         """
         Adds a comment to an item in this dataset,
@@ -417,10 +529,14 @@ class RemoteDatasetV2(RemoteDataset):
         """
         if not slot_name:
             if len(item.slots) != 1:
-                raise ValueError(f"Unable to infer slot for '{item.id}', has multiple slots: {','.join(item.slots)}")
+                raise ValueError(
+                    f"Unable to infer slot for '{item.id}', has multiple slots: {','.join(item.slots)}"
+                )
             slot_name = item.slots[0]["slot_name"]
 
-        self.client.api_v2.post_comment(item.id, text, x, y, w, h, slot_name, team_slug=self.team)
+        self.client.api_v2.post_comment(
+            item.id, text, x, y, w, h, slot_name, team_slug=self.team
+        )
 
     def import_annotation(self, item_id: ItemId, payload: Dict[str, Any]) -> None:
         """
@@ -435,7 +551,9 @@ class RemoteDatasetV2(RemoteDataset):
             `{"annotations": serialized_annotations, "overwrite": "false"}`
         """
 
-        self.client.api_v2.import_annotation(item_id, payload=payload, team_slug=self.team)
+        self.client.api_v2.import_annotation(
+            item_id, payload=payload, team_slug=self.team
+        )
 
     def _fetch_stages(self, stage_type):
         detailed_dataset = self.client.api_v2.get_dataset(self.dataset_id)
@@ -445,4 +563,272 @@ class RemoteDatasetV2(RemoteDataset):
         # currently we can only be part of one workflow
         workflow_id = workflow_ids[0]
         workflow = self.client.api_v2.get_workflow(workflow_id, team_slug=self.team)
-        return (workflow_id, [stage for stage in workflow["stages"] if stage["type"] == stage_type])
+        return (
+            workflow_id,
+            [stage for stage in workflow["stages"] if stage["type"] == stage_type],
+        )
+
+    def _build_image_annotation(
+        self, annotation_file: AnnotationFile, team_name: str
+    ) -> Dict[str, Any]:
+        return build_image_annotation(annotation_file, team_name)
+
+    def register(
+        self,
+        object_store: ObjectStore,
+        storage_keys: Union[List[str], Dict[str, List[str]]],
+        fps: Optional[Union[str, float]] = None,
+        multi_planar_view: bool = False,
+        preserve_folders: bool = False,
+        multi_slotted: bool = False,
+    ) -> Dict[str, List[str]]:
+        """
+        Register files from external storage in a Darwin dataset.
+
+        Parameters
+        ----------
+        object_store : ObjectStore
+            Object store to use for the registration.
+        storage_keys : List[str] | Dict[str, List[str]]
+            Either:
+            - Single-slotted items: A list of storage keys
+            - Multi-slotted items: A dictionary with keys as item names and values as lists of storage keys
+        fps : Optional[str], default: None
+            When the uploading file is a video, specify its framerate.
+        multi_planar_view : bool, default: False
+            Uses multiplanar view when uploading files.
+        preserve_folders : bool, default: False
+            Specify whether or not to preserve folder paths when uploading.
+        multi_slotted : bool, default: False
+            Specify whether the items are multi-slotted or not.
+
+        Returns
+        -------
+        Dict[str, List[str]]
+            A dictionary with the list of registered files.
+
+        Raises
+        ------
+        ValueError
+            If the type of ``storage_keys``:
+            - Isn't List[str] when ``multi_slotted`` is False.
+            - Isn't Dict[str, List[str]] when ``multi_slotted`` is True.
+        """
+        if multi_slotted:
+            try:
+                StorageKeyDictModel(storage_keys=storage_keys)  # type: ignore
+            except ValidationError as e:
+                print(
+                    f"Error validating storage keys: {e}\n\nPlease make sure your storage keys are a list of strings"
+                )
+                raise e
+            results = self.register_multi_slotted(
+                object_store,
+                storage_keys,  # type: ignore
+                fps,
+                multi_planar_view,
+                preserve_folders,
+            )
+            return results
+        else:
+            try:
+                StorageKeyListModel(storage_keys=storage_keys)  # type: ignore
+            except ValidationError as e:
+                print(
+                    f"Error validating storage keys: {e}\n\nPlease make sure your storage keys are a dictionary with keys as item names and values as lists of storage keys"
+                )
+                raise e
+            results = self.register_single_slotted(
+                object_store,
+                storage_keys,  # type: ignore
+                fps,
+                multi_planar_view,
+                preserve_folders,
+            )
+            return results
+
+    def register_single_slotted(
+        self,
+        object_store: ObjectStore,
+        storage_keys: List[str],
+        fps: Optional[Union[str, float]] = None,
+        multi_planar_view: bool = False,
+        preserve_folders: bool = False,
+    ) -> Dict[str, List[str]]:
+        """
+        Register files in the dataset in a single slot.
+
+        Parameters
+        ----------
+        object_store : ObjectStore
+            Object store to use for the registration.
+        storage_keys : List[str]
+            List of storage keys to register.
+        fps : Optional[str], default: None
+            When the uploading file is a video, specify its framerate.
+        multi_planar_view : bool, default: False
+            Uses multiplanar view when uploading files.
+        preserve_folders : bool, default: False
+            Specify whether or not to preserve folder paths when uploading
+
+        Returns
+        -------
+        Dict[str, List[str]]
+            A dictionary with the list of registered files.
+
+        Raises
+        ------
+        TypeError
+            If the file type of any storage keyis not supported.
+        """
+        items = []
+        for storage_key in storage_keys:
+            file_type = get_external_file_type(storage_key)
+            if not file_type:
+                raise TypeError(
+                    f"Unsupported file type for the following storage key: {storage_key}.\nPlease make sure your storage key ends with one of the supported extensions:\n{SUPPORTED_EXTENSIONS}"
+                )
+            item = {
+                "path": parse_external_file_path(storage_key, preserve_folders),
+                "type": file_type,
+                "storage_key": storage_key,
+                "name": (
+                    storage_key.split("/")[-1] if "/" in storage_key else storage_key
+                ),
+            }
+            if fps and file_type == "video":
+                item["fps"] = fps
+            if multi_planar_view and file_type == "dicom":
+                item["extract_views"] = "true"
+            items.append(item)
+
+        # Do not register more than 500 items in a single request
+        chunk_size = 500
+        chunked_items = chunk_items(items, chunk_size)
+        print(f"Registering {len(items)} items in chunks of {chunk_size} items...")
+        results = {
+            "registered": [],
+            "blocked": [],
+        }
+
+        for chunk in chunked_items:
+            payload = {
+                "items": chunk,
+                "dataset_slug": self.slug,
+                "storage_slug": object_store.name,
+            }
+            print(f"Registering {len(chunk)} items...")
+            response = self.client.api_v2.register_items(payload, team_slug=self.team)
+            for item in json.loads(response.text)["items"]:
+                item_info = f"Item {item['name']} registered with item ID {item['id']}"
+                results["registered"].append(item_info)
+            for item in json.loads(response.text)["blocked_items"]:
+                item_info = f"Item {item['name']} was blocked for the reason: {item['slots'][0]['reason']}"
+                results["blocked"].append(item_info)
+        print(
+            f"{len(results['registered'])} of {len(storage_keys)} items registered successfully"
+        )
+        if results["blocked"]:
+            print("The following items were blocked:")
+            for item in results["blocked"]:
+                print(f"  - {item}")
+        print(f"Reistration complete. Check your items in the dataset: {self.slug}")
+        return results
+
+    def register_multi_slotted(
+        self,
+        object_store: ObjectStore,
+        storage_keys: Dict[str, List[str]],
+        fps: Optional[Union[str, float]] = None,
+        multi_planar_view: bool = False,
+        preserve_folders: bool = False,
+    ) -> Dict[str, List[str]]:
+        """
+        Register files in the dataset in multiple slots.
+
+        Parameters
+        ----------
+        object_store : ObjectStore
+            Object store to use for the registration.
+        storage_keys : Dict[str, List[str]
+            Storage keys to register. The keys are the item names and the values are lists of storage keys.
+        fps : Optional[str], default: None
+            When the uploading file is a video, specify its framerate.
+        multi_planar_view : bool, default: False
+            Uses multiplanar view when uploading files.
+        preserve_folders : bool, default: False
+            Specify whether or not to preserve folder paths when uploading
+
+        Returns
+        -------
+        Dict[str, List[str]]
+            A dictionary with the list of registered files.
+
+        Raises
+        ------
+        TypeError
+            If the file type of any storage key is not supported.
+        """
+        items = []
+        for item in storage_keys:
+            slots = []
+            for storage_key in storage_keys[item]:
+                file_name = get_external_file_name(storage_key)
+                file_type = get_external_file_type(storage_key)
+                if not file_type:
+                    raise TypeError(
+                        f"Unsupported file type for the following storage key: {storage_key}.\nPlease make sure your storage key ends with one of the supported extensions:\n{SUPPORTED_EXTENSIONS}"
+                    )
+                slot = {
+                    "slot_name": file_name,
+                    "type": file_type,
+                    "storage_key": storage_key,
+                    "file_name": file_name,
+                }
+                if fps and file_type == "video":
+                    slot["fps"] = fps
+                if multi_planar_view and file_type == "dicom":
+                    slot["extract_views"] = "true"
+                slots.append(slot)
+            items.append(
+                {
+                    "slots": slots,
+                    "name": item,
+                    "path": parse_external_file_path(
+                        storage_keys[item][0], preserve_folders
+                    ),
+                }
+            )
+
+        # Do not register more than 500 items in a single request
+        chunk_size = 500
+        chunked_items = chunk_items(items, chunk_size)
+        print(f"Registering {len(items)} items in chunks of {chunk_size} items...")
+        results = {
+            "registered": [],
+            "blocked": [],
+        }
+
+        for chunk in chunked_items:
+            payload = {
+                "items": chunk,
+                "dataset_slug": self.slug,
+                "storage_slug": object_store.name,
+            }
+            print(f"Registering {len(chunk)} items...")
+            response = self.client.api_v2.register_items(payload, team_slug=self.team)
+            for item in json.loads(response.text)["items"]:
+                item_info = f"Item {item['name']} registered with item ID {item['id']}"
+                results["registered"].append(item_info)
+            for item in json.loads(response.text)["blocked_items"]:
+                item_info = f"Item {item['name']} was blocked for the reason: {item['slots'][0]['reason']}"
+                results["blocked"].append(item_info)
+        print(
+            f"{len(results['registered'])} of {len(storage_keys)} items registered successfully"
+        )
+        if results["blocked"]:
+            print("The following items were blocked:")
+            for item in results["blocked"]:
+                print(f"  - {item}")
+        print(f"Reistration complete. Check your items in the dataset: {self.slug}")
+        return results

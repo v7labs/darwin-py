@@ -6,11 +6,12 @@ __pycache__/
 
 output/
 data/
+!tests/darwin/data
 darwin_py.egg-info/PKG-INFO
 
 *.png
 *.jpeg
-*.jpg 
+*.jpg
 *.bpm
 *.mov
 *.mp4
@@ -125,8 +126,8 @@ celerybeat.pid
 *.sage.py
 
 # Environments
-.env
-.venv
+.env*
+.venv*
 env/
 venv/
 ENV/
@@ -161,3 +162,26 @@ cython_debug/
 environment.yml
 
 .DS_Store
+
+test_output_*
+
+
+!tests/darwin/data/*.png
+!darwin/future/tests/data
+# scripts
+test.py
+
+# pyenv
+.python-version
+
+# scripts
+scripts/
+
+.ruff_cache/
+
+!darwin/future/tests/data_objects/workflow/data
+!tests/darwin/dataset/data
+
+*test_results.xml
+version.txt
+!e2e_tests/data

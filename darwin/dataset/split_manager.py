@@ -1,10 +1,13 @@
+import math
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Set, Tuple
 
 import numpy as np
+
 from darwin.dataset.utils import extract_classes, get_release_path
 from darwin.datatypes import PathLike
+from darwin.utils import get_annotation_files_from_dir
 
 
 @dataclass
@@ -131,7 +134,7 @@ def split_dataset(
     # List all annotation files in release
     annotation_path = release_path / "annotations"
     assert annotation_path.exists()
-    annotation_files = list(annotation_path.glob("**/*.json"))
+    annotation_files = list(get_annotation_files_from_dir(annotation_path))
 
     # Prepare the "lists" folder, which is where we are going to save the split files
     lists_path = release_path / "lists"
@@ -139,8 +142,8 @@ def split_dataset(
 
     # Compute sizes of each dataset partition
     dataset_size: int = len(annotation_files)
-    val_size: int = int(val_percentage * dataset_size)
-    test_size: int = int(test_percentage * dataset_size)
+    val_size: int = math.ceil(val_percentage * dataset_size)
+    test_size: int = math.ceil(test_percentage * dataset_size)
     train_size: int = dataset_size - val_size - test_size
     split_id = f"{train_size}_{val_size}_{test_size}"
 
@@ -226,7 +229,12 @@ def _stratified_split(
         return
 
     for stratified_type in stratified_types:
-        _, idx_to_classes = extract_classes(annotation_path, stratified_type)
+        if stratified_type == "bounding_box":
+            class_annotation_types = [stratified_type, "polygon"]
+        else:
+            class_annotation_types = stratified_type
+
+        _, idx_to_classes = extract_classes(annotation_path, class_annotation_types)
         if len(idx_to_classes) == 0:
             continue
 
@@ -250,13 +258,32 @@ def _stratified_split(
             else:
                 test_indices.append(idx)
 
-        _write_to_file(annotation_path, annotation_files, split[stratified_type]["train"], train_indices)
-        _write_to_file(annotation_path, annotation_files, split[stratified_type]["val"], val_indices)
-        _write_to_file(annotation_path, annotation_files, split[stratified_type]["test"], test_indices)
+        _write_to_file(
+            annotation_path,
+            annotation_files,
+            split[stratified_type]["train"],
+            train_indices,
+        )
+        _write_to_file(
+            annotation_path,
+            annotation_files,
+            split[stratified_type]["val"],
+            val_indices,
+        )
+        _write_to_file(
+            annotation_path,
+            annotation_files,
+            split[stratified_type]["test"],
+            test_indices,
+        )
 
 
 def _stratify_samples(
-    idx_to_classes: Dict[int, Set[str]], split_seed: int, train_size: int, val_size: int, test_size: int
+    idx_to_classes: Dict[int, Set[str]],
+    split_seed: int,
+    train_size: int,
+    val_size: int,
+    test_size: int,
 ) -> Tuple[List[int], List[int], List[int]]:
     """Splits the list of indices into train, val and test according to their labels (stratified)
 
@@ -290,8 +317,8 @@ def _stratify_samples(
     # Extract entries whose support set is 1 (it would make sklearn crash) and append the to train later
     unique_labels, count = np.unique(labels, return_counts=True)
     single_files = []
-    for l in unique_labels[count == 1]:
-        index = np.where(labels == l)[0][0]
+    for label in unique_labels[count == 1]:
+        index = np.where(labels == label)[0][0]
         single_files.append(file_indices[index])
         labels = np.delete(labels, index)
         file_indices = np.delete(file_indices, index)
@@ -328,7 +355,11 @@ def _stratify_samples(
     # Remove duplicates within the same set
     # NOTE: doing that earlier (e.g. in _remove_cross_contamination()) would produce mathematical
     # mistakes in the class balancing between validation and test sets.
-    return (list(set(X_train.astype(int))), list(set(X_val.astype(int))), list(set(X_test.astype(int))))
+    return (
+        list(set(X_train.astype(int))),
+        list(set(X_val.astype(int))),
+        list(set(X_test.astype(int))),
+    )
 
 
 def _remove_cross_contamination(
@@ -388,20 +419,27 @@ def _unique(array: np.ndarray) -> np.ndarray:
     return array[sorted(indexes)]
 
 
-def _write_to_file(annotation_path: Path, annotation_files: List[Path], file_path: Path, split_idx: Iterable) -> None:
+def _write_to_file(
+    annotation_path: Path,
+    annotation_files: List[Path],
+    file_path: Path,
+    split_idx: Iterable,
+) -> None:
     with open(str(file_path), "w") as f:
         for i in split_idx:
-            # To deal with recursive search, we want to write the difference between the annotation path
-            # and its parent, without the file extension
-            stem = str(annotation_files[i]).replace(f"{annotation_path}/", "").split(".json")[0]
-            f.write(f"{stem}\n")
+            annotation_filepath = annotation_files[i]
+            f.write(f"{annotation_filepath}\n")
 
 
 def _validate_split(val_percentage: float, test_percentage: float) -> None:
     if val_percentage is None or not 0 < val_percentage < 1:
-        raise ValueError(f"Invalid validation percentage ({val_percentage}). Must be a float x, where 0 < x < 1.")
+        raise ValueError(
+            f"Invalid validation percentage ({val_percentage}). Must be a float x, where 0 < x < 1."
+        )
     if test_percentage is None or not 0 < test_percentage < 1:
-        raise ValueError(f"Invalid test percentage ({test_percentage}). Must be a float x, where 0 < x < 1.")
+        raise ValueError(
+            f"Invalid test percentage ({test_percentage}). Must be a float x, where 0 < x < 1."
+        )
     if val_percentage + test_percentage >= 1:
         raise ValueError(
             f"Invalid combination of validation ({val_percentage}) and test ({test_percentage}) percentages. "
@@ -410,18 +448,23 @@ def _validate_split(val_percentage: float, test_percentage: float) -> None:
 
 
 def _build_split(
-    split_path: Path, stratified_types: List[str], partitions: List[str] = ["train", "val", "test"]
+    split_path: Path,
+    stratified_types: List[str],
+    partitions: List[str] = ["train", "val", "test"],
 ) -> Split:
     split = Split()
 
-    split.random = {partition: split_path / f"random_{partition}.txt" for partition in partitions}
+    split.random = {
+        partition: split_path / f"random_{partition}.txt" for partition in partitions
+    }
     if len(stratified_types) == 0:
         return split
 
     stratified_dict: Dict[str, Dict[str, Path]] = {}
     for stratified_type in stratified_types:
         stratified_dict[stratified_type] = {
-            partition: split_path / f"stratified_{stratified_type}_{partition}.txt" for partition in partitions
+            partition: split_path / f"stratified_{stratified_type}_{partition}.txt"
+            for partition in partitions
         }
     split.stratified = stratified_dict
     return split

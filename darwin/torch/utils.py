@@ -4,15 +4,50 @@ from pathlib import Path
 from typing import Iterable, List, Optional, Tuple
 
 import numpy as np
+import torch
+from numpy.typing import ArrayLike
+from upolygon import draw_polygon
+
 from darwin.cli_functions import _error, _load_client
 from darwin.dataset.identifier import DatasetIdentifier
 from darwin.datatypes import Segment
-from upolygon import draw_polygon
-
-import torch
 
 
-def convert_segmentation_to_mask(segmentations: List[Segment], height: int, width: int) -> torch.Tensor:
+def flatten_masks_by_category(masks: torch.Tensor, cats: List[int]) -> torch.Tensor:
+    """
+    Takes a list of masks and flattens into a single mask output with category id's overlaid into one tensor.
+    Overlapping sections of masks are replaced with the top most annotation in that position
+    Parameters
+    ----------
+    masks : torch.Tensor
+        lists of masks with shape [x, image_height, image_width] where x is the number of categories
+    cats : List[int]
+        int list of category id's with len(x)
+    Returns
+    -------
+    torch.Tensor
+        Flattened mask of category id's
+    """
+    assert isinstance(masks, torch.Tensor)
+    assert isinstance(cats, List)
+    assert masks.shape[0] == len(cats)
+    order_of_polygons = list(range(1, len(cats) + 1))
+    polygon_mapping = {order: cat for cat, order in zip(cats, order_of_polygons)}
+    BACKGROUND: int = 0
+    polygon_mapping[BACKGROUND] = 0
+    # Uses matrix multiplication here with `masks` being a binary array of same dimensions as image
+    # and polygon orders being overlaid onto the relevant mask
+    order_tensor = torch.as_tensor(order_of_polygons, dtype=masks.dtype)
+    flattened, _ = (masks * order_tensor[:, None, None]).max(dim=0)
+    # The mask is now flattened in order of the polygons but needs to be converted back to the categories
+    # vectorize the dictionary to return the original category id's
+    mapped = np.vectorize(polygon_mapping.__getitem__)(flattened)
+    return torch.as_tensor(mapped, dtype=masks.dtype)
+
+
+def convert_segmentation_to_mask(
+    segmentations: List[Segment], height: int, width: int
+) -> torch.Tensor:
     """
     Converts a polygon represented as a sequence of coordinates into a mask.
 
@@ -40,7 +75,7 @@ def convert_segmentation_to_mask(segmentations: List[Segment], height: int, widt
     return torch.stack(masks)
 
 
-def polygon_area(x: np.ndarray, y: np.ndarray) -> float:
+def polygon_area(x: ArrayLike, y: ArrayLike) -> float:
     """
     Returns the area of the input polygon, represented by two numpy arrays for x and y coordinates.
 
@@ -139,7 +174,9 @@ def detectron2_register_dataset(
     if partition:
         catalog_name += f"_{partition}"
 
-    classes = get_classes(dataset_path=dataset_path, release_name=release_name, annotation_type="polygon")
+    classes = get_classes(
+        dataset_path=dataset_path, release_name=release_name, annotation_type="polygon"
+    )
 
     DatasetCatalog.register(
         catalog_name,
@@ -160,3 +197,40 @@ def detectron2_register_dataset(
     if evaluator_type:
         MetadataCatalog.get(catalog_name).set(evaluator_type=evaluator_type)
     return catalog_name
+
+
+def clamp_bbox_to_image_size(annotations, img_width, img_height, format="xywh"):
+    """
+    Clamps bounding boxes in annotations to the given image dimensions.
+
+    :param annotations: Dictionary containing bounding box coordinates in 'boxes' key.
+    :param img_width: Width of the image.
+    :param img_height: Height of the image.
+    :param format: Format of the bounding boxes, either "xywh" or "xyxy".
+    :return: Annotations with clamped bounding boxes.
+
+    The function modifies the input annotations dictionary to clamp the bounding box coordinates
+    based on the specified format, ensuring they lie within the image dimensions.
+    """
+    boxes = annotations["boxes"]
+
+    if format == "xyxy":
+        boxes[:, 0::2].clamp_(min=0, max=img_width - 1)
+        boxes[:, 1::2].clamp_(min=0, max=img_height - 1)
+
+    elif format == "xywh":
+        # First, clamp the x and y coordinates
+        boxes[:, 0].clamp_(min=0, max=img_width - 1)
+        boxes[:, 1].clamp_(min=0, max=img_height - 1)
+        # Then, clamp the width and height
+        boxes[:, 2].clamp_(
+            min=torch.tensor(0), max=img_width - boxes[:, 0] - 1
+        )  # -1 since we images are zero-indexed
+        boxes[:, 3].clamp_(
+            min=torch.tensor(0), max=img_height - boxes[:, 1] - 1
+        )  # -1 since we images are zero-indexed
+    else:
+        raise ValueError(f"Unsupported bounding box format: {format}")
+
+    annotations["boxes"] = boxes
+    return annotations

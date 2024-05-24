@@ -1,4 +1,3 @@
-import json
 from functools import partial, reduce
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Set, cast
@@ -18,6 +17,7 @@ from darwin.datatypes import (
     make_tag,
 )
 from darwin.importer.formats.labelbox_schemas import labelbox_export
+from darwin.utils import attempt_decode
 
 
 def parse_path(path: Path) -> Optional[List[AnnotationFile]]:
@@ -85,31 +85,41 @@ def parse_path(path: Path) -> Optional[List[AnnotationFile]]:
     """
     if path.suffix != ".json":
         return None
+    data = attempt_decode(path)
+    validate(data, schema=labelbox_export)
+    convert_with_path = partial(_convert, path=path)
 
-    with path.open() as f:
-        data = json.load(f)
-        validate(data, schema=labelbox_export)
-        convert_with_path = partial(_convert, path=path)
-
-        return _map_list(convert_with_path, data)
+    return _map_list(convert_with_path, data)
 
 
 def _convert(file_data: Dict[str, Any], path) -> AnnotationFile:
     filename: str = str(file_data.get("External ID"))
     label: Dict[str, Any] = cast(Dict[str, Any], file_data.get("Label"))
-    label_objects: List[Dict[str, Any]] = cast(List[Dict[str, Any]], label.get("objects"))
-    label_classifications: List[Dict[str, Any]] = cast(List[Dict[str, Any]], label.get("classifications"))
+    label_objects: List[Dict[str, Any]] = cast(
+        List[Dict[str, Any]], label.get("objects")
+    )
+    label_classifications: List[Dict[str, Any]] = cast(
+        List[Dict[str, Any]], label.get("classifications")
+    )
 
     classification_annotations: List[Annotation] = []
     if len(label_classifications) > 0:
-        classification_annotations = _flat_map_list(_map_list(_convert_label_classifications, label_classifications))
+        classification_annotations = _flat_map_list(
+            _map_list(_convert_label_classifications, label_classifications)
+        )
 
-    object_annotations: List[Annotation] = _map_list(_convert_label_objects, label_objects)
+    object_annotations: List[Annotation] = _map_list(
+        _convert_label_objects, label_objects
+    )
     annotations: List[Annotation] = object_annotations + classification_annotations
 
     classes: Set[AnnotationClass] = set(map(_get_class, annotations))
     return AnnotationFile(
-        annotations=annotations, path=path, filename=filename, annotation_classes=classes, remote_path="/"
+        annotations=annotations,
+        path=path,
+        filename=filename,
+        annotation_classes=classes,
+        remote_path="/",
     )
 
 
@@ -175,7 +185,9 @@ def _to_line_annotation(line: List[Point], title: str) -> Annotation:
     return make_line(title, line, None)
 
 
-def _to_tag_annotations_from_radio_box(question: str, radio_button: Dict[str, Any]) -> Annotation:
+def _to_tag_annotations_from_radio_box(
+    question: str, radio_button: Dict[str, Any]
+) -> Annotation:
     answer: str = str(radio_button.get("value"))
     return make_tag(f"{question}:{answer}")
 

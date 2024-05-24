@@ -1,0 +1,45 @@
+{
+    "assignable_users": [
+        {
+            "stage_id": "0fa1ae43-fb46-44d7-bf85-b78e81d0d02f",
+            "user_id": 100
+        }
+    ],
+    "config": {
+        "allowed_class_ids": null,
+        "annotation_group_id": null,
+        "assignable_to": "manual",
+        "authorization_header": null,
+        "auto_instantiate": false,
+        "champion_stage_id": null,
+        "class_mapping": [],
+        "dataset_id": null,
+        "from_non_default_v1_template": null,
+        "include_annotations": false,
+        "initial": false,
+        "iou_thresholds": null,
+        "model_id": null,
+        "model_type": "gust",
+        "parallel_stage_ids": null,
+        "readonly": false,
+        "retry_if_fails": false,
+        "rules": [],
+        "skippable": false,
+        "test_stage_id": null,
+        "threshold": null,
+        "url": null,
+        "x": 20,
+        "y": 20
+    },
+    "edges": [
+        {
+            "id": "e69d3ebe-6ab9-4159-b44f-2bf84d29bb20",
+            "name": "default",
+            "source_stage_id": "e69d3ebe-6ab9-4159-b44f-2bf84d29bb20",
+            "target_stage_id": "5e0bc6aa-22fa-4845-a67c-0f1adfe46b5c"
+        }
+    ],
+    "id": "e69d3ebe-6ab9-4159-b44f-2bf84d29bb20",
+    "name": "Annotate",
+    "type": "annotate"
+}

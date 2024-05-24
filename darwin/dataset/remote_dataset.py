@@ -1,4 +1,4 @@
-import json
+import os
 import shutil
 import tempfile
 import zipfile
@@ -13,9 +13,13 @@ from typing import (
     Iterator,
     List,
     Optional,
+    Sequence,
     Tuple,
     Union,
 )
+
+import orjson as json
+from rich.console import Console
 
 from darwin.dataset.download_manager import download_all_images_from_annotations
 from darwin.dataset.identifier import DatasetIdentifier
@@ -33,15 +37,13 @@ from darwin.dataset.utils import (
     get_classes,
     is_unix_like_os,
     make_class_lists,
-    sanitize_filename,
 )
 from darwin.datatypes import AnnotationClass, AnnotationFile, ItemId, PathLike, Team
-from darwin.exceptions import NotFound, UnsupportedExportFormat
+from darwin.exceptions import MissingDependency, NotFound, UnsupportedExportFormat
 from darwin.exporter.formats.darwin import build_image_annotation
 from darwin.item import DatasetItem
 from darwin.item_sorter import ItemSorter
 from darwin.utils import parse_darwin_json, split_video_annotation, urljoin
-from rich.console import Console
 
 if TYPE_CHECKING:
     from darwin.client import Client
@@ -105,6 +107,7 @@ class RemoteDataset(ABC):
         item_count: int = 0,
         progress: float = 0,
         version: int = 1,
+        release: Optional[str] = None,
     ):
         self.team = team
         self.name = name
@@ -116,17 +119,19 @@ class RemoteDataset(ABC):
         self.annotation_types: Optional[List[Dict[str, Any]]] = None
         self.console: Console = Console()
         self.version = version
+        self.release = release
 
     @abstractmethod
     def push(
         self,
-        files_to_upload: Optional[List[Union[PathLike, LocalFile]]],
+        files_to_upload: Optional[Sequence[Union[PathLike, LocalFile]]],
         *,
         blocking: bool = True,
         multi_threaded: bool = True,
         max_workers: Optional[int] = None,
         fps: int = 0,
         as_frames: bool = False,
+        extract_views: bool = False,
         files_to_exclude: Optional[List[PathLike]] = None,
         path: Optional[str] = None,
         preserve_folders: bool = False,
@@ -148,13 +153,15 @@ class RemoteDataset(ABC):
         annotations_path: Path = release_dir / "annotations"
 
         for count, annotation_file in enumerate(annotations_path.glob("*.json")):
-            darwin_annotation: Optional[AnnotationFile] = parse_darwin_json(annotation_file, count)
+            darwin_annotation: Optional[AnnotationFile] = parse_darwin_json(
+                annotation_file, count
+            )
             if not darwin_annotation or not darwin_annotation.is_video:
                 continue
 
             frame_annotations = split_video_annotation(darwin_annotation)
             for frame_annotation in frame_annotations:
-                annotation = build_image_annotation(frame_annotation)
+                annotation = self._build_image_annotation(frame_annotation, self.team)
 
                 video_frame_annotations_path = annotations_path / annotation_file.stem
                 video_frame_annotations_path.mkdir(exist_ok=True, parents=True)
@@ -162,7 +169,8 @@ class RemoteDataset(ABC):
                 stem = Path(frame_annotation.filename).stem
                 output_path = video_frame_annotations_path / f"{stem}.json"
                 with output_path.open("w") as f:
-                    json.dump(annotation, f)
+                    op = json.dumps(annotation).decode("utf-8")
+                    f.write(op)
 
             # Finally delete video annotations
             annotation_file.unlink()
@@ -175,7 +183,7 @@ class RemoteDataset(ABC):
         *,
         release: Optional[Release] = None,
         blocking: bool = True,
-        multi_threaded: bool = True,
+        multi_processed: bool = True,
         only_annotations: bool = False,
         force_replace: bool = False,
         remove_extra: bool = False,
@@ -183,6 +191,8 @@ class RemoteDataset(ABC):
         subset_folder_name: Optional[str] = None,
         use_folders: bool = False,
         video_frames: bool = False,
+        force_slots: bool = False,
+        ignore_slots: bool = False,
     ) -> Tuple[Optional[Callable[[], Iterator[Any]]], int]:
         """
         Downloads a remote dataset (images and annotations) to the datasets directory.
@@ -193,7 +203,7 @@ class RemoteDataset(ABC):
             The release to pull.
         blocking : bool, default: True
             If False, the dataset is not downloaded and a generator function is returned instead.
-        multi_threaded : bool, default: True
+        multi_processed : bool, default: True
             Uses multiprocessing to download the dataset in parallel. If blocking is False this has no effect.
         only_annotations : bool, default: False
             Download only the annotations and no corresponding images.
@@ -211,6 +221,8 @@ class RemoteDataset(ABC):
             Recreates folders from the dataset.
         video_frames : bool, default: False
             Pulls video frames images instead of video files.
+        force_slots: bool
+            Pulls all slots of items into deeper file structure ({prefix}/{item_name}/{slot_name}/{file_name})
 
         Returns
         -------
@@ -226,10 +238,13 @@ class RemoteDataset(ABC):
         ValueError
             If darwin in unable to get ``Team`` configuration.
         """
+
+        console = self.console or Console()
+
         if release is None:
             release = self.get_release()
 
-        if release.format != "json":
+        if release.format != "json" and release.format != "darwin_json_2":
             raise UnsupportedExportFormat(release.format)
 
         release_dir = self.local_releases_path / release.name
@@ -246,22 +261,59 @@ class RemoteDataset(ABC):
                 if subset_filter_annotations_function is not None:
                     subset_filter_annotations_function(tmp_dir)
                     if subset_folder_name is None:
-                        subset_folder_name = datetime.now().strftime("%m/%d/%Y_%H:%M:%S")
-                annotations_dir: Path = release_dir / (subset_folder_name or "") / "annotations"
+                        subset_folder_name = datetime.now().strftime(
+                            "%m/%d/%Y_%H:%M:%S"
+                        )
+                annotations_dir: Path = (
+                    release_dir / (subset_folder_name or "") / "annotations"
+                )
                 # Remove existing annotations if necessary
                 if annotations_dir.exists():
                     try:
                         shutil.rmtree(annotations_dir)
                     except PermissionError:
-                        print(f"Could not remove dataset in {annotations_dir}. Permission denied.")
+                        print(
+                            f"Could not remove dataset in {annotations_dir}. Permission denied."
+                        )
                 annotations_dir.mkdir(parents=True, exist_ok=False)
+                stems: dict = {}
+
+                # If properties were exported, move the metadata.json file to the annotations folder
+                if (tmp_dir / ".v7").exists():
+                    metadata_file = tmp_dir / ".v7" / "metadata.json"
+                    metadata_dir = annotations_dir / ".v7"
+                    metadata_dir.mkdir(parents=True, exist_ok=True)
+                    shutil.move(str(metadata_file), str(metadata_dir / "metadata.json"))
+
                 # Move the annotations into the right folder and rename them to have the image
                 # original filename as contained in the json
                 for annotation_path in tmp_dir.glob("*.json"):
-                    with annotation_path.open() as file:
-                        annotation = json.load(file)
-                    filename = sanitize_filename(Path(annotation["image"]["filename"]).stem)
-                    destination_name = annotations_dir / f"{filename}{annotation_path.suffix}"
+                    annotation = parse_darwin_json(annotation_path, count=None)
+                    if annotation is None:
+                        continue
+
+                    if video_frames and any(
+                        not slot.frame_urls for slot in annotation.slots
+                    ):
+                        # will raise if not installed via pip install darwin-py[ocv]
+                        try:
+                            from cv2 import (
+                                VideoCapture,  # pylint: disable=import-outside-toplevel
+                            )
+                        except ImportError as e:
+                            raise MissingDependency(
+                                "Missing Dependency: OpenCV required for Video Extraction. Install with `pip install darwin-py\[ocv]`"
+                            ) from e
+                    filename = Path(annotation.filename).stem
+                    if filename in stems:
+                        stems[filename] += 1
+                        filename = f"{filename}_{stems[filename]}"
+                    else:
+                        stems[filename] = 1
+
+                    destination_name = (
+                        annotations_dir / f"{filename}{annotation_path.suffix}"
+                    )
                     shutil.move(str(annotation_path), str(destination_name))
 
         # Extract the list of classes and create the text files
@@ -276,7 +328,9 @@ class RemoteDataset(ABC):
                 target_link: Path = self.local_releases_path / release_dir.name
                 latest_dir.symlink_to(target_link)
             except OSError:
-                self.console.log(f"Could not mark release {release.name} as latest. Continuing...")
+                self.console.log(
+                    f"Could not mark release {release.name} as latest. Continuing..."
+                )
 
         if only_annotations:
             # No images will be downloaded
@@ -291,20 +345,53 @@ class RemoteDataset(ABC):
         # Create the generator with the download instructions
         progress, count = download_all_images_from_annotations(
             api_key=api_key,
-            api_url=self.client.url,
             annotations_path=annotations_dir,
             images_path=self.local_images_path,
             force_replace=force_replace,
             remove_extra=remove_extra,
             use_folders=use_folders,
             video_frames=video_frames,
+            force_slots=force_slots,
+            ignore_slots=ignore_slots,
         )
         if count == 0:
             return None, count
 
         # If blocking is selected, download the dataset on the file system
         if blocking:
-            exhaust_generator(progress=progress(), count=count, multi_threaded=multi_threaded)
+            max_workers = None
+            env_max_workers = os.getenv("DARWIN_DOWNLOAD_FILES_CONCURRENCY")
+            if env_max_workers and int(env_max_workers) > 0:
+                max_workers = int(env_max_workers)
+
+            console.print(
+                f"Going to download {str(count)} files to {self.local_images_path.as_posix()} ."
+            )
+            successes, errors = exhaust_generator(
+                progress=progress(),
+                count=count,
+                multi_processed=multi_processed,
+                worker_count=max_workers,
+            )
+            if errors:
+                self.console.print(
+                    f"Encountered errors downloading {len(errors)} files"
+                )
+            for error in errors:
+                self.console.print(f"\t - {error}")
+
+            downloaded_file_count = len(
+                [
+                    f
+                    for f in self.local_images_path.rglob("*")
+                    if f.is_file() and not f.name.startswith(".")
+                ]
+            )
+
+            console.print(
+                f"Total file count after download completed {str(downloaded_file_count)}."
+            )
+
             return None, count
         else:
             return progress, count
@@ -315,7 +402,9 @@ class RemoteDataset(ABC):
 
     @abstractmethod
     def fetch_remote_files(
-        self, filters: Optional[Dict[str, Union[str, List[str]]]] = None, sort: Optional[Union[str, ItemSorter]] = None
+        self,
+        filters: Optional[Dict[str, Union[str, List[str]]]] = None,
+        sort: Optional[Union[str, ItemSorter]] = None,
     ) -> Iterator[DatasetItem]:
         """
         Fetch and lists all files on the remote dataset.
@@ -424,7 +513,9 @@ class RemoteDataset(ABC):
 
         return None
 
-    def create_annotation_class(self, name: str, type: str, subtypes: List[str] = []) -> Dict[str, Any]:
+    def create_annotation_class(
+        self, name: str, type: str, subtypes: List[str] = []
+    ) -> Dict[str, Any]:
         """
         Creates an annotation class for this ``RemoteDataset``.
 
@@ -450,9 +541,13 @@ class RemoteDataset(ABC):
 
         type_ids: List[int] = []
         for annotation_type in [type] + subtypes:
-            type_id: Optional[int] = self.fetch_annotation_type_id_for_name(annotation_type)
+            type_id: Optional[int] = self.fetch_annotation_type_id_for_name(
+                annotation_type
+            )
             if not type_id and self.annotation_types is not None:
-                list_of_annotation_types = ", ".join([type["name"] for type in self.annotation_types])
+                list_of_annotation_types = ", ".join(
+                    [type["name"] for type in self.annotation_types]
+                )
                 raise ValueError(
                     f"Unknown annotation type: '{annotation_type}', valid values: {list_of_annotation_types}"
                 )
@@ -462,7 +557,9 @@ class RemoteDataset(ABC):
 
         return self.client.create_annotation_class(self.dataset_id, type_ids, name)
 
-    def add_annotation_class(self, annotation_class: Union[AnnotationClass, int]) -> Optional[Dict[str, Any]]:
+    def add_annotation_class(
+        self, annotation_class: Union[AnnotationClass, int]
+    ) -> Optional[Dict[str, Any]]:
         """
         Adds an annotation class to this ``RemoteDataset``.
 
@@ -489,13 +586,19 @@ class RemoteDataset(ABC):
         if isinstance(annotation_class, int):
             match = [cls for cls in all_classes if cls["id"] == annotation_class]
             if not match:
-                raise ValueError(f"Annotation class id: `{annotation_class}` does not exist in Team.")
+                raise ValueError(
+                    f"Annotation class id: `{annotation_class}` does not exist in Team."
+                )
         else:
-            annotation_class_type = annotation_class.annotation_internal_type or annotation_class.annotation_type
+            annotation_class_type = (
+                annotation_class.annotation_internal_type
+                or annotation_class.annotation_type
+            )
             match = [
                 cls
                 for cls in all_classes
-                if cls["name"] == annotation_class.name and annotation_class_type in cls["annotation_types"]
+                if cls["name"] == annotation_class.name
+                and annotation_class_type in cls["annotation_types"]
             ]
             if not match:
                 # We do not expect to reach here; as pervious logic divides annotation classes in imports
@@ -534,7 +637,9 @@ class RemoteDataset(ABC):
 
         classes_to_return = []
         for cls in all_classes:
-            belongs_to_current_dataset = any([dataset["id"] == self.dataset_id for dataset in cls["datasets"]])
+            belongs_to_current_dataset = any(
+                dataset["id"] == self.dataset_id for dataset in cls["datasets"]
+            )
             cls["available"] = belongs_to_current_dataset
             if team_wide or belongs_to_current_dataset:
                 classes_to_return.append(cls)
@@ -558,6 +663,7 @@ class RemoteDataset(ABC):
         annotation_class_ids: Optional[List[str]] = None,
         include_url_token: bool = False,
         include_authorship: bool = False,
+        version: Optional[str] = None,
     ) -> None:
         """
         Create a new release for this ``RemoteDataset``.
@@ -573,7 +679,9 @@ class RemoteDataset(ABC):
             membership or not?
         include_authorship : bool, default: False
             If set, include annotator and reviewer metadata for each annotation.
-
+        version : Optional[str], default: None, enum: ["1.0", "2.0"]
+            When used for V2 dataset, allows to force generation of either Darwin JSON 1.0 (Legacy) or newer 2.0.
+            Omit this option to get your team's default.
         """
 
     @abstractmethod
@@ -626,7 +734,10 @@ class RemoteDataset(ABC):
         if not releases:
             raise NotFound(str(self.identifier))
 
-        if name == "latest":
+        # overwrite default name with stored dataset.release if supplied
+        if self.release and name == "latest":
+            name = self.release
+        elif name == "latest":
             return next((release for release in releases if release.latest))
 
         for release in releases:
@@ -682,7 +793,9 @@ class RemoteDataset(ABC):
             make_default_split=make_default_split,
         )
 
-    def classes(self, annotation_type: str, release_name: Optional[str] = None) -> List[str]:
+    def classes(
+        self, annotation_type: str, release_name: Optional[str] = None
+    ) -> List[str]:
         """
         Returns the list of ``class_type`` classes.
 
@@ -704,7 +817,9 @@ class RemoteDataset(ABC):
             release = self.get_release("latest")
             release_name = release.name
 
-        return get_classes(self.local_path, release_name=release_name, annotation_type=annotation_type)
+        return get_classes(
+            self.local_path, release_name=release_name, annotation_type=annotation_type
+        )
 
     def annotations(
         self,
@@ -771,7 +886,9 @@ class RemoteDataset(ABC):
         """
 
     @abstractmethod
-    def post_comment(self, item: DatasetItem, text: str, x: float, y: float, w: float, h: float) -> None:
+    def post_comment(
+        self, item: DatasetItem, text: str, x: float, y: float, w: float, h: float
+    ) -> None:
         """
         Adds a comment to an item in this dataset. The comment will be added with a bounding box.
         Creates the workflow for said item if necessary.
@@ -805,6 +922,7 @@ class RemoteDataset(ABC):
             A dictionary with the annotation to import. The default format is:
             `{"annotations": serialized_annotations, "overwrite": "false"}`
         """
+        ...
 
     @property
     def remote_path(self) -> Path:
@@ -835,3 +953,8 @@ class RemoteDataset(ABC):
     def identifier(self) -> DatasetIdentifier:
         """The ``DatasetIdentifier`` of this ``RemoteDataset``."""
         return DatasetIdentifier(team_slug=self.team, dataset_slug=self.slug)
+
+    def _build_image_annotation(
+        self, annotation_file: AnnotationFile, team_name: str
+    ) -> Dict[str, Any]:
+        return build_image_annotation(annotation_file, team_name)

@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Optional, Union
 import yaml
 
 from darwin.datatypes import PathLike, Team
-from darwin.exceptions import InvalidTeam
+from darwin.exceptions import InvalidCompressionLevel, InvalidTeam
 
 
 class Config(object):
@@ -131,7 +131,27 @@ class Config(object):
             raise InvalidTeam()
         self.put("global/default_team", team)
 
-    def set_global(self, api_endpoint: str, base_url: str, default_team: Optional[str] = None) -> None:
+    def set_compression_level(self, level: int) -> None:
+        """
+        Sets the given compression level globally.
+
+        Parameters
+        ----------
+        level: int
+            The compression level.
+
+        Raises
+        ------
+        InvalidCompressionLevel
+            Compression level is out of supported range. Use number from 0 to 9 to avoid this issue.
+        """
+        if level < 0 or level > 9:
+            raise InvalidCompressionLevel(level)
+        self.put("global/payload_compression_level", level)
+
+    def set_global(
+        self, api_endpoint: str, base_url: str, default_team: Optional[str] = None
+    ) -> None:
         """
         Stores the url to access teams. If a default team is given, it also stores that team as the
         globaly default one.
@@ -150,7 +170,9 @@ class Config(object):
         if default_team:
             self.put("global/default_team", default_team)
 
-    def get_team(self, team: Optional[str] = None, raise_on_invalid_team: bool = True) -> Optional[Team]:
+    def get_team(
+        self, team: Optional[str] = None, raise_on_invalid_team: bool = True
+    ) -> Optional[Team]:
         """
         Returns the Team object from the team with the given slug if an authentication with an API
         key was performed earlier.
@@ -183,10 +205,15 @@ class Config(object):
                 raise InvalidTeam()
             else:
                 return None
-        default: bool = self.get("global/default_team") == team or len(list(self.get("teams").keys())) == 1
+        default: bool = (
+            self.get("global/default_team") == team
+            or len(list(self.get("teams").keys())) == 1
+        )
 
         datasets_dir = self.get(f"teams/{team}/datasets_dir")
-        return Team(slug=team, api_key=api_key, default=default, datasets_dir=datasets_dir)
+        return Team(
+            slug=team, api_key=api_key, default=default, datasets_dir=datasets_dir
+        )
 
     def get_default_team(self, raise_on_invalid_team: bool = True) -> Optional[Team]:
         """

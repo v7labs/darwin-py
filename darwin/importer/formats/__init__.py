@@ -11,4 +11,5 @@ supported_formats: List[str] = [
     "labelbox",
     "pascal_voc",
     "superannotate",
+    "nifti",
 ]

@@ -3,12 +3,14 @@ __all__ = ["main"]
 import getpass
 import os
 from argparse import ArgumentParser, Namespace
+from pathlib import Path
 
 import requests.exceptions
+from rich.console import Console
 
 import darwin.cli_functions as f
 from darwin import __version__
-from darwin.exceptions import InvalidTeam, Unauthenticated, Unauthorized
+from darwin.exceptions import GracefulExit, InvalidTeam, Unauthenticated, Unauthorized
 from darwin.options import Options
 
 
@@ -37,9 +39,23 @@ def main() -> None:
     except Unauthenticated:
         f._error("You need to specify a valid API key to do that action.")
     except InvalidTeam:
-        f._error("The team specified is not in the configuration, please authenticate first.")
+        f._error(
+            "The team specified is not in the configuration, please authenticate first."
+        )
     except requests.exceptions.ConnectionError:
-        f._error("Darwin seems unreachable, please try again in a minute or contact support.")
+        f._error(
+            "Darwin seems unreachable, please try again in a minute or contact support."
+        )
+    except GracefulExit as e:
+        f._error(e.message)
+    except Exception:  # Catch unhandled exceptions
+        console = Console()
+        console.print(
+            "An unexpected error occurred, please contact support, and send them the file."
+        )
+        console.print_exception()
+
+        exit(255)
 
 
 def _run(args: Namespace, parser: ArgumentParser) -> None:
@@ -48,16 +64,25 @@ def _run(args: Namespace, parser: ArgumentParser) -> None:
 
     # Authenticate user
     if args.command == "authenticate":
-        api_key = os.getenv("DARWIN_API_KEY")
+        api_key = os.getenv("DARWIN_API_KEY") or args.api_key
+        default_team = os.getenv("DARWIN_TEAM") or args.default_team
+        datasets_dir = os.getenv("DARWIN_DATASETS_DIR") or args.datasets_dir
         if api_key:
-            print("Using API key from DARWIN_API_KEY")
+            print("Using API key from args/env")
         else:
             api_key = getpass.getpass(prompt="API key: ", stream=None)
             api_key = api_key.strip()
             if api_key == "":
-                print("API Key needed, generate one for your team: https://darwin.v7labs.com/?settings=api-keys")
+                print(
+                    "API Key needed, generate one for your team: https://darwin.v7labs.com/?settings=api-keys"
+                )
                 return
-        f.authenticate(api_key)
+        if datasets_dir is not None:
+            print("Using datasets directory from args/env")
+            datasets_dir = Path(datasets_dir).resolve()
+        if default_team is not None:
+            print("Using default team from args/env")
+        f.authenticate(api_key, default_team, datasets_dir)
         print("Authentication succeeded.")
     # Select / List team
     elif args.command == "team":
@@ -67,6 +92,9 @@ def _run(args: Namespace, parser: ArgumentParser) -> None:
             f.current_team()
         else:
             f.list_teams()
+    # Set compression level
+    elif args.command == "compression":
+        f.set_compression_level(args.compression_level)
     # Version
     elif args.command == "version":
         print(__version__)
@@ -95,6 +123,7 @@ def _run(args: Namespace, parser: ArgumentParser) -> None:
                 args.fps,
                 args.path,
                 args.frames,
+                args.extract_views,
                 args.preserve_folders,
                 args.verbose,
             )
@@ -104,15 +133,42 @@ def _run(args: Namespace, parser: ArgumentParser) -> None:
         elif args.action == "report":
             f.dataset_report(args.dataset, args.granularity or "day", args.pretty)
         elif args.action == "export":
-            f.export_dataset(args.dataset, args.include_url_token, args.name, args.class_ids, args.include_authorship)
+            f.export_dataset(
+                args.dataset,
+                args.include_url_token,
+                args.name,
+                args.class_ids,
+                args.include_authorship,
+                args.version,
+            )
         elif args.action == "files":
-            f.list_files(args.dataset, args.status, args.path, args.only_filenames, args.sort_by)
+            f.list_files(
+                args.dataset, args.status, args.path, args.only_filenames, args.sort_by
+            )
         elif args.action == "releases":
             f.dataset_list_releases(args.dataset)
         elif args.action == "pull":
-            f.pull_dataset(args.dataset, args.only_annotations, args.folders, args.video_frames)
+            f.pull_dataset(
+                args.dataset,
+                args.only_annotations,
+                args.folders,
+                args.video_frames,
+                args.force_slots,
+                args.ignore_slots,
+            )
         elif args.action == "import":
-            f.dataset_import(args.dataset, args.format, args.files, args.append, not args.yes, args.delete_for_empty)
+            f.dataset_import(
+                args.dataset,
+                args.format,
+                args.files,
+                args.append,
+                not args.yes,
+                args.delete_for_empty,
+                args.import_annotators,
+                args.import_reviewers,
+                args.overwrite,
+                cpu_limit=args.cpu_limit,
+            )
         elif args.action == "convert":
             f.dataset_convert(args.dataset, args.format, args.output_dir)
         elif args.action == "set-file-status":
@@ -133,6 +189,14 @@ def _run(args: Namespace, parser: ArgumentParser) -> None:
                 args.w,
                 args.h,
             )
+    # Annotation schema validation
+    elif args.command == "validate":
+        f.validate_schemas(
+            location=args.location,
+            pattern=args.pattern,
+            silent=args.silent,
+            output=args.output,
+        )
 
 
 if __name__ == "__main__":

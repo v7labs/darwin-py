@@ -1,15 +1,22 @@
-import json
 import multiprocessing as mp
 from pathlib import Path
 from typing import Any, Dict, Iterator, List, Optional, Tuple
 
 import numpy as np
-from darwin.dataset.utils import get_classes, get_release_path, load_pil_image
-from darwin.utils import SUPPORTED_IMAGE_EXTENSIONS
 from PIL import Image as PILImage
 
+from darwin.dataset.utils import get_classes, get_release_path, load_pil_image
+from darwin.utils import (
+    SUPPORTED_IMAGE_EXTENSIONS,
+    get_annotation_files_from_dir,
+    get_image_path_from_stream,
+    is_stream_list_empty,
+    parse_darwin_json,
+    stream_darwin_json,
+)
 
-class LocalDataset(object):
+
+class LocalDataset:
     """
     Base class representing a V7 Darwin dataset that has been pulled locally already.
     It can be used with PyTorch dataloaders. See ``darwin.torch`` module for more specialized dataset classes, extending this one.
@@ -62,21 +69,8 @@ class LocalDataset(object):
         split: str = "default",
         split_type: str = "random",
         release_name: Optional[str] = None,
+        keep_empty_annotations: bool = False,
     ):
-        assert dataset_path is not None
-        release_path = get_release_path(dataset_path, release_name)
-        annotations_dir = release_path / "annotations"
-        assert annotations_dir.exists()
-        images_dir = dataset_path / "images"
-        assert images_dir.exists()
-
-        if partition not in ["train", "val", "test", None]:
-            raise ValueError("partition should be either 'train', 'val', or 'test'")
-        if split_type not in ["random", "stratified"]:
-            raise ValueError("split_type should be either 'random', 'stratified'")
-        if annotation_type not in ["tag", "polygon", "bounding_box"]:
-            raise ValueError("annotation_type should be either 'tag', 'bounding_box', or 'polygon'")
-
         self.dataset_path = dataset_path
         self.annotation_type = annotation_type
         self.images_path: List[Path] = []
@@ -84,35 +78,98 @@ class LocalDataset(object):
         self.original_classes = None
         self.original_images_path: Optional[List[Path]] = None
         self.original_annotations_path: Optional[List[Path]] = None
+        self.keep_empty_annotations = keep_empty_annotations
 
+        release_path, annotations_dir, images_dir = self._initial_setup(
+            dataset_path, release_name
+        )
+        self._validate_inputs(partition, split_type, annotation_type)
         # Get the list of classes
+
+        annotation_types = [self.annotation_type]
+        # We fetch bounding_boxes annotations from selected polygons as well
+        if self.annotation_type == "bounding_box":
+            annotation_types.append("polygon")
         self.classes = get_classes(
-            self.dataset_path, release_name, annotation_type=self.annotation_type, remove_background=True
+            self.dataset_path,
+            release_name,
+            annotation_type=annotation_types,
+            remove_background=True,
         )
         self.num_classes = len(self.classes)
-
-        stems = build_stems(release_path, annotations_dir, annotation_type, split, partition, split_type)
-
-        # Find all the annotations and their corresponding images
-        for stem in stems:
-            annotation_path = annotations_dir / f"{stem}.json"
-            images = []
-            for ext in SUPPORTED_IMAGE_EXTENSIONS:
-                image_path = images_dir / f"{stem}{ext}"
-                if image_path.exists():
-                    images.append(image_path)
-            if len(images) < 1:
-                raise ValueError(f"Annotation ({annotation_path}) does not have a corresponding image")
-            if len(images) > 1:
-                raise ValueError(f"Image ({stem}) is present with multiple extensions. This is forbidden.")
-            assert len(images) == 1
-            self.images_path.append(images[0])
-            self.annotations_path.append(annotation_path)
+        self._setup_annotations_and_images(
+            release_path,
+            annotations_dir,
+            images_dir,
+            annotation_type,
+            split,
+            partition,
+            split_type,
+            keep_empty_annotations,
+        )
 
         if len(self.images_path) == 0:
-            raise ValueError(f"Could not find any {SUPPORTED_IMAGE_EXTENSIONS} file", f" in {images_dir}")
+            raise ValueError(
+                f"Could not find any {SUPPORTED_IMAGE_EXTENSIONS} file",
+                f" in {images_dir}",
+            )
 
         assert len(self.images_path) == len(self.annotations_path)
+
+    def _validate_inputs(self, partition, split_type, annotation_type):
+        if partition not in ["train", "val", "test", None]:
+            raise ValueError("partition should be either 'train', 'val', or 'test'")
+        if split_type not in ["random", "stratified"]:
+            raise ValueError("split_type should be either 'random', 'stratified'")
+        if annotation_type not in ["tag", "polygon", "bounding_box"]:
+            raise ValueError(
+                "annotation_type should be either 'tag', 'bounding_box', or 'polygon'"
+            )
+
+    def _setup_annotations_and_images(
+        self,
+        release_path,
+        annotations_dir,
+        images_dir,
+        annotation_type,
+        split,
+        partition,
+        split_type,
+        keep_empty_annotations: bool = False,
+    ):
+        # Find all the annotations and their corresponding images
+        with_folders = any(item.is_dir() for item in images_dir.iterdir())
+        annotation_filepaths = get_annotation_filepaths(
+            release_path, annotations_dir, annotation_type, split, partition, split_type
+        )
+
+        for annotation_filepath in annotation_filepaths:
+            annotation_filepath = Path(annotation_filepath)
+            darwin_json = stream_darwin_json(annotation_filepath)
+            image_path = get_image_path_from_stream(
+                darwin_json, images_dir, annotation_filepath, with_folders
+            )
+            if image_path.exists():
+                if not keep_empty_annotations and is_stream_list_empty(
+                    darwin_json["annotations"]
+                ):
+                    continue
+                self.images_path.append(image_path)
+                self.annotations_path.append(annotation_filepath)
+                continue
+            else:
+                raise ValueError(
+                    f"Annotation ({annotation_filepath}) does not have a corresponding image, looking for image path: {image_path}"
+                )
+
+    def _initial_setup(self, dataset_path, release_name):
+        assert dataset_path is not None
+        release_path = get_release_path(dataset_path, release_name)
+        annotations_dir = release_path / "annotations"
+        assert annotations_dir.exists()
+        images_dir = dataset_path / "images"
+        assert images_dir.exists()
+        return release_path, annotations_dir, images_dir
 
     def get_img_info(self, index: int) -> Dict[str, Any]:
         """
@@ -136,10 +193,13 @@ class LocalDataset(object):
         """
         if not len(self.annotations_path):
             raise ValueError("There are no annotations downloaded.")
-
-        with self.annotations_path[index].open() as f:
-            data = json.load(f)["image"]
-            return data
+        parsed = parse_darwin_json(self.annotations_path[index], index)
+        return {
+            "image_id": index,
+            "image_path": str(self.images_path[index]),
+            "height": parsed.image_height,
+            "width": parsed.image_width,
+        }
 
     def get_height_and_width(self, index: int) -> Tuple[float, float]:
         """
@@ -156,10 +216,12 @@ class LocalDataset(object):
             A tuple where the first element is the ``height`` of the image and the second is the
             ``width``.
         """
-        data: Dict[str, Any] = self.get_img_info(index)
-        return data["height"], data["width"]
+        parsed = parse_darwin_json(self.annotations_path[index], index)
+        return parsed.image_height, parsed.image_width
 
-    def extend(self, dataset: "LocalDataset", extend_classes: bool = False) -> "LocalDataset":
+    def extend(
+        self, dataset: "LocalDataset", extend_classes: bool = False
+    ) -> "LocalDataset":
         """
         Extends the current dataset with another one.
 
@@ -189,9 +251,9 @@ class LocalDataset(object):
             raise ValueError("Annotation type of both datasets should match")
         if self.classes != dataset.classes and not extend_classes:
             raise ValueError(
-                f"Operation dataset_a + dataset_b could not be computed: classes "
-                f"should match. Use flag extend_classes=True to combine both lists "
-                f"of classes."
+                "Operation dataset_a + dataset_b could not be computed: classes "
+                "should match. Use flag extend_classes=True to combine both lists "
+                "of classes."
             )
         self.classes = list(set(self.classes).union(set(dataset.classes)))
 
@@ -248,27 +310,51 @@ class LocalDataset(object):
         Dict[str, Any]
             A dictionary containing the index and the filtered annotation.
         """
-        with self.annotations_path[index].open() as f:
-            data = json.load(f)
+        parsed = parse_darwin_json(self.annotations_path[index], index)
+        annotations = [] if parsed.is_video else parsed.annotations
+
         # Filter out unused classes and annotations of a different type
-        annotations = data["annotations"]
         if self.classes is not None:
-            annotations = [a for a in annotations if a["name"] in self.classes and self.annotation_type in a]
+            annotations = [
+                a
+                for a in annotations
+                if a.annotation_class.name in self.classes
+                and self.annotation_type_supported(a)
+            ]
         return {
             "image_id": index,
             "image_path": str(self.images_path[index]),
-            "height": data["image"]["height"],
-            "width": data["image"]["width"],
+            "height": parsed.image_height,
+            "width": parsed.image_width,
             "annotations": annotations,
         }
 
-    def measure_mean_std(self, multi_threaded: bool = True) -> Tuple[np.ndarray, np.ndarray]:
+    def annotation_type_supported(self, annotation) -> bool:
+        annotation_type = annotation.annotation_class.annotation_type
+        if self.annotation_type == "tag":
+            return annotation_type == "tag"
+        elif self.annotation_type == "bounding_box":
+            is_bounding_box = annotation_type == "bounding_box"
+            is_supported_polygon = (
+                annotation_type == "polygon" and "bounding_box" in annotation.data
+            )
+            return is_bounding_box or is_supported_polygon
+        elif self.annotation_type == "polygon":
+            return annotation_type == "polygon"
+        else:
+            raise ValueError(
+                "annotation_type should be either 'tag', 'bounding_box', or 'polygon'"
+            )
+
+    def measure_mean_std(
+        self, multi_processed: bool = True
+    ) -> Tuple[np.ndarray, np.ndarray]:
         """
         Computes mean and std of trained images, given the train loader.
 
         Parameters
         ----------
-        multi_threaded : bool, default: True
+        multi_processed : bool, default: True
             Uses multiprocessing to download the dataset in parallel.
 
         Returns
@@ -278,14 +364,16 @@ class LocalDataset(object):
         std : ndarray[double]
             Standard deviation (for each channel) of all pixels of the images in the input folder.
         """
-        if multi_threaded:
+        if multi_processed:
             # Set up a pool of workers
             with mp.Pool(mp.cpu_count()) as pool:
                 # Online mean
                 results = pool.map(self._return_mean, self.images_path)
                 mean = np.sum(np.array(results), axis=0) / len(self.images_path)
                 # Online image_classification deviation
-                results = pool.starmap(self._return_std, [[item, mean] for item in self.images_path])
+                results = pool.starmap(
+                    self._return_std, [[item, mean] for item in self.images_path]
+                )
                 std_sum = np.sum(np.array([item[0] for item in results]), axis=0)
                 total_pixel_count = np.sum(np.array([item[1] for item in results]))
                 std = np.sqrt(std_sum / total_pixel_count)
@@ -331,14 +419,20 @@ class LocalDataset(object):
     @staticmethod
     def _return_mean(image_path: Path) -> np.ndarray:
         img = np.array(load_pil_image(image_path))
-        mean = np.array([np.mean(img[:, :, 0]), np.mean(img[:, :, 1]), np.mean(img[:, :, 2])])
+        mean = np.array(
+            [np.mean(img[:, :, 0]), np.mean(img[:, :, 1]), np.mean(img[:, :, 2])]
+        )
         return mean / 255.0
 
     # Loads an image with OpenCV and returns the channel wise std of the image.
     @staticmethod
     def _return_std(image_path: Path, mean: np.ndarray) -> Tuple[np.ndarray, float]:
         img = np.array(load_pil_image(image_path)) / 255.0
-        m2 = np.square(np.array([img[:, :, 0] - mean[0], img[:, :, 1] - mean[1], img[:, :, 2] - mean[2]]))
+        m2 = np.square(
+            np.array(
+                [img[:, :, 0] - mean[0], img[:, :, 1] - mean[1], img[:, :, 2] - mean[2]]
+            )
+        )
         return np.sum(np.sum(m2, axis=1), 1), m2.size / 3.0
 
     def __getitem__(self, index: int):
@@ -358,7 +452,7 @@ class LocalDataset(object):
         )
 
 
-def build_stems(
+def get_annotation_filepaths(
     release_path: Path,
     annotations_dir: Path,
     annotation_type: str,
@@ -367,7 +461,7 @@ def build_stems(
     split_type: str = "random",
 ) -> Iterator[str]:
     """
-    Builds the stems for the given release with the given annotations as base.
+    Returns a list of annotation filepaths for the given release & partition.
 
     Parameters
     ----------
@@ -408,8 +502,7 @@ def build_stems(
     """
 
     if partition is None:
-        return (str(e.relative_to(annotations_dir).parent / e.stem) for e in sorted(annotations_dir.glob("**/*.json")))
-
+        return get_annotation_files_from_dir(annotations_dir)
     if split_type == "random":
         split_filename = f"{split_type}_{partition}.txt"
     elif split_type == "stratified":
@@ -419,9 +512,9 @@ def build_stems(
 
     split_path = release_path / "lists" / split / split_filename
     if split_path.is_file():
-        return (e.strip("\n\r") for e in split_path.open())
+        return (line.strip("\n\r") for line in split_path.open())
 
     raise FileNotFoundError(
-        f"could not find a dataset partition. "
-        f"Split the dataset using `split_dataset()` from `darwin.dataset.split_manager`"
+        "could not find a dataset partition. "
+        "Split the dataset using `split_dataset()` from `darwin.dataset.split_manager`"
     )
