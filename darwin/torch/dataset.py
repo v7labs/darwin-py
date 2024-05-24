@@ -1,21 +1,22 @@
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
+import torch
+from PIL import Image as PILImage
+from torch.functional import Tensor
+from torchvision.transforms.functional import to_tensor
+
 from darwin.cli_functions import _error, _load_client
-from darwin.dataset import LocalDataset
+from darwin.client import Client
 from darwin.dataset.identifier import DatasetIdentifier
+from darwin.dataset.local_dataset import LocalDataset
 from darwin.torch.transforms import (
     Compose,
     ConvertPolygonsToInstanceMasks,
     ConvertPolygonsToSemanticMask,
 )
-from darwin.torch.utils import polygon_area
+from darwin.torch.utils import clamp_bbox_to_image_size, polygon_area
 from darwin.utils import convert_polygons_to_sequences
-from PIL import Image as PILImage
-from torchvision.transforms.functional import to_tensor
-
-import torch
-from torch.functional import Tensor
 
 
 def get_dataset(
@@ -25,6 +26,7 @@ def get_dataset(
     split: str = "default",
     split_type: str = "random",
     transform: Optional[List] = None,
+    client: Optional[Client] = None,
 ) -> LocalDataset:
     """
     Creates and returns a ``LocalDataset``.
@@ -43,6 +45,8 @@ def get_dataset(
         Heuristic used to do the split ``[random, stratified]``.
     transform : Optional[List], default: None
         List of PyTorch transforms.
+    client : Optional[Client], default: None
+        Client to use to retrieve the dataset.
     """
     dataset_functions = {
         "classification": ClassificationDataset,
@@ -56,7 +60,8 @@ def get_dataset(
         return _error(f"dataset_type needs to be one of '{list_of_types}'")
 
     identifier = DatasetIdentifier.parse(dataset_slug)
-    client = _load_client(offline=True)
+    if client is None:
+        client = _load_client(offline=True)
 
     for p in client.list_local_datasets(team_slug=identifier.team_slug):
         if identifier.dataset_slug == p.name:
@@ -94,7 +99,9 @@ class ClassificationDataset(LocalDataset):
         be composed via torchvision.
     """
 
-    def __init__(self, transform: Optional[Union[Callable, List]] = None, **kwargs):
+    def __init__(
+        self, transform: Optional[Union[Callable, List]] = None, **kwargs
+    ) -> None:
         super().__init__(annotation_type="tag", **kwargs)
 
         if transform is not None and isinstance(transform, list):
@@ -147,15 +154,20 @@ class ClassificationDataset(LocalDataset):
 
         data = self.parse_json(index)
         annotations = data.pop("annotations")
-        tags = [a["name"] for a in annotations if "tag" in a]
+        tags = [
+            a.annotation_class.name
+            for a in annotations
+            if a.annotation_class.annotation_type == "tag"
+        ]
 
-        assert len(tags) >= 1, f"No tags were found for index={index}"
+        if not self.is_multi_label:
+            # Binary or multiclass must have a label per image
+            assert len(tags) >= 1, f"No tags were found for index={index}"
+            target: Tensor = torch.tensor(self.classes.index(tags[0]))
 
-        target: Tensor = torch.tensor(self.classes.index(tags[0]))
-
-        if self.is_multi_label:
+        else:
             target = torch.zeros(len(self.classes))
-            # one hot encode all the targets
+            # one hot encode all the targets, all zeros if the image/frame is without tag
             for tag in tags:
                 idx = self.classes.index(tag)
                 target[idx] = 1
@@ -170,7 +182,11 @@ class ClassificationDataset(LocalDataset):
         for idx in range(len(self)):
             target = self.parse_json(idx)
             annotations = target.pop("annotations")
-            tags = [a["name"] for a in annotations if "tag" in a]
+            tags = [
+                a.annotation_class.name
+                for a in annotations
+                if a.annotation_class.annotation_type == "tag"
+            ]
 
             if len(tags) > 1:
                 self.is_multi_label = True
@@ -310,14 +326,20 @@ class InstanceSegmentationDataset(LocalDataset):
 
         annotations = []
         for annotation in target["annotations"]:
-            if "polygon" not in annotation and "complex_polygon" not in annotation:
-                print(f"Warning: missing polygon in annotation {self.annotations_path[index]}")
+            # Darwin V2 only has paths (TODO it might be more robust fixes)
+            if "paths" in annotation.data:
+                path_key = "paths"
+
+            if path_key not in annotation.data:
+                print(
+                    f"Warning: missing polygon in annotation {self.annotations_path[index]}"
+                )
             # Extract the sequences of coordinates from the polygon annotation
-            annotation_type: str = "polygon" if "polygon" in annotation else "complex_polygon"
             sequences = convert_polygons_to_sequences(
-                annotation[annotation_type]["path"],
+                annotation.data[path_key],
                 height=target["height"],
                 width=target["width"],
+                rounding=False,
             )
             # Compute the bbox of the polygon
             x_coords = [s[0::2] for s in sequences]
@@ -326,16 +348,32 @@ class InstanceSegmentationDataset(LocalDataset):
             min_y: float = np.min([np.min(y_coord) for y_coord in y_coords])
             max_x: float = np.max([np.max(x_coord) for x_coord in x_coords])
             max_y: float = np.max([np.max(y_coord) for y_coord in y_coords])
-            w: float = max_x - min_x + 1
-            h: float = max_y - min_y + 1
+
+            # Clamp the coordinates to the image dimensions
+            min_x: float = max(0, min_x)
+            min_y: float = max(0, min_y)
+            max_x: float = min(target["width"] - 1, max_x)
+            max_y: float = min(target["height"] - 1, max_y)
+
+            assert min_x < max_x and min_y < max_y
+
+            # Convert to XYWH
+            w: float = max_x - min_x
+            h: float = max_y - min_y
+
             # Compute the area of the polygon
             # TODO fix with addictive/subtractive paths in complex polygons
-            poly_area: float = np.sum([polygon_area(x_coord, y_coord) for x_coord, y_coord in zip(x_coords, y_coords)])
+            poly_area: float = np.sum(
+                [
+                    polygon_area(x_coord, y_coord)
+                    for x_coord, y_coord in zip(x_coords, y_coords)
+                ]
+            )
 
             # Create and append the new entry for this annotation
             annotations.append(
                 {
-                    "category_id": self.classes.index(annotation["name"]),
+                    "category_id": self.classes.index(annotation.annotation_class.name),
                     "segmentation": sequences,
                     "bbox": [min_x, min_y, w, h],
                     "area": poly_area,
@@ -382,10 +420,13 @@ class SemanticSegmentationDataset(LocalDataset):
         Object used to convert polygons to semantic masks.
     """
 
-    def __init__(self, transform: Optional[Union[List[Callable], Callable]] = None, **kwargs):
-
+    def __init__(
+        self, transform: Optional[Union[List[Callable], Callable]] = None, **kwargs
+    ):
         super().__init__(annotation_type="polygon", **kwargs)
-
+        if "__background__" not in self.classes:
+            self.classes.insert(0, "__background__")
+            self.num_classes += 1
         if transform is not None and isinstance(transform, list):
             transform = Compose(transform)
 
@@ -447,16 +488,27 @@ class SemanticSegmentationDataset(LocalDataset):
 
         annotations: List[Dict[str, Union[int, List[List[Union[int, float]]]]]] = []
         for obj in target["annotations"]:
-            sequences = convert_polygons_to_sequences(
-                obj["polygon"]["path"],
-                height=target["height"],
-                width=target["width"],
-            )
-            # Discard polygons with less than three points
-            sequences[:] = [s for s in sequences if len(s) >= 6]
-            if not sequences:
-                continue
-            annotations.append({"category_id": self.classes.index(obj["name"]), "segmentation": sequences})
+            if "paths" in obj.data:
+                paths = obj.data["paths"]
+            else:
+                paths = [obj.data["path"]]
+            for path in paths:
+                sequences = convert_polygons_to_sequences(
+                    path,
+                    height=target["height"],
+                    width=target["width"],
+                )
+                # Discard polygons with less than three points
+                sequences[:] = [s for s in sequences if len(s) >= 6]
+                if not sequences:
+                    continue
+
+                annotations.append(
+                    {
+                        "category_id": self.classes.index(obj.annotation_class.name),
+                        "segmentation": sequences,
+                    }
+                )
         target["annotations"] = annotations
 
         return target
@@ -473,7 +525,9 @@ class SemanticSegmentationDataset(LocalDataset):
             Weight for each class in the train set (one for each class) as a 1D array normalized.
         """
         # Collect all the labels by iterating over the whole dataset
-        labels = []
+        # specifically add in the background class as it won't be an annotation to include
+        BACKGROUND_CLASS: int = 0
+        labels = [BACKGROUND_CLASS]
         for i, _ in enumerate(self.images_path):
             target = self.get_target(i)
             labels.extend([a["category_id"] for a in target["annotations"]])
@@ -523,6 +577,9 @@ class ObjectDetectionDataset(LocalDataset):
         img: PILImage.Image = self.get_image(index)
         target: Dict[str, Any] = self.get_target(index)
 
+        width, height = img.size
+        target = clamp_bbox_to_image_size(target, width, height)
+
         if self.transform is not None:
             img_tensor, target = self.transform(img, target)
         else:
@@ -560,7 +617,11 @@ class ObjectDetectionDataset(LocalDataset):
 
         targets = []
         for annotation in annotations:
-            bbox = annotation["bounding_box"]
+            bbox = (
+                annotation.data
+                if annotation.annotation_class.annotation_type == "bounding_box"
+                else annotation.data["bounding_box"]
+            )
 
             x = bbox["x"]
             y = bbox["y"]
@@ -569,12 +630,13 @@ class ObjectDetectionDataset(LocalDataset):
 
             bbox = torch.tensor([x, y, w, h])
             area = bbox[2] * bbox[3]
-            label = torch.tensor(self.classes.index(annotation["name"]))
+            label = torch.tensor(self.classes.index(annotation.annotation_class.name))
 
             ann = {"bbox": bbox, "area": area, "label": label}
 
             targets.append(ann)
         # following https://pytorch.org/tutorials/intermediate/torchvision_tutorial.html
+
         stacked_targets = {
             "boxes": torch.stack([v["bbox"] for v in targets]),
             "area": torch.stack([v["area"] for v in targets]),

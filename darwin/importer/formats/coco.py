@@ -1,14 +1,13 @@
-import json
+from logging import getLogger
 from pathlib import Path
-from typing import Any, Dict, Iterator, List, Optional
+from typing import Dict, Iterator, List, Optional
 
-import deprecation
+import orjson as json
 from upolygon import find_contours, rle_decode
 
 import darwin.datatypes as dt
-from darwin.exceptions import UnrecognizableFileEncoding
 from darwin.path_utils import deconstruct_full_path
-from darwin.version import __version__
+from darwin.utils import attempt_decode
 
 DEPRECATION_MESSAGE = """
 
@@ -16,6 +15,9 @@ This function is going to be turned into private. This means that breaking
 changes in its interface and implementation are to be expected. We encourage using ``parse_annotation`` 
 instead of calling this low-level function directly.
 """
+
+
+logger = getLogger(__name__)
 
 
 def parse_path(path: Path) -> Optional[List[dt.AnnotationFile]]:
@@ -36,17 +38,13 @@ def parse_path(path: Path) -> Optional[List[dt.AnnotationFile]]:
     """
     if path.suffix != ".json":
         return None
+    data = attempt_decode(path)
+    return list(parse_json(path, data))
 
-    encodings = ["system_default", "utf-32", "utf-16", "utf-8", "ascii"]
-    while True:    
-        try:
-            if encodings:
-                return _decode_file(encodings.pop(0), path)
-            raise UnrecognizableFileEncoding(f"Could not decode file {path}. Encodings tried: system_default, utf-32, utf-16, utf-8, ascii.")
-        except UnicodeDecodeError:
-            continue
 
-def parse_json(path: Path, data: Dict[str, Any]) -> Iterator[dt.AnnotationFile]:
+def parse_json(
+    path: Path, data: Dict[str, dt.UnknownType]
+) -> Iterator[dt.AnnotationFile]:
     """
     Parses the given ``json`` structure into an ``Iterator[dt.AnnotationFile]``.
 
@@ -64,8 +62,25 @@ def parse_json(path: Path, data: Dict[str, Any]) -> Iterator[dt.AnnotationFile]:
     """
     annotations = data["annotations"]
     image_lookup_table = {image["id"]: image for image in data["images"]}
-    category_lookup_table = {category["id"]: category for category in data["categories"]}
-    image_annotations: Dict[str, Any] = {}
+    category_lookup_table = {
+        category["id"]: category for category in data["categories"]
+    }
+    tag_categories = data.get("tag_categories") or []
+    tag_category_lookup_table = {
+        category["id"]: category for category in tag_categories
+    }
+    image_annotations: Dict[str, dt.UnknownType] = {}
+
+    for image in data["images"]:
+        image_id = image["id"]
+        tag_ids = image.get("tag_ids") or []
+
+        if image_id not in image_annotations:
+            image_annotations[image_id] = []
+
+        for tag_id in tag_ids:
+            tag = tag_category_lookup_table[tag_id]
+            image_annotations[image_id].append(dt.make_tag(tag["name"]))
 
     for annotation in annotations:
         image_id = annotation["image_id"]
@@ -73,25 +88,32 @@ def parse_json(path: Path, data: Dict[str, Any]) -> Iterator[dt.AnnotationFile]:
         annotation["segmentation"]
         if image_id not in image_annotations:
             image_annotations[image_id] = []
-        image_annotations[image_id].append(parse_annotation(annotation, category_lookup_table))
+        image_annotations[image_id].append(
+            parse_annotation(annotation, category_lookup_table)
+        )
 
     for image_id in image_annotations.keys():
         image = image_lookup_table[int(image_id)]
         annotations = list(filter(None, image_annotations[image_id]))
-        annotation_classes = set([annotation.annotation_class for annotation in annotations])
+        annotation_classes = {annotation.annotation_class for annotation in annotations}
         remote_path, filename = deconstruct_full_path(image["file_name"])
-        yield dt.AnnotationFile(path, filename, annotation_classes, annotations, remote_path=remote_path)
+        yield dt.AnnotationFile(
+            path, filename, annotation_classes, annotations, remote_path=remote_path
+        )
 
 
-def parse_annotation(annotation: Dict[str, Any], category_lookup_table: Dict[str, Any]) -> Optional[dt.Annotation]:
+def parse_annotation(
+    annotation: Dict[str, dt.UnknownType],
+    category_lookup_table: Dict[str, dt.UnknownType],
+) -> Optional[dt.Annotation]:
     """
     Parses the given ``json`` dictionary into a darwin ``Annotation`` if possible.
 
     Parameters
     ----------
-    annotation : Dict[str, Any]
+    annotation : Dict[str, dt.UnknownType]
         The ``json`` dictionary to parse.
-    category_lookup_table : Dict[str, Any]
+    category_lookup_table : Dict[str, dt.UnknownType]
         Dictionary with all the categories from the ``coco`` file.
 
     Returns
@@ -104,17 +126,26 @@ def parse_annotation(annotation: Dict[str, Any], category_lookup_table: Dict[str
     iscrowd = annotation.get("iscrowd") == 1
 
     if iscrowd:
-        print("Warning, unsupported RLE, skipping")
+        logger.warn(
+            f"Skipping annotation {annotation.get('id')} because it is a crowd "
+            "annotation, and Darwin does not support import of crowd annotations."
+        )
         return None
 
     if len(segmentation) == 0 and len(annotation["bbox"]) == 4:
         x, y, w, h = map(int, annotation["bbox"])
         return dt.make_bounding_box(category["name"], x, y, w, h)
-    elif len(segmentation) == 0 and len(annotation["bbox"]) == 1 and len(annotation["bbox"][0]) == 4:
+    elif (
+        len(segmentation) == 0
+        and len(annotation["bbox"]) == 1
+        and len(annotation["bbox"][0]) == 4
+    ):
         x, y, w, h = map(int, annotation["bbox"][0])
         return dt.make_bounding_box(category["name"], x, y, w, h)
     elif isinstance(segmentation, dict):
-        print("warning, converting complex coco rle mask to polygon, could take some time")
+        logger.warn(
+            "warning, converting complex coco rle mask to polygon, could take some time"
+        )
         if isinstance(segmentation["counts"], list):
             mask = rle_decode(segmentation["counts"], segmentation["size"][::-1])
         else:
@@ -136,10 +167,12 @@ def parse_annotation(annotation: Dict[str, Any], category_lookup_table: Dict[str
                 except StopIteration:
                     break
             paths.append(path)
-        return dt.make_complex_polygon(category["name"], paths)
+        return dt.make_polygon(category["name"], paths)
     elif isinstance(segmentation, list):
         path = []
-        points = iter(segmentation[0] if isinstance(segmentation[0], list) else segmentation)
+        points = iter(
+            segmentation[0] if isinstance(segmentation[0], list) else segmentation
+        )
         while True:
             try:
                 x, y = next(points), next(points)
@@ -150,22 +183,17 @@ def parse_annotation(annotation: Dict[str, Any], category_lookup_table: Dict[str
     else:
         return None
 
+
 def _decode_file(current_encoding: str, path: Path):
     if current_encoding == "system_default":
         with path.open() as f:
-            data = json.load(f)
-            return list(parse_json(path, data))
+            data = json.loads(f.read())
     else:
         with path.open(encoding=current_encoding) as f:
-            data = json.load(f)
-            return list(parse_json(path, data))
+            data = json.loads(f.read())
+    return list(parse_json(path, data))
 
-@deprecation.deprecated(
-    deprecated_in="0.7.12",
-    removed_in="0.8.0",
-    current_version=__version__,
-    details=DEPRECATION_MESSAGE,
-)
+
 def decode_binary_rle(data: str) -> List[int]:
     """
     Decodes binary rle to integer list rle.

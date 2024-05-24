@@ -1,9 +1,16 @@
 # V7 Darwin Python SDK
 
-Official library to manage datasets along with
-[V7 Darwin annotation platform](https://darwin.v7labs.com).
+[![Downloads](https://static.pepy.tech/personalized-badge/darwin-py?period=total&units=international_system&left_color=black&right_color=blue&left_text=Downloads)](https://pepy.tech/project/darwin-py) [![Downloads](https://static.pepy.tech/personalized-badge/darwin-py?period=month&units=international_system&left_color=black&right_color=blue&left_text=This%20month)](https://pepy.tech/project/darwin-py) [![GitHub Repo stars](https://img.shields.io/github/stars/v7labs/darwin-py?style=social)](https://github.com/v7labs/darwin-py/stargazers)
+[![Twitter Follow](https://img.shields.io/twitter/follow/V7Labs?style=social)](https://twitter.com/V7Labs)
+
+⚡️ Official library to annotate, manage datasets, and models on
+[V7's Darwin Training Data Platform](https://darwin.v7labs.com). ⚡️
+
+Need to label data? [**Start using V7 free today**](https://www.v7labs.com/get-started)
 
 Darwin-py can both be used from the [command line](#usage-as-a-command-line-interface-cli) and as a [python library](#usage-as-a-python-library).
+
+<hr/>
 
 Main functions are (but not limited to):
 
@@ -13,9 +20,9 @@ Main functions are (but not limited to):
 - Upload/download data to/from remote datasets
 - Direct integration with PyTorch dataloaders
 
-Support tested for python 3.8.
+Support tested for python 3.8 - 3.10
 
-## Installation
+##  🏁 Installation
 
 ```
 pip install darwin-py
@@ -29,11 +36,20 @@ If you wish to use the PyTorch bindings, then you can use the `ml` flag to insta
 pip install darwin-py[ml]
 ```
 
+If you wish to use video frame extraction, then you can use the `ocv` flag to install all the additional requirements
+
+```
+pip install darwin-py[ocv]
+```
+
 To run test, first install the `test` extra package
 
 ```
 pip install darwin-py[test]
 ```
+### Development
+
+See our development and QA environment installation recommendations [here](docs/DEV.md)
 
 ---
 
@@ -144,7 +160,7 @@ And to finally download a release.
 
 ```
 $ darwin dataset pull test:0.1
-Dataset example-team/test:0.1 downloaded at /directory/choosen/at/authentication/time.
+Dataset example-team/test:0.1 downloaded at /directory/choosen/at/authentication/time .
 ```
 
 ---
@@ -154,7 +170,9 @@ Dataset example-team/test:0.1 downloaded at /directory/choosen/at/authentication
 The framework is designed to be usable as a standalone python library.
 Usage can be inferred from looking at the operations performed in `darwin/cli_functions.py`.
 A minimal example to download a dataset is provided below and a more extensive one can be found in
-[darwin_demo.py](./darwin_demo.py).
+
+[./darwin_demo.py](https://github.com/v7labs/darwin-py/blob/master/darwin_demo.py).
+
 
 ```python
 from darwin.client import Client

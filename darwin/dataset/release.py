@@ -90,7 +90,9 @@ class Release:
         self.format = format
 
     @classmethod
-    def parse_json(cls, dataset_slug: str, team_slug: str, payload: Dict[str, Any]) -> "Release":
+    def parse_json(
+        cls, dataset_slug: str, team_slug: str, payload: Dict[str, Any]
+    ) -> "Release":
         """
         Given a json, parses it into a ``Release`` object instance.
 
@@ -138,10 +140,14 @@ class Release:
             A ``Release`` created from the given payload.
         """
         try:
-            export_date: datetime.datetime = datetime.datetime.strptime(payload["inserted_at"], "%Y-%m-%dT%H:%M:%S%z")
+            export_date: datetime.datetime = datetime.datetime.strptime(
+                payload["inserted_at"], "%Y-%m-%dT%H:%M:%S%z"
+            )
         except ValueError:
             # For python version older than 3.7
-            export_date = datetime.datetime.strptime(payload["inserted_at"], "%Y-%m-%dT%H:%M:%SZ")
+            export_date = datetime.datetime.strptime(
+                payload["inserted_at"], "%Y-%m-%dT%H:%M:%SZ"
+            )
 
         if payload["download_url"] is None:
             return cls(
@@ -203,4 +209,6 @@ class Release:
     @property
     def identifier(self) -> DatasetIdentifier:
         """DatasetIdentifier : The ``DatasetIdentifier`` for this ``Release``."""
-        return DatasetIdentifier(team_slug=self.team_slug, dataset_slug=self.dataset_slug, version=self.name)
+        return DatasetIdentifier(
+            team_slug=self.team_slug, dataset_slug=self.dataset_slug, version=self.name
+        )
