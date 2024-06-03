@@ -743,7 +743,11 @@ class RemoteDataset(ABC):
         for release in releases:
             if str(release.name) == name:
                 return release
-        raise NotFound(str(self.identifier))
+        raise NotFound(
+            str(
+                f"Release name {name} not found in dataset {self.name}. Please check this release exists for this dataset."
+            )
+        )
 
     def split(
         self,
