@@ -332,6 +332,7 @@ def _download_single_slot_from_json_annotation(
         video_path: Path = parent_path / (
             annotation_path.stem if not use_folders else Path(annotation.filename).stem
         )
+        video_path.mkdir(exist_ok=True, parents=True)
 
         # Indicates it's a long video and uses the segment and manifest
         if not slot.frame_urls:

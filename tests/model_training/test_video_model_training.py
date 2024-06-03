@@ -46,7 +46,7 @@ class TestVideoDatasetLoading:
                             == expected_splits[f"{split_type}_{partition}"]
                         )
 
-    def test_split_and_load_classification_dataset_images(self):
+    def test_split_and_load_classification_dataset_video(self):
         expected_splits = {
             "random_test": 60,
             "random_train": 210,
@@ -62,7 +62,7 @@ class TestVideoDatasetLoading:
             "210_30_60",
         )
 
-    def test_split_and_load_instance_segmentation_dataset_images(self):
+    def test_split_and_load_instance_segmentation_dataset_video(self):
         expected_splits = {
             "random_test": 30,
             "random_train": 105,
@@ -78,7 +78,7 @@ class TestVideoDatasetLoading:
             "105_15_30",
         )
 
-    def test_split_and_load_object_detection_dataset_images(self):
+    def test_split_and_load_object_detection_dataset_video(self):
         expected_splits = {
             "random_test": 30,
             "random_train": 105,
