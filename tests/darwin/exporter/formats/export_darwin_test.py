@@ -141,3 +141,4 @@ def test_properties_metadata_is_ignored_when_reading_annotations_directory():
         annotation_filepaths = list(get_annotation_files_from_dir(Path(tmpdirname)))
         for annotation_filepath in annotation_filepaths:
             assert "./v7/" not in annotation_filepath
+            assert "\\.v7\\" not in annotation_filepath
