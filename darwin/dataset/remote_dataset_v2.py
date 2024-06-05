@@ -717,7 +717,7 @@ class RemoteDatasetV2(RemoteDataset):
             items.append(item)
 
         # Do not register more than 500 items in a single request
-        chunk_size = 1
+        chunk_size = 500
         chunked_items = chunk_items(items, chunk_size)
         print(f"Registering {len(items)} items in chunks of {chunk_size} items...")
         results = {
