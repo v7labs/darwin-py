@@ -295,23 +295,17 @@ def populate_output_volumes_from_polygons(
     output_volumes: Dict,
 ) -> Dict:
     """
-    Exports the given ``AnnotationFile``\\s into nifti format inside of the given
-    ``output_dir``. Deletes everything within ``output_dir/masks`` before writting to it.
+    Populates the output volumes with the given polygon annotations. The annotations are converted into masks
+    and added to the corresponding volume based on the series instance UID.
 
     Parameters
     ----------
-    annotation : Union[dt.Annotation, dt.VideoAnnotation]
-        The Union of these two files used to populate the volume with
+    annotations : List[Union[dt.Annotation, dt.VideoAnnotation]]
+        List of polygon annotations used to populate the volume with
     slot_map : Dict
         Dictionary of the different slots within the annotation file
     output_volumes : Dict
-        volumes created from the build_output_volumes file
-
-    Returns
-    -------
-    volume : dict
-        Returns dict of volumes with class names as keys and volumes as values
-
+        Volumes created from the build_output_volumes file
     """
     for annotation in annotations:
         slot_name = annotation.slot_names[0]
