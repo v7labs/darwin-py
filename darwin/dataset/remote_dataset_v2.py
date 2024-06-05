@@ -11,6 +11,7 @@ from typing import (
     Union,
 )
 
+import requests
 from pydantic import ValidationError
 from requests.models import Response
 
@@ -46,6 +47,19 @@ from darwin.utils import SUPPORTED_EXTENSIONS, find_files, urljoin
 
 if TYPE_CHECKING:
     from darwin.client import Client
+
+from tenacity import (
+    RetryCallState,
+    retry,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_exponential_jitter,
+)
+
+
+def before_sleep(retry_state: RetryCallState):
+    wait_time = retry_state.next_action.sleep
+    print(f"Rate limit exceeded. Retrying in {wait_time:.2f} seconds...")
 
 
 class RemoteDatasetV2(RemoteDataset):
@@ -703,7 +717,7 @@ class RemoteDatasetV2(RemoteDataset):
             items.append(item)
 
         # Do not register more than 500 items in a single request
-        chunk_size = 500
+        chunk_size = 1
         chunked_items = chunk_items(items, chunk_size)
         print(f"Registering {len(items)} items in chunks of {chunk_size} items...")
         results = {
@@ -718,13 +732,18 @@ class RemoteDatasetV2(RemoteDataset):
                 "storage_slug": object_store.name,
             }
             print(f"Registering {len(chunk)} items...")
-            response = self.client.api_v2.register_items(payload, team_slug=self.team)
-            for item in json.loads(response.text)["items"]:
-                item_info = f"Item {item['name']} registered with item ID {item['id']}"
-                results["registered"].append(item_info)
-            for item in json.loads(response.text)["blocked_items"]:
-                item_info = f"Item {item['name']} was blocked for the reason: {item['slots'][0]['reason']}"
-                results["blocked"].append(item_info)
+            try:
+                response = self.register_items_with_retry(payload, team_slug=self.team)
+                for item in json.loads(response.text)["items"]:
+                    item_info = (
+                        f"Item {item['name']} registered with item ID {item['id']}"
+                    )
+                    results["registered"].append(item_info)
+                for item in json.loads(response.text)["blocked_items"]:
+                    item_info = f"Item {item['name']} was blocked for the reason: {item['slots'][0]['reason']}"
+                    results["blocked"].append(item_info)
+            except requests.exceptions.RequestException as e:
+                print(f"Failed to register items: {e}")
         print(
             f"{len(results['registered'])} of {len(storage_keys)} items registered successfully"
         )
@@ -816,13 +835,18 @@ class RemoteDatasetV2(RemoteDataset):
                 "storage_slug": object_store.name,
             }
             print(f"Registering {len(chunk)} items...")
-            response = self.client.api_v2.register_items(payload, team_slug=self.team)
-            for item in json.loads(response.text)["items"]:
-                item_info = f"Item {item['name']} registered with item ID {item['id']}"
-                results["registered"].append(item_info)
-            for item in json.loads(response.text)["blocked_items"]:
-                item_info = f"Item {item['name']} was blocked for the reason: {item['slots'][0]['reason']}"
-                results["blocked"].append(item_info)
+            try:
+                response = self.register_items_with_retry(payload, team_slug=self.team)
+                for item in json.loads(response.text)["items"]:
+                    item_info = (
+                        f"Item {item['name']} registered with item ID {item['id']}"
+                    )
+                    results["registered"].append(item_info)
+                for item in json.loads(response.text)["blocked_items"]:
+                    item_info = f"Item {item['name']} was blocked for the reason: {item['slots'][0]['reason']}"
+                    results["blocked"].append(item_info)
+            except requests.exceptions.RequestException as e:
+                print(f"Failed to register items: {e}")
         print(
             f"{len(results['registered'])} of {len(storage_keys)} items registered successfully"
         )
@@ -832,3 +856,18 @@ class RemoteDatasetV2(RemoteDataset):
                 print(f"  - {item}")
         print(f"Reistration complete. Check your items in the dataset: {self.slug}")
         return results
+
+    @retry(
+        wait=wait_exponential_jitter(initial=30, max=240),
+        stop=stop_after_attempt(5),
+        retry=retry_if_exception_type(requests.exceptions.RequestException),
+        before_sleep=before_sleep,
+    )
+    def register_items_with_retry(
+        self, payload: Dict[str, Any], team_slug: str
+    ) -> Response:
+        response = self.client.api_v2.register_items(payload, team_slug=team_slug)
+        if response.status_code == 429:
+            raise requests.exceptions.RequestException("HTTP 429: Too Many Requests")
+        response.raise_for_status()
+        return response

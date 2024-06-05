@@ -6,8 +6,10 @@ from unittest.mock import MagicMock, patch
 
 import orjson as json
 import pytest
+import requests
 import responses
 from pydantic import ValidationError
+from requests.exceptions import RequestException
 
 from darwin.client import Client
 from darwin.config import Config
@@ -1064,7 +1066,7 @@ class TestRegisterMultiSlotted:
             },
             status=200,
         )
-        remote_dataset.register(
+        result = remote_dataset.register(
             ObjectStore(
                 name="test",
                 prefix="test_prefix",
@@ -1075,3 +1077,44 @@ class TestRegisterMultiSlotted:
             {"item1": ["test.jpg"]},
             multi_slotted=True,
         )
+        assert len(result["registered"]) == 0
+        assert len(result["blocked"]) == 1
+
+
+@pytest.mark.usefixtures("file_read_write_test")
+class TestRegisterItemsWithRetry:
+    @responses.activate
+    def test_register_items_with_retry_success(self, remote_dataset: RemoteDatasetV2):
+        responses.add(
+            responses.POST,
+            "http://localhost/api/v2/teams/test_team/items/register_existing",
+            json={
+                "items": [{"id": "1", "name": "test.jpg"}],
+                "blocked_items": [],
+            },
+            status=200,
+        )
+        response = remote_dataset.register_items_with_retry(
+            {"item1": ["test.jpg"]}, "test_team"
+        )
+        assert (
+            response.text
+            == '{"items": [{"id": "1", "name": "test.jpg"}], "blocked_items": []}'
+        )
+        assert response.status_code == 200
+
+    @responses.activate
+    def test_register_items_with_retry_throws_exception(
+        self, remote_dataset: RemoteDatasetV2
+    ):
+        with patch.object(
+            remote_dataset,
+            "register_items_with_retry",
+            side_effect=requests.exceptions.RequestException(
+                "HTTP 429: Too Many Requests"
+            ),
+        ):
+            with pytest.raises(requests.exceptions.RequestException):
+                remote_dataset.register_items_with_retry(
+                    {"item1": ["test.jpg"]}, "test_team"
+                )
