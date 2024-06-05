@@ -293,7 +293,7 @@ def populate_output_volumes_from_polygons(
     annotations: List[Union[dt.Annotation, dt.VideoAnnotation]],
     slot_map: Dict,
     output_volumes: Dict,
-) -> Dict:
+):
     """
     Populates the output volumes with the given polygon annotations. The annotations are converted into masks
     and added to the corresponding volume based on the series instance UID.
