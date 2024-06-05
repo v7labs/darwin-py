@@ -83,9 +83,10 @@ def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path) -> N
             for ann in video_annotation.annotations
             if ann.annotation_class.annotation_type == "polygon"
         ]
-        populate_output_volumes_from_polygons(
-            polygon_annotations, slot_map, output_volumes
-        )
+        if polygon_annotations:
+            populate_output_volumes_from_polygons(
+                polygon_annotations, slot_map, output_volumes
+            )
         write_output_volume_to_disk(
             output_volumes, image_id=image_id, output_dir=output_dir
         )
@@ -350,7 +351,6 @@ def populate_output_volumes_from_polygons(
                 plane,
                 frame_idx,
             )
-    return volume
 
 
 def populate_output_volumes_from_raster_layer(
