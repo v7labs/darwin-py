@@ -10,7 +10,7 @@ import numpy as np
 try:
     from numpy.typing import NDArray
 except ImportError:
-    NDArray = Any  # type:ignore
+    NDArray = Any  # type:ignore # noqa F821
 from PIL import Image
 from upolygon import draw_polygon
 

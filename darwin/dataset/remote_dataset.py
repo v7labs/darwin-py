@@ -297,8 +297,8 @@ class RemoteDataset(ABC):
                     ):
                         # will raise if not installed via pip install darwin-py[ocv]
                         try:
-                            from cv2 import (
-                                VideoCapture,  # pylint: disable=import-outside-toplevel
+                            from cv2 import (  # pylint: disable=import-outside-toplevel # noqa F401
+                                VideoCapture,
                             )
                         except ImportError as e:
                             raise MissingDependency(
