@@ -2,10 +2,13 @@ from __future__ import annotations
 
 from typing import Dict
 
+from pydantic import ValidationError
+
 from darwin.future.core.client import ClientCore
 from darwin.future.core.types.common import JSONType
 from darwin.future.data_objects.item import ItemLayout
 from darwin.future.data_objects.typing import UnknownType
+from darwin.future.exceptions import BadRequest
 
 
 def set_item_layout(
