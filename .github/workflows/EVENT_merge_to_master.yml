@@ -6,6 +6,7 @@ on:
     branches:
       - master
   workflow_call:
+  workflow_dispatch: # Added this line to enable manual triggering
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
