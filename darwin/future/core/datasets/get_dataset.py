@@ -1,5 +1,3 @@
-from pydantic import parse_obj_as
-
 from darwin.future.core.client import ClientCore
 from darwin.future.core.types.common import QueryString
 from darwin.future.data_objects.dataset import DatasetCore
@@ -29,5 +27,5 @@ def get_dataset(api_client: ClientCore, dataset_id: str) -> DatasetCore:
     """
 
     response = api_client.get("/datasets", QueryString({"id": str(dataset_id)}))
-
-    return parse_obj_as(DatasetCore, response)
+    assert isinstance(response, dict)
+    return DatasetCore.model_validate(response)

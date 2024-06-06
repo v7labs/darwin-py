@@ -19,7 +19,7 @@ def test_get_team_properties(
     # Mocking the response using responses library
     base_property_object.options = None
     base_property_object.property_values = None
-    response_data = {"properties": [base_property_object.dict()]}
+    response_data = {"properties": [base_property_object.model_dump()]}
     responses.add(
         responses.GET,
         f"{base_client.config.base_url}api/v2/teams/{base_client.config.default_team}/properties",
@@ -41,7 +41,7 @@ def test_get_team_full_properties(
     base_client: ClientCore, base_property_object: FullProperty
 ) -> None:
     # Mocking the response using responses library
-    response_data = {"properties": [base_property_object.dict()]}
+    response_data = {"properties": [base_property_object.model_dump()]}
     responses.add(
         responses.GET,
         f"{base_client.config.base_url}api/v2/teams/{base_client.config.default_team}/properties",
@@ -70,7 +70,7 @@ def test_get_property_by_id(
     responses.add(
         responses.GET,
         f"{base_client.config.base_url}api/v2/teams/{base_client.config.default_team}/properties/{property_id}",
-        json=base_property_object.dict(),
+        json=base_property_object.model_dump(),
         status=200,
     )
 

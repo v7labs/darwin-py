@@ -454,8 +454,6 @@ def pull_dataset(
             ignore_slots=ignore_slots,
         )
         print_new_version_info(client)
-        if release.format == "darwin_json_2":
-            _print_new_json_format_warning(dataset)
     except NotFound:
         _error(
             f"Version '{dataset.identifier}:{version}' does not exist "
@@ -853,6 +851,7 @@ def dataset_import(
     delete_for_empty: bool = False,
     import_annotators: bool = False,
     import_reviewers: bool = False,
+    overwrite: bool = False,
     use_multi_cpu: bool = False,
     cpu_limit: Optional[int] = None,
 ) -> None:
@@ -883,7 +882,10 @@ def dataset_import(
     import_reviewers : bool, default: False
         If ``True`` it will import the reviewers from the files to the dataset, if .
         If ``False`` it will not import the reviewers.
-    use_multi_cpu : bool, default: True
+    overwrite : bool, default: False
+        If ``True`` it will bypass a warning that the import will overwrite the current annotations if any are present.
+        If ``False`` this warning will be skipped and the import will overwrite the current annotations without warning.
+    use_multi_cpu : bool, default: False
         If ``True`` it will use all multiple CPUs to speed up the import process.
     cpu_limit : Optional[int], default: Core count - 2
         The maximum number of CPUs to use for the import process.
@@ -906,6 +908,7 @@ def dataset_import(
             delete_for_empty,
             import_annotators,
             import_reviewers,
+            overwrite,
             use_multi_cpu,
             cpu_limit,
         )
@@ -1028,7 +1031,7 @@ def set_file_status(dataset_slug: str, status: str, files: List[str]) -> None:
             dataset_identifier=dataset_slug
         )
         items: Iterator[DatasetItem] = dataset.fetch_remote_files(
-            {"filenames": ",".join(files)}
+            {"item_names": ",".join(files)}
         )
         if status == "archived":
             dataset.archive(items)
@@ -1068,7 +1071,7 @@ def delete_files(
         dataset: RemoteDataset = client.get_remote_dataset(
             dataset_identifier=dataset_slug
         )
-        items, items_2 = tee(dataset.fetch_remote_files({"filenames": files}))
+        items, items_2 = tee(dataset.fetch_remote_files({"item_names": files}))
         if not skip_user_confirmation and not secure_continue_request():
             console.print("Cancelled.")
             return
@@ -1236,7 +1239,7 @@ def convert(format: str, files: List[PathLike], output_dir: Path) -> None:
         parser,
         files,
         output_dir,
-        split_sequences=(format not in ["darwin_1.0", "nifti"]),
+        split_sequences=(format != "nifti"),
     )
 
 
@@ -1283,7 +1286,7 @@ def post_comment(
         _error(f"unable to find dataset: {dataset_slug}")
 
     items: List[DatasetItem] = list(
-        dataset.fetch_remote_files(filters={"filenames": [filename]})
+        dataset.fetch_remote_files(filters={"item_names": [filename]})
     )
 
     if len(items) == 0:
@@ -1419,16 +1422,3 @@ def _console_theme() -> Theme:
 
 def _has_valid_status(status: str) -> bool:
     return status in ["new", "annotate", "review", "complete", "archived"]
-
-
-def _print_new_json_format_warning(dataset: RemoteDataset) -> None:
-    console = Console(theme=_console_theme(), stderr=True)
-    console.print(
-        "NOTE: Your dataset has been exported using new Darwin JSON 2.0 format.",
-        "    If you wish to use the legacy Darwin format, please use the following to convert: ",
-        "",
-        f"    darwin convert darwin_1.0 {dataset.local_path} OUTPUT_DIR",
-        "",
-        sep="\n",
-        style="warning",
-    )

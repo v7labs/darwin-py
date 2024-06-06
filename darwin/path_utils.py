@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path, PurePosixPath
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Union
 
 
 def construct_full_path(remote_path: Optional[str], filename: str) -> str:
@@ -67,33 +67,56 @@ def parse_metadata(path: Path) -> dict:
 
 
 def is_properties_enabled(
-    export_dir_path: Path,
+    path: Path,
     dir: str = ".v7",
     filename: str = "metadata.json",
     annotations_dir: str = "annotations",
-) -> bool:
+) -> Union[Path, bool]:
     """
     Returns whether the given export directory has properties enabled.
 
     Parameters
     ----------
-    export_dir_path : Path
+    path : Path
         The path to the export directory.
+    dir : str, optional
+        The name of the .v7 directory, by default ".v7"
+    filename : str, optional
+        The name of the metadata file, by default "metadata.json"
+    annotations_dir : str, optional
+        The name of the annotations directory, by default "annotations"
 
     Returns
     -------
     bool
         Whether the given export directory has properties enabled.
     """
-    path = export_dir_path / dir
-    if not path.exists():
-        annotations_path = export_dir_path / annotations_dir
+    # If the path is a file, get its parent
+    if path.is_file():
+        path = path.parent
+
+    # Check if the path has a .v7 directory
+    v7_path = path / dir
+    if not v7_path.exists():
+        # If it doesn't, check if it has an annotations directory
+        annotations_path = path / annotations_dir
+        if not annotations_path.exists():
+            return False
+
+        # If it does, check if any annotation file has "properties" in it
         for annotation_path in annotations_path.rglob("*"):
             with open(annotation_path) as f:
                 if '"properties"' in f.read():
                     return True
+
+        # If none of the annotation files have "properties" in them, return False
         return False
 
-    metadata_path = path / filename
+    # .v7 directory exists, parse the metadata file and check if any class has properties
+    metadata_path = v7_path / filename
     metadata_classes = parse_metadata(metadata_path).get("classes", [])
-    return any(_cls.get("properties") for _cls in metadata_classes)
+    for _cls in metadata_classes:
+        if _cls.get("properties"):
+            return metadata_path
+
+    return False

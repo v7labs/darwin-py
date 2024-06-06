@@ -213,3 +213,15 @@ def test_get_specific_index_collects_correct_page(
             json={"item_ids": [str(uuid) for uuid in str_ids[5:]]},
         )
         base_ItemIDQuery[7]
+
+
+def test_sort_method(base_client: ClientCore):
+    item_id_query = ItemIDQuery(
+        base_client, meta_params={"dataset_id": 0000, "team_slug": "test_team"}
+    )
+
+    item_id_query.sort(accuracy="desc", byte_size="asc")
+
+    assert len(item_id_query.filters) == 2
+    assert item_id_query.filters[0].name == "sort[accuracy]"
+    assert item_id_query.filters[0].param == "desc"

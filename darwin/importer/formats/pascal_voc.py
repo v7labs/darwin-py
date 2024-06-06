@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import List, Optional
 
 import darwin.datatypes as dt
+from darwin.path_utils import deconstruct_full_path
 
 
 def parse_path(path: Path) -> Optional[dt.AnnotationFile]:
@@ -57,8 +58,10 @@ def parse_path(path: Path) -> Optional[dt.AnnotationFile]:
     )
     annotation_classes = {annotation.annotation_class for annotation in annotations}
 
+    remote_path, filename = deconstruct_full_path(filename)
+
     return dt.AnnotationFile(
-        path, filename, annotation_classes, annotations, remote_path="/"
+        path, filename, annotation_classes, annotations, remote_path=remote_path
     )
 
 

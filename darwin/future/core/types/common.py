@@ -5,11 +5,11 @@ from typing import Any, Dict, List, Mapping, Protocol, Union
 from darwin.future.data_objects import validators as darwin_validators
 
 JSONType = Union[Dict[str, Any], List[Dict[str, Any]]]  # type: ignore
+JSONDict = Dict[str, Any]  # type: ignore
 
 
 class Implements_str(Protocol):
-    def __str__(self) -> str:
-        ...
+    def __str__(self) -> str: ...
 
 
 Stringable = Union[str, Implements_str]
@@ -38,10 +38,6 @@ class TeamSlug(str):
 
     min_length = 1
     max_length = 256
-
-    @classmethod
-    def __get_validators__(cls):  # type: ignore
-        yield cls.validate
 
     @classmethod
     def validate(cls, v: str) -> "TeamSlug":

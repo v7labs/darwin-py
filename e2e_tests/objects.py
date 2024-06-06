@@ -16,7 +16,6 @@ class E2EAnnotation:
 @dataclass
 class E2EAnnotationClass:
     name: str
-    slug: str
     type: Literal["bbox", "polygon"]
     id: int
 

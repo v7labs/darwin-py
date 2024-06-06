@@ -161,7 +161,7 @@ class RemoteDataset(ABC):
 
             frame_annotations = split_video_annotation(darwin_annotation)
             for frame_annotation in frame_annotations:
-                annotation = self._build_image_annotation(frame_annotation)
+                annotation = self._build_image_annotation(frame_annotation, self.team)
 
                 video_frame_annotations_path = annotations_path / annotation_file.stem
                 video_frame_annotations_path.mkdir(exist_ok=True, parents=True)
@@ -183,7 +183,7 @@ class RemoteDataset(ABC):
         *,
         release: Optional[Release] = None,
         blocking: bool = True,
-        multi_threaded: bool = True,
+        multi_processed: bool = True,
         only_annotations: bool = False,
         force_replace: bool = False,
         remove_extra: bool = False,
@@ -203,7 +203,7 @@ class RemoteDataset(ABC):
             The release to pull.
         blocking : bool, default: True
             If False, the dataset is not downloaded and a generator function is returned instead.
-        multi_threaded : bool, default: True
+        multi_processed : bool, default: True
             Uses multiprocessing to download the dataset in parallel. If blocking is False this has no effect.
         only_annotations : bool, default: False
             Download only the annotations and no corresponding images.
@@ -278,6 +278,13 @@ class RemoteDataset(ABC):
                 annotations_dir.mkdir(parents=True, exist_ok=False)
                 stems: dict = {}
 
+                # If properties were exported, move the metadata.json file to the annotations folder
+                if (tmp_dir / ".v7").exists():
+                    metadata_file = tmp_dir / ".v7" / "metadata.json"
+                    metadata_dir = annotations_dir / ".v7"
+                    metadata_dir.mkdir(parents=True, exist_ok=True)
+                    shutil.move(str(metadata_file), str(metadata_dir / "metadata.json"))
+
                 # Move the annotations into the right folder and rename them to have the image
                 # original filename as contained in the json
                 for annotation_path in tmp_dir.glob("*.json"):
@@ -338,7 +345,6 @@ class RemoteDataset(ABC):
         # Create the generator with the download instructions
         progress, count = download_all_images_from_annotations(
             api_key=api_key,
-            api_url=self.client.url,
             annotations_path=annotations_dir,
             images_path=self.local_images_path,
             force_replace=force_replace,
@@ -364,7 +370,7 @@ class RemoteDataset(ABC):
             successes, errors = exhaust_generator(
                 progress=progress(),
                 count=count,
-                multi_threaded=multi_threaded,
+                multi_processed=multi_processed,
                 worker_count=max_workers,
             )
             if errors:
@@ -737,7 +743,11 @@ class RemoteDataset(ABC):
         for release in releases:
             if str(release.name) == name:
                 return release
-        raise NotFound(str(self.identifier))
+        raise NotFound(
+            str(
+                f"Release name {name} not found in dataset {self.name}. Please check this release exists for this dataset."
+            )
+        )
 
     def split(
         self,
@@ -949,6 +959,6 @@ class RemoteDataset(ABC):
         return DatasetIdentifier(team_slug=self.team, dataset_slug=self.slug)
 
     def _build_image_annotation(
-        self, annotation_file: AnnotationFile
+        self, annotation_file: AnnotationFile, team_name: str
     ) -> Dict[str, Any]:
-        return build_image_annotation(annotation_file)
+        return build_image_annotation(annotation_file, team_name)

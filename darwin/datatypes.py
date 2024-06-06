@@ -17,12 +17,14 @@ from typing import (
     Union,
 )
 
+from pydantic import BaseModel
+
 try:
     from numpy.typing import NDArray
 except ImportError:
     NDArray = Any  # type:ignore
 
-from darwin.future.data_objects.properties import SelectedProperty
+from darwin.future.data_objects.properties import PropertyType, SelectedProperty
 from darwin.path_utils import construct_full_path, is_properties_enabled, parse_metadata
 
 # Utility types
@@ -53,6 +55,7 @@ Node = Dict[str, UnknownType]
 EllipseData = Dict[str, Union[float, Point]]
 CuboidData = Dict[str, Dict[str, float]]
 Segment = List[int]
+HiddenArea = List[int]
 
 DarwinVersionNumber = Tuple[int, int, int]
 
@@ -86,7 +89,6 @@ class JSONType:
 AnnotationType = Literal[  # NB: Some of these are not supported yet
     "bounding_box",
     "polygon",
-    "complex_polygon",
     "ellipse",
     "cuboid",
     "segmentation",
@@ -276,6 +278,9 @@ class VideoAnnotation:
     # Properties of this annotation.
     properties: Optional[list[SelectedProperty]] = None
 
+    #: A list of ``HiddenArea``\'s.
+    hidden_areas: List[HiddenArea] = field(default_factory=list)
+
     def get_data(
         self,
         only_keyframes: bool = True,
@@ -334,6 +339,7 @@ class VideoAnnotation:
             },
             "segments": self.segments,
             "interpolated": self.interpolated,
+            "hidden_areas": self.hidden_areas,
         }
 
         return output
@@ -344,7 +350,7 @@ AnnotationLike = Union[Annotation, VideoAnnotation]
 
 @dataclass
 class Slot:
-    #: Unique slot name in the item. Will be `None` when loading V1 exports.
+    #: Unique slot name in the item.
     name: Optional[str]
 
     #: Type of slot, e.g. image or dicom
@@ -405,13 +411,16 @@ class Property:
     name: str
 
     # Type of the property
-    type: str
+    type: PropertyType
 
     # Whether the property is required or not
     required: bool
 
     # Property options
-    options: list[dict[str, str]]
+    property_values: list[dict[str, Any]]
+
+    # Description of the property
+    description: Optional[str] = None
 
 
 @dataclass
@@ -475,10 +484,10 @@ def split_paths_by_metadata(
     tuple[Path, Optional[list[PropertyClass]]]
         A tuple containing the path to the metadata file and the list of property classes.
     """
-    if not is_properties_enabled(path, dir, filename):
+    metadata_path = is_properties_enabled(path, dir, filename)
+    if isinstance(metadata_path, bool):
         return path, None
 
-    metadata_path = path / dir / filename
     metadata = parse_metadata(metadata_path)
     property_classes = parse_property_classes(metadata)
 
@@ -635,7 +644,7 @@ def make_tag(
 
 def make_polygon(
     class_name: str,
-    point_path: List[Point],
+    point_paths: List[List[Point]] | List[Point],
     bounding_box: Optional[Dict] = None,
     subs: Optional[List[SubAnnotation]] = None,
     slot_names: Optional[List[str]] = None,
@@ -645,16 +654,35 @@ def make_polygon(
 
     Parameters
     ----------
-    class_name : str
+    class_name: str
         The name of the class for this ``Annotation``.
-    point_path : List[Point]
-        A list of points that comprises the polygon. The list should have a format similar to:
+    point_paths: List[List[Point]] | List[Point]
+        Either a list of points that comprises a polygon or a list of lists of points that comprises a complex polygon.
+        A complex polygon is a polygon that is defined by >1 path.
 
-        .. code-block:: python
+        A polygon should be defined by a List[Point] and have a format similar to:
+
+        ... code-block:: python
 
             [
                 {"x": 1, "y": 0},
                 {"x": 2, "y": 1}
+            ]
+
+        A complex polygon should be defined by a List[List[Point]] and have a format similar to:
+
+        .. code-block:: python
+
+            [
+                [
+                    {"x": 1, "y": 0},
+                    {"x": 2, "y": 1}
+                ],
+                [
+                    {"x": 3, "y": 4},
+                    {"x": 5, "y": 6}
+                ]
+                # ... and so on ...
             ]
 
     bounding_box : Optional[Dict], default: None
@@ -667,9 +695,19 @@ def make_polygon(
     Annotation
         A polygon ``Annotation``.
     """
+
+    # Check if point_paths is List[Point] and convert to List[List[Point]]
+    if (
+        len(point_paths) > 1
+        and isinstance(point_paths[0], dict)
+        and "x" in point_paths[0]
+        and "y" in point_paths[0]
+    ):
+        point_paths = [point_paths]
+
     return Annotation(
-        AnnotationClass(class_name, "polygon"),
-        _maybe_add_bounding_box_data({"path": point_path}, bounding_box),
+        AnnotationClass(class_name, "polygon", "polygon"),
+        _maybe_add_bounding_box_data({"paths": point_paths}, bounding_box),
         subs or [],
         slot_names=slot_names or [],
     )
@@ -684,7 +722,7 @@ def make_complex_polygon(
 ) -> Annotation:
     """
     Creates and returns a complex polygon annotation. Complex polygons are those who have holes
-    and/or disform shapes.
+    and/or disform shapes. This is used by the backend.
 
     Parameters
     ----------
@@ -995,6 +1033,51 @@ def make_table(
     )
 
 
+def make_simple_table(
+    class_name: str,
+    bounding_box: BoundingBox,
+    col_offsets: List[float],
+    row_offsets: List[float],
+    subs: Optional[List[SubAnnotation]] = None,
+    slot_names: Optional[List[str]] = None,
+) -> Annotation:
+    """
+    Creates and returns a simple table annotation.
+
+    Parameters
+    ----------
+    class_name : str
+        The name of the class for this ``Annotation``.
+
+    bounding_box : BoundingBox
+        Bounding box that wraps around the table.
+
+    col_offsets : List[float]
+        List of floats representing the column offsets.
+
+    row_offsets : List[float]
+        List of floats representing the row offsets.
+
+    subs : Optional[List[SubAnnotation]], default: None
+        List of ``SubAnnotation``\\s for this ``Annotation``.
+
+    Returns
+    -------
+    Annotation
+        A simple table ``Annotation``.
+    """
+    return Annotation(
+        AnnotationClass(class_name, "simple_table"),
+        {
+            "bounding_box": bounding_box,
+            "col_offsets": col_offsets,
+            "row_offsets": row_offsets,
+        },
+        subs or [],
+        slot_names=slot_names or [],
+    )
+
+
 def make_string(
     class_name: str,
     sources: List[Dict[str, UnknownType]],
@@ -1280,6 +1363,7 @@ def make_video_annotation(
     interpolated: bool,
     slot_names: List[str],
     properties: Optional[list[SelectedProperty]] = None,
+    hidden_areas: Optional[List[HiddenArea]] = None,
 ) -> VideoAnnotation:
     """
     Creates and returns a ``VideoAnnotation``.
@@ -1317,6 +1401,7 @@ def make_video_annotation(
         interpolated,
         slot_names=slot_names or [],
         properties=properties,
+        hidden_areas=hidden_areas or [],
     )
 
 
@@ -1345,7 +1430,6 @@ class MaskTypes:
     CategoryList = List[str]
     ExceptionList = List[Exception]
     UndecodedRLE = List[int]
-    DecodedRLE = List[List[int]]
     ColoursDict = Dict[str, int]
     RgbColors = List[int]
     HsvColors = List[Tuple[float, float, float]]
@@ -1373,7 +1457,6 @@ class AnnotationMask:
 @dataclass
 class RasterLayer:
     rle: MaskTypes.UndecodedRLE
-    decoded: MaskTypes.DecodedRLE
     mask_annotation_ids_mapping: Dict[str, int]
     slot_names: List[str] = field(default_factory=list)
     total_pixels: int = 0
@@ -1381,8 +1464,6 @@ class RasterLayer:
     def validate(self) -> None:
         if not self.rle:
             raise ValueError("RasterLayer rle cannot be empty")
-        if not self.decoded:
-            raise ValueError("RasterLayer decoded cannot be empty")
         if not self.mask_annotation_ids_mapping:
             raise ValueError("RasterLayer mask_annotation_ids_mapping cannot be empty")
         if not self.slot_names:
@@ -1407,3 +1488,44 @@ class SegmentManifest:
     segment: int
     total_frames: int
     items: List[ManifestItem]
+
+
+class ObjectStore:
+    """
+    Object representing a configured conection to an external storage locaiton
+
+    Attributes:
+        name (str): The alias of the storage connection
+        prefix (str): The directory that files are written back to in the storage location
+        readonly (bool): Whether the storage configuration is read-only or not
+        provider (str): The cloud provider (aws, azure, or gcp)
+        default (bool): Whether the storage connection is the default one
+    """
+
+    def __init__(
+        self,
+        name: str,
+        prefix: str,
+        readonly: bool,
+        provider: str,
+        default: bool,
+    ) -> None:
+        self.name = name
+        self.prefix = prefix
+        self.readonly = readonly
+        self.provider = provider
+        self.default = default
+
+    def __str__(self) -> str:
+        return f"Storage configuration:\n- Name: {self.name}\n- Prefix: {self.prefix}\n- Readonly: {self.readonly}\n- Provider: {self.provider}\n- Default: {self.default}"
+
+    def __repr__(self) -> str:
+        return f"ObjectStore(name={self.name}, prefix={self.prefix}, readonly={self.readonly}, provider={self.provider})"
+
+
+class StorageKeyDictModel(BaseModel):
+    storage_keys: Dict[str, List[str]]
+
+
+class StorageKeyListModel(BaseModel):
+    storage_keys: List[str]

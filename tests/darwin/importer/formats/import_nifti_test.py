@@ -3,7 +3,11 @@ import json
 import tempfile
 from pathlib import Path
 from typing import Union
+from unittest.mock import patch
 from zipfile import ZipFile
+
+import numpy as np
+from scipy import ndimage
 
 from darwin.datatypes import (
     Annotation,
@@ -12,17 +16,17 @@ from darwin.datatypes import (
     SubAnnotation,
     VideoAnnotation,
 )
-from darwin.importer.formats.nifti import parse_path
+from darwin.importer.formats.nifti import get_new_axial_size, parse_path
 from tests.fixtures import *
 
 
-def test_image_annotation_nifti_import_single_slot(team_slug: str):
+def test_image_annotation_nifti_import_single_slot(team_slug_darwin_json_v2: str):
     with tempfile.TemporaryDirectory() as tmpdir:
         with ZipFile("tests/data.zip") as zfile:
             zfile.extractall(tmpdir)
             label_path = (
                 Path(tmpdir)
-                / team_slug
+                / team_slug_darwin_json_v2
                 / "nifti"
                 / "releases"
                 / "latest"
@@ -50,7 +54,10 @@ def test_image_annotation_nifti_import_single_slot(team_slug: str):
             )
             expected_json_string = json.load(
                 open(
-                    Path(tmpdir) / team_slug / "nifti" / "vol0_annotation_file.json",
+                    Path(tmpdir)
+                    / team_slug_darwin_json_v2
+                    / "nifti"
+                    / "vol0_annotation_file.json",
                     "r",
                 )
             )
@@ -60,13 +67,13 @@ def test_image_annotation_nifti_import_single_slot(team_slug: str):
             )
 
 
-def test_image_annotation_nifti_import_multi_slot(team_slug: str):
+def test_image_annotation_nifti_import_multi_slot(team_slug_darwin_json_v2: str):
     with tempfile.TemporaryDirectory() as tmpdir:
         with ZipFile("tests/data.zip") as zfile:
             zfile.extractall(tmpdir)
             label_path = (
                 Path(tmpdir)
-                / team_slug
+                / team_slug_darwin_json_v2
                 / "nifti"
                 / "releases"
                 / "latest"
@@ -89,6 +96,7 @@ def test_image_annotation_nifti_import_multi_slot(team_slug: str):
             upload_json.write_text(
                 json.dumps(input_dict, indent=4, sort_keys=True, default=str)
             )
+
             annotation_files = parse_path(path=upload_json)
             annotation_file = annotation_files[0]
             output_json_string = json.loads(
@@ -97,7 +105,7 @@ def test_image_annotation_nifti_import_multi_slot(team_slug: str):
             expected_json_string = json.load(
                 open(
                     Path(tmpdir)
-                    / team_slug
+                    / team_slug_darwin_json_v2
                     / "nifti"
                     / "vol0_annotation_file_multi_slot.json",
                     "r",
@@ -109,13 +117,15 @@ def test_image_annotation_nifti_import_multi_slot(team_slug: str):
             )
 
 
-def test_image_annotation_nifti_import_incorrect_number_slot(team_slug: str):
+def test_image_annotation_nifti_import_incorrect_number_slot(
+    team_slug_darwin_json_v2: str,
+):
     with tempfile.TemporaryDirectory() as tmpdir:
         with ZipFile("tests/data.zip") as zfile:
             zfile.extractall(tmpdir)
             label_path = (
                 Path(tmpdir)
-                / team_slug
+                / team_slug_darwin_json_v2
                 / "nifti"
                 / "releases"
                 / "latest"
@@ -140,6 +150,84 @@ def test_image_annotation_nifti_import_incorrect_number_slot(team_slug: str):
             )
             with pytest.raises(Exception):
                 parse_path(path=upload_json)
+
+
+def test_image_annotation_nifti_import_single_slot_to_mask(
+    team_slug_darwin_json_v2: str,
+):
+    with tempfile.TemporaryDirectory() as tmpdir:
+        with ZipFile("tests/data.zip") as zfile:
+            zfile.extractall(tmpdir)
+            label_path = (
+                Path(tmpdir)
+                / team_slug_darwin_json_v2
+                / "nifti"
+                / "releases"
+                / "latest"
+                / "annotations"
+                / "vol0_brain.nii.gz"
+            )
+            input_dict = {
+                "data": [
+                    {
+                        "image": "vol0 (1).nii",
+                        "label": str(label_path),
+                        "class_map": {"1": "brain"},
+                        "mode": "mask",
+                        "is_mpr": False,
+                        "slot_names": ["0.1"],
+                    }
+                ]
+            }
+            upload_json = Path(tmpdir) / "annotations.json"
+            upload_json.write_text(
+                json.dumps(input_dict, indent=4, sort_keys=True, default=str)
+            )
+
+            with patch("darwin.importer.formats.nifti.zoom") as mock_zoom:
+                mock_zoom.side_effect = ndimage.zoom
+
+                annotation_files = parse_path(path=upload_json)
+                annotation_file = annotation_files[0]
+                output_json_string = json.loads(
+                    serialise_annotation_file(annotation_file, as_dict=False)
+                )
+                expected_json_string = json.load(
+                    open(
+                        Path(tmpdir)
+                        / team_slug_darwin_json_v2
+                        / "nifti"
+                        / "vol0_annotation_file_to_mask.json",
+                        "r",
+                    )
+                )
+                # This needs to not check for mask_annotation_ids_mapping as these
+                # are randomly generated
+                [
+                    frame.get("raster_layer", {}).pop("mask_annotation_ids_mapping")
+                    for frame in output_json_string["annotations"][0]["frames"].values()
+                ]
+                [
+                    frame.get("raster_layer", {}).pop("mask_annotation_ids_mapping")
+                    for frame in expected_json_string["annotations"][0][
+                        "frames"
+                    ].values()
+                ]
+
+                assert mock_zoom.call_count == len(
+                    expected_json_string["annotations"][0]["frames"]
+                )
+                assert (
+                    output_json_string["annotations"][0]["frames"]
+                    == expected_json_string["annotations"][0]["frames"]
+                )
+
+
+def test_get_new_axial_size():
+    volume = np.zeros((10, 10, 10))
+    pixdims = (1, 0.5, 0.5)
+    new_size = get_new_axial_size(volume, pixdims)
+    assert new_size == (20, 10)
 
 
 def serialise_annotation_file(
@@ -266,7 +354,7 @@ if __name__ == "__main__":
         "data": [
             {
                 "image": "vol0 (1).nii",
-                "label": "tests/v7/v7-darwin-json-v1/nifti/releases/latest/annotations/vol0_brain.nii.gz",
+                "label": "tests/v7/v7-darwin-json-v2/nifti/releases/latest/annotations/vol0_brain.nii.gz",
                 "class_map": {
                     "1": "brain"
                 },
@@ -287,7 +375,7 @@ if __name__ == "__main__":
         with open(
             Path("tests")
             / "v7"
-            / "v7-darwin-json-v1"
+            / "v7-darwin-json-v2"
             / "nifti"
             / "vol0_annotation_file_multi_slot.json",
             "w",

@@ -35,7 +35,8 @@
                 {
                     "name": "Colors",
                     "type": "multi-select",
-                    "options": [
+                    "description": "Some additional description",
+                    "property_values": [
                         {
                             "value": "red",
                             "color": "rgba(255, 0, 0, 0)",

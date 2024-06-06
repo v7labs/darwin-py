@@ -10,13 +10,17 @@ from rich.live import Live
 from rich.progress import ProgressBar, track
 
 import darwin.datatypes as dt
+
+# from darwin.dataset.remote_dataset_v2 import RemoteDatasetV2
 from darwin.datatypes import PathLike
 from darwin.exceptions import NotFound
 from darwin.importer.formats.darwin import parse_path
 from darwin.utils import (
     SUPPORTED_EXTENSIONS,
+    SUPPORTED_IMAGE_EXTENSIONS,
     SUPPORTED_VIDEO_EXTENSIONS,
     attempt_decode,
+    get_annotation_files_from_dir,
     get_image_path_from_stream,
     is_unix_like_os,
     parse_darwin_json,
@@ -96,8 +100,8 @@ def extract_classes(
     classes: Dict[str, Set[int]] = defaultdict(set)
     indices_to_classes: Dict[int, Set[str]] = defaultdict(set)
 
-    for i, file_name in enumerate(sorted(annotations_path.glob("**/*.json"))):
-        annotation_file = parse_path(file_name)
+    for i, file_name in enumerate(get_annotation_files_from_dir(annotations_path)):
+        annotation_file = parse_path(Path(file_name))
         if not annotation_file:
             continue
 
@@ -223,12 +227,12 @@ def _f(x: Any) -> Any:
 def exhaust_generator(
     progress: Generator,
     count: int,
-    multi_threaded: bool,
+    multi_processed: bool,
     worker_count: Optional[int] = None,
 ) -> Tuple[List[Dict[str, Any]], List[Exception]]:
     """
 
-    Exhausts the generator passed as parameter. Can be done multi threaded if desired.
+    Exhausts the generator passed as parameter. Can be done multi processed if desired.
     Creates and returns a coco record from the given annotation.
 
     Uses ``BoxMode.XYXY_ABS`` from ``detectron2.structures`` if available, defaults to ``box_mode = 0``
@@ -260,7 +264,7 @@ def exhaust_generator(
     """
     successes = []
     errors = []
-    if multi_threaded:
+    if multi_processed:
         progress_bar: ProgressBar = ProgressBar(total=count)
         responses = []
 
@@ -366,9 +370,11 @@ def create_polygon_object(obj, box_mode, classes=None):
         "segmentation": segmentation,
         "bbox": [np.min(all_px), np.min(all_py), np.max(all_px), np.max(all_py)],
         "bbox_mode": box_mode,
-        "category_id": classes.index(obj.annotation_class.name)
-        if classes
-        else obj.annotation_class.name,
+        "category_id": (
+            classes.index(obj.annotation_class.name)
+            if classes
+            else obj.annotation_class.name
+        ),
         "iscrowd": 0,
     }
 
@@ -380,9 +386,11 @@ def create_bbox_object(obj, box_mode, classes=None):
     new_obj = {
         "bbox": [bbox["x"], bbox["y"], bbox["x"] + bbox["w"], bbox["y"] + bbox["h"]],
         "bbox_mode": box_mode,
-        "category_id": classes.index(obj.annotation_class.name)
-        if classes
-        else obj.annotation_class.name,
+        "category_id": (
+            classes.index(obj.annotation_class.name)
+            if classes
+            else obj.annotation_class.name
+        ),
         "iscrowd": 0,
     }
 
@@ -396,7 +404,7 @@ def get_annotations(
     split_type: Optional[str] = None,
     annotation_type: str = "polygon",
     release_name: Optional[str] = None,
-    annotation_format: Optional[str] = "coco",
+    annotation_format: str = "coco",
     ignore_inconsistent_examples: bool = False,
 ) -> Iterator[Dict[str, Any]]:
     """
@@ -463,7 +471,7 @@ def get_annotations(
             release_path, split, split_type, annotation_type, partition
         )
     else:
-        stems = (e.stem for e in annotations_dir.glob("**/*.json"))
+        stems = get_annotation_files_from_dir(annotations_dir)
 
     (
         images_paths,
@@ -490,7 +498,9 @@ def get_annotations(
     )
 
 
-def _validate_inputs(partition, split_type, annotation_type):
+def _validate_inputs(
+    partition: Union[str, None], split_type: Union[str, None], annotation_type: str
+) -> None:
     """
     Validates the input parameters for partition, split_type, and annotation_type.
 
@@ -512,7 +522,13 @@ def _validate_inputs(partition, split_type, annotation_type):
         )
 
 
-def _get_stems_from_split(release_path, split, split_type, annotation_type, partition):
+def _get_stems_from_split(
+    release_path: Path,
+    split: str,
+    split_type: Union[str, None],
+    annotation_type: str,
+    partition: Union[str, None],
+) -> Generator:
     """
     Determines the file stems based on the dataset split and other parameters.
 
@@ -551,8 +567,11 @@ def _get_stems_from_split(release_path, split, split_type, annotation_type, part
 
 
 def _map_annotations_to_images(
-    stems, annotations_dir, images_dir, ignore_inconsistent_examples
-):
+    stems: List[str],
+    annotations_dir: Path,
+    images_dir: Path,
+    ignore_inconsistent_examples: bool,
+) -> Tuple[List[Path], List[Path], List[Path]]:
     """
     Maps annotations to their corresponding images based on the file stems.
 
@@ -571,9 +590,11 @@ def _map_annotations_to_images(
     images_paths = []
     annotations_paths = []
     invalid_annotation_paths = []
-    for annotation_path in annotations_dir.glob("**/*.json"):
-        darwin_json = stream_darwin_json(annotation_path)
-        image_path = get_image_path_from_stream(darwin_json, images_dir)
+    for annotation_path in get_annotation_files_from_dir(annotations_dir):
+        darwin_json = stream_darwin_json(Path(annotation_path))
+        image_path = get_image_path_from_stream(
+            darwin_json, images_dir, Path(annotation_path)
+        )
         if image_path.exists():
             images_paths.append(image_path)
             annotations_paths.append(annotation_path)
@@ -591,8 +612,12 @@ def _map_annotations_to_images(
 
 
 def _load_and_format_annotations(
-    images_paths, annotations_paths, annotation_format, annotation_type, classes
-):
+    images_paths: List[Path],
+    annotations_paths: List[Path],
+    annotation_format: str,
+    annotation_type: str,
+    classes: List[str],
+) -> Generator:
     """
     Loads and formats annotations based on the specified format and type.
 
@@ -698,7 +723,7 @@ def convert_to_rgb(pic: PILImage.Image) -> PILImage.Image:
 def compute_max_density(annotations_dir: Path) -> int:
     """
     Calculates the maximum density of all of the annotations in the given folder.
-    Density is calculated as the number of polygons / complex_polygons present in an annotation
+    Density is calculated as the number of polygons present in an annotation
     file.
 
     Parameters
@@ -712,9 +737,9 @@ def compute_max_density(annotations_dir: Path) -> int:
         The maximum density.
     """
     max_density = 0
-    for annotation_path in annotations_dir.glob("**/*.json"):
+    for annotation_path in get_annotation_files_from_dir(annotations_dir):
         annotation_density = 0
-        darwin_json = parse_darwin_json(annotation_path)
+        darwin_json = parse_darwin_json(Path(annotation_path))
         for annotation in darwin_json.annotations:
             if "path" not in annotation.data and "paths" not in annotation.data:
                 continue
@@ -772,7 +797,9 @@ def compute_distributions(
             stems: List[str] = [e.rstrip("\n\r") for e in split_file.open()]
 
             for stem in stems:
-                annotation_path: Path = annotations_dir / f"{stem}.json"
+                if not stem.endswith(".json"):
+                    stem = f"{stem}.json"
+                annotation_path: Path = annotations_dir / stem
                 annotation_file: Optional[dt.AnnotationFile] = parse_path(
                     annotation_path
                 )
@@ -840,3 +867,89 @@ def sanitize_filename(filename: str) -> str:
         filename = filename.replace(char, "_")
 
     return filename
+
+
+def get_external_file_type(storage_key: str) -> Optional[str]:
+    """
+    Returns the type of file given a storage key.
+
+    Parameters
+    ----------
+    storage_key : str
+        The storage key to get the type of file from.
+
+    Returns
+    -------
+    Optional[str]
+        The type of file, or ``None`` if the file type is not supported.
+    """
+    for extension in SUPPORTED_IMAGE_EXTENSIONS:
+        if storage_key.endswith(extension):
+            return "image"
+    if storage_key.endswith(".pdf"):
+        return "pdf"
+    if storage_key.endswith(".dcm"):
+        return "dicom"
+    for extension in SUPPORTED_VIDEO_EXTENSIONS:
+        if storage_key.endswith(extension):
+            return "video"
+    return None
+
+
+def parse_external_file_path(storage_key: str, preserve_folders: bool) -> str:
+    """
+    Returns the Darwin dataset path given a storage key.
+
+    Parameters
+    ----------
+    storage_key : str
+        The storage key to parse.
+    preserve_folders : bool
+        Whether to preserve folders or place the file in the Dataset root.
+
+    Returns
+    -------
+    str
+        The parsed external file path.
+    """
+    if not preserve_folders:
+        return "/"
+    return "/" + "/".join(storage_key.split("/")[:-1])
+
+
+def get_external_file_name(storage_key: str) -> str:
+    """
+    Returns the name of the file given a storage key.
+
+    Parameters
+    ----------
+    storage_key : str
+        The storage key to get the file name from.
+
+    Returns
+    -------
+    str
+        The name of the file.
+    """
+    if "/" not in storage_key:
+        return storage_key
+    return storage_key.split("/")[-1]
+
+
+def chunk_items(items: List[Any], chunk_size: int = 500) -> Iterator[List[Any]]:
+    """
+    Splits the list of items into chunks of specified size.
+
+    Parameters
+    ----------
+    items : List[Any]
+        The list of items to split.
+    chunk_size : int, default: 500
+        The size of each chunk.
+
+    Returns
+    -------
+    Iterator[List[Any]]
+        An iterator that yields lists of items, each of length ``chunk_size``.
+    """
+    return (items[i : i + chunk_size] for i in range(0, len(items), chunk_size))

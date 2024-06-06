@@ -8,7 +8,7 @@ ClassIndex = Dict[str, int]
 
 def build_class_index(
     annotation_files: Iterable[AnnotationFile],
-    include_types: List[str] = ["bounding_box", "polygon", "complex_polygon"],
+    include_types: List[str] = ["bounding_box", "polygon"],
 ) -> ClassIndex:
     classes = set()
     for annotation_file in annotation_files:

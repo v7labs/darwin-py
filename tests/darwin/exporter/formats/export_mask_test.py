@@ -2,7 +2,7 @@ import csv
 import platform
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Dict, List, Optional
+from typing import List, Optional
 from unittest.mock import patch
 
 import numpy as np
@@ -14,11 +14,9 @@ try:
     from numpy.typing import NDArray
 except ImportError:
     NDArray = Any  # type:ignore
-from PIL import Image
 
 from darwin import datatypes as dt
 from darwin.exporter.formats.mask import (
-    colours_in_rle,
     export,
     get_or_generate_colour,
     get_palette,
@@ -174,9 +172,7 @@ def annotations() -> List[dt.Annotation]:
         ),
         dt.Annotation(dt.AnnotationClass("class_2", "mask"), data={"sparse_rle": []}),
         dt.Annotation(dt.AnnotationClass("class_3", "polygon"), data={"path": "data"}),
-        dt.Annotation(
-            dt.AnnotationClass("class_4", "complex_polygon"), data={"paths": "data"}
-        ),
+        dt.Annotation(dt.AnnotationClass("class_4", "polygon"), data={"paths": "data"}),
     ]
 
 
@@ -212,61 +208,17 @@ def test_get_render_mode_raises_value_error_when_no_renderable_annotations_found
         get_render_mode([dt.Annotation(dt.AnnotationClass("class_3", "invalid"), data={"line": "data"})])  # type: ignore
 
 
-# Test colours_in_rle
-@pytest.fixture
-def colours() -> dt.MaskTypes.ColoursDict:
-    return {"mask1": 1, "mask2": 2}
-
-
-@pytest.fixture
-def raster_layer() -> dt.RasterLayer:
-    return dt.RasterLayer([], [], mask_annotation_ids_mapping={"uuid1": 3, "uuid2": 4})
-
-
-@pytest.fixture
-def mask_lookup() -> Dict[str, dt.AnnotationMask]:
-    return {
-        "uuid1": dt.AnnotationMask("mask3", name="mask3"),
-        "uuid2": dt.AnnotationMask("mask3", name="mask4"),
-    }
-
-
-def test_colours_in_rle_returns_expected_dict(
-    colours: dt.MaskTypes.ColoursDict,
-    raster_layer: dt.RasterLayer,
-    mask_lookup: Dict[str, dt.AnnotationMask],
-) -> None:
-    expected_dict = {"mask1": 1, "mask2": 2, "mask3": 3, "mask4": 4}
-    assert colours_in_rle(colours, raster_layer, mask_lookup) == expected_dict
-
-
-def test_colours_in_rle_raises_value_error_when_mask_not_in_lookup(
-    colours: dt.MaskTypes.ColoursDict,
-    raster_layer: dt.RasterLayer,
-    mask_lookup: Dict[str, dt.AnnotationMask],
-) -> None:
-    with pytest.raises(ValueError):
-        colours_in_rle(
-            colours,
-            raster_layer,
-            {
-                "uuid9": dt.AnnotationMask("9", name="mask9"),
-                "uuid10": dt.AnnotationMask("10", name="mask10"),
-                "uuid11": dt.AnnotationMask("11", name="mask11"),
-            },
-        )
-
-
 # Test RLE decoder
 def test_rle_decoder() -> None:
     predication = [1, 2, 3, 4, 5, 6]
-    expectation = [1, 1, 3, 3, 3, 3, 5, 5, 5, 5, 5, 5]
+    label_colours = {1: 1, 3: 2, 5: 3}
+    expectation = [1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3]
 
-    assert rle_decode(predication) == expectation
+    assert rle_decode(predication, label_colours) == expectation
 
     odd_number_of_integers = [1, 2, 3, 4, 5, 6, 7]
     with pytest.raises(ValueError):
-        rle_decode(odd_number_of_integers)
+        rle_decode(odd_number_of_integers, label_colours)
 
 
 def test_beyond_polygon_beyond_window() -> None:
@@ -277,12 +229,14 @@ def test_beyond_polygon_beyond_window() -> None:
         dt.Annotation(
             dt.AnnotationClass("cat1", "polygon"),
             {
-                "path": [
-                    {"x": -1, "y": -1},
-                    {"x": -1, "y": 1},
-                    {"x": 1, "y": 1},
-                    {"x": 1, "y": -1},
-                    {"x": -1, "y": -1},
+                "paths": [
+                    [
+                        {"x": -1, "y": -1},
+                        {"x": -1, "y": 1},
+                        {"x": 1, "y": 1},
+                        {"x": 1, "y": -1},
+                        {"x": -1, "y": -1},
+                    ]
                 ],
                 "bounding_box": {"x": -1, "y": -1, "w": 2, "h": 2},
             },
@@ -313,13 +267,13 @@ def test_beyond_polygon_beyond_window() -> None:
     assert not errors
 
 
-def test_beyond_complex_polygon() -> None:
+def test_beyond_multi_path_polygons() -> None:
     mask = np.zeros((5, 5), dtype=np.uint8)
     colours: dt.MaskTypes.ColoursDict = {}
     categories: dt.MaskTypes.CategoryList = ["__background__"]
     annotations: List[dt.AnnotationLike] = [
         dt.Annotation(
-            dt.AnnotationClass("cat3", "complex_polygon"),
+            dt.AnnotationClass("cat3", "polygon"),
             {
                 "paths": [
                     [
@@ -378,7 +332,7 @@ def test_render_polygons() -> None:
         dt.Annotation(
             dt.AnnotationClass("cat1", "polygon"),
             {
-                "path": [
+                "paths": [
                     {"x": 10, "y": 10},
                     {"x": 20, "y": 10},
                     {"x": 20, "y": 20},
@@ -390,7 +344,7 @@ def test_render_polygons() -> None:
         dt.Annotation(
             dt.AnnotationClass("cat2", "polygon"),
             {
-                "path": [
+                "paths": [
                     {"x": 30, "y": 30},
                     {"x": 40, "y": 30},
                     {"x": 40, "y": 40},
@@ -402,7 +356,7 @@ def test_render_polygons() -> None:
         dt.Annotation(
             dt.AnnotationClass("cat1", "polygon"),
             {
-                "path": [
+                "paths": [
                     {"x": 50, "y": 50},
                     {"x": 60, "y": 50},
                     {"x": 60, "y": 60},
@@ -414,12 +368,12 @@ def test_render_polygons() -> None:
         dt.Annotation(
             dt.AnnotationClass("cat1", "polygon"),
             {
-                "path": [{"x": 10, "y": 80}, {"x": 20, "y": 80}, {"x": 20, "y": 60}],
+                "paths": [{"x": 10, "y": 80}, {"x": 20, "y": 80}, {"x": 20, "y": 60}],
                 "bounding_box": base_bb,
             },
         ),
         dt.Annotation(
-            dt.AnnotationClass("cat3", "complex_polygon"),
+            dt.AnnotationClass("cat3", "polygon"),
             {
                 "paths": [
                     [
@@ -476,7 +430,7 @@ def test_render_raster() -> None:
     ]
     mask = np.zeros((100, 100), dtype=np.uint8)
     colours: dt.MaskTypes.ColoursDict = {}
-    categories: dt.MaskTypes.CategoryList = []
+    categories: dt.MaskTypes.CategoryList = ["__background__"]
     annotations: List[dt.AnnotationLike] = [
         dt.Annotation(
             dt.AnnotationClass("mask1", "mask"),
@@ -503,8 +457,7 @@ def test_render_raster() -> None:
             dt.AnnotationClass("__raster_layer__", "raster_layer"),
             {
                 "dense_rle": "my_rle_data",
-                "decoded": rle_code,
-                "mask_annotation_ids_mapping": {"mask1": 0, "mask2": 1, "mask3": 2},
+                "mask_annotation_ids_mapping": {"mask1": 5, "mask2": 6, "mask3": 7},
                 "total_pixels": 10000,
             },
             slot_names=["slot1"],
@@ -518,11 +471,8 @@ def test_render_raster() -> None:
         filename="test.txt",
     )
 
-    with patch("darwin.exporter.formats.mask.rle_decode") as mock_rle_decode, patch(
-        "darwin.exporter.formats.mask.colours_in_rle"
-    ) as mock_colours_in_rle:
+    with patch("darwin.exporter.formats.mask.rle_decode") as mock_rle_decode:
         mock_rle_decode.return_value = rle_code
-        mock_colours_in_rle.return_value = {"mask1": 1, "mask2": 2, "mask3": 3}
 
         errors, result_mask, result_categories, result_colours = render_raster(
             mask, colours, categories, annotations, annotation_file, 100, 100
@@ -545,7 +495,7 @@ def test_render_raster() -> None:
 
         assert_array_equal(result_mask, np.array(rle_code, dtype=np.uint8).reshape((100, 100)))  # type: ignore
 
-        assert result_categories == ["mask1", "mask2", "mask3"]
+        assert result_categories == ["__background__", "mask1", "mask2", "mask3"]
         assert result_colours == {"mask1": 1, "mask2": 2, "mask3": 3}
 
 
@@ -785,7 +735,7 @@ def test_class_mappings_preserved_on_large_export(tmpdir) -> None:
         dt.Annotation(
             dt.AnnotationClass("cat1", "polygon"),
             {
-                "path": [
+                "paths": [
                     {"x": 0, "y": 0},
                     {"x": 1, "y": 0},
                     {"x": 1, "y": 1},
@@ -797,7 +747,7 @@ def test_class_mappings_preserved_on_large_export(tmpdir) -> None:
         dt.Annotation(
             dt.AnnotationClass("cat2", "polygon"),
             {
-                "path": [
+                "paths": [
                     {"x": 2, "y": 2},
                     {"x": 4, "y": 2},
                     {"x": 4, "y": 4},
@@ -809,7 +759,7 @@ def test_class_mappings_preserved_on_large_export(tmpdir) -> None:
         dt.Annotation(
             dt.AnnotationClass("cat3", "polygon"),
             {
-                "path": [
+                "paths": [
                     {"x": 5, "y": 5},
                     {"x": 8, "y": 5},
                     {"x": 8, "y": 8},
@@ -821,7 +771,7 @@ def test_class_mappings_preserved_on_large_export(tmpdir) -> None:
         dt.Annotation(
             dt.AnnotationClass("cat1", "polygon"),
             {
-                "path": [
+                "paths": [
                     {"x": 4, "y": 0},
                     {"x": 5, "y": 0},
                     {"x": 5, "y": 1},
@@ -831,7 +781,7 @@ def test_class_mappings_preserved_on_large_export(tmpdir) -> None:
             },
         ),
         dt.Annotation(
-            dt.AnnotationClass("cat4", "complex_polygon"),
+            dt.AnnotationClass("cat4", "polygon"),
             {
                 "paths": [
                     [

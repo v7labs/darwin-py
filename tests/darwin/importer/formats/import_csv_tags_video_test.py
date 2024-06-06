@@ -68,3 +68,18 @@ class TestParsePathVideo:
 
         # Check that the keyframes are recorded correctly
         assert video_annotation.keyframes == {i: i == 1 for i in range(1, 11)}
+
+    def test_bundles_tags_correctly(self, file_path: Path):
+        with file_path.open("w", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerow(["video1.mp4", "tag1", "1", "10"])
+            writer.writerow(["video1.mp4", "tag2", "5", "15"])
+            writer.writerow(["video2.mp4", "tag3", "1", "10"])
+            writer.writerow(["video2.mp4", "tag4", "5", "15"])
+
+        annotation_files: Optional[List[dt.AnnotationFile]] = parse_path(file_path)
+        assert annotation_files is not None
+
+        assert len(annotation_files) == 2
+        assert len(annotation_files[0].annotations) == 2
+        assert len(annotation_files[1].annotations) == 2

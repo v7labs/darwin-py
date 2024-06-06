@@ -45,7 +45,7 @@ def _build_txt(annotation_file: dt.AnnotationFile, class_index: ClassIndex) -> s
 
         if annotation_type == "bounding_box":
             data = annotation.data
-        elif annotation_type in ["polygon", "complex_polygon"]:
+        elif annotation_type == "polygon":
             data = annotation.data
             data = data.get("bounding_box")
         else:

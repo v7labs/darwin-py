@@ -333,6 +333,11 @@ class Options:
             action="store_true",
             help="Import reviewers metadata from the annotation files, where available",
         )
+        parser_import.add_argument(
+            "--overwrite",
+            action="store_true",
+            help="Bypass warnings about overwiting existing annotations.",
+        )
 
         # Cpu limit for multiprocessing tasks
         def cpu_default_types(input: Any) -> Optional[int]:  # type: ignore
@@ -468,7 +473,9 @@ class Options:
             help="[Remote] Dataset name: to list all the existing dataset, run 'darwin dataset remote'. ",
         )
         parser_comment.add_argument("file", type=str, help="File to comment")
-        parser_comment.add_argument("--text", type=str, help="Comment: list of words")
+        parser_comment.add_argument(
+            "--text", type=str, help="Comment: list of words", required=True
+        )
         parser_comment.add_argument(
             "--x",
             required=False,

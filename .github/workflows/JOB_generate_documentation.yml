@@ -9,7 +9,7 @@ on:
 
 permissions:
   id-token: write # This is required for requesting the JWT
-  contents: read  # This is required for actions/checkout
+  contents: read # This is required for actions/checkout
 
 env:
   AWS_REGION: eu-west-1
@@ -20,14 +20,14 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.8, 3.9, "3.10"]
+        python-version: ["3.8", "3.9", "3.10", "3.11"]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
         with:
           ref: ${{ github.head_ref || github.ref }}
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -53,13 +53,11 @@ jobs:
           sphinx-build -b html source/ docs/
       - name: Setup access to AWS
         id: aws_assume_role
-        uses: aws-actions/configure-aws-credentials@v2
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.DARWIN_PY_AWS_GITHUB_CICD_ROLE }}
           role-session-name: ${{ env.AWS_SESSION_NAME }}
           aws-region: ${{ env.AWS_REGION }}
 
-
       - name: Upload docs to S3
         run: aws s3 cp docs/ s3://darwin-py-sdk.v7labs.com/ --recursive
-

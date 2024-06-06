@@ -28,14 +28,20 @@ def set_item_layout(
     Returns:
         JSONType: The response data.
     """
+    if not isinstance(layout, ItemLayout):
+        try:
+            layout = ItemLayout.model_validate(layout)
+        except (ValueError, ValidationError):
+            raise BadRequest("Invalid layout provided")
+
     assert (
         filters
     ), "No parameters provided, please provide at least one non-dataset id filter"
     payload = {
         "filters": {
-            "dataset_ids": dataset_ids
-            if isinstance(dataset_ids, list)
-            else [dataset_ids],
+            "dataset_ids": (
+                dataset_ids if isinstance(dataset_ids, list) else [dataset_ids]
+            ),
             **filters,
         },
         "layout": dict(layout),

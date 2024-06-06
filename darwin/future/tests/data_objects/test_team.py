@@ -37,8 +37,8 @@ def test_get_team_members_returns_valid_list(
     base_client: ClientCore, base_team_member_json: dict
 ) -> None:
     synthetic_list = [
-        TeamMemberCore.parse_obj(base_team_member_json),
-        TeamMemberCore.parse_obj(base_team_member_json),
+        TeamMemberCore.model_validate(base_team_member_json),
+        TeamMemberCore.model_validate(base_team_member_json),
     ]
     endpoint = base_client.config.api_endpoint + "memberships"
     with responses.RequestsMock() as rsps:

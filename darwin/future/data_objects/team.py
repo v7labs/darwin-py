@@ -72,4 +72,4 @@ class TeamCore(DefaultDarwin):
         if not team_slug:
             team_slug = client.config.default_team
         url = client.config.api_endpoint + f"teams/{team_slug}"
-        return TeamCore.parse_obj(get_team_raw(client.session, url))
+        return TeamCore.model_validate(get_team_raw(client.session, url))

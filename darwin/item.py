@@ -1,11 +1,9 @@
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
-import deprecation
 from pydantic import BaseModel
 
 from darwin.path_utils import construct_full_path
-from darwin.version import __version__
 
 
 @dataclass(frozen=True, eq=True)
@@ -42,7 +40,7 @@ class DatasetItem(BaseModel):
 
     #: The id of this ``DatasetItem``'s workflow. A ``None`` value means this ``DatasetItem`` is
     #: new and was never worked on, or was reset to the new state.
-    current_workflow_id: Optional[int]
+    current_workflow_id: Optional[int] = None
 
     #: The darwin path to this ``DatasetItem``.
     path: str
@@ -53,7 +51,7 @@ class DatasetItem(BaseModel):
 
     #: Metadata of this ``DatasetItem``'s workflow. A ``None`` value means this ``DatasetItem`` is
     #: new and was never worked on, or was reset to the new state.
-    current_workflow: Optional[Dict[str, Any]]
+    current_workflow: Optional[Dict[str, Any]] = None
 
     @property
     def full_path(self) -> str:
@@ -114,39 +112,3 @@ class DatasetItem(BaseModel):
                 "slots": [],
             }
         return DatasetItem(**data)
-
-
-@deprecation.deprecated(
-    deprecated_in="0.7.5",
-    removed_in="0.8.0",
-    current_version=__version__,
-    details="Use the ``DatasetItem.parse`` instead.",
-)
-def parse_dataset_item(raw: Dict[str, Any]) -> DatasetItem:
-    """
-    Parses the given dictionary into a ``DatasetItem``. Performs no validations.
-
-    Parameters
-    ----------
-    raw : Dict[str, Any]
-        The dictionary to parse.
-
-    Returns
-    -------
-    DatasetItem
-        A dataset item with the parsed information.
-    """
-    return DatasetItem(
-        raw["id"],
-        raw["filename"],
-        raw["status"],
-        raw["archived"],
-        raw["file_size"],
-        raw["dataset_id"],
-        "n/a",
-        raw["seq"],
-        raw.get("current_workflow_id"),
-        raw["path"],
-        [],
-        raw.get("current_workflow"),
-    )

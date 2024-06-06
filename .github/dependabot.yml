@@ -1,0 +1,36 @@
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    groups:
+      github-actions:
+        patterns:
+          - '*'
+    reviewers:
+      - "saurbhc"
+      - "JBWilkie"
+    open-pull-requests-limit: 1
+    labels:
+      - "github-actions-updates"
+
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    ignore:
+      # For all packages, ignore all major updates
+      - dependency-name: "*"
+        update-types:
+          - "version-update:semver-major"
+    groups:
+      python-requirements:
+        patterns:
+          - '*'
+    reviewers:
+      - "saurbhc"
+      - "JBWilkie"
+    open-pull-requests-limit: 1
+    labels:
+      - "dependencies"

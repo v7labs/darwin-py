@@ -1,11 +1,9 @@
 from typing import Any, Dict, List
 
-import deprecation
 
 import darwin.datatypes as dt
 
 # from darwin.datatypes import PolygonPath, PolygonPaths
-from darwin.version import __version__
 
 DEPRECATION_MESSAGE = """
 
@@ -16,7 +14,9 @@ instead of calling this low-level function directly.
 """
 
 
-def build_image_annotation(annotation_file: dt.AnnotationFile) -> Dict[str, Any]:
+def build_image_annotation(
+    annotation_file: dt.AnnotationFile, team_name: str
+) -> Dict[str, Any]:
     """
     Builds and returns a dictionary with the annotations present in the given file in Darwin v2 format.
 
@@ -38,7 +38,7 @@ def build_image_annotation(annotation_file: dt.AnnotationFile) -> Dict[str, Any]
         annotations_list.append(annotation_data)
 
     slots_data = _build_slots_data(annotation_file.slots)
-    item = _build_item_data(annotation_file)
+    item = _build_item_data(annotation_file, team_name)
     item["slots"] = slots_data
 
     return {
@@ -56,10 +56,7 @@ def _build_v2_annotation_data(annotation: dt.Annotation) -> Dict[str, Any]:
         annotation_data["bounding_box"] = _build_bounding_box_data(annotation.data)
     elif annotation.annotation_class.annotation_type == "tag":
         annotation_data["tag"] = {}
-    elif (
-        annotation.annotation_class.annotation_type == "polygon"
-        or annotation.annotation_class.annotation_type == "complex_polygon"
-    ):
+    elif annotation.annotation_class.annotation_type == "polygon":
         polygon_data = _build_polygon_data(annotation.data)
         annotation_data["polygon"] = polygon_data
         annotation_data["bounding_box"] = _build_bounding_box_data(annotation.data)
@@ -92,15 +89,12 @@ def _build_polygon_data(data: Dict[str, Any]) -> Dict[str, Any]:
     Dict[str, List[List[Dict[str, float]]]]
         The polygon data in the format required for Darwin v2 annotations.
     """
-
-    # Complex polygon
-    if "paths" in data:
-        return {"paths": data["paths"]}
-    else:
-        return {"paths": [data["path"]]}
+    return {"paths": data["paths"]}
 
 
-def _build_item_data(annotation_file: dt.AnnotationFile) -> Dict[str, Any]:
+def _build_item_data(
+    annotation_file: dt.AnnotationFile, team_name: str
+) -> Dict[str, Any]:
     """
     Constructs the 'item' section of the Darwin v2 format annotation.
 
@@ -120,14 +114,16 @@ def _build_item_data(annotation_file: dt.AnnotationFile) -> Dict[str, Any]:
         "source_info": {
             "dataset": {
                 "name": annotation_file.dataset_name,
-                "slug": annotation_file.dataset_name.lower().replace(" ", "-")
-                if annotation_file.dataset_name
-                else None,
+                "slug": (
+                    annotation_file.dataset_name.lower().replace(" ", "-")
+                    if annotation_file.dataset_name
+                    else None
+                ),
             },
             "item_id": annotation_file.item_id,
             "team": {
-                "name": None,  # TODO Replace with actual team name
-                "slug": None,  # TODO Replace with actual team slug
+                "name": team_name,
+                "slug": team_name.lower().replace(" ", "-"),
             },
             "workview_url": annotation_file.workview_url,
         },
@@ -161,33 +157,3 @@ def _build_slots_data(slots: List[dt.Slot]) -> List[Dict[str, Any]]:
         slots_data.append(slot_data)
 
     return slots_data
-
-
-@deprecation.deprecated(
-    deprecated_in="0.7.8",
-    removed_in="0.8.0",
-    current_version=__version__,
-    details=DEPRECATION_MESSAGE,
-)
-def build_annotation_data(annotation: dt.Annotation) -> Dict[str, Any]:
-    if annotation.annotation_class.annotation_type == "complex_polygon":
-        return {"path": annotation.data["paths"]}
-
-    if annotation.annotation_class.annotation_type == "polygon":
-        return dict(
-            filter(lambda item: item[0] != "bounding_box", annotation.data.items())
-        )
-
-    return dict(annotation.data)
-
-
-def _build_annotation_data(annotation: dt.Annotation) -> Dict[str, Any]:
-    if annotation.annotation_class.annotation_type == "complex_polygon":
-        return {"path": annotation.data["paths"]}
-
-    if annotation.annotation_class.annotation_type == "polygon":
-        return dict(
-            filter(lambda item: item[0] != "bounding_box", annotation.data.items())
-        )
-
-    return dict(annotation.data)

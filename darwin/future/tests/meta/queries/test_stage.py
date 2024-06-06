@@ -21,7 +21,8 @@ def base_workflow_meta(
     base_client: ClientCore, base_single_workflow_object: dict
 ) -> Workflow:
     return Workflow(
-        client=base_client, element=WorkflowCore.parse_obj(base_single_workflow_object)
+        client=base_client,
+        element=WorkflowCore.model_validate(base_single_workflow_object),
     )
 
 
