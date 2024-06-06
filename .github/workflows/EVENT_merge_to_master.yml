@@ -44,11 +44,14 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            github.repos.createCommitStatus({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              sha: context.sha,
-              state: 'success'
-            })
-
-
+            const { context } = require('@actions/github');
+            const { owner, repo } = context.repo;
+            const sha = context.sha;
+            await github.rest.repos.createCommitStatus({
+              owner: owner,
+              repo: repo,
+              sha: sha,
+              state: 'success',
+              context: 'continuous-integration/github-action',
+              description: 'The build succeeded!'
+            });
