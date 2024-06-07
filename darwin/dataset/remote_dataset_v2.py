@@ -297,7 +297,7 @@ class RemoteDatasetV2(RemoteDataset):
                 "item_paths",
             ]:
                 if list_type in filters:
-                    if type(filters[list_type]) is list:
+                    if isinstance(filters[list_type], list):
                         for value in filters[list_type]:
                             post_filters.append(("{}[]".format(list_type), value))
                     else:

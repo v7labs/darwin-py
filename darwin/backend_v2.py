@@ -18,7 +18,7 @@ def inject_default_team_slug(method: Callable) -> Callable:
 
 
 class BackendV2:
-    def __init__(self, client: "Client", default_team):
+    def __init__(self, client: "Client", default_team):  # noqa F821
         self._client = client
         self._default_team = default_team
 

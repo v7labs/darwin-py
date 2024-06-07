@@ -7,6 +7,7 @@ from unittest.mock import patch
 from zipfile import ZipFile
 
 import numpy as np
+import pytest
 from scipy import ndimage
 
 from darwin.datatypes import (

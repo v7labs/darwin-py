@@ -13,7 +13,7 @@ from PIL import Image
 try:
     from numpy.typing import NDArray
 except ImportError:
-    NDArray = Any  # type:ignore
+    NDArray = Any  # type:ignore # noqa F821
 
 from darwin import datatypes as dt
 from darwin.exporter.formats.mask import (
