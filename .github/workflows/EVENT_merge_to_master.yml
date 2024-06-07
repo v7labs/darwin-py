@@ -5,10 +5,11 @@ on:
   push:
     branches:
       - master
+      - DAR-2492
   workflow_call:
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ githFub.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -21,17 +22,6 @@ jobs:
     name: Documentation
     uses: ./.github/workflows/JOB_generate_documentation.yml
     secrets: inherit
-
-  warn_on_fail:
-    needs: [run_tests, documentation]
-    if : ${{ failure() }}
-    name: Slack message us on fail
-    uses: ./.github/workflows/JOB_slack_message.yml
-    secrets: inherit
-    with:
-      at_team: true
-      icon: ':warning:'
-      message: 'Master is failing after a push event, please review at ${{ github.event.repository.html_url }}/actions/runs/${{ github.run_id }}'
 
   success:
     needs: [run_tests, documentation]
