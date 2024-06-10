@@ -13,6 +13,7 @@ from typing import (
 
 import requests
 from pydantic import ValidationError
+from requests.exceptions import HTTPError
 from requests.models import Response
 
 from darwin.dataset import RemoteDataset
@@ -52,12 +53,13 @@ from tenacity import (
     RetryCallState,
     retry,
     retry_if_exception_type,
+    retry_if_result,
     stop_after_attempt,
     wait_exponential_jitter,
 )
 
 
-def before_sleep(retry_state: RetryCallState):
+def log_rate_limit_exceeded(retry_state: RetryCallState):
     wait_time = retry_state.next_action.sleep
     print(f"Rate limit exceeded. Retrying in {wait_time:.2f} seconds...")
 
@@ -717,7 +719,7 @@ class RemoteDatasetV2(RemoteDataset):
             items.append(item)
 
         # Do not register more than 500 items in a single request
-        chunk_size = 500
+        chunk_size = 2
         chunked_items = chunk_items(items, chunk_size)
         print(f"Registering {len(items)} items in chunks of {chunk_size} items...")
         results = {
@@ -858,16 +860,15 @@ class RemoteDatasetV2(RemoteDataset):
         return results
 
     @retry(
-        wait=wait_exponential_jitter(initial=60, max=120),
-        stop=stop_after_attempt(5),
-        retry=retry_if_exception_type(requests.exceptions.RequestException),
-        before_sleep=before_sleep,
+        wait=wait_exponential_jitter(initial=60, max=300),
+        stop=stop_after_attempt(10),
+        retry=retry_if_exception_type(HTTPError),
+        before_sleep=log_rate_limit_exceeded,
     )
     def register_items_with_retry(
         self, payload: Dict[str, Any], team_slug: str
     ) -> Response:
         response = self.client.api_v2.register_items(payload, team_slug=team_slug)
-        if response.status_code == 429:
-            raise requests.exceptions.RequestException("HTTP 429: Too Many Requests")
-        response.raise_for_status()
+        if response.status_code != 429:
+            response.raise_for_status()
         return response
