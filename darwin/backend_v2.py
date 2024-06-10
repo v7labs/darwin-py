@@ -3,12 +3,7 @@ from urllib import parse
 
 from requests.exceptions import HTTPError
 from requests.models import Response
-from tenacity import (
-    RetryCallState,
-    retry,
-    stop_after_attempt,
-    wait_exponential_jitter,
-)
+from tenacity import RetryCallState, retry, stop_after_attempt, wait_exponential_jitter
 
 from darwin.datatypes import ItemId
 
@@ -278,10 +273,9 @@ class BackendV2:
         team_slug: str
             The team slug.
         """
-        response = self._client._post_raw(
+        return self._client._post_raw(
             f"/v2/teams/{team_slug}/items/register_existing", payload
         )
-        return response
 
     def _get_remote_annotations(
         self,
