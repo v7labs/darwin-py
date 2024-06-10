@@ -6,14 +6,9 @@ from unittest.mock import MagicMock, patch
 
 import orjson as json
 import pytest
-import requests
 import responses
 from pydantic import ValidationError
-from requests.exceptions import HTTPError, RequestException
-from requests.models import Response
-from tenacity import RetryCallState, Retrying
 
-from darwin.backend_v2 import BackendV2, retry_if_status_code_429
 from darwin.client import Client
 from darwin.config import Config
 from darwin.dataset import RemoteDataset

@@ -12,7 +12,6 @@ from typing import (
 )
 
 from pydantic import ValidationError
-from requests.exceptions import HTTPError
 from requests.models import Response
 
 from darwin.dataset import RemoteDataset
