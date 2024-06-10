@@ -175,7 +175,6 @@ def build_output_volumes(
             )
             for class_name in class_names_to_export
         }
-
     return output_volumes
 
 
