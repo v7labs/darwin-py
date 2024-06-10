@@ -16,8 +16,8 @@ try:
     from scipy.ndimage import zoom
 except ImportError:
     import_fail_string = """
-    You must install darwin-py with pip install nibabel connected-components-3d
-    in order to import with using nifti format
+    You must install darwin-py with pip install darwin-py\[medical]
+    in order to export using nifti format
     """
     console.print(import_fail_string)
     sys.exit(1)
