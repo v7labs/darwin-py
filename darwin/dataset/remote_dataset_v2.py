@@ -11,7 +11,6 @@ from typing import (
     Union,
 )
 
-import requests
 from pydantic import ValidationError
 from requests.exceptions import HTTPError
 from requests.models import Response
@@ -48,20 +47,6 @@ from darwin.utils import SUPPORTED_EXTENSIONS, find_files, urljoin
 
 if TYPE_CHECKING:
     from darwin.client import Client
-
-from tenacity import (
-    RetryCallState,
-    retry,
-    retry_if_exception_type,
-    retry_if_result,
-    stop_after_attempt,
-    wait_exponential_jitter,
-)
-
-
-def log_rate_limit_exceeded(retry_state: RetryCallState):
-    wait_time = retry_state.next_action.sleep
-    print(f"Rate limit exceeded. Retrying in {wait_time:.2f} seconds...")
 
 
 class RemoteDatasetV2(RemoteDataset):
@@ -734,18 +719,13 @@ class RemoteDatasetV2(RemoteDataset):
                 "storage_slug": object_store.name,
             }
             print(f"Registering {len(chunk)} items...")
-            try:
-                response = self.register_items_with_retry(payload, team_slug=self.team)
-                for item in json.loads(response.text)["items"]:
-                    item_info = (
-                        f"Item {item['name']} registered with item ID {item['id']}"
-                    )
-                    results["registered"].append(item_info)
-                for item in json.loads(response.text)["blocked_items"]:
-                    item_info = f"Item {item['name']} was blocked for the reason: {item['slots'][0]['reason']}"
-                    results["blocked"].append(item_info)
-            except requests.exceptions.RequestException as e:
-                print(f"Failed to register items: {e}")
+            response = self.client.api_v2.register_items(payload, team_slug=self.team)
+            for item in json.loads(response.text)["items"]:
+                item_info = f"Item {item['name']} registered with item ID {item['id']}"
+                results["registered"].append(item_info)
+            for item in json.loads(response.text)["blocked_items"]:
+                item_info = f"Item {item['name']} was blocked for the reason: {item['slots'][0]['reason']}"
+                results["blocked"].append(item_info)
         print(
             f"{len(results['registered'])} of {len(storage_keys)} items registered successfully"
         )
@@ -837,18 +817,13 @@ class RemoteDatasetV2(RemoteDataset):
                 "storage_slug": object_store.name,
             }
             print(f"Registering {len(chunk)} items...")
-            try:
-                response = self.register_items_with_retry(payload, team_slug=self.team)
-                for item in json.loads(response.text)["items"]:
-                    item_info = (
-                        f"Item {item['name']} registered with item ID {item['id']}"
-                    )
-                    results["registered"].append(item_info)
-                for item in json.loads(response.text)["blocked_items"]:
-                    item_info = f"Item {item['name']} was blocked for the reason: {item['slots'][0]['reason']}"
-                    results["blocked"].append(item_info)
-            except requests.exceptions.RequestException as e:
-                print(f"Failed to register items: {e}")
+            response = self.client.api_v2.register_items(payload, team_slug=self.team)
+            for item in json.loads(response.text)["items"]:
+                item_info = f"Item {item['name']} registered with item ID {item['id']}"
+                results["registered"].append(item_info)
+            for item in json.loads(response.text)["blocked_items"]:
+                item_info = f"Item {item['name']} was blocked for the reason: {item['slots'][0]['reason']}"
+                results["blocked"].append(item_info)
         print(
             f"{len(results['registered'])} of {len(storage_keys)} items registered successfully"
         )
@@ -858,17 +833,3 @@ class RemoteDatasetV2(RemoteDataset):
                 print(f"  - {item}")
         print(f"Reistration complete. Check your items in the dataset: {self.slug}")
         return results
-
-    @retry(
-        wait=wait_exponential_jitter(initial=60, max=300),
-        stop=stop_after_attempt(10),
-        retry=retry_if_exception_type(HTTPError),
-        before_sleep=log_rate_limit_exceeded,
-    )
-    def register_items_with_retry(
-        self, payload: Dict[str, Any], team_slug: str
-    ) -> Response:
-        response = self.client.api_v2.register_items(payload, team_slug=team_slug)
-        if response.status_code != 429:
-            response.raise_for_status()
-        return response

@@ -1,6 +1,16 @@
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 from urllib import parse
 
+from requests.exceptions import HTTPError
+from requests.models import Response
+from tenacity import (
+    RetryCallState,
+    retry,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_exponential_jitter,
+)
+
 from darwin.datatypes import ItemId
 
 
@@ -15,6 +25,19 @@ def inject_default_team_slug(method: Callable) -> Callable:
         return method(self, *args, **kwargs)
 
     return wrapper
+
+
+def log_rate_limit_exceeded(retry_state: RetryCallState):
+    wait_time = retry_state.next_action.sleep
+    print(f"Rate limit exceeded. Retrying in {wait_time:.2f} seconds...")
+
+
+def retry_if_status_code_429(retry_state: RetryCallState):
+    exception = retry_state.outcome.exception()
+    if isinstance(exception, HTTPError):
+        response: Response = exception.response
+        return response.status_code == 429
+    return False
 
 
 class BackendV2:
@@ -238,6 +261,12 @@ class BackendV2:
             f"v2/teams/{team_slug}/items/{item_id}/import", payload=payload
         )
 
+    @retry(
+        wait=wait_exponential_jitter(initial=60, max=300),
+        stop=stop_after_attempt(10),
+        retry=retry_if_status_code_429,
+        before_sleep=log_rate_limit_exceeded,
+    )
     @inject_default_team_slug
     def register_items(self, payload: Dict[str, Any], team_slug: str) -> None:
         """
@@ -250,9 +279,10 @@ class BackendV2:
         team_slug: str
             The team slug.
         """
-        return self._client._post_raw(
+        response = self._client._post_raw(
             f"/v2/teams/{team_slug}/items/register_existing", payload
         )
+        return response
 
     def _get_remote_annotations(
         self,
