@@ -1,4 +1,5 @@
 import sys
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -71,6 +72,6 @@ class TestClassificationDataset:
 
         for size, name in zip(sizes, names):
             with open(splits / f"random_{name}.txt", "r") as f:
-                lines_len = len([l for l in f.readlines() if l.strip() != ""])
+                lines_len = len([line for line in f.readlines() if line.strip() != ""])
                 local_size = lines_len / tot_size, size
                 assert np.allclose(local_size, size, atol=1e-3)

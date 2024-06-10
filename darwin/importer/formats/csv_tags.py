@@ -34,7 +34,7 @@ def parse_path(path: Path) -> Optional[List[dt.AnnotationFile]]:
                 continue
             annotations = [dt.make_tag(tag) for tag in tags if len(tag) > 0]
             if filename not in tags_and_files:
-                tags_and_files[filename] = [annotation for annotation in annotations]
+                tags_and_files[filename] = list(annotations)
             else:
                 tags_and_files[filename].extend(annotations)
 

@@ -951,7 +951,7 @@ class Client:
             error_code: Optional[str] = None
             try:
                 error_code = response.json()["errors"]["code"]
-            except:
+            except Exception:
                 pass
 
             if error_code == "INSUFFICIENT_REMAINING_STORAGE":

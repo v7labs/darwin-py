@@ -35,7 +35,7 @@ def retry_if_status_code_429(retry_state: RetryCallState):
 
 
 class BackendV2:
-    def __init__(self, client: "Client", default_team):
+    def __init__(self, client: "Client", default_team):  # noqa F821
         self._client = client
         self._default_team = default_team
 

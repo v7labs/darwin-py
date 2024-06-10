@@ -2170,12 +2170,12 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 
 [extras]
 dev = ["black", "debugpy", "isort", "mypy", "pytest", "pytest-rerunfailures", "responses", "ruff", "validate-pyproject"]
-medical = ["connected-components-3d", "nibabel"]
-ml = ["albumentations", "scikit-learn", "torch", "torchvision"]
+medical = ["connected-components-3d", "nibabel", "scipy"]
+ml = ["albumentations", "scikit-learn", "scipy", "torch", "torchvision"]
 ocv = ["opencv-python-headless"]
 test = ["pytest", "responses"]
 
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.8.0,<3.12"
-content-hash = "ecd5d99e0c43f6c9f1249de8e7d2e7673e53a3b927b0505c7d848f4a0ab4eb09"
+content-hash = "e2acd10369632e81157fc873add2de947edd824f1f9ed2253b7d9598b3f965d5"
