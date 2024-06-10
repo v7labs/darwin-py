@@ -127,7 +127,9 @@ def test_export_creates_empty_file_for_no_polygons(
             )
             nifti.export(video_annotations, output_dir=Path(tmpdir))
             output_file = Path(tmpdir) / "00005_328a15edd35ab5fd_empty.nii.gz"
-            assert output_file.exists(), f"Expected file 'x' does not exist in {tmpdir}"
+            assert (
+                output_file.exists()
+            ), f"Expected file {output_file} does not exist in {tmpdir}"
 
 
 def test_export_calls_populate_output_volumes_from_raster_layer(
