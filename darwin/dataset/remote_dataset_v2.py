@@ -858,7 +858,7 @@ class RemoteDatasetV2(RemoteDataset):
         return results
 
     @retry(
-        wait=wait_exponential_jitter(initial=30, max=240),
+        wait=wait_exponential_jitter(initial=60, max=120),
         stop=stop_after_attempt(5),
         retry=retry_if_exception_type(requests.exceptions.RequestException),
         before_sleep=before_sleep,
