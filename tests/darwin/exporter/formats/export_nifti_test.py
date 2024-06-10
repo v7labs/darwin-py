@@ -110,6 +110,26 @@ def test_export_calls_populate_output_volumes_from_polygons(
             mock.assert_called()
 
 
+def test_export_creates_empty_file_for_no_polygons(
+    team_slug_darwin_json_v2: str,
+):
+    with tempfile.TemporaryDirectory() as tmpdir:
+        with ZipFile("tests/data.zip") as zfile:
+            zfile.extractall(tmpdir)
+            annotations_dir = (
+                Path(tmpdir)
+                / team_slug_darwin_json_v2
+                / "nifti/releases/latest/annotations"
+            )
+            video_annotation_filepaths = [annotations_dir / "mask_no_polygon.json"]
+            video_annotations = list(
+                darwin_to_dt_gen(video_annotation_filepaths, False)
+            )
+            nifti.export(video_annotations, output_dir=Path(tmpdir))
+            output_file = Path(tmpdir) / "00005_328a15edd35ab5fd_empty.nii.gz"
+            assert output_file.exists(), f"Expected file 'x' does not exist in {tmpdir}"
+
+
 def test_export_calls_populate_output_volumes_from_raster_layer(
     team_slug_darwin_json_v2: str,
 ):

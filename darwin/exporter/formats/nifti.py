@@ -160,6 +160,8 @@ def build_output_volumes(
         )
         # Builds output volumes per class
         volume_dims, pixdims, affine, original_affine = process_metadata(slot.metadata)
+        if not class_names_to_export:
+            class_names_to_export = ["empty"]
         output_volumes[series_instance_uid] = {
             class_name: Volume(
                 pixel_array=np.zeros(volume_dims),
@@ -173,6 +175,7 @@ def build_output_volumes(
             )
             for class_name in class_names_to_export
         }
+
     return output_volumes
 
 
