@@ -72,10 +72,17 @@ def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path) -> N
             for ann in video_annotation.annotations
             if ann.annotation_class.annotation_type == "polygon"
         ]
+        # Check if there are any rasters in the annotation, these are created with a _m suffix
+        # in addition to those created from polygons.
+        annotation_types = [
+            a.annotation_class.annotation_type for a in video_annotation.annotations
+        ]
+        mask_present = "raster_layer" in annotation_types and "mask" in annotation_types
         output_volumes = build_output_volumes(
             video_annotation,
             class_names_to_export=polygon_class_names,
             from_raster_layer=False,
+            mask_present=mask_present,
         )
         slot_map = {slot.name: slot for slot in video_annotation.slots}
         polygon_annotations = [
@@ -90,13 +97,8 @@ def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path) -> N
         write_output_volume_to_disk(
             output_volumes, image_id=image_id, output_dir=output_dir
         )
-        # Check if there are any rasters in the annotation, these are created with a _m suffix
-        # in addition to those created from polygons.
-        annotation_types = [
-            a.annotation_class.annotation_type for a in video_annotation.annotations
-        ]
         # Need to map raster layers to SeriesInstanceUIDs
-        if "raster_layer" in annotation_types and "mask" in annotation_types:
+        if mask_present:
             mask_id_to_classname = {
                 ann.id: ann.annotation_class.name
                 for ann in video_annotation.annotations
@@ -130,6 +132,7 @@ def build_output_volumes(
     video_annotation: dt.AnnotationFile,
     from_raster_layer: bool = False,
     class_names_to_export: List[str] = None,
+    mask_present: Optional[bool] = False,
 ) -> Dict:
     """
     This is a function to create the output volumes based on the whole annotation file
@@ -142,6 +145,8 @@ def build_output_volumes(
         Whether the output volumes are being built from raster layers or not
     class_names_to_export : List[str]
         The list of class names to export
+    mask_present: bool
+        If mask annotations are present in the annotation
     Returns
     -------
     output_volumes: Dict
@@ -160,8 +165,10 @@ def build_output_volumes(
         )
         # Builds output volumes per class
         volume_dims, pixdims, affine, original_affine = process_metadata(slot.metadata)
-        if not class_names_to_export:
-            class_names_to_export = ["empty"]
+        if not mask_present and not class_names_to_export:
+            class_names_to_export = [
+                ""
+            ]  # If there are no annotations to export, we still need to create an empty volume
         output_volumes[series_instance_uid] = {
             class_name: Volume(
                 pixel_array=np.zeros(volume_dims),

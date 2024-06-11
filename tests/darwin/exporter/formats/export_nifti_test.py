@@ -102,34 +102,12 @@ def test_export_calls_populate_output_volumes_from_polygons(
                 / team_slug_darwin_json_v2
                 / "nifti/releases/latest/annotations"
             )
-            video_annotation_filepaths = [annotations_dir / "polygon_no_mask.json"]
+            video_annotation_filepaths = [annotations_dir / "polygon_only.json"]
             video_annotations = list(
                 darwin_to_dt_gen(video_annotation_filepaths, False)
             )
             nifti.export(video_annotations, output_dir=Path(tmpdir))
             mock.assert_called()
-
-
-def test_export_creates_empty_file_for_no_polygons(
-    team_slug_darwin_json_v2: str,
-):
-    with tempfile.TemporaryDirectory() as tmpdir:
-        with ZipFile("tests/data.zip") as zfile:
-            zfile.extractall(tmpdir)
-            annotations_dir = (
-                Path(tmpdir)
-                / team_slug_darwin_json_v2
-                / "nifti/releases/latest/annotations"
-            )
-            video_annotation_filepaths = [annotations_dir / "mask_no_polygon.json"]
-            video_annotations = list(
-                darwin_to_dt_gen(video_annotation_filepaths, False)
-            )
-            nifti.export(video_annotations, output_dir=Path(tmpdir))
-            output_file = Path(tmpdir) / "00005_328a15edd35ab5fd_empty.nii.gz"
-            assert (
-                output_file.exists()
-            ), f"Expected file {output_file} does not exist in {tmpdir}"
 
 
 def test_export_calls_populate_output_volumes_from_raster_layer(
@@ -146,9 +124,48 @@ def test_export_calls_populate_output_volumes_from_raster_layer(
                 / team_slug_darwin_json_v2
                 / "nifti/releases/latest/annotations"
             )
-            video_annotation_filepaths = [annotations_dir / "mask_no_polygon.json"]
+            video_annotation_filepaths = [annotations_dir / "mask_only.json"]
             video_annotations = list(
                 darwin_to_dt_gen(video_annotation_filepaths, False)
             )
             nifti.export(video_annotations, output_dir=Path(tmpdir))
             mock.assert_called()
+
+
+def test_export_creates_file_for_polygons_and_masks(
+    team_slug_darwin_json_v2: str,
+):
+    with tempfile.TemporaryDirectory() as tmpdir:
+        with ZipFile("tests/data.zip") as zfile:
+            zfile.extractall(tmpdir)
+            annotations_dir = (
+                Path(tmpdir)
+                / team_slug_darwin_json_v2
+                / "nifti/releases/latest/annotations"
+            )
+            video_annotation_files = {
+                "mask_only.json": ["hippocampus_multislot_3_test_hippo_LOIN_m.nii.gz"],
+                "polygon_only.json": [
+                    "hippocampus_multislot_3_test_hippo_create_class_1.nii.gz"
+                ],
+                "polygon_and_mask.json": [
+                    "hippocampus_multislot_3_test_hippo_create_class_1.nii.gz",
+                    "hippocampus_multislot_3_test_hippo_LOIN_m.nii.gz",
+                ],
+                "empty.json": ["hippocampus_multislot_3_test_hippo_.nii.gz"],
+            }
+            for video_annotation_file in video_annotation_files:
+                video_annotation_filepaths = [annotations_dir / video_annotation_file]
+                video_annotations = list(
+                    darwin_to_dt_gen(video_annotation_filepaths, False)
+                )
+                nifti.export(video_annotations, output_dir=Path(tmpdir))
+                for output_file in video_annotation_files[video_annotation_file]:
+                    assert (
+                        Path(tmpdir) / output_file
+                    ).exists(), (
+                        f"Expected file {output_file} does not exist in {tmpdir}"
+                    )
+                # Empty the directory for the next test
+                for output_file in video_annotation_files[video_annotation_file]:
+                    (Path(tmpdir) / output_file).unlink()
