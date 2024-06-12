@@ -167,6 +167,7 @@ def _run(args: Namespace, parser: ArgumentParser) -> None:
                 args.import_annotators,
                 args.import_reviewers,
                 args.overwrite,
+                isotropic=args.isotropic,
                 cpu_limit=args.cpu_limit,
             )
         elif args.action == "convert":

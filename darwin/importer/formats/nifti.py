@@ -29,7 +29,9 @@ import darwin.datatypes as dt
 from darwin.importer.formats.nifti_schemas import nifti_import_schema
 
 
-def parse_path(path: Path) -> Optional[List[dt.AnnotationFile]]:
+def parse_path(
+    path: Path, isotropic: bool = False
+) -> Optional[List[dt.AnnotationFile]]:
     """
     Parses the given ``nifti`` file and returns a ``List[dt.AnnotationFile]`` with the parsed
     information.
@@ -38,6 +40,9 @@ def parse_path(path: Path) -> Optional[List[dt.AnnotationFile]]:
     ----------
     path : Path
         The ``Path`` to the ``nifti`` file.
+    isotropic : bool, default: False
+        If ``True``, the function will not attempt to resize the annotations to isotropic pixel dimensions.
+        If ``False``, the function will resize the annotations to isotropic pixel dimensions.
 
     Returns
     -------
@@ -52,6 +57,11 @@ def parse_path(path: Path) -> Optional[List[dt.AnnotationFile]]:
             "Skipping file: {} (not a json file)".format(path), style="bold yellow"
         )
         return None
+    if isotropic:
+        console.print(
+            "Isotropic flag is set to True. Annotations will be resized to isotropic pixel dimensions.",
+            style="bold blue",
+        )
     data = attempt_decode(path)
     try:
         validate(data, schema=nifti_import_schema)
@@ -79,6 +89,7 @@ def parse_path(path: Path) -> Optional[List[dt.AnnotationFile]]:
             mode=nifti_annotation.get("mode", "image"),
             slot_names=nifti_annotation.get("slot_names", []),
             is_mpr=nifti_annotation.get("is_mpr", False),
+            isotropic=isotropic,
         )
         annotation_files.append(annotation_file)
     return annotation_files
@@ -92,6 +103,7 @@ def _parse_nifti(
     mode: str,
     slot_names: List[str],
     is_mpr: bool,
+    isotropic: bool = False,
 ) -> dt.AnnotationFile:
     img, pixdims = process_nifti(nib.load(nifti_path))
 
@@ -135,6 +147,7 @@ def _parse_nifti(
             processed_class_map,
             slot_names,
             pixdims=pixdims,
+            isotropic=isotropic,
         )
     if mode in ["video", "instances"]:
         annotation_classes = {
@@ -203,6 +216,7 @@ def get_mask_video_annotations(
     processed_class_map: Dict,
     slot_names: List[str],
     pixdims: Tuple[int, int, int] = (1, 1, 1),
+    isotropic: bool = False,
 ) -> Optional[List[dt.VideoAnnotation]]:
     """
     The function takes a volume and a class map and returns a list of video annotations
@@ -212,7 +226,7 @@ def get_mask_video_annotations(
     Assumptions:
     - Importing annotation from Axial view only (view_idx=2)
     """
-    new_size = get_new_axial_size(volume, pixdims)
+    new_size = get_new_axial_size(volume, pixdims, isotropic=isotropic)
 
     frame_annotations = OrderedDict()
     all_mask_annotations = defaultdict(lambda: OrderedDict())
@@ -249,9 +263,12 @@ def get_mask_video_annotations(
         slice_mask = volume[:, :, i].astype(
             np.uint8
         )  # Product requirement: We only support 255 classes!
-        slice_mask = zoom(
-            slice_mask, (new_size[0] / volume.shape[0], new_size[1] / volume.shape[1])
-        )
+
+        if isotropic:
+            slice_mask = zoom(
+                slice_mask,
+                (new_size[0] / volume.shape[0], new_size[1] / volume.shape[1]),
+            )
 
         # We need to convert from nifti_idx to raster_idx
         slice_mask = np.vectorize(
@@ -522,18 +539,25 @@ def convert_to_dense_rle(raster: np.ndarray) -> List[int]:
 
 
 def get_new_axial_size(
-    volume: np.ndarray, pixdims: Tuple[int, int, int]
+    volume: np.ndarray, pixdims: Tuple[int, int, int], isotropic: bool = False
 ) -> Tuple[int, int]:
     """Get the new size of the Axial plane after resizing to isotropic pixel dimensions.
 
     Args:
         volume: Input volume.
         pixdims: The pixel dimensions / spacings of the volume.
+        no_isotropic: bool, default: True
+            If True, the function will not attempt to resize the annotations to isotropic pixel dimensions.
+            If False, the function will resize the annotations to isotropic pixel dimensions.
 
     Returns:
         Tuple[int, int]: The new size of the Axial plane.
     """
     original_size = volume.shape
+
+    if not isotropic:
+        return original_size[0], original_size[1]
+
     original_spacing = pixdims
     min_spacing = min(pixdims[0], pixdims[1])
     return (
