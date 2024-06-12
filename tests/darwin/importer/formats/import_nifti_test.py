@@ -153,7 +153,7 @@ def test_image_annotation_nifti_import_incorrect_number_slot(
                 parse_path(path=upload_json)
 
 
-def test_image_annotation_nifti_import_single_slot_to_mask(
+def test_image_annotation_nifti_import_single_slot_to_mask_isotropic(
     team_slug_darwin_json_v2: str,
 ):
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -188,7 +188,7 @@ def test_image_annotation_nifti_import_single_slot_to_mask(
             with patch("darwin.importer.formats.nifti.zoom") as mock_zoom:
                 mock_zoom.side_effect = ndimage.zoom
 
-                annotation_files = parse_path(path=upload_json)
+                annotation_files = parse_path(path=upload_json, isotropic=True)
                 annotation_file = annotation_files[0]
                 output_json_string = json.loads(
                     serialise_annotation_file(annotation_file, as_dict=False)
@@ -228,6 +228,13 @@ def test_get_new_axial_size():
     volume = np.zeros((10, 10, 10))
     pixdims = (1, 0.5, 0.5)
     new_size = get_new_axial_size(volume, pixdims)
+    assert new_size == (10, 10)
+
+
+def test_get_new_axial_size_with_isotropic():
+    volume = np.zeros((10, 10, 10))
+    pixdims = (1, 0.5, 0.5)
+    new_size = get_new_axial_size(volume, pixdims, isotropic=True)
     assert new_size == (20, 10)
 
 

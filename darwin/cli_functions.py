@@ -5,6 +5,7 @@ import json
 import os
 import sys
 import traceback
+from functools import partial
 from glob import glob
 from itertools import tee
 from pathlib import Path
@@ -852,6 +853,7 @@ def dataset_import(
     import_annotators: bool = False,
     import_reviewers: bool = False,
     overwrite: bool = False,
+    isotropic: bool = False,
     use_multi_cpu: bool = False,
     cpu_limit: Optional[int] = None,
 ) -> None:
@@ -885,6 +887,9 @@ def dataset_import(
     overwrite : bool, default: False
         If ``True`` it will bypass a warning that the import will overwrite the current annotations if any are present.
         If ``False`` this warning will be skipped and the import will overwrite the current annotations without warning.
+    isotropic : bool, default: False
+        If ``True`` it will not resize the annotations to be isotropic.
+        If ``False`` it will resize the annotations to be isotropic.
     use_multi_cpu : bool, default: False
         If ``True`` it will use all multiple CPUs to speed up the import process.
     cpu_limit : Optional[int], default: Core count - 2
@@ -895,6 +900,10 @@ def dataset_import(
 
     try:
         importer: ImportParser = get_importer(format)
+
+        if format == "nifti" and isotropic:
+            importer = partial(importer, isotropic=True)
+
         dataset: RemoteDataset = client.get_remote_dataset(
             dataset_identifier=dataset_slug
         )

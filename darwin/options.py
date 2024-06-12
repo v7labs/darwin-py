@@ -338,6 +338,11 @@ class Options:
             action="store_true",
             help="Bypass warnings about overwiting existing annotations.",
         )
+        parser_import.add_argument(
+            "--isotropic",
+            action="store_true",
+            help="Importing annotation files with isotropic transformation.",
+        )
 
         # Cpu limit for multiprocessing tasks
         def cpu_default_types(input: Any) -> Optional[int]:  # type: ignore
