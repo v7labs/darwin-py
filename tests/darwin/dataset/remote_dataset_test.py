@@ -806,6 +806,36 @@ class TestPull:
                 assert metadata_path.exists()
 
 
+# Need to create data that this wll read from
+class TestPullNamingConvention:
+    def test_single_slotted_images_flat_structure(self):
+        pass
+
+    def test_single_slotted_videos_flat_structure(self):
+        pass
+
+    def test_single_slotted_images_folder_structure(self):
+        pass
+
+    def test_single_slotted_videos_folder_structure(self):
+        pass
+
+    def test_multi_slotted_items_flat_structure(self):
+        pass
+
+    def test_multi_slotted_items_folder_structure(self):
+        pass
+
+    def test_single_slotted_video_items_with_frames(self):
+        pass
+
+    def test_multi_slotted_video_items_with_frames(self):
+        pass
+
+    def test_single_slotted_items_multiple_source_files(self):
+        pass
+
+
 @pytest.fixture
 def dataset_item(dataset_slug: str) -> DatasetItem:
     return DatasetItem(
