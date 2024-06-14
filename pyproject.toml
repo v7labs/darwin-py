@@ -81,6 +81,7 @@ tqdm = "^4.64.1"
 types-pyyaml = "^6.0.12.9"
 types-requests = "^2.28.11.8"
 upolygon = "0.1.11"
+tenacity = "^8.3.0"
 
 [tool.poetry.extras]
 dev = ["black", "isort", "flake8", "mypy", "debugpy", "responses", "pytest", "flake8-pyproject", "pytest-rerunfailures", "ruff", "validate-pyproject"]
