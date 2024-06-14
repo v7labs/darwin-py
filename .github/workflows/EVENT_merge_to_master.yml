@@ -50,5 +50,3 @@ jobs:
               sha: context.sha,
               state: 'success'
             })
-
-
