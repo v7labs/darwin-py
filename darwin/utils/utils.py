@@ -671,7 +671,7 @@ def _parse_darwin_annotation(
     annotation_data: Optional[Dict] = None,
 ) -> Optional[dt.Annotation]:
     slot_names = parse_slot_names(annotation)
-    name: str = annotation["name"]
+    name: str = annotation["name"].strip()
     main_annotation: Optional[dt.Annotation] = None
 
     # Darwin JSON 2.0 representation of polygons
@@ -933,7 +933,7 @@ def update_annotation_data(
 
 
 def _parse_darwin_video_annotation(annotation: dict) -> Optional[dt.VideoAnnotation]:
-    name = annotation["name"]
+    name = annotation["name"].strip()
     frame_annotations = {}
     keyframes: Dict[int, bool] = {}
     frames = {**annotation.get("frames", {}), **annotation.get("sections", {})}
@@ -1088,7 +1088,7 @@ def _parse_darwin_raster_annotation(annotation: dict) -> Optional[dt.Annotation]
         )
 
     new_annotation = dt.Annotation(
-        dt.AnnotationClass(name, "raster_layer"),
+        dt.AnnotationClass(name.strip(), "raster_layer"),
         {
             "dense_rle": dense_rle,
             "mask_annotation_ids_mapping": mask_annotation_ids_mapping,
@@ -1114,7 +1114,7 @@ def _parse_darwin_mask_annotation(annotation: dict) -> Optional[dt.Annotation]:
         raise ValueError("Mask annotation field 'sparse_rle' must contain a null value")
 
     new_annotation = dt.Annotation(
-        dt.AnnotationClass(name, "mask"),
+        dt.AnnotationClass(name.strip(), "mask"),
         mask,
         slot_names=slot_names or [],
         id=id,

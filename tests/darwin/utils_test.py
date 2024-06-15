@@ -956,6 +956,177 @@ class TestParseDarwinJson:
             == "skeleton"
         )
 
+    def test_removes_class_name_whitespace(self, tmp_path):
+        content = """
+        {
+        "version": "2.0",
+        "schema_ref": "https://darwin-public.s3.eu-west-1.amazonaws.com/darwin_json/2.0/schema.json",
+        "item": {
+            "name": "000000007764.jpg",
+            "path": "/",
+            "source_info": {
+            "item_id": "018c4450-d91d-cbaf-5925-04d541090ad4",
+            "dataset": {
+                "name": "bbox",
+                "slug": "bbox",
+                "dataset_management_url": "https://darwin.v7labs.com/datasets/623079/dataset-management"
+            },
+            "team": {
+                "name": "V7 John",
+                "slug": "v7-john"
+            },
+            "workview_url": "https://darwin.v7labs.com/workview?dataset=623079&item=018c4450-d91d-cbaf-5925-04d541090ad4"
+            },
+            "slots": [
+            {
+                "type": "image",
+                "slot_name": "0",
+                "width": 640,
+                "height": 436,
+                "thumbnail_url": "https://darwin.v7labs.com/api/v2/teams/v7-john/files/f4fb3153-c6ab-49a7-bbcd-97da468eef08/thumbnail",
+                "source_files": [
+                {
+                    "file_name": "000000007764.jpg",
+                    "url": "https://darwin.v7labs.com/api/v2/teams/v7-john/uploads/a0450e59-fe5f-44df-b2f8-39f4de289ed7"
+                }
+                ]
+            }
+            ]
+        },
+        "annotations": [
+            {
+            "bounding_box": {
+                "h": 72.864,
+                "w": 113.739,
+                "x": 115.033,
+                "y": 93.005
+            },
+            "id": "47653e82-bfd9-49f5-9cb5-ab77295b1e65",
+            "instance_id": {
+                "value": 528
+            },
+            "name":  "bbox",
+            "properties": [],
+            "slot_names": [
+                "0"
+            ]
+            },
+            {
+            "bounding_box": {
+                "h": 61.609,
+                "w": 84.712,
+                "x": 303.413,
+                "y": 178.902
+            },
+            "id": "5d32d9de-91af-43bd-b049-223666b7615f",
+            "name": "curia  ",
+            "properties": [],
+            "slot_names": [
+                "0"
+            ]
+            },
+            {
+            "id": "ff661fae-7091-494a-8cdf-12f294ecb161",
+            "name": " foo  ",
+            "properties": [],
+            "slot_names": [
+                "0"
+            ],
+            "tag": {}
+            },
+            {
+            "id": "6092e58b-d9e4-46a9-b6ea-1721ec84ee96",
+            "mask": {},
+            "name": "mask_1  ",
+            "properties": [],
+            "slot_names": [
+                "0"
+            ]
+            },
+            {
+            "id": "e0bb3df3-912f-4988-abc8-f90d06c5dfae",
+            "name": "  __raster_layer__",
+            "properties": [],
+            "raster_layer": {
+                "dense_rle": [
+                0,
+                36126,
+                1,
+                4,
+                0,
+                633,
+                1,
+                7,
+                0,
+                629,
+                1,
+                11,
+                0,
+                625,
+                1,
+                16,
+                0,
+                621,
+                1,
+                19,
+                0,
+                617,
+                1,
+                23,
+                0,
+                620,
+                1,
+                20,
+                0,
+                623,
+                1,
+                17,
+                0,
+                627,
+                1,
+                13,
+                0,
+                630,
+                1,
+                11,
+                0,
+                633,
+                1,
+                7,
+                0,
+                636,
+                1,
+                4,
+                0,
+                235868
+                ],
+                "mask_annotation_ids_mapping": {
+                "6092e58b-d9e4-46a9-b6ea-1721ec84ee96": 1
+                },
+                "total_pixels": 279040
+            },
+            "slot_names": [
+                "0"
+            ]
+            }
+        ]
+        }
+        """
+
+        directory = tmp_path / "imports"
+        directory.mkdir()
+        import_file = directory / "darwin-file.json"
+        import_file.write_text(content)
+
+        annotation_file: dt.AnnotationFile = parse_darwin_json(import_file, None)
+        assert annotation_file.annotations[0].annotation_class.name == "bbox"
+        assert annotation_file.annotations[1].annotation_class.name == "curia"
+        assert annotation_file.annotations[2].annotation_class.name == "foo"
+        assert (
+            annotation_file.annotations[3].annotation_class.name == "__raster_layer__"
+        )
+        assert annotation_file.annotations[4].annotation_class.name == "mask_1"
+
     def test_returns_true_w_json_content_type(self):
         response: Response = Response()
         response.headers["content-type"] = "application/json"
