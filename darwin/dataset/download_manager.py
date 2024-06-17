@@ -335,7 +335,7 @@ def _download_single_slot_from_json_annotation(
                     functools.partial(_download_image, frame_url, path, api_key, slot)
                 )
     else:
-        if len(slot.source_files) == 1:
+        if len(slot.source_files) > 0:
             image = slot.source_files[0]
             image_url = image["url"]
             image_filename = image["file_name"]
@@ -355,21 +355,6 @@ def _download_single_slot_from_json_annotation(
                     api_key,
                 )
             )
-        elif len(slot.source_files) > 1:
-            slot_path = parent_path / sanitize_filename(annotation.filename)
-            slot_path.mkdir(exist_ok=True, parents=True)
-
-            for upload in slot.source_files:
-                file_path = slot_path / sanitize_filename(upload["file_name"])
-                generator.append(
-                    functools.partial(
-                        _download_image_with_trace,
-                        annotation,
-                        upload["url"],
-                        file_path,
-                        api_key,
-                    )
-                )
     return generator
 
 
