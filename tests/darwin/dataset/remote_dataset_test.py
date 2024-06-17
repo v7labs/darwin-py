@@ -1,5 +1,7 @@
 import shutil
+import tempfile
 import types
+import zipfile
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict
@@ -13,6 +15,7 @@ from pydantic import ValidationError
 from darwin.client import Client
 from darwin.config import Config
 from darwin.dataset import RemoteDataset
+from darwin.dataset.download_manager import _download_image_from_json_annotation
 from darwin.dataset.release import Release
 from darwin.dataset.remote_dataset_v2 import RemoteDatasetV2
 from darwin.dataset.upload_manager import LocalFile, UploadHandlerV2
@@ -806,34 +809,172 @@ class TestPull:
                 assert metadata_path.exists()
 
 
-# Need to create data that this wll read from
 class TestPullNamingConvention:
-    def test_single_slotted_images_flat_structure(self):
-        pass
+    def _test_pull_naming_convention(
+        self, file_name, use_folders, video_frames, force_slots
+    ):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            with zipfile.ZipFile("tests/data.zip") as zfile:
+                zfile.extractall(temp_dir)
+                file_path = (
+                    Path(temp_dir) / "v7-darwin-json-v2/pull_naming_tests" / file_name
+                )
+                download_func = _download_image_from_json_annotation(
+                    api_key="api_key",
+                    annotation_path=file_path,
+                    image_path=Path("dataset_dir_path"),
+                    use_folders=use_folders,
+                    video_frames=video_frames,
+                    force_slots=force_slots,
+                    ignore_slots=False,
+                )
+                return download_func
 
-    def test_single_slotted_videos_flat_structure(self):
-        pass
+    def test_single_slotted_image_flat_structure(self):
+        file_name = "single_slotted_image_flat.json"
+        expected_paths = [Path("dataset_dir_path/single_slotted_image_flat.png")]
+        download_funcs = self._test_pull_naming_convention(
+            file_name,
+            use_folders=False,
+            video_frames=False,
+            force_slots=False,
+        )
+        assert download_funcs[0].args[2] == expected_paths[0]
 
-    def test_single_slotted_images_folder_structure(self):
-        pass
+    def test_single_slotted_video_flat_structure(self):
+        file_name = "single_slotted_video_flat.json"
+        expected_paths = [Path("dataset_dir_path/single_slotted_video_flat.mp4")]
+        download_funcs = self._test_pull_naming_convention(
+            file_name,
+            use_folders=False,
+            video_frames=False,
+            force_slots=False,
+        )
+        assert download_funcs[0].args[2] == expected_paths[0]
 
-    def test_single_slotted_videos_folder_structure(self):
-        pass
+    def test_single_slotted_image_folder_structure(self):
+        file_name = "single_slotted_image_folder.json"
+        expected_paths = [
+            Path("dataset_dir_path/folder_structure/single_slotted_image_folder.png")
+        ]
+        download_funcs = self._test_pull_naming_convention(
+            file_name,
+            use_folders=True,
+            video_frames=False,
+            force_slots=False,
+        )
+        assert download_funcs[0].args[2] == expected_paths[0]
 
-    def test_multi_slotted_items_flat_structure(self):
-        pass
+    def test_single_slotted_video_folder_structure(self):
+        file_name = "single_slotted_video_folder.json"
+        expected_paths = [
+            Path("dataset_dir_path/folder_structure/single_slotted_video_folder.mp4")
+        ]
+        download_funcs = self._test_pull_naming_convention(
+            file_name,
+            use_folders=True,
+            video_frames=False,
+            force_slots=False,
+        )
+        assert download_funcs[0].args[2] == expected_paths[0]
 
-    def test_multi_slotted_items_folder_structure(self):
-        pass
+    def test_multi_slotted_item_flat_structure(self):
+        file_name = "multi_slotted_item_flat.json"
+        expected_paths = [
+            Path("dataset_dir_path/multi_slotted_item_flat/0/000000580654.jpg"),
+            Path("dataset_dir_path/multi_slotted_item_flat/1/000000580676.jpg"),
+            Path("dataset_dir_path/multi_slotted_item_flat/2/000000580703.jpg"),
+        ]
+        download_funcs = self._test_pull_naming_convention(
+            file_name,
+            use_folders=False,
+            video_frames=False,
+            force_slots=True,
+        )
+        assert download_funcs[0].args[2] == expected_paths[0]
+        assert download_funcs[1].args[2] == expected_paths[1]
+        assert download_funcs[2].args[2] == expected_paths[2]
+        assert 1 == 1
 
-    def test_single_slotted_video_items_with_frames(self):
-        pass
+    def test_multi_slotted_item_folder_structure(self):
+        file_name = "multi_slotted_item_folder.json"
+        expected_paths = [
+            Path("dataset_dir_path/dir1/multi_slotted_item_folder/0/000000580654.jpg"),
+            Path("dataset_dir_path/dir1/multi_slotted_item_folder/1/000000580676.jpg"),
+            Path("dataset_dir_path/dir1/multi_slotted_item_folder/2/000000580703.jpg"),
+        ]
+        downloads_funcs = self._test_pull_naming_convention(
+            file_name,
+            use_folders=True,
+            video_frames=False,
+            force_slots=True,
+        )
+        assert downloads_funcs[0].args[2] == expected_paths[0]
+        assert downloads_funcs[1].args[2] == expected_paths[1]
+        assert downloads_funcs[2].args[2] == expected_paths[2]
 
-    def test_multi_slotted_video_items_with_frames(self):
-        pass
+    def test_single_slotted_video_item_with_frames(self):
+        file_name = "single_slotted_video_frames.json"
+        base_path = "dataset_dir_path/single_slotted_video_frames/"
+        expected_paths = [Path(base_path + f"{i:07d}.png") for i in range(8)]
+        download_funcs = self._test_pull_naming_convention(
+            file_name, use_folders=False, video_frames=True, force_slots=False
+        )
+        for i, func in enumerate(download_funcs):
+            assert func.args[1] == expected_paths[i]
 
-    def test_single_slotted_items_multiple_source_files(self):
-        pass
+    def test_multi_slotted_video_item_with_frames(self):
+        file_name = "multi_slotted_video_frames.json"
+        base_path = "dataset_dir_path/multi_slotted_video_frames/"
+        download_funcs = self._test_pull_naming_convention(
+            file_name, use_folders=False, video_frames=True, force_slots=True
+        )
+
+        for i in range(30):
+            slot_name = i // 10
+            frame_index = i % 10
+            expected_path = Path(f"{base_path}{slot_name}/{frame_index:07d}.png")
+            assert download_funcs[i].args[1] == expected_path
+
+    def test_single_slotted_item_multiple_source_files(self):
+        file_name = "single_slot_multiple_source_files.json"
+        expected_paths = [
+            Path("dataset_dir_path/single_slot_multiple_source_files/slice_1.dcm"),
+            Path("dataset_dir_path/single_slot_multiple_source_files/slice_2.dcm"),
+        ]
+        download_funcs = self._test_pull_naming_convention(
+            file_name, use_folders=False, video_frames=False, force_slots=True
+        )
+        assert download_funcs[0].args[2] == expected_paths[0]
+        assert download_funcs[1].args[2] == expected_paths[1]
+
+    def test_multi_slotted_item_multiple_source_files(self):
+        file_name = "multiple_slots_multiple_source_files.json"
+        expected_paths = [
+            Path(
+                "dataset_dir_path/multiple_slots_multiple_source_files/0.1/slice_1.dcm"
+            ),
+            Path(
+                "dataset_dir_path/multiple_slots_multiple_source_files/0.1/slice_2.dcm"
+            ),
+            Path(
+                "dataset_dir_path/multiple_slots_multiple_source_files/1.1/slice_3.dcm"
+            ),
+            Path(
+                "dataset_dir_path/multiple_slots_multiple_source_files/1.1/slice_1.dcm"
+            ),
+            Path(
+                "dataset_dir_path/multiple_slots_multiple_source_files/1.1/slice_2.dcm"
+            ),
+        ]
+        download_funcs = self._test_pull_naming_convention(
+            file_name, use_folders=False, video_frames=False, force_slots=True
+        )
+        assert download_funcs[0].args[2] == expected_paths[0]
+        assert download_funcs[1].args[2] == expected_paths[1]
+        assert download_funcs[2].args[2] == expected_paths[2]
+        assert download_funcs[3].args[2] == expected_paths[3]
+        assert download_funcs[4].args[2] == expected_paths[4]
 
 
 @pytest.fixture
