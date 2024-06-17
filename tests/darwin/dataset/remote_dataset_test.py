@@ -1232,7 +1232,7 @@ class TestRegisterMultiSlotted:
             },
             status=200,
         )
-        remote_dataset.register(
+        result = remote_dataset.register(
             ObjectStore(
                 name="test",
                 prefix="test_prefix",
@@ -1243,3 +1243,5 @@ class TestRegisterMultiSlotted:
             {"item1": ["test.jpg"]},
             multi_slotted=True,
         )
+        assert len(result["registered"]) == 0
+        assert len(result["blocked"]) == 1
