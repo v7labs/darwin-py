@@ -36,7 +36,7 @@ def download_all_images_from_annotations(
     force_replace: bool = False,
     remove_extra: bool = False,
     annotation_format: str = "json",
-    use_folders: bool = False,
+    use_folders: bool = True,
     video_frames: bool = False,
     force_slots: bool = False,
     ignore_slots: bool = False,
@@ -95,11 +95,13 @@ def download_all_images_from_annotations(
 
         if not force_replace:
             # Check the planned path for the image against the existing images
-            planned_image_path = (
-                images_path
-                / Path(annotation.remote_path.lstrip("/\\")).resolve().absolute()
-                / Path(annotation.filename)
-            )
+            filename = annotation.filename
+            if use_folders and annotation.remote_path != "/":
+                planned_image_path = (
+                    images_path / Path(annotation.remote_path.lstrip("/\\"))
+                ) / filename
+            else:
+                planned_image_path = images_path / filename
             if planned_image_path in existing_images:
                 continue
 
@@ -221,7 +223,6 @@ def _download_image_from_json_annotation(
                 parent_path,
                 annotation_path,
                 video_frames,
-                use_folders,
             )
         if force_slots:
             return _download_all_slots_from_json_annotation(
@@ -234,7 +235,6 @@ def _download_image_from_json_annotation(
                 parent_path,
                 annotation_path,
                 video_frames,
-                use_folders,
             )
 
     return []
@@ -302,7 +302,6 @@ def _download_single_slot_from_json_annotation(
     parent_path: Path,
     annotation_path: Path,
     video_frames: bool,
-    use_folders: bool = False,
 ) -> Iterable[Callable[[], None]]:
     slot = annotation.slots[0]
     generator = []
