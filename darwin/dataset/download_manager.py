@@ -255,7 +255,7 @@ def _download_all_slots_from_json_annotation(
         slot_path.mkdir(exist_ok=True, parents=True)
 
         if video_frames and slot.type != "image":
-            video_path: Path = slot_path / "sections"
+            video_path: Path = slot_path
             video_path.mkdir(exist_ok=True, parents=True)
             if not slot.frame_urls:
                 segment_manifests = get_segment_manifests(slot, slot_path, api_key)
@@ -335,17 +335,13 @@ def _download_single_slot_from_json_annotation(
                     functools.partial(_download_image, frame_url, path, api_key, slot)
                 )
     else:
-        if len(slot.source_files) > 0:
+        if len(slot.source_files) == 1:
             image = slot.source_files[0]
             image_url = image["url"]
             image_filename = image["file_name"]
-
-            if not use_folders:
-                suffix = Path(image_filename).suffix
-                stem = annotation_path.stem
-                filename = str(Path(stem + suffix))
-            else:
-                filename = slot.source_files[0]["file_name"]
+            suffix = Path(image_filename).suffix
+            stem = annotation_path.stem
+            filename = str(Path(stem + suffix))
             image_path = parent_path / sanitize_filename(
                 filename or annotation.filename
             )
@@ -359,6 +355,21 @@ def _download_single_slot_from_json_annotation(
                     api_key,
                 )
             )
+        elif len(slot.source_files) > 1:
+            slot_path = parent_path / sanitize_filename(annotation.filename)
+            slot_path.mkdir(exist_ok=True, parents=True)
+
+            for upload in slot.source_files:
+                file_path = slot_path / sanitize_filename(upload["file_name"])
+                generator.append(
+                    functools.partial(
+                        _download_image_with_trace,
+                        annotation,
+                        upload["url"],
+                        file_path,
+                        api_key,
+                    )
+                )
     return generator
 
 

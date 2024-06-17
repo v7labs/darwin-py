@@ -854,9 +854,7 @@ class TestPullNamingConvention:
 
     def test_single_slotted_image_folder_structure(self):
         file_name = "single_slotted_image_folder.json"
-        expected_paths = [
-            Path("dataset_dir_path/folder_structure/single_slotted_image_folder.png")
-        ]
+        expected_paths = [Path("dataset_dir_path/dir1/single_slotted_image_folder.png")]
         download_funcs = self._test_pull_naming_convention(
             file_name,
             use_folders=True,
@@ -867,9 +865,7 @@ class TestPullNamingConvention:
 
     def test_single_slotted_video_folder_structure(self):
         file_name = "single_slotted_video_folder.json"
-        expected_paths = [
-            Path("dataset_dir_path/folder_structure/single_slotted_video_folder.mp4")
-        ]
+        expected_paths = [Path("dataset_dir_path/dir1/single_slotted_video_folder.mp4")]
         download_funcs = self._test_pull_naming_convention(
             file_name,
             use_folders=True,
@@ -943,7 +939,7 @@ class TestPullNamingConvention:
             Path("dataset_dir_path/single_slot_multiple_source_files/slice_2.dcm"),
         ]
         download_funcs = self._test_pull_naming_convention(
-            file_name, use_folders=False, video_frames=False, force_slots=True
+            file_name, use_folders=False, video_frames=False, force_slots=False
         )
         assert download_funcs[0].args[2] == expected_paths[0]
         assert download_funcs[1].args[2] == expected_paths[1]
