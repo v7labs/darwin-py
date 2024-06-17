@@ -935,11 +935,11 @@ class TestPullNamingConvention:
     def test_single_slotted_item_multiple_source_files(self):
         file_name = "single_slot_multiple_source_files.json"
         expected_paths = [
-            Path("dataset_dir_path/single_slot_multiple_source_files/slice_1.dcm"),
-            Path("dataset_dir_path/single_slot_multiple_source_files/slice_2.dcm"),
+            Path("dataset_dir_path/single_slot_multiple_source_files/0/slice_1.dcm"),
+            Path("dataset_dir_path/single_slot_multiple_source_files/0/slice_2.dcm"),
         ]
         download_funcs = self._test_pull_naming_convention(
-            file_name, use_folders=False, video_frames=False, force_slots=False
+            file_name, use_folders=False, video_frames=False, force_slots=True
         )
         assert download_funcs[0].args[2] == expected_paths[0]
         assert download_funcs[1].args[2] == expected_paths[1]
