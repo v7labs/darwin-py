@@ -95,7 +95,7 @@ def download_all_images_from_annotations(
 
         if not force_replace:
             # Check the planned path for the image against the existing images
-            filename = annotation.filename
+            filename = Path(annotation.filename)
             if use_folders and annotation.remote_path != "/":
                 planned_image_path = (
                     images_path / Path(annotation.remote_path.lstrip("/\\"))
