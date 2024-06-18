@@ -161,9 +161,7 @@ version = "^2.7.0"
 python = ">3.8"
 version = "^1.0.0"
 
-[tool.poetry.dependencies.opencv-python-headless]
-optional = true
-version = "^4.8.0.76"
+opencv-python-headless = {version = "4.10.0.82", optional = true}
 [tool.poetry.dependencies.pytest-rerunfailures]
 optional = true
 version = "^12.0"
