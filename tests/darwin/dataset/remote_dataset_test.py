@@ -890,7 +890,6 @@ class TestPullNamingConvention:
         assert download_funcs[0].args[2] == expected_paths[0]
         assert download_funcs[1].args[2] == expected_paths[1]
         assert download_funcs[2].args[2] == expected_paths[2]
-        assert 1 == 1
 
     def test_multi_slotted_item_folder_structure(self):
         file_name = "multi_slotted_item_folder.json"
