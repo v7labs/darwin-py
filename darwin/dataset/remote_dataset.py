@@ -176,7 +176,7 @@ class RemoteDataset(ABC):
                 if annotation["item"]["path"] == "/":
                     annotation["item"]["path"] += item_name
                 else:
-                    annotation["item"]["path"] = item_name
+                    annotation["item"]["path"] += "/" + item_name
                 video_frame_annotations_path = annotations_path / annotation_file.stem
                 video_frame_annotations_path.mkdir(exist_ok=True, parents=True)
 
