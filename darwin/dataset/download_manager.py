@@ -344,7 +344,7 @@ def _download_single_slot_from_json_annotation(
             image_url = image["url"]
             image_filename = image["file_name"]
             suffix = Path(image_filename).suffix
-            stem = annotation_path.stem
+            stem = Path(annotation.filename).stem
             filename = str(Path(stem + suffix))
             image_path = parent_path / sanitize_filename(
                 filename or annotation.filename
