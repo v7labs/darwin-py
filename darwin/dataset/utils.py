@@ -400,11 +400,11 @@ def create_bbox_object(obj, box_mode, classes=None):
 def get_annotations(
     dataset_path: PathLike,
     partition: Optional[str] = None,
+    split_type: Optional[str] = "random",
+    annotation_format: str = "coco",
     split: Optional[str] = "default",
-    split_type: Optional[str] = None,
     annotation_type: str = "polygon",
     release_name: Optional[str] = None,
-    annotation_format: str = "coco",
     ignore_inconsistent_examples: bool = False,
 ) -> Iterator[Dict[str, Any]]:
     """
@@ -415,17 +415,17 @@ def get_annotations(
     dataset_path : PathLike
         Path to the location of the dataset on the file system.
     partition : Optional[str], default: None
-        Selects one of the partitions ``[train, val, test]``.
+        Selects one of the partitions ``[train, val, test, None]``. If not specified, all annotations are returned.
+    split_type : Optional[str], default: "random"
+        Heuristic used to do the split ``[random, stratified]``. If not specified, random is used.
+    annotation_format : str
+        Re-formatting of the annotation when loaded ``[coco, darwin]``..
     split : Optional[str], default: "default"
         Selects the split that defines the percentages used (use 'default' to select the default split).
-    split_type : Optional[str], default: None
-        Heuristic used to do the split ``[random, stratified, None]``.
     annotation_type : str, default: "polygon"
         The type of annotation classes ``[tag, bounding_box, polygon]``.
     release_name : Optional[str], default: None
         Version of the dataset.
-    annotation_format : Optional[str], default: "coco"
-        Re-formatting of the annotation when loaded ``[coco, darwin]``.
     ignore_inconsistent_examples : bool, default: False
         Ignore examples for which we have annotations, but either images are missing,
         or more than one images exist for the same annotation.
@@ -467,18 +467,18 @@ def get_annotations(
     )
 
     if partition:
-        stems = _get_stems_from_split(
-            release_path, split, split_type, annotation_type, partition
+        annotation_filepaths = _get_annotation_filepaths_from_split(
+            release_path, annotation_type, partition, split_type, split=split
         )
     else:
-        stems = get_annotation_files_from_dir(annotations_dir)
+        annotation_filepaths = get_annotation_files_from_dir(annotations_dir)
 
     (
         images_paths,
         annotations_paths,
         invalid_annotation_paths,
     ) = _map_annotations_to_images(
-        stems, annotations_dir, images_dir, ignore_inconsistent_examples
+        annotation_filepaths, images_dir, ignore_inconsistent_examples
     )
 
     print(f"Found {len(invalid_annotation_paths)} invalid annotations")
@@ -505,55 +505,57 @@ def _validate_inputs(
     Validates the input parameters for partition, split_type, and annotation_type.
 
     Args:
-        partition (str, None): Dataset partition. Should be 'train', 'val', 'test' or None.
-        split_type (str, None): Type of dataset split. Can be 'random', 'stratified' or None.
+        partition (str, None): Dataset partition. Should be 'train', 'val', 'test', or None.
+        split_type (str, None): Type of dataset split. Can be 'random' or 'stratified'.
         annotation_type (str): Type of annotations. Can be 'tag', 'polygon', or 'bounding_box'.
 
     Raises:
         ValueError: If the input parameters do not match the expected values.
     """
     if partition not in ["train", "val", "test", None]:
-        raise ValueError("partition should be either 'train', 'val', 'test', or None")
-    if split_type not in ["random", "stratified", None]:
-        raise ValueError("split_type should be either 'random', 'stratified', or None")
+        raise ValueError("partition should be either 'train', 'val', 'test', or 'None'")
+    if split_type not in ["random", "stratified"]:
+        raise ValueError("split_type should be either 'random', or 'stratified'")
     if annotation_type not in ["tag", "polygon", "bounding_box"]:
         raise ValueError(
             "annotation_type should be either 'tag', 'bounding_box', or 'polygon'"
         )
 
 
-def _get_stems_from_split(
+def _get_annotation_filepaths_from_split(
     release_path: Path,
-    split: str,
-    split_type: Union[str, None],
     annotation_type: str,
-    partition: Union[str, None],
-) -> Generator:
+    partition: str,
+    split_type: str,
+    split: Optional[str] = "default",
+) -> Generator[str, None, None]:
     """
-    Determines the file stems based on the dataset split and other parameters.
+    Determines the filpaths based on the dataset split and other parameters.
 
     Args:
-        release_path (Path): Path to the dataset release.
-        split (str): Dataset split identifier.
-        split_type (str, None): Type of dataset split. Can be 'random', 'stratified' or None.
-        annotation_type (str): Type of annotations. Can be 'tag', 'polygon', or 'bounding_box'.
-        partition (str, None): Dataset partition. Should be 'train', 'val', 'test' or None.
+        release_path : Path
+            Path to the dataset release.
+        annotation_type : str
+            Type of annotations. Can be 'tag', 'polygon', or 'bounding_box'.
+        partition : str
+            Dataset partition. Should be 'train', 'val', 'test'.
+        split_type : str
+            Type of dataset split. Can be 'random' or 'stratified'.
+        split : Optional[str]
+            Dataset split identifier.
 
     Returns:
-        Generator[str]: File stems for the dataset.
+        Generator: [str, None, None]
+            Filepaths for the dataset.
 
     Raises:
         ValueError: If the split_type is invalid.
         FileNotFoundError: If the dataset partition file is not found.
     """
-    if split_type is None:
-        split_file = f"{partition}.txt"
-    elif split_type == "random":
+    if split_type == "random":
         split_file = f"{split_type}_{partition}.txt"
     elif split_type == "stratified":
         split_file = f"{split_type}_{annotation_type}_{partition}.txt"
-    else:
-        raise ValueError(f"Invalid split_type ({split_type})")
 
     split_path: Path = release_path / "lists" / str(split) / split_file
 
@@ -567,8 +569,7 @@ def _get_stems_from_split(
 
 
 def _map_annotations_to_images(
-    stems: List[str],
-    annotations_dir: Path,
+    annotation_filepaths: Generator[str, None, None],
     images_dir: Path,
     ignore_inconsistent_examples: bool,
 ) -> Tuple[List[Path], List[Path], List[Path]]:
@@ -576,7 +577,7 @@ def _map_annotations_to_images(
     Maps annotations to their corresponding images based on the file stems.
 
     Args:
-        stems (List[str]): List of file stems.
+        annotation_filepaths (Generator[str, None, None]): List of annotation filepaths.
         annotations_dir (Path): Directory containing annotation files.
         images_dir (Path): Directory containing image files.
         ignore_inconsistent_examples (bool): Flag to determine if inconsistent examples should be ignored.
@@ -591,14 +592,14 @@ def _map_annotations_to_images(
     annotations_paths = []
     invalid_annotation_paths = []
     with_folders = any(item.is_dir() for item in images_dir.iterdir())
-    for annotation_path in get_annotation_files_from_dir(annotations_dir):
+    for annotation_path in annotation_filepaths:
         darwin_json = stream_darwin_json(Path(annotation_path))
         image_path = get_image_path_from_stream(
             darwin_json, images_dir, Path(annotation_path), with_folders
         )
         if image_path.exists():
             images_paths.append(image_path)
-            annotations_paths.append(annotation_path)
+            annotations_paths.append(Path(annotation_path))
             continue
         else:
             if ignore_inconsistent_examples:
@@ -618,7 +619,7 @@ def _load_and_format_annotations(
     annotation_format: str,
     annotation_type: str,
     classes: List[str],
-) -> Generator:
+) -> Generator[str, None, None]:
     """
     Loads and formats annotations based on the specified format and type.
 
@@ -795,16 +796,17 @@ def compute_distributions(
             )
             if not split_file.exists():
                 split_file = split_path / f"random_{partition}.txt"
-            stems: List[str] = [e.rstrip("\n\r") for e in split_file.open()]
 
-            for stem in stems:
-                if not stem.endswith(".json"):
-                    stem = f"{stem}.json"
-                annotation_path: Path = annotations_dir / stem
+            annotation_filepaths: List[str] = [
+                e.rstrip("\n\r") for e in split_file.open()
+            ]
+            for annotation_filepath in annotation_filepaths:
+                if not annotation_filepath.endswith(".json"):
+                    annotation_filepath = f"{annotation_filepath}.json"
+                annotation_path: Path = annotations_dir / annotation_filepath
                 annotation_file: Optional[dt.AnnotationFile] = parse_path(
                     annotation_path
                 )
-
                 if annotation_file is None:
                     continue
 
