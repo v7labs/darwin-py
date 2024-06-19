@@ -163,6 +163,20 @@ class RemoteDataset(ABC):
             for frame_annotation in frame_annotations:
                 annotation = self._build_image_annotation(frame_annotation, self.team)
 
+                # When splitting into frames, we need to read each frame individually
+                # Because we use the source name suffix, we need to adjust this to .png here
+                current_stem = Path(
+                    annotation["item"]["slots"][0]["source_files"][0]["file_name"]
+                ).stem
+                annotation["item"]["slots"][0]["source_files"][0]["file_name"] = (
+                    current_stem + ".png"
+                )
+                # We also need to account for the folder that this function creates
+                item_name = annotation["item"]["name"].split("/")[0]
+                if annotation["item"]["path"] == "/":
+                    annotation["item"]["path"] += item_name
+                else:
+                    annotation["item"]["path"] = item_name
                 video_frame_annotations_path = annotations_path / annotation_file.stem
                 video_frame_annotations_path.mkdir(exist_ok=True, parents=True)
 

@@ -381,7 +381,7 @@ class TestSplitVideoAnnotations:
                 "schema_ref": "https://darwin-public.s3.eu-west-1.amazonaws.com/darwin_json/2.0/schema.json",
                 "item": {
                     "name": "test_video/0000000.png",
-                    "path": "/",
+                    "path": "/test_video",
                     "source_info": {
                         "dataset": {
                             "name": "v7-darwin-json-v2",
@@ -402,7 +402,7 @@ class TestSplitVideoAnnotations:
                             "height": 1080,
                             "thumbnail_url": "",
                             "source_files": [
-                                {"file_name": "test_video.mp4", "url": ""}
+                                {"file_name": "test_video.png", "url": ""}
                             ],
                         }
                     ],
@@ -427,7 +427,7 @@ class TestSplitVideoAnnotations:
                 "schema_ref": "https://darwin-public.s3.eu-west-1.amazonaws.com/darwin_json/2.0/schema.json",
                 "item": {
                     "name": "test_video/0000001.png",
-                    "path": "/",
+                    "path": "/test_video",
                     "source_info": {
                         "dataset": {
                             "name": "v7-darwin-json-v2",
@@ -448,7 +448,7 @@ class TestSplitVideoAnnotations:
                             "height": 1080,
                             "thumbnail_url": "",
                             "source_files": [
-                                {"file_name": "test_video.mp4", "url": ""}
+                                {"file_name": "test_video.png", "url": ""}
                             ],
                         }
                     ],
@@ -462,7 +462,7 @@ class TestSplitVideoAnnotations:
                 "schema_ref": "https://darwin-public.s3.eu-west-1.amazonaws.com/darwin_json/2.0/schema.json",
                 "item": {
                     "name": "test_video/0000002.png",
-                    "path": "/",
+                    "path": "/test_video",
                     "source_info": {
                         "dataset": {
                             "name": "v7-darwin-json-v2",
@@ -483,7 +483,7 @@ class TestSplitVideoAnnotations:
                             "height": 1080,
                             "thumbnail_url": "",
                             "source_files": [
-                                {"file_name": "test_video.mp4", "url": ""}
+                                {"file_name": "test_video.png", "url": ""}
                             ],
                         }
                     ],
