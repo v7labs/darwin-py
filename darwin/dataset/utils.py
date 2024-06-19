@@ -654,7 +654,7 @@ def _load_and_format_annotations(
             )
     elif annotation_format == "darwin":
         for annotation_path in annotations_paths:
-            record = attempt_decode(annotation_path)
+            record = attempt_decode(Path(annotation_path))
             yield record
 
 
