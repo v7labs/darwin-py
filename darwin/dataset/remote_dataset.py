@@ -189,7 +189,7 @@ class RemoteDataset(ABC):
         remove_extra: bool = False,
         subset_filter_annotations_function: Optional[Callable] = None,
         subset_folder_name: Optional[str] = None,
-        use_folders: bool = False,
+        use_folders: bool = True,
         video_frames: bool = False,
         force_slots: bool = False,
         ignore_slots: bool = False,
@@ -217,7 +217,7 @@ class RemoteDataset(ABC):
             If it needs to receive other parameters is advised to use functools.partial() for it.
         subset_folder_name: Optional[str], default: None
             Name of the folder with the subset of the dataset. If not provided a timestamp is used.
-        use_folders : bool, default: False
+        use_folders : bool, default: True
             Recreates folders from the dataset.
         video_frames : bool, default: False
             Pulls video frames images instead of video files.

@@ -36,7 +36,7 @@ def download_all_images_from_annotations(
     force_replace: bool = False,
     remove_extra: bool = False,
     annotation_format: str = "json",
-    use_folders: bool = False,
+    use_folders: bool = True,
     video_frames: bool = False,
     force_slots: bool = False,
     ignore_slots: bool = False,
@@ -95,11 +95,13 @@ def download_all_images_from_annotations(
 
         if not force_replace:
             # Check the planned path for the image against the existing images
-            planned_image_path = (
-                images_path
-                / Path(annotation.remote_path.lstrip("/\\")).resolve().absolute()
-                / Path(annotation.filename)
-            )
+            filename = Path(annotation.filename)
+            if use_folders and annotation.remote_path != "/":
+                planned_image_path = (
+                    images_path / Path(annotation.remote_path.lstrip("/\\"))
+                ) / filename
+            else:
+                planned_image_path = images_path / filename
             if planned_image_path in existing_images:
                 continue
 
@@ -221,7 +223,6 @@ def _download_image_from_json_annotation(
                 parent_path,
                 annotation_path,
                 video_frames,
-                use_folders,
             )
         if force_slots:
             return _download_all_slots_from_json_annotation(
@@ -234,7 +235,6 @@ def _download_image_from_json_annotation(
                 parent_path,
                 annotation_path,
                 video_frames,
-                use_folders,
             )
 
     return []
@@ -255,7 +255,7 @@ def _download_all_slots_from_json_annotation(
         slot_path.mkdir(exist_ok=True, parents=True)
 
         if video_frames and slot.type != "image":
-            video_path: Path = slot_path / "sections"
+            video_path: Path = slot_path
             video_path.mkdir(exist_ok=True, parents=True)
             if not slot.frame_urls:
                 segment_manifests = get_segment_manifests(slot, slot_path, api_key)
@@ -302,7 +302,6 @@ def _download_single_slot_from_json_annotation(
     parent_path: Path,
     annotation_path: Path,
     video_frames: bool,
-    use_folders: bool = False,
 ) -> Iterable[Callable[[], None]]:
     slot = annotation.slots[0]
     generator = []
@@ -339,13 +338,9 @@ def _download_single_slot_from_json_annotation(
             image = slot.source_files[0]
             image_url = image["url"]
             image_filename = image["file_name"]
-
-            if not use_folders:
-                suffix = Path(image_filename).suffix
-                stem = annotation_path.stem
-                filename = str(Path(stem + suffix))
-            else:
-                filename = slot.source_files[0]["file_name"]
+            suffix = Path(image_filename).suffix
+            stem = annotation_path.stem
+            filename = str(Path(stem + suffix))
             image_path = parent_path / sanitize_filename(
                 filename or annotation.filename
             )
