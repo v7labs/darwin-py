@@ -1300,6 +1300,35 @@ def convert_polygons_to_sequences(
     return sequences
 
 
+def convert_xyxy_to_bounding_box(box: List[Union[int, float]]) -> dt.BoundingBox:
+    """
+    Converts a list of xy coordinates representing a bounding box into a dictionary.
+    This is used by in-platform model training.
+
+    Parameters
+    ----------
+    box : List[Union[int, float]]
+        List of arrays of coordinates in the format [x1, y1, x2, y2]
+
+    Returns
+    -------
+    BoundingBox
+        Bounding box in the format ``{x: x1, y: y1, h: height, w: width}``.
+
+    Raises
+    ------
+    ValueError
+        If ``box`` has an incorrect format.
+    """
+    if not isinstance(box[0], float) and not isinstance(box[0], int):
+        raise ValueError("Unknown input format")
+
+    x1, y1, x2, y2 = box
+    width = x2 - x1
+    height = y2 - y1
+    return {"x": x1, "y": y1, "w": width, "h": height}
+
+
 def convert_polygons_to_mask(
     polygons: List, height: int, width: int, value: Optional[int] = 1
 ) -> np.ndarray:
