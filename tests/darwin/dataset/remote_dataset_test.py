@@ -19,7 +19,7 @@ from darwin.dataset.download_manager import _download_image_from_json_annotation
 from darwin.dataset.release import Release
 from darwin.dataset.remote_dataset_v2 import RemoteDatasetV2
 from darwin.dataset.upload_manager import LocalFile, UploadHandlerV2
-from darwin.datatypes import ObjectStore
+from darwin.datatypes import ManifestItem, ObjectStore, SegmentManifest
 from darwin.exceptions import UnsupportedExportFormat, UnsupportedFileType
 from darwin.item import DatasetItem
 from tests.fixtures import *
@@ -942,6 +942,78 @@ class TestPullNamingConvention:
         )
         assert download_funcs[0].args[2] == expected_paths[0]
         assert download_funcs[1].args[2] == expected_paths[1]
+
+    def test_single_slotted_long_video(self):
+        file_name = "single_slotted_long_video.json"
+        expected_paths = [Path("dataset_dir_path/single_slotted_long_video.mp4")]
+        download_funcs = self._test_pull_naming_convention(
+            file_name, use_folders=False, video_frames=False, force_slots=False
+        )
+        assert download_funcs[0].args[2] == expected_paths[0]
+
+    def test_single_slotted_long_video_with_frames(self):
+        file_name = "single_slotted_long_video_frames.json"
+        expected_paths = [
+            Path("dataset_dir_path/single_slotted_long_video_frames/.0000000.ts")
+        ]
+
+        with patch(
+            "darwin.dataset.download_manager.get_segment_manifests"
+        ) as mock_get_segment_manifests:
+            mock_get_segment_manifests.return_value = [
+                SegmentManifest(
+                    slot="0",
+                    segment=0,
+                    total_frames=5,
+                    items=[
+                        ManifestItem(
+                            frame=0,
+                            absolute_frame=0,
+                            segment=0,
+                            visibility=True,
+                            timestamp=0,
+                            visible_frame=0,
+                        ),
+                        ManifestItem(
+                            frame=1,
+                            absolute_frame=1,
+                            segment=0,
+                            visibility=True,
+                            timestamp=0.04,
+                            visible_frame=1,
+                        ),
+                        ManifestItem(
+                            frame=2,
+                            absolute_frame=2,
+                            segment=0,
+                            visibility=True,
+                            timestamp=0.08,
+                            visible_frame=2,
+                        ),
+                        ManifestItem(
+                            frame=3,
+                            absolute_frame=3,
+                            segment=0,
+                            visibility=True,
+                            timestamp=0.12,
+                            visible_frame=3,
+                        ),
+                        ManifestItem(
+                            frame=4,
+                            absolute_frame=4,
+                            segment=0,
+                            visibility=True,
+                            timestamp=0.16,
+                            visible_frame=4,
+                        ),
+                    ],
+                )
+            ]
+
+            download_funcs = self._test_pull_naming_convention(
+                file_name, use_folders=False, video_frames=True, force_slots=False
+            )
+            assert download_funcs[0].args[2] == expected_paths[0]
 
     def test_multi_slotted_item_multiple_source_files(self):
         file_name = "multiple_slots_multiple_source_files.json"
