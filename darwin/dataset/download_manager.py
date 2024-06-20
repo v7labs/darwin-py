@@ -223,6 +223,7 @@ def _download_image_from_json_annotation(
                 parent_path,
                 annotation_path,
                 video_frames,
+                use_folders,
             )
         if force_slots:
             return _download_all_slots_from_json_annotation(
@@ -235,6 +236,7 @@ def _download_image_from_json_annotation(
                 parent_path,
                 annotation_path,
                 video_frames,
+                use_folders,
             )
 
     return []
@@ -302,12 +304,15 @@ def _download_single_slot_from_json_annotation(
     parent_path: Path,
     annotation_path: Path,
     video_frames: bool,
+    use_folders: bool = True,
 ) -> Iterable[Callable[[], None]]:
     slot = annotation.slots[0]
     generator = []
 
     if video_frames and slot.type != "image":
-        video_path: Path = parent_path / annotation_path.stem
+        video_path: Path = parent_path / (
+            annotation_path.stem if not use_folders else Path(annotation.filename).stem
+        )
         video_path.mkdir(exist_ok=True, parents=True)
 
         # Indicates it's a long video and uses the segment and manifest
@@ -339,7 +344,7 @@ def _download_single_slot_from_json_annotation(
             image_url = image["url"]
             image_filename = image["file_name"]
             suffix = Path(image_filename).suffix
-            stem = annotation_path.stem
+            stem = Path(annotation.filename).stem
             filename = str(Path(stem + suffix))
             image_path = parent_path / sanitize_filename(
                 filename or annotation.filename

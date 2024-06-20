@@ -456,13 +456,18 @@ def get_image_path_from_stream(
         Path to the image file.
     """
     try:
+        item_name_stem = Path(darwin_json["item"]["name"]).stem
+        source_name_suffix = Path(
+            darwin_json["item"]["slots"][0]["source_files"][0]["file_name"]
+        ).suffix
+        local_file_name = Path(item_name_stem + source_name_suffix)
         if not with_folders:
-            return images_dir / Path(darwin_json["item"]["name"])
+            return images_dir / local_file_name
         else:
             return (
                 images_dir
                 / (Path(darwin_json["item"]["path"].lstrip("/\\")))
-                / Path(darwin_json["item"]["name"])
+                / local_file_name
             )
     except OSError:
         # Load in the JSON as normal
@@ -1298,6 +1303,35 @@ def convert_polygons_to_sequences(
                 path.append(y)
         sequences.append(path)
     return sequences
+
+
+def convert_xyxy_to_bounding_box(box: List[Union[int, float]]) -> dt.BoundingBox:
+    """
+    Converts a list of xy coordinates representing a bounding box into a dictionary.
+    This is used by in-platform model training.
+
+    Parameters
+    ----------
+    box : List[Union[int, float]]
+        List of arrays of coordinates in the format [x1, y1, x2, y2]
+
+    Returns
+    -------
+    BoundingBox
+        Bounding box in the format ``{x: x1, y: y1, h: height, w: width}``.
+
+    Raises
+    ------
+    ValueError
+        If ``box`` has an incorrect format.
+    """
+    if not isinstance(box[0], float) and not isinstance(box[0], int):
+        raise ValueError("Unknown input format")
+
+    x1, y1, x2, y2 = box
+    width = x2 - x1
+    height = y2 - y1
+    return {"x": x1, "y": y1, "w": width, "h": height}
 
 
 def convert_polygons_to_mask(
