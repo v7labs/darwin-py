@@ -136,7 +136,7 @@ def _find_and_parse(  # noqa: C901
         maybe_console(f"Using multiprocessing with {cpu_limit} workers")
         try:
             with WorkerPool(cpu_limit) as pool:
-                parsed_files = pool.map(importer, files, progress_bar=is_console)
+                parsed_files = pool.map(importer, tqdm(files) if is_console else files)
         except KeyboardInterrupt:
             maybe_console("Keyboard interrupt. Stopping.")
             return None
