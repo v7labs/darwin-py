@@ -16,6 +16,7 @@ def release(dataset_slug: str, team_slug_darwin_json_v2: str) -> Release:
         team_slug=team_slug_darwin_json_v2,
         version="latest",
         name="test",
+        status="test_status",
         url="http://test.v7labs.com/",
         export_date="now",
         image_count=None,
