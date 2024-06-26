@@ -261,6 +261,13 @@ class RemoteDataset(ABC):
         if release.format != "json" and release.format != "darwin_json_2":
             raise UnsupportedExportFormat(release.format)
 
+        # Check if the release is ready
+        if release.status == "processing":
+            if retry:
+                pass  # Implment retry logic
+            else:
+                pass  # Raise error letting user know that the release is still processing and that they can use retry if they want to poll
+
         release_dir = self.local_releases_path / release.name
         release_dir.mkdir(parents=True, exist_ok=True)
 
