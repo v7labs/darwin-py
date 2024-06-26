@@ -1,6 +1,7 @@
 import os
 import shutil
 import tempfile
+import time
 import zipfile
 from datetime import datetime
 from pathlib import Path
@@ -207,6 +208,7 @@ class RemoteDataset(ABC):
         video_frames: bool = False,
         force_slots: bool = False,
         ignore_slots: bool = False,
+        retry: bool = False,
     ) -> Tuple[Optional[Callable[[], Iterator[Any]]], int]:
         """
         Downloads a remote dataset (images and annotations) to the datasets directory.
@@ -237,6 +239,8 @@ class RemoteDataset(ABC):
             Pulls video frames images instead of video files.
         force_slots: bool
             Pulls all slots of items into deeper file structure ({prefix}/{item_name}/{slot_name}/{file_name})
+        retry: bool
+            If True, will repeatedly try to download the release if it is still processing up to a maximum of 5 minutes.
 
         Returns
         -------
@@ -251,6 +255,8 @@ class RemoteDataset(ABC):
             If the given ``release`` has an invalid format.
         ValueError
             If darwin in unable to get ``Team`` configuration.
+        ValueError
+            If the release is still processing after the maximum retry duration.
         """
 
         console = self.console or Console()
@@ -261,12 +267,26 @@ class RemoteDataset(ABC):
         if release.format != "json" and release.format != "darwin_json_2":
             raise UnsupportedExportFormat(release.format)
 
-        # Check if the release is ready
-        if release.status == "processing":
+        if release.status == "pending":
             if retry:
-                pass  # Implment retry logic
+                retry_duration = 300
+                retry_interval = 10
+                while release.status == "pending" and retry_duration > 0:
+                    console.print(
+                        f"Release {release.name} for dataset {self.name} is still processing. Retrying in 10 seconds... {retry_duration}s left before timeout."
+                    )
+                    time.sleep(retry_interval)
+                    retry_duration -= retry_interval
+                    release = self.get_release(release.name)
+                if release.status == "processing":
+                    raise ValueError(
+                        f"Release {release.name} is still processing after multiple retries. Please try again later."
+                    )
             else:
-                pass  # Raise error letting user know that the release is still processing and that they can use retry if they want to poll
+                raise ValueError(
+                    f"Release {release.name} is still processing. Please wait for it to be ready.\n\n If you would like to automatically retry, set the `retry` parameter to `True` with the SDK, or use the `--retry` flag with the CLI."
+                )
+        console.print("Release is ready for download. Starting download...")
 
         release_dir = self.local_releases_path / release.name
         release_dir.mkdir(parents=True, exist_ok=True)
