@@ -285,11 +285,11 @@ class RemoteDataset(ABC):
                     release = self.get_release(release.name)
                 if release.status == "pending":
                     raise ValueError(
-                        f"Release {release.name} is still processing after {retry_interval} seconds. Please try again later."
+                        f"Release {release.name} for dataset '{self.name}' is still processing after {retry_interval} seconds. Please try again later."
                     )
             else:
                 raise ValueError(
-                    f"Release {release.name} is still processing. Please wait for it to be ready.\n\n If you would like to automatically retry, set the `retry` parameter to `True` with the SDK, or use the `--retry` flag with the CLI."
+                    f"Release '{release.name}' for dataset '{self.name}' is still processing. Please wait for it to be ready.\n\n If you would like to automatically retry, set the `retry` parameter to `True` with the SDK, or use the `--retry` flag with the CLI."
                 )
         console.print(
             f"Release '{release.name}' for dataset '{self.name}' is ready for download. Starting download..."
