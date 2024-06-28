@@ -277,6 +277,11 @@ class Options:
             action="store_true",
             help="Pulls video frame images instead of video files.",
         )
+        parser_pull.add_argument(
+            "--retry",
+            action="store_true",
+            help="Repeatedly try to download the release if it is still processing. Times out after 5 minutes.",
+        )
         slots_group = parser_pull.add_mutually_exclusive_group()
         slots_group.add_argument(
             "--force-slots",
