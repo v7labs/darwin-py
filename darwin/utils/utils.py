@@ -62,6 +62,8 @@ SUPPORTED_VIDEO_EXTENSIONS = [
     ".dcm",
     ".mov",
     ".mp4",
+    ".mkv",
+    ".hevc",
     ".pdf",
     ".nii",
     ".nii.gz",
