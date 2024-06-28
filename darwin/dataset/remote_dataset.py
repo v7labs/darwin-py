@@ -282,7 +282,7 @@ class RemoteDataset(ABC):
                     )
                     time.sleep(retry_interval)
                     retry_duration -= retry_interval
-                    release = self.get_release(release.name)
+                    release = self.get_release(release.name, retry=retry)
                 if release.status == "pending":
                     raise ValueError(
                         f"Release {release.name} for dataset '{self.name}' is still processing after {retry_interval} seconds. Please try again later."
@@ -772,7 +772,7 @@ class RemoteDataset(ABC):
         ----------
         name : str, default: "latest"
             Name of the export.
-        retry : bool, default: False
+        retry : bool, default: True
             If True, return all releases, including those that are not available.
 
         Returns
