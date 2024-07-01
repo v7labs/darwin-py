@@ -137,7 +137,6 @@ class RemoteDatasetV2(RemoteDataset):
         ]
         return sorted(
             filter(lambda x: x.available, releases),
-            releases,
             key=lambda x: x.version,
             reverse=True,
         )
