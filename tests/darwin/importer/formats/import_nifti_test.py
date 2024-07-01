@@ -153,7 +153,7 @@ def test_image_annotation_nifti_import_incorrect_number_slot(
                 parse_path(path=upload_json)
 
 
-def test_image_annotation_nifti_import_single_slot_to_mask_isotropic(
+def test_image_annotation_nifti_import_single_slot_to_mask_legacy(
     team_slug_darwin_json_v2: str,
 ):
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -188,7 +188,7 @@ def test_image_annotation_nifti_import_single_slot_to_mask_isotropic(
             with patch("darwin.importer.formats.nifti.zoom") as mock_zoom:
                 mock_zoom.side_effect = ndimage.zoom
 
-                annotation_files = parse_path(path=upload_json, isotropic=True)
+                annotation_files = parse_path(path=upload_json, legacy=True)
                 annotation_file = annotation_files[0]
                 output_json_string = json.loads(
                     serialise_annotation_file(annotation_file, as_dict=False)
