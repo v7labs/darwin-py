@@ -136,6 +136,7 @@ class RemoteDatasetV2(RemoteDataset):
             for payload in releases_json
         ]
         return sorted(
+            filter(lambda x: x.available, releases),
             releases,
             key=lambda x: x.version,
             reverse=True,

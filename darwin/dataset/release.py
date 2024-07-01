@@ -23,8 +23,6 @@ class Release:
         The version of the ``Release``.
     name : str
         The name of the ``Release``.
-    status : str
-        The status of the ``Release``.
     url : Optional[str]
         The full url used to download the ``Release``.
     export_date : datetime.datetime
@@ -50,8 +48,6 @@ class Release:
         The version of the ``Release``.
     name : str
         The name of the ``Release``.
-    status : str
-        The status of the ``Release``.
     url : Optional[str]
         The full url used to download the ``Release``.
     export_date : datetime.datetime
@@ -74,7 +70,6 @@ class Release:
         team_slug: str,
         version: str,
         name: str,
-        status: str,
         url: Optional[str],
         export_date: datetime.datetime,
         image_count: Optional[int],
@@ -87,7 +82,6 @@ class Release:
         self.team_slug = team_slug
         self.version = version
         self.name = name
-        self.status = status
         self.url = url
         self.export_date = export_date
         self.image_count = image_count
@@ -162,7 +156,6 @@ class Release:
                 team_slug=team_slug,
                 version=payload["version"],
                 name=payload["name"],
-                status=payload["status"],
                 export_date=export_date,
                 url=None,
                 available=False,
@@ -177,7 +170,6 @@ class Release:
             team_slug=team_slug,
             version=payload["version"],
             name=payload["name"],
-            status=payload["status"],
             image_count=payload["metadata"]["num_images"],
             class_count=len(payload["metadata"]["annotation_classes"]),
             export_date=export_date,
