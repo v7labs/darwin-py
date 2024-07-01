@@ -899,6 +899,9 @@ def dataset_import(
             dataset_identifier=dataset_slug
         )
 
+        if cpu_limit is not None:
+            use_multi_cpu = True
+
         import_annotations(
             dataset,
             importer,
