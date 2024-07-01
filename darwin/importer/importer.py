@@ -928,7 +928,7 @@ def import_annotations(  # noqa: C901
                     for _ in tqdm(
                         concurrent.futures.as_completed(futures),
                         total=len(futures),
-                        desc="Importing files",
+                        desc="Importing annotations from local file",
                     ):
                         future = next(concurrent.futures.as_completed(futures))
                         try:
@@ -938,7 +938,9 @@ def import_annotations(  # noqa: C901
                                 f"Generated an exception: {exc}", style="error"
                             )
             else:
-                for file in tqdm(files_to_track, desc="Importing files"):
+                for file in tqdm(
+                    files_to_track, desc="Importing annotations from local file"
+                ):
                     import_annotation(file)
 
     if use_multi_cpu:
@@ -950,7 +952,7 @@ def import_annotations(  # noqa: C901
             for _ in tqdm(
                 concurrent.futures.as_completed(futures),
                 total=len(futures),
-                desc="Processing local files",
+                desc="Processing local annotation files",
             ):
                 future = next(concurrent.futures.as_completed(futures))
                 try:
@@ -960,7 +962,7 @@ def import_annotations(  # noqa: C901
     else:
         for local_path in tqdm(
             {local_file.path for local_file in local_files},
-            desc="Processing local files",
+            desc="Processing local annotation files",
         ):
             process_local_file(local_path)
 
