@@ -50,6 +50,7 @@ SUPPORTED_IMAGE_EXTENSIONS = [
     ".jfif",
     ".tif",
     ".tiff",
+    ".qtiff",
     ".bmp",
     ".svs",
     ".webp",
@@ -62,10 +63,13 @@ SUPPORTED_VIDEO_EXTENSIONS = [
     ".dcm",
     ".mov",
     ".mp4",
+    ".mkv",
+    ".hevc",
     ".pdf",
     ".nii",
     ".nii.gz",
     ".ndpi",
+    ".rvg",
 ]
 SUPPORTED_EXTENSIONS = SUPPORTED_IMAGE_EXTENSIONS + SUPPORTED_VIDEO_EXTENSIONS
 
