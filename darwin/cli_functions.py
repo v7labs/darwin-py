@@ -410,6 +410,7 @@ def pull_dataset(
     video_frames: bool = False,
     force_slots: bool = False,
     ignore_slots: bool = False,
+    retry: bool = False,
 ) -> None:
     """
     Downloads a remote dataset (images and annotations) in the datasets directory.
@@ -428,8 +429,14 @@ def pull_dataset(
         Pulls video frames images instead of video files. Defaults to False.
     force_slots: bool
         Pulls all slots of items into deeper file structure ({prefix}/{item_name}/{slot_name}/{file_name})
+    retry: bool
+        If True, will repeatedly try to download the release if it is still processing up to a maximum of 5 minutes.
     """
     version: str = DatasetIdentifier.parse(dataset_slug).version or "latest"
+    if version == "latest" and retry:
+        raise ValueError(
+            "To retry downloading a release, a release name must be provided. This can be done as follows:\n\ndarwin dataset pull team-slug/dataset-slug:release-name"
+        )
     client: Client = _load_client(offline=False, maybe_guest=True)
     try:
         dataset: RemoteDataset = client.get_remote_dataset(
@@ -444,7 +451,7 @@ def pull_dataset(
         _error("please re-authenticate")
 
     try:
-        release: Release = dataset.get_release(version)
+        release: Release = dataset.get_release(version, retry)
         dataset.pull(
             release=release,
             only_annotations=only_annotations,
@@ -452,6 +459,7 @@ def pull_dataset(
             video_frames=video_frames,
             force_slots=force_slots,
             ignore_slots=ignore_slots,
+            retry=retry,
         )
         print_new_version_info(client)
     except NotFound:
