@@ -29,7 +29,7 @@ import darwin.datatypes as dt
 from darwin.importer.formats.nifti_schemas import nifti_import_schema
 
 
-def parse_path(path: Path) -> Optional[List[dt.AnnotationFile]]:
+def parse_path(path: Path, legacy: bool = False) -> Optional[List[dt.AnnotationFile]]:
     """
     Parses the given ``nifti`` file and returns a ``List[dt.AnnotationFile]`` with the parsed
     information.
@@ -38,6 +38,9 @@ def parse_path(path: Path) -> Optional[List[dt.AnnotationFile]]:
     ----------
     path : Path
         The ``Path`` to the ``nifti`` file.
+    legacy : bool, default: False
+        If ``True``, the function will not attempt to resize the annotations to isotropic pixel dimensions.
+        If ``False``, the function will resize the annotations to isotropic pixel dimensions.
 
     Returns
     -------
@@ -52,6 +55,11 @@ def parse_path(path: Path) -> Optional[List[dt.AnnotationFile]]:
             "Skipping file: {} (not a json file)".format(path), style="bold yellow"
         )
         return None
+    if legacy:
+        console.print(
+            "Legacy flag is set to True. Annotations will be resized to isotropic pixel dimensions.",
+            style="bold blue",
+        )
     data = attempt_decode(path)
     try:
         validate(data, schema=nifti_import_schema)
@@ -79,6 +87,7 @@ def parse_path(path: Path) -> Optional[List[dt.AnnotationFile]]:
             mode=nifti_annotation.get("mode", "image"),
             slot_names=nifti_annotation.get("slot_names", []),
             is_mpr=nifti_annotation.get("is_mpr", False),
+            legacy=legacy,
         )
         annotation_files.append(annotation_file)
     return annotation_files
@@ -92,6 +101,7 @@ def _parse_nifti(
     mode: str,
     slot_names: List[str],
     is_mpr: bool,
+    legacy: bool = False,
 ) -> dt.AnnotationFile:
     img, pixdims = process_nifti(nib.load(nifti_path))
 
@@ -111,6 +121,7 @@ def _parse_nifti(
                     slot_names=slot_names,
                     is_mpr=is_mpr,
                     pixdims=pixdims,
+                    legacy=legacy,
                 )
                 if _video_annotations:
                     video_annotations += _video_annotations
@@ -125,6 +136,7 @@ def _parse_nifti(
                 slot_names=slot_names,
                 is_mpr=is_mpr,
                 pixdims=pixdims,
+                legacy=legacy,
             )
             if _video_annotations is None:
                 continue
@@ -135,6 +147,7 @@ def _parse_nifti(
             processed_class_map,
             slot_names,
             pixdims=pixdims,
+            isotropic=legacy,
         )
     if mode in ["video", "instances"]:
         annotation_classes = {
@@ -171,6 +184,7 @@ def get_polygon_video_annotations(
     slot_names: List[str],
     is_mpr: bool,
     pixdims: Tuple[float],
+    legacy: bool = False,
 ) -> Optional[List[dt.VideoAnnotation]]:
     if not is_mpr:
         return nifti_to_video_polygon_annotation(
@@ -180,6 +194,7 @@ def get_polygon_video_annotations(
             slot_names,
             view_idx=2,
             pixdims=pixdims,
+            legacy=legacy,
         )
     elif is_mpr and len(slot_names) == 3:
         video_annotations = []
@@ -191,6 +206,7 @@ def get_polygon_video_annotations(
                 [slot_name],
                 view_idx=view_idx,
                 pixdims=pixdims,
+                legacy=legacy,
             )
             video_annotations += _video_annotations
         return video_annotations
@@ -203,6 +219,7 @@ def get_mask_video_annotations(
     processed_class_map: Dict,
     slot_names: List[str],
     pixdims: Tuple[int, int, int] = (1, 1, 1),
+    isotropic: bool = False,
 ) -> Optional[List[dt.VideoAnnotation]]:
     """
     The function takes a volume and a class map and returns a list of video annotations
@@ -212,7 +229,7 @@ def get_mask_video_annotations(
     Assumptions:
     - Importing annotation from Axial view only (view_idx=2)
     """
-    new_size = get_new_axial_size(volume, pixdims)
+    new_size = get_new_axial_size(volume, pixdims, isotropic=isotropic)
 
     frame_annotations = OrderedDict()
     all_mask_annotations = defaultdict(lambda: OrderedDict())
@@ -249,9 +266,12 @@ def get_mask_video_annotations(
         slice_mask = volume[:, :, i].astype(
             np.uint8
         )  # Product requirement: We only support 255 classes!
-        slice_mask = zoom(
-            slice_mask, (new_size[0] / volume.shape[0], new_size[1] / volume.shape[1])
-        )
+
+        if isotropic:
+            slice_mask = zoom(
+                slice_mask,
+                (new_size[0] / volume.shape[0], new_size[1] / volume.shape[1]),
+            )
 
         # We need to convert from nifti_idx to raster_idx
         slice_mask = np.vectorize(
@@ -302,6 +322,7 @@ def nifti_to_video_polygon_annotation(
     slot_names: List[str],
     view_idx: int = 2,
     pixdims: Tuple[int, int, int] = (1, 1, 1),
+    legacy: bool = False,
 ) -> Optional[List[dt.VideoAnnotation]]:
     frame_annotations = OrderedDict()
     for i in range(volume.shape[view_idx]):
@@ -318,7 +339,10 @@ def nifti_to_video_polygon_annotation(
         if class_mask.sum() == 0:
             continue
         polygon = mask_to_polygon(
-            mask=class_mask, class_name=class_name, pixdims=_pixdims
+            mask=class_mask,
+            class_name=class_name,
+            pixdims=_pixdims,
+            legacy=legacy,
         )
         if polygon is None:
             continue
@@ -341,15 +365,18 @@ def nifti_to_video_polygon_annotation(
 
 
 def mask_to_polygon(
-    mask: np.ndarray, class_name: str, pixdims: List[float]
+    mask: np.ndarray, class_name: str, pixdims: List[float], legacy: bool = False
 ) -> Optional[dt.Annotation]:
-    def adjust_for_pixdims(x, y, pixdims):
-        if pixdims[1] > pixdims[0]:
-            return {"x": y, "y": x * pixdims[1] / pixdims[0]}
-        elif pixdims[1] < pixdims[0]:
-            return {"x": y * pixdims[0] / pixdims[1], "y": x}
+    def adjust_for_pixdims(x, y, pixdims, legacy):
+        if legacy:
+            if pixdims[1] > pixdims[0]:
+                return {"x": y, "y": x * pixdims[1] / pixdims[0]}
+            elif pixdims[1] < pixdims[0]:
+                return {"x": y * pixdims[0] / pixdims[1], "y": x}
+            else:
+                return {"x": y, "y": x}
         else:
-            return {"x": y, "y": x}
+            return {"x": y * pixdims[1], "y": x * pixdims[0]}
 
     _labels, external_paths, _internal_paths = find_contours(mask)
     if len(external_paths) > 1:
@@ -359,7 +386,7 @@ def mask_to_polygon(
             if len(external_path) // 2 <= 2:
                 continue
             path = [
-                adjust_for_pixdims(x, y, pixdims)
+                adjust_for_pixdims(x, y, pixdims, legacy=legacy)
                 for x, y in zip(external_path[0::2], external_path[1::2])
             ]
             paths.append(path)
@@ -379,7 +406,7 @@ def mask_to_polygon(
         polygon = dt.make_polygon(
             class_name,
             point_paths=[
-                adjust_for_pixdims(x, y, pixdims)
+                adjust_for_pixdims(x, y, pixdims, legacy=legacy)
                 for x, y in zip(external_path[0::2], external_path[1::2])
             ],
         )
@@ -522,18 +549,25 @@ def convert_to_dense_rle(raster: np.ndarray) -> List[int]:
 
 
 def get_new_axial_size(
-    volume: np.ndarray, pixdims: Tuple[int, int, int]
+    volume: np.ndarray, pixdims: Tuple[int, int, int], isotropic: bool = False
 ) -> Tuple[int, int]:
     """Get the new size of the Axial plane after resizing to isotropic pixel dimensions.
 
     Args:
         volume: Input volume.
         pixdims: The pixel dimensions / spacings of the volume.
+        no_isotropic: bool, default: True
+            If True, the function will not attempt to resize the annotations to isotropic pixel dimensions.
+            If False, the function will resize the annotations to isotropic pixel dimensions.
 
     Returns:
         Tuple[int, int]: The new size of the Axial plane.
     """
     original_size = volume.shape
+
+    if not isotropic:
+        return original_size[0], original_size[1]
+
     original_spacing = pixdims
     min_spacing = min(pixdims[0], pixdims[1])
     return (
