@@ -29,9 +29,7 @@ import darwin.datatypes as dt
 from darwin.importer.formats.nifti_schemas import nifti_import_schema
 
 
-def parse_path(
-    path: Path, isotropic: bool = False
-) -> Optional[List[dt.AnnotationFile]]:
+def parse_path(path: Path, legacy: bool = False) -> Optional[List[dt.AnnotationFile]]:
     """
     Parses the given ``nifti`` file and returns a ``List[dt.AnnotationFile]`` with the parsed
     information.
@@ -40,7 +38,7 @@ def parse_path(
     ----------
     path : Path
         The ``Path`` to the ``nifti`` file.
-    isotropic : bool, default: False
+    legacy : bool, default: False
         If ``True``, the function will not attempt to resize the annotations to isotropic pixel dimensions.
         If ``False``, the function will resize the annotations to isotropic pixel dimensions.
 
@@ -57,9 +55,9 @@ def parse_path(
             "Skipping file: {} (not a json file)".format(path), style="bold yellow"
         )
         return None
-    if isotropic:
+    if legacy:
         console.print(
-            "Isotropic flag is set to True. Annotations will be resized to isotropic pixel dimensions.",
+            "Legacy flag is set to True. Annotations will be resized to isotropic pixel dimensions.",
             style="bold blue",
         )
     data = attempt_decode(path)
@@ -89,7 +87,7 @@ def parse_path(
             mode=nifti_annotation.get("mode", "image"),
             slot_names=nifti_annotation.get("slot_names", []),
             is_mpr=nifti_annotation.get("is_mpr", False),
-            isotropic=isotropic,
+            legacy=legacy,
         )
         annotation_files.append(annotation_file)
     return annotation_files
@@ -103,7 +101,7 @@ def _parse_nifti(
     mode: str,
     slot_names: List[str],
     is_mpr: bool,
-    isotropic: bool = False,
+    legacy: bool = False,
 ) -> dt.AnnotationFile:
     img, pixdims = process_nifti(nib.load(nifti_path))
 
@@ -123,7 +121,7 @@ def _parse_nifti(
                     slot_names=slot_names,
                     is_mpr=is_mpr,
                     pixdims=pixdims,
-                    isotropic=isotropic,
+                    legacy=legacy,
                 )
                 if _video_annotations:
                     video_annotations += _video_annotations
@@ -138,7 +136,7 @@ def _parse_nifti(
                 slot_names=slot_names,
                 is_mpr=is_mpr,
                 pixdims=pixdims,
-                isotropic=isotropic,
+                legacy=legacy,
             )
             if _video_annotations is None:
                 continue
@@ -149,7 +147,7 @@ def _parse_nifti(
             processed_class_map,
             slot_names,
             pixdims=pixdims,
-            isotropic=isotropic,
+            isotropic=legacy,
         )
     if mode in ["video", "instances"]:
         annotation_classes = {
@@ -186,7 +184,7 @@ def get_polygon_video_annotations(
     slot_names: List[str],
     is_mpr: bool,
     pixdims: Tuple[float],
-    isotropic: bool = False,
+    legacy: bool = False,
 ) -> Optional[List[dt.VideoAnnotation]]:
     if not is_mpr:
         return nifti_to_video_polygon_annotation(
@@ -196,7 +194,7 @@ def get_polygon_video_annotations(
             slot_names,
             view_idx=2,
             pixdims=pixdims,
-            isotropic=isotropic,
+            legacy=legacy,
         )
     elif is_mpr and len(slot_names) == 3:
         video_annotations = []
@@ -208,7 +206,7 @@ def get_polygon_video_annotations(
                 [slot_name],
                 view_idx=view_idx,
                 pixdims=pixdims,
-                isotropic=isotropic,
+                legacy=legacy,
             )
             video_annotations += _video_annotations
         return video_annotations
@@ -324,7 +322,7 @@ def nifti_to_video_polygon_annotation(
     slot_names: List[str],
     view_idx: int = 2,
     pixdims: Tuple[int, int, int] = (1, 1, 1),
-    isotropic: bool = False,
+    legacy: bool = False,
 ) -> Optional[List[dt.VideoAnnotation]]:
     frame_annotations = OrderedDict()
     for i in range(volume.shape[view_idx]):
@@ -344,7 +342,7 @@ def nifti_to_video_polygon_annotation(
             mask=class_mask,
             class_name=class_name,
             pixdims=_pixdims,
-            isotropic=isotropic,
+            legacy=legacy,
         )
         if polygon is None:
             continue
@@ -367,19 +365,18 @@ def nifti_to_video_polygon_annotation(
 
 
 def mask_to_polygon(
-    mask: np.ndarray, class_name: str, pixdims: List[float], isotropic: bool = False
+    mask: np.ndarray, class_name: str, pixdims: List[float], legacy: bool = False
 ) -> Optional[dt.Annotation]:
-    def adjust_for_pixdims(x, y, pixdims, isotropic):
-        # Do not adjust for pixdims if isotropic is False
-        if not isotropic:
-            return {"x": y, "y": x}
-
-        if pixdims[1] > pixdims[0]:
-            return {"x": y, "y": x * pixdims[1] / pixdims[0]}
-        elif pixdims[1] < pixdims[0]:
-            return {"x": y * pixdims[0] / pixdims[1], "y": x}
+    def adjust_for_pixdims(x, y, pixdims, legacy):
+        if legacy:
+            if pixdims[1] > pixdims[0]:
+                return {"x": y, "y": x * pixdims[1] / pixdims[0]}
+            elif pixdims[1] < pixdims[0]:
+                return {"x": y * pixdims[0] / pixdims[1], "y": x}
+            else:
+                return {"x": y, "y": x}
         else:
-            return {"x": y, "y": x}
+            return {"x": y * pixdims[1], "y": x * pixdims[0]}
 
     _labels, external_paths, _internal_paths = find_contours(mask)
     if len(external_paths) > 1:
@@ -389,7 +386,7 @@ def mask_to_polygon(
             if len(external_path) // 2 <= 2:
                 continue
             path = [
-                adjust_for_pixdims(x, y, pixdims, isotropic)
+                adjust_for_pixdims(x, y, pixdims, legacy=legacy)
                 for x, y in zip(external_path[0::2], external_path[1::2])
             ]
             paths.append(path)
@@ -409,7 +406,7 @@ def mask_to_polygon(
         polygon = dt.make_polygon(
             class_name,
             point_paths=[
-                adjust_for_pixdims(x, y, pixdims, isotropic)
+                adjust_for_pixdims(x, y, pixdims, legacy=legacy)
                 for x, y in zip(external_path[0::2], external_path[1::2])
             ],
         )
