@@ -678,6 +678,57 @@ def import_annotations(  # noqa: C901
     use_multi_cpu: bool = False,
     cpu_limit: Optional[int] = None,
 ) -> None:
+    """
+    Imports the given given Annotations into the given Dataset.
+    Parameters
+    ----------
+    dataset : RemoteDataset
+        Dataset where the Annotations will be imported to.
+    importer : Callable[[Path], Union[List[dt.AnnotationFile], dt.AnnotationFile, None]]
+        Parsing module containing the logic to parse the given Annotation files given in
+        ``files_path``. See ``importer/format`` for a list of out of supported parsers.
+    file_paths : List[PathLike]
+        A list of ``Path``'s or strings containing the Annotations we wish to import.
+    append : bool
+        If ``True`` appends the given annotations to the datasets. If ``False`` will override them.
+        Incompatible with ``delete-for-empty``.
+    class_prompt : bool
+        If ``False`` classes will be created and added to the datasets without requiring a user's prompt.
+    delete_for_empty : bool, default: False
+        If ``True`` will use empty annotation files to delete all annotations from the remote file.
+        If ``False``, empty annotation files will simply be skipped.
+        Only works for V2 datasets.
+        Incompatible with ``append``.
+    import_annotators : bool, default: False
+        If ``True`` it will import the annotators from the files to the dataset, if available.
+        If ``False`` it will not import the annotators.
+    import_reviewers : bool, default: False
+        If ``True`` it will import the reviewers from the files to the dataset, if .
+        If ``False`` it will not import the reviewers.
+    overwrite : bool, default: False
+        If ``True`` it will bypass a warning that the import will overwrite the current annotations if any are present.
+        If ``False`` this warning will be skipped and the import will overwrite the current annotations without warning.
+    use_multi_cpu : bool, default: True
+        If ``True`` will use multiple available CPU cores to parse the annotation files.
+        If ``False`` will use only the current Python process, which runs in one core.
+        Processing using multiple cores is faster, but may slow down a machine also running other processes.
+        Processing with one core is slower, but will run well alongside other processes.
+    cpu_limit : int, default: 2 less than total cpu count
+        The maximum number of CPU cores to use when ``use_multi_cpu`` is ``True``.
+        If ``cpu_limit`` is greater than the number of available CPU cores, it will be set to the number of available cores.
+        If ``cpu_limit`` is less than 1, it will be set to CPU count - 2.
+        If ``cpu_limit`` is omitted, it will be set to CPU count - 2.
+    Raises
+    -------
+    ValueError
+        - If ``file_paths`` is not a list.
+        - If the application is unable to fetch any remote classes.
+        - If the application was unable to find/parse any annotation files.
+        - If the application was unable to fetch remote file list.
+    IncompatibleOptions
+        - If both ``append`` and ``delete_for_empty`` are specified as ``True``.
+    """
+
     console = Console(theme=_console_theme())
 
     if append and delete_for_empty:
@@ -737,8 +788,12 @@ def import_annotations(  # noqa: C901
     ]
 
     console.print("Fetching remote file list...", style="info")
+    # This call will only filter by filename; so can return a superset of matched files across different paths
+    # There is logic in this function to then include paths to narrow down to the single correct matching file
     remote_files: Dict[str, Tuple[str, str]] = {}
 
+    # Try to fetch files in large chunks; in case the filenames are too large and exceed the url size
+    # retry in smaller chunks
     chunk_size = 100
     while chunk_size > 0:
         try:
@@ -825,6 +880,7 @@ def import_annotations(  # noqa: C901
         for cls in local_classes_not_in_dataset:
             dataset.add_annotation_class(cls)
 
+    # Refetch classes to update mappings
     if local_classes_not_in_team or local_classes_not_in_dataset:
         maybe_remote_classes: List[dt.DictFreeForm] = dataset.fetch_remote_classes()
         if not maybe_remote_classes:
@@ -890,6 +946,7 @@ def import_annotations(  # noqa: C901
         else:
             parsed_files = imported_files
 
+        # Remove files missing on the server
         missing_files = [
             missing_file.full_path for missing_file in local_files_missing_remotely
         ]
