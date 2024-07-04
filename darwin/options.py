@@ -280,7 +280,20 @@ class Options:
         parser_pull.add_argument(
             "--retry",
             action="store_true",
-            help="Repeatedly try to download the release if it is still processing. Times out after 5 minutes.",
+            default=False,
+            help="Repeatedly try to download the release if it is still processing.",
+        )
+        parser_pull.add_argument(
+            "--retry-timeout",
+            type=int,
+            default=600,
+            help="Total time to wait for the release to be ready for download.",
+        )
+        parser_pull.add_argument(
+            "--retry-interval",
+            type=int,
+            default=10,
+            help="Time to wait between retries of checking if the release is ready for download.",
         )
         slots_group = parser_pull.add_mutually_exclusive_group()
         slots_group.add_argument(

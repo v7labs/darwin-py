@@ -813,18 +813,14 @@ class TestPull:
                 )
                 assert metadata_path.exists()
 
-    def test_pull_raises_value_error_when_retry_is_true_and_release_is_none(
-        self, remote_dataset
-    ):
-        with pytest.raises(ValueError):
-            remote_dataset.pull(release=None, retry=True)
-
     @patch("time.sleep", return_value=None)
     def test_num_retries(self, mock_sleep, remote_dataset, pending_release):
         with patch.object(remote_dataset, "get_release", return_value=pending_release):
             with pytest.raises(ValueError):
                 remote_dataset.pull(release=pending_release, retry=True)
-            assert mock_sleep.call_count == 30  # 300 seconds / 10 seconds interval
+            assert (
+                mock_sleep.call_count == 60
+            )  # Default values of 600 seconds / 10 seconds interval
 
     @patch("time.sleep", return_value=None)
     def test_raises_after_max_retry_duration(
@@ -833,6 +829,10 @@ class TestPull:
         with patch.object(remote_dataset, "get_release", return_value=pending_release):
             with pytest.raises(ValueError, match="is still processing after"):
                 remote_dataset.pull(release=pending_release, retry=True)
+
+    def test_raises_error_if_timeout_less_than_interval(self, remote_dataset):
+        with pytest.raises(ValueError):
+            remote_dataset.pull(retry=True, retry_timeout=5, retry_interval=10)
 
 
 class TestPullNamingConvention:
@@ -1351,7 +1351,7 @@ class TestGetReleases:
         self, mock_get_exports, remote_dataset, releases_api_response
     ):
         mock_get_exports.return_value = releases_api_response
-        releases = remote_dataset.get_releases(retry=True)
+        releases = remote_dataset.get_releases(include_unavailable=True)
         assert len(releases) == 2
         assert isinstance(releases[0], Release)
         assert isinstance(releases[1], Release)
@@ -1361,6 +1361,6 @@ class TestGetReleases:
         self, mock_get_exports, remote_dataset, releases_api_response
     ):
         mock_get_exports.return_value = releases_api_response
-        releases = remote_dataset.get_releases(retry=False)
+        releases = remote_dataset.get_releases(include_unavailable=False)
         assert len(releases) == 1
         assert isinstance(releases[0], Release)

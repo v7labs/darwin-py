@@ -411,6 +411,8 @@ def pull_dataset(
     force_slots: bool = False,
     ignore_slots: bool = False,
     retry: bool = False,
+    retry_timeout: int = 600,
+    retry_interval: int = 10,
 ) -> None:
     """
     Downloads a remote dataset (images and annotations) in the datasets directory.
@@ -430,13 +432,13 @@ def pull_dataset(
     force_slots: bool
         Pulls all slots of items into deeper file structure ({prefix}/{item_name}/{slot_name}/{file_name})
     retry: bool
-        If True, will repeatedly try to download the release if it is still processing up to a maximum of 5 minutes.
+        If True, will repeatedly try to download the release if it is still processing until the timeout is reached.
+    retry_timeout: int
+        If retrying, total time to wait for the release to be ready for download
+    retry_interval: int
+        If retrying, time to wait between retries of checking if the release is ready for download.
     """
     version: str = DatasetIdentifier.parse(dataset_slug).version or "latest"
-    if version == "latest" and retry:
-        raise ValueError(
-            "To retry downloading a release, a release name must be provided. This can be done as follows:\n\ndarwin dataset pull team-slug/dataset-slug:release-name"
-        )
     client: Client = _load_client(offline=False, maybe_guest=True)
     try:
         dataset: RemoteDataset = client.get_remote_dataset(
@@ -460,6 +462,8 @@ def pull_dataset(
             force_slots=force_slots,
             ignore_slots=ignore_slots,
             retry=retry,
+            retry_timeout=retry_timeout,
+            retry_interval=retry_interval,
         )
         print_new_version_info(client)
     except NotFound:

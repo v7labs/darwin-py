@@ -1,11 +1,12 @@
 import shutil
+from datetime import datetime
 from pathlib import Path
 from unittest.mock import patch
 
 import pytest
 import requests
 
-from darwin.dataset.release import Release
+from darwin.dataset.release import Release, ReleaseStatus
 from tests.fixtures import *
 
 
@@ -16,9 +17,9 @@ def release(dataset_slug: str, team_slug_darwin_json_v2: str) -> Release:
         team_slug=team_slug_darwin_json_v2,
         version="latest",
         name="test",
-        status="test_status",
+        status=ReleaseStatus("pending"),
         url="http://test.v7labs.com/",
-        export_date="now",
+        export_date=datetime.fromisoformat("2021-01-01T00:00:00+00:00"),
         image_count=None,
         class_count=None,
         available=True,

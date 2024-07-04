@@ -1,11 +1,18 @@
 import datetime
 import shutil
+from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, Optional
 
 import requests
 
 from darwin.dataset.identifier import DatasetIdentifier
+
+
+class ReleaseStatus(Enum):
+    PENDING = "pending"
+    COMPLETE = "complete"
+    FAILED = "failed"
 
 
 class Release:
@@ -23,7 +30,7 @@ class Release:
         The version of the ``Release``.
     name : str
         The name of the ``Release``.
-    status : str
+    status : ReleaseStatus
         The status of the ``Release``.
     url : Optional[str]
         The full url used to download the ``Release``.
@@ -50,7 +57,7 @@ class Release:
         The version of the ``Release``.
     name : str
         The name of the ``Release``.
-    status : str
+    status : ReleaseStatus
         The status of the ``Release``.
     url : Optional[str]
         The full url used to download the ``Release``.
@@ -74,7 +81,7 @@ class Release:
         team_slug: str,
         version: str,
         name: str,
-        status: str,
+        status: ReleaseStatus,
         url: Optional[str],
         export_date: datetime.datetime,
         image_count: Optional[int],

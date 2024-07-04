@@ -115,13 +115,13 @@ class RemoteDatasetV2(RemoteDataset):
             version=2,
         )
 
-    def get_releases(self, retry: bool = False) -> List["Release"]:
+    def get_releases(self, include_unavailable: bool = False) -> List["Release"]:
         """
         Get a sorted list of releases with the most recent first.
 
         Parameters
         ----------
-        retry : bool, default: False
+        include_unavailable : bool, default: False
             If True, return  all releases, including those that are not available.
 
         Returns
@@ -141,18 +141,15 @@ class RemoteDatasetV2(RemoteDataset):
             for payload in releases_json
         ]
 
-        if retry:
-            return sorted(
-                releases,
-                key=lambda x: x.version,
-                reverse=True,
-            )
-        else:
-            return sorted(
-                filter(lambda x: x.available, releases),
-                key=lambda x: x.version,
-                reverse=True,
-            )
+        return sorted(
+            (
+                releases
+                if include_unavailable
+                else filter(lambda x: x.available, releases)
+            ),
+            key=lambda x: x.version,
+            reverse=True,
+        )
 
     def push(
         self,
