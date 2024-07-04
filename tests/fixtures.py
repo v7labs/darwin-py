@@ -7,7 +7,7 @@ from zipfile import ZipFile
 import pytest
 
 from darwin.config import Config
-from darwin.dataset.release import Release
+from darwin.dataset.release import Release, ReleaseStatus
 
 
 @pytest.fixture
@@ -129,7 +129,7 @@ def pending_release() -> Release:
         team_slug="team_slug",
         version="1",
         name="name",
-        status="pending",
+        status=ReleaseStatus("pending"),
         url=None,
         export_date=datetime.now(),
         image_count=1,
