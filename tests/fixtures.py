@@ -145,7 +145,7 @@ def releases_api_response() -> List[dict]:
     return [
         {
             "name": "release_1",
-            "status": "complete",
+            "status": ReleaseStatus("complete"),
             "version": 1,
             "format": "darwin_json_2",
             "metadata": {
@@ -158,7 +158,7 @@ def releases_api_response() -> List[dict]:
         },
         {
             "name": "release_2",
-            "status": "pending",
+            "status": ReleaseStatus("pending"),
             "version": 2,
             "format": "darwin_json_2",
             "metadata": {},

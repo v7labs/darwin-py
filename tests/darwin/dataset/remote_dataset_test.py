@@ -16,7 +16,7 @@ from darwin.client import Client
 from darwin.config import Config
 from darwin.dataset import RemoteDataset
 from darwin.dataset.download_manager import _download_image_from_json_annotation
-from darwin.dataset.release import Release
+from darwin.dataset.release import Release, ReleaseStatus
 from darwin.dataset.remote_dataset_v2 import RemoteDatasetV2
 from darwin.dataset.upload_manager import LocalFile, UploadHandlerV2
 from darwin.datatypes import ManifestItem, ObjectStore, SegmentManifest
@@ -662,7 +662,7 @@ class TestPull:
             "team-slug",
             "0.1.0",
             "release-name",
-            "release-status",
+            ReleaseStatus("complete"),
             "http://darwin-fake-url.com",
             datetime.now(),
             None,
@@ -693,7 +693,7 @@ class TestPull:
             "team-slug",
             "0.1.0",
             "release-name",
-            "release-status",
+            ReleaseStatus("complete"),
             "http://darwin-fake-url.com",
             datetime.now(),
             None,
@@ -726,7 +726,7 @@ class TestPull:
             "team-slug",
             "0.1.0",
             "release-name",
-            "release-status",
+            ReleaseStatus("complete"),
             "http://darwin-fake-url.com",
             datetime.now(),
             None,
@@ -761,7 +761,7 @@ class TestPull:
             remote_dataset.team,
             "0.1.0",
             "release-name",
-            "release-status",
+            ReleaseStatus("complete"),
             "http://darwin-fake-url.com",
             datetime.now(),
             None,
@@ -783,7 +783,7 @@ class TestPull:
             "team-slug",
             "0.1.0",
             "release-name",
-            "release-status",
+            ReleaseStatus("complete"),
             "http://darwin-fake-url.com",
             datetime.now(),
             None,

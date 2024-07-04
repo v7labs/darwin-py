@@ -94,7 +94,7 @@ class Release:
         self.team_slug = team_slug
         self.version = version
         self.name = name
-        self.status = status
+        self.status = status.value
         self.url = url
         self.export_date = export_date
         self.image_count = image_count
