@@ -827,7 +827,7 @@ class TestPull:
         self, mock_sleep, remote_dataset, pending_release
     ):
         with patch.object(remote_dataset, "get_release", return_value=pending_release):
-            with pytest.raises(ValueError, match="is still processing after"):
+            with pytest.raises(ValueError, match="is still processing"):
                 remote_dataset.pull(release=pending_release, retry=True)
 
     def test_raises_error_if_timeout_less_than_interval(self, remote_dataset):
