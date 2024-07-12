@@ -11,9 +11,16 @@ from rich.theme import Theme
 from darwin import datatypes as dt
 from darwin.importer import get_importer
 from darwin.importer.importer import (
+    _build_attribute_lookup,
+    _build_main_annotations_lookup_table,
     _find_and_parse,
+    _get_remote_files,
+    _get_slot_name,
+    _import_annotations,
+    _is_skeleton_class,
     _overwrite_warning,
     _parse_empty_masks,
+    _resolve_annotation_classes,
 )
 
 
@@ -29,11 +36,29 @@ def patch_factory(module: str) -> _patch:
     return patch(root_path(module))
 
 
-@pytest.mark.skip("Not yet implemented.")
-def test_build_main_annotations_lookup_table() -> None: ...  # TODO: Write this test
+def test__build_main_annotations_lookup_table() -> None:
+    annotation_classes = [
+        {"name": "class1", "id": 1, "annotation_types": ["bounding_box", "polygon"]},
+        {"name": "class2", "id": 2, "annotation_types": ["ellipse", "keypoint"]},
+        {"name": "class3", "id": 3, "annotation_types": ["mask", "raster_layer"]},
+        {"name": "class4", "id": 4, "annotation_types": ["unsupported_type"]},
+        {"name": "class5", "id": 5, "annotation_types": ["bounding_box", "polygon"]},
+    ]
+
+    expected_lookup = {
+        "bounding_box": {"class1": 1, "class5": 5},
+        "polygon": {"class1": 1, "class5": 5},
+        "ellipse": {"class2": 2},
+        "keypoint": {"class2": 2},
+        "mask": {"class3": 3},
+        "raster_layer": {"class3": 3},
+    }
+
+    result = _build_main_annotations_lookup_table(annotation_classes)
+    assert result == expected_lookup
 
 
-def test_find_and_parse():
+def test__find_and_parse():
     """
     Ensure that the function doesn't return any None values.
     """
@@ -49,28 +74,179 @@ def test_find_and_parse():
             assert all(isinstance(file, dt.AnnotationFile) for file in files)
 
 
-@pytest.mark.skip("Not yet implemented.")
-def test_build_attribute_lookup() -> None: ...  # TODO: Write this test
+def test__build_attribute_lookup() -> None:
+    mock_dataset = Mock()
+    mock_dataset.fetch_remote_attributes.return_value = [
+        {"class_id": "class1", "name": "attribute1", "id": 1},
+        {"class_id": "class1", "name": "attribute2", "id": 2},
+        {"class_id": "class2", "name": "attribute1", "id": 3},
+    ]
+
+    expected_lookup = {
+        "class1": {"attribute1": 1, "attribute2": 2},
+        "class2": {"attribute1": 3},
+    }
+
+    result = _build_attribute_lookup(mock_dataset)
+    assert result == expected_lookup
 
 
-@pytest.mark.skip("Not yet implemented.")
-def test_get_remote_files() -> None: ...  # TODO: Write this test
+def test__get_remote_files() -> None:
+    mock_dataset = Mock()
+    mock_dataset.fetch_remote_files.return_value = [
+        Mock(full_path="path/to/file1", id="file1_id"),
+        Mock(full_path="path/to/file2", id="file2_id"),
+    ]
+
+    filenames = ["file1", "file2"]
+    expected_result = {
+        "path/to/file1": ("file1_id", "slot_name1"),
+        "path/to/file2": ("file2_id", "slot_name2"),
+    }
+
+    with patch("darwin.importer.importer._get_slot_name") as mock_get_slot_name:
+        mock_get_slot_name.side_effect = ["slot_name1", "slot_name2"]
+        result = _get_remote_files(mock_dataset, filenames)
+        assert result == expected_result
+        assert mock_get_slot_name.call_count == 2
 
 
-@pytest.mark.skip("Not yet implemented.")
-def test__get_slot_name() -> None: ...  # TODO: Write this test
+def test__get_slot_name() -> None:
+    mock_remote_file_with_slots = Mock()
+    mock_remote_file_with_slots.slots = [{"slot_name": "1"}]
+
+    mock_remote_file_without_slots = Mock()
+    mock_remote_file_without_slots.slots = []
+
+    assert _get_slot_name(mock_remote_file_with_slots) == "1"
+    assert _get_slot_name(mock_remote_file_without_slots) == "0"
 
 
-@pytest.mark.skip("Not yet implemented.")
-def test__resolve_annotation_classes() -> None: ...  # TODO: Write this test
+def test__resolve_annotation_classes() -> None:
+    local_annotation_classes = [
+        dt.AnnotationClass(name="class1", annotation_type="polygon"),
+        dt.AnnotationClass(name="class2", annotation_type="tag"),
+        dt.AnnotationClass(name="class3", annotation_type="polygon"),
+        dt.AnnotationClass(name="class4", annotation_type="keypoint"),
+    ]
+
+    classes_in_dataset = {
+        "polygon": {"class1": 1},
+        "tag": {"class2": 2},
+    }
+
+    classes_in_team = {"polygon": {"class1": 1, "class3": 3}, "tag": {"class2": 2}}
+
+    expected_not_in_dataset = {local_annotation_classes[2]}
+    expected_not_in_team = {local_annotation_classes[3]}
+
+    not_in_dataset, not_in_team = _resolve_annotation_classes(
+        local_annotation_classes, classes_in_dataset, classes_in_team
+    )
+
+    assert not_in_dataset == expected_not_in_dataset
+    assert not_in_team == expected_not_in_team
 
 
-@pytest.mark.skip("Not yet implemented.")
-def test_import_annotations() -> None: ...  # TODO: Write this test
+def test_import_annotations() -> None:
+    mock_client = Mock()
+    mock_dataset = Mock()
+    mock_dataset.version = 2
+    mock_dataset.team = "test_team"
+
+    remote_classes = {
+        "polygon": {"test_class": "123"},
+    }
+    attributes = {}
+    annotations = [
+        dt.Annotation(
+            dt.AnnotationClass("test_class", "polygon"),
+            {"paths": [[1, 2, 3, 4, 5]]},
+            [],
+            [],
+        )
+    ]
+    default_slot_name = "test_slot"
+    append = False
+    delete_for_empty = False
+    import_annotators = True
+    import_reviewers = True
+    metadata_path = False
+
+    with patch("darwin.importer.importer._get_annotation_data") as mock_gad, patch(
+        "darwin.importer.importer._handle_annotators"
+    ) as mock_ha, patch("darwin.importer.importer._handle_reviewers") as mock_hr, patch(
+        "darwin.importer.importer._import_properties"
+    ) as mock_ip, patch(
+        "darwin.importer.importer._get_overwrite_value"
+    ) as mock_gov:
+        mock_gad.return_value = "test_data"
+        mock_ha.return_value = [
+            {"email": "annotator1@example.com", "role": "annotator"},
+            {"email": "annotator2@example.com", "role": "annotator"},
+        ]
+        mock_hr.return_value = [
+            {"email": "reviewer1@example.com", "role": "reviewer"},
+            {"email": "reviewer2@example.com", "role": "reviewer"},
+        ]
+        mock_ip.return_value = {}
+        mock_gov.return_value = "test_append_out"
+
+        errors, success = _import_annotations(
+            mock_client,
+            "test_id",
+            remote_classes,
+            attributes,
+            annotations,
+            default_slot_name,
+            mock_dataset,
+            append,
+            delete_for_empty,
+            import_annotators,
+            import_reviewers,
+            metadata_path,
+        )
+
+        assert success == dt.Success.SUCCESS
+        assert not errors
+        assert mock_dataset.import_annotation.call_count == 1
+
+        payload = mock_dataset.import_annotation.call_args[1]["payload"]
+        expected_payload = {
+            "annotations": [
+                {
+                    "annotation_class_id": "123",
+                    "data": "test_data",
+                    "context_keys": {"slot_names": ["test_slot"]},
+                    "id": annotations[0].id,
+                    "actors": [
+                        {"email": "annotator1@example.com", "role": "annotator"},
+                        {"email": "annotator2@example.com", "role": "annotator"},
+                        {"email": "reviewer1@example.com", "role": "reviewer"},
+                        {"email": "reviewer2@example.com", "role": "reviewer"},
+                    ],
+                }
+            ],
+            "overwrite": "test_append_out",
+        }
+
+        assert payload == expected_payload
 
 
-@pytest.mark.skip("Not yet implemented.")
-def test__is_skeleton_class() -> None: ...  # TODO: Write this test
+def test__is_skeleton_class() -> None:
+    class1 = dt.AnnotationClass(name="class1", annotation_type="skeleton")
+    class2 = dt.AnnotationClass(name="class2", annotation_type="polygon")
+    class3 = dt.AnnotationClass(
+        name="class3", annotation_type="skeleton", annotation_internal_type="skeleton"
+    )
+    class4 = dt.AnnotationClass(
+        name="class4", annotation_type="polygon", annotation_internal_type="polygon"
+    )
+
+    assert _is_skeleton_class(class1) is True
+    assert _is_skeleton_class(class2) is False
+    assert _is_skeleton_class(class3) is True
+    assert _is_skeleton_class(class4) is False
 
 
 def test__get_skeleton_name() -> None:
