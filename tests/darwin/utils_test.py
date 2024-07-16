@@ -8,7 +8,7 @@ import darwin.exceptions as de
 from darwin.utils import (
     get_response_content,
     has_json_content_type,
-    is_image_extension_allowed,
+    is_file_extension_allowed,
     is_project_dir,
     is_unix_like_os,
     parse_darwin_json,
@@ -45,10 +45,10 @@ class TestValidation:
 
 class TestExtensions:
     def test_returns_true_for_allowed_image_extensions(self):
-        assert is_image_extension_allowed(".png")
+        assert is_file_extension_allowed(".png")
 
     def test_returns_false_for_unknown_image_extensions(self):
-        assert not is_image_extension_allowed(".not_an_image")
+        assert not is_file_extension_allowed(".not_an_image")
 
 
 class TestUrlJoin:

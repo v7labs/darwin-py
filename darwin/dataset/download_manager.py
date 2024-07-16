@@ -3,6 +3,7 @@ Holds helper functions that deal with downloading videos and images.
 """
 
 import functools
+import os
 import time
 import urllib
 from pathlib import Path
@@ -24,7 +25,7 @@ from darwin.utils import (
     attempt_decode,
     get_response_content,
     has_json_content_type,
-    is_image_extension_allowed,
+    is_file_extension_allowed,
     parse_darwin_json,
 )
 
@@ -85,7 +86,7 @@ def download_all_images_from_annotations(
     existing_images = {
         image
         for image in images_path.rglob("*")
-        if is_image_extension_allowed(image.suffix)
+        if is_file_extension_allowed(image.name)
     }
 
     annotations_to_download_path = []
@@ -96,10 +97,14 @@ def download_all_images_from_annotations(
 
         if not force_replace:
             # Check the planned path for the image against the existing images
-            planned_image_path = _get_planned_image_path(
+            planned_image_paths = _get_planned_image_paths(
                 annotation, images_path, use_folders
             )
-            if planned_image_path in existing_images:
+
+            if all(
+                planned_image_path in existing_images
+                for planned_image_path in planned_image_paths
+            ):
                 continue
 
         annotations_to_download_path.append(annotation_path)
@@ -116,15 +121,19 @@ def download_all_images_from_annotations(
             for annotation_path in annotations_path.glob(f"*.{annotation_format}")
         )
         release_image_paths = [
-            _get_planned_image_path(annotation, images_path, use_folders)
+            _get_planned_image_paths(annotation, images_path, use_folders)
             for annotation in annotations
         ]
+        if any(isinstance(i, list) for i in release_image_paths):
+            release_image_paths = [
+                item for sublist in release_image_paths for item in sublist
+            ]
         for existing_image in existing_images:
             if existing_image not in release_image_paths:
                 print(f"Removing {existing_image} as it is not part of this release")
                 existing_image.unlink()
 
-        remove_empty_directories(images_path)
+        _remove_empty_directories(images_path)
 
     # Create the generator with the partial functions
     download_functions: List = []
@@ -344,8 +353,12 @@ def _download_single_slot_from_json_annotation(
             image = slot.source_files[0]
             image_url = image["url"]
             image_filename = image["file_name"]
-            suffix = Path(image_filename).suffix
-            stem = Path(annotation.filename).stem
+            if image_filename.endswith(".nii.gz"):
+                suffix = ".nii.gz"
+                stem = image_filename[: -len(suffix)]
+            else:
+                suffix = Path(image_filename).suffix
+                stem = Path(annotation.filename).stem
             filename = str(Path(stem + suffix))
             image_path = parent_path / sanitize_filename(
                 filename or annotation.filename
@@ -625,11 +638,13 @@ def _parse_manifests(paths: List[Path], slot: str) -> List[dt.SegmentManifest]:
     return segments
 
 
-def _get_planned_image_path(
+def _get_planned_image_paths(
     annotation: dt.AnnotationFile, images_path: Path, use_folders: bool
-) -> Path:
+) -> List[Path]:
     """
     Returns the local path that a dataset file will be downloaded to as part of a release.
+
+    For multi-slotted items, returns one path for each slot.
 
     Parameters
     ----------
@@ -640,27 +655,56 @@ def _get_planned_image_path(
     use_folders : bool
         Whether to recreate the remote folder structure locally for this release
     """
+    file_paths = []
     filename = Path(annotation.filename)
-    if use_folders and annotation.remote_path != "/":
-        return images_path / Path(annotation.remote_path.lstrip("/\\")) / filename
+    if len(annotation.slots) == 1:
+        if use_folders and annotation.remote_path != "/":
+            return [images_path / Path(annotation.remote_path.lstrip("/\\")) / filename]
+        else:
+            return [images_path / filename]
     else:
-        return images_path / filename
+        for slot in annotation.slots:
+            slot_name = Path(slot.name)
+            for source_file in slot.source_files:
+                file_name = source_file["file_name"]
+                if use_folders and annotation.remote_path != "/":
+                    file_paths.append(
+                        images_path
+                        / Path(annotation.remote_path.lstrip("/\\"))
+                        / filename
+                        / slot_name
+                        / file_name
+                    )
+                else:
+                    file_paths.append(images_path / filename / slot_name / file_name)
+    return file_paths
 
 
-def remove_empty_directories(images_path: Path) -> None:
+def _remove_empty_directories(images_path: Path) -> bool:
     """
-    Recursively removes empty directories in the given path.
+    Recursively removes empty directories in the given path
 
     Parameters
     ----------
     images_path : Path
-        Path to remove empty directories from
+        Path to remove empty subdirectories from
     """
-    empty_dirs_found = True
-    while empty_dirs_found:
-        empty_dirs_found = False
-        for directory in images_path.rglob("*"):
-            if directory.is_dir() and not any(directory.iterdir()):
-                directory.rmdir()
-                empty_dirs_found = True
-                print(f"Removed empty directory: {directory}")
+    entries = os.listdir(images_path)
+    is_empty = True
+
+    for entry in entries:
+        full_path = Path(os.path.join(images_path, entry))
+        if os.path.isdir(full_path):
+            if not _remove_empty_directories(full_path):
+                is_empty = False
+        else:
+            if entry == ".DS_Store":
+                os.remove(full_path)
+                print(f"Removed file: {full_path}")
+            else:
+                is_empty = False
+
+    # If the directory is empty files, remove it
+    if is_empty and images_path != images_path.parent:
+        os.rmdir(images_path)
+        print(f"Removed empty directory: {images_path}")
