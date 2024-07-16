@@ -274,16 +274,16 @@ class RemoteDataset(ABC):
         if release.format != "json" and release.format != "darwin_json_2":
             raise UnsupportedExportFormat(release.format)
 
-        if release.status == "pending":
+        if release.status.value == "pending":
             if retry:
-                while release.status == "pending" and retry_timeout > 0:
+                while release.status.value == "pending" and retry_timeout > 0:
                     console.print(
                         f"Release '{release.name}' for dataset '{self.name}' is still processing. Retrying in {retry_interval} seconds... {retry_timeout} seconds left before timeout."
                     )
                     time.sleep(retry_interval)
                     retry_timeout -= retry_interval
                     release = self.get_release(release.name, include_unavailable=retry)
-                if release.status == "pending":
+                if release.status.value == "pending":
                     raise ValueError(
                         f"Release {release.name} for dataset '{self.name}' is still processing. Please try again later."
                     )

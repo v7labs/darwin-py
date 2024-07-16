@@ -468,7 +468,7 @@ def pull_dataset(
         print_new_version_info(client)
     except NotFound:
         _error(
-            f"Version '{dataset.identifier}:{version}' does not exist "
+            f"Version '{dataset.identifier}:{version}' does not exist. "
             f"Use 'darwin dataset releases' to list all available versions."
         )
     except UnsupportedExportFormat as uef:
