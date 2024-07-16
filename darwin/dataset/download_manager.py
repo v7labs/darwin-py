@@ -55,7 +55,7 @@ def download_all_images_from_annotations(
     force_replace : bool, default: False
         Forces the re-download of an existing image
     remove_extra : bool, default: False
-        Removes existing images for which there is not corresponding annotation
+        Removes local files that would not be overwritten by the release being pulled.
     annotation_format : str, default: "json"
         Format of the annotations. Currently only JSON and xml are expected
     use_folders : bool, default: False
@@ -82,9 +82,10 @@ def download_all_images_from_annotations(
         raise ValueError(f"Annotation format {annotation_format} not supported")
 
     # Verify that there is not already image in the images folder
-    unfiltered_files = images_path.rglob("*") if use_folders else images_path.glob("*")
     existing_images = {
-        image for image in unfiltered_files if is_image_extension_allowed(image.suffix)
+        image
+        for image in images_path.rglob("*")
+        if is_image_extension_allowed(image.suffix)
     }
 
     annotations_to_download_path = []
@@ -95,13 +96,9 @@ def download_all_images_from_annotations(
 
         if not force_replace:
             # Check the planned path for the image against the existing images
-            filename = Path(annotation.filename)
-            if use_folders and annotation.remote_path != "/":
-                planned_image_path = (
-                    images_path / Path(annotation.remote_path.lstrip("/\\"))
-                ) / filename
-            else:
-                planned_image_path = images_path / filename
+            planned_image_path = _get_planned_image_path(
+                annotation, images_path, use_folders
+            )
             if planned_image_path in existing_images:
                 continue
 
@@ -114,16 +111,20 @@ def download_all_images_from_annotations(
                 force_slots = True
 
     if remove_extra:
-        # Removes existing images for which there is not corresponding annotation
-        annotations_downloaded_stem = [
-            a.stem for a in annotations_path.glob(f"*.{annotation_format}")
+        annotations = (
+            parse_darwin_json(annotation_path)
+            for annotation_path in annotations_path.glob(f"*.{annotation_format}")
+        )
+        release_image_paths = [
+            _get_planned_image_path(annotation, images_path, use_folders)
+            for annotation in annotations
         ]
         for existing_image in existing_images:
-            if existing_image.stem not in annotations_downloaded_stem:
-                print(
-                    f"Removing {existing_image} as there is no corresponding annotation"
-                )
+            if existing_image not in release_image_paths:
+                print(f"Removing {existing_image} as it is not part of this release")
                 existing_image.unlink()
+
+        remove_empty_directories(images_path)
 
     # Create the generator with the partial functions
     download_functions: List = []
@@ -622,3 +623,44 @@ def _parse_manifests(paths: List[Path], slot: str) -> List[dt.SegmentManifest]:
             item.absolute_frame = absolute_frame
             absolute_frame += 1
     return segments
+
+
+def _get_planned_image_path(
+    annotation: dt.AnnotationFile, images_path: Path, use_folders: bool
+) -> Path:
+    """
+    Returns the local path that a dataset file will be downloaded to as part of a release.
+
+    Parameters
+    ----------
+    annotation : AnnotationFile
+        Annotation file corresponding to the dataset file
+    images_path : Path
+        Local directory where the dataset files will be downloaded to
+    use_folders : bool
+        Whether to recreate the remote folder structure locally for this release
+    """
+    filename = Path(annotation.filename)
+    if use_folders and annotation.remote_path != "/":
+        return images_path / Path(annotation.remote_path.lstrip("/\\")) / filename
+    else:
+        return images_path / filename
+
+
+def remove_empty_directories(images_path: Path) -> None:
+    """
+    Recursively removes empty directories in the given path.
+
+    Parameters
+    ----------
+    images_path : Path
+        Path to remove empty directories from
+    """
+    empty_dirs_found = True
+    while empty_dirs_found:
+        empty_dirs_found = False
+        for directory in images_path.rglob("*"):
+            if directory.is_dir() and not any(directory.iterdir()):
+                directory.rmdir()
+                empty_dirs_found = True
+                print(f"Removed empty directory: {directory}")
