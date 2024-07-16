@@ -355,7 +355,7 @@ def _download_single_slot_from_json_annotation(
             image_filename = image["file_name"]
             if image_filename.endswith(".nii.gz"):
                 suffix = ".nii.gz"
-                stem = image_filename[: -len(suffix)]
+                stem = annotation.filename[: -len(suffix)]
             else:
                 suffix = Path(image_filename).suffix
                 stem = Path(annotation.filename).stem
@@ -657,7 +657,7 @@ def _get_planned_image_paths(
     """
     file_paths = []
     filename = Path(annotation.filename)
-    if len(annotation.slots) == 1:
+    if len(annotation.slots) == 1 and len(annotation.slots[0].source_files) == 1:
         if use_folders and annotation.remote_path != "/":
             return [images_path / Path(annotation.remote_path.lstrip("/\\")) / filename]
         else:

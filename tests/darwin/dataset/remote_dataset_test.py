@@ -1043,6 +1043,14 @@ class TestPullNamingConvention:
         assert download_funcs[3].args[2] == expected_paths[3]
         assert download_funcs[4].args[2] == expected_paths[4]
 
+    def test_single_slotted_nifti(self):
+        file_name = "single_slotted_nifti.json"
+        expected_paths = [Path("dataset_dir_path/single_slotted_nifti.nii.gz")]
+        download_funcs = self._test_pull_naming_convention(
+            file_name, use_folders=False, video_frames=False, force_slots=False
+        )
+        assert download_funcs[0].args[2] == expected_paths[0]
+
 
 @pytest.fixture
 def dataset_item(dataset_slug: str) -> DatasetItem:
