@@ -6,6 +6,7 @@ import functools
 import os
 import time
 import urllib
+from collections import Counter
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
@@ -149,6 +150,9 @@ def download_all_images_from_annotations(
             ignore_slots,
         )
         download_functions.extend(file_download_functions)
+
+    if not use_folders:
+        _check_for_duplicate_local_filepaths(download_functions)
 
     return lambda: download_functions, len(download_functions)
 
@@ -708,3 +712,39 @@ def _remove_empty_directories(images_path: Path) -> bool:
     if is_empty and images_path != images_path.parent:
         os.rmdir(images_path)
         print(f"Removed empty directory: {images_path}")
+
+
+def _check_for_duplicate_local_filepaths(
+    download_functions: List[Callable[[], None]]
+) -> None:
+    """
+    If pulling a release without folders, check for duplicate filepaths in the download functions.
+    This can arise when pulling a flat release with identically named dataset items in different folders.
+
+    If duplicates are found, display a warning message but do not block the download.
+
+    Parameters
+    ----------
+    download_functions : List[Callable[[], None]]
+    """
+    image_paths_to_download = [
+        download_function.args[2] for download_function in download_functions
+    ]
+
+    path_counts = Counter(image_paths_to_download)
+    duplicate_download_paths = {
+        path: count for path, count in path_counts.items() if count > 1
+    }
+    if duplicate_download_paths:
+        console = Console()
+        console.print(
+            "[bold yellow]Warning: Duplicate download paths detected, which will result in overwriting. \n\nThis is because you are pulling a flat release with identically named dataset items in different folders.\nTo prevent overwriting, please pull the release with folders. This can be done as follows:[/bold yellow]"
+        )
+        console.print(
+            "[bold yellow]- CLI: darwin dataset pull team_slug/dataset_slug --folders\n- SDK: dataset.pull(use_folders=True)[/bold yellow]\n"
+        )
+        console.print("[bold yellow]The following paths are duplicated:[/bold yellow]")
+        for path, count in duplicate_download_paths.items():
+            console.print(
+                f"[bold yellow]- {path} is duplicated {count} times[/bold yellow]"
+            )
