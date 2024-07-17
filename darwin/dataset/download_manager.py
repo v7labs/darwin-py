@@ -738,7 +738,7 @@ def _check_for_duplicate_local_filepaths(
     if duplicate_download_paths:
         console = Console()
         console.print(
-            "[bold yellow]Warning: Duplicate download paths detected, which will result in overwriting. \n\nThis is because you are pulling a flat release with identically named dataset items in different folders.\nTo prevent overwriting, please pull the release with folders. This can be done as follows:[/bold yellow]"
+            "[bold yellow]Warning: Identical filenames detected in your export release. \n\nYou are pulling a flat release with identically named dataset items.\nThe release will still be pulled, but to prevent overwriting your dataset files, please re-pull the release with the folder structure. This can be done as follows:[/bold yellow]"
         )
         console.print(
             "[bold yellow]- CLI: darwin dataset pull team_slug/dataset_slug --folders\n- SDK: dataset.pull(use_folders=True)[/bold yellow]\n"

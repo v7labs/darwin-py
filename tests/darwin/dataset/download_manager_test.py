@@ -317,7 +317,10 @@ def test__check_for_duplicate_local_filepaths_no_duplicates(capsys):
     ]
     dm._check_for_duplicate_local_filepaths(download_functions)
     captured = capsys.readouterr()
-    assert "Warning: Duplicate download paths detected" not in captured.out
+    assert (
+        "Warning: Identical filenames detected in your export release."
+        not in captured.out
+    )
 
 
 def test__check_for_duplicate_local_filepaths_single_duplicate(capsys):
@@ -328,7 +331,9 @@ def test__check_for_duplicate_local_filepaths_single_duplicate(capsys):
     ]
     dm._check_for_duplicate_local_filepaths(download_functions)
     captured = capsys.readouterr()
-    assert "Warning: Duplicate download paths detected" in captured.out
+    assert (
+        "Warning: Identical filenames detected in your export release." in captured.out
+    )
     assert "path/to/file1.jpg is duplicated 2 times" in captured.out
 
 
@@ -343,6 +348,8 @@ def test__check_for_duplicate_local_filepaths_multiple_duplicates(capsys):
     ]
     dm._check_for_duplicate_local_filepaths(download_functions)
     captured = capsys.readouterr()
-    assert "Warning: Duplicate download paths detected" in captured.out
+    assert (
+        "Warning: Identical filenames detected in your export release." in captured.out
+    )
     assert "path/to/file1.jpg is duplicated 2 times" in captured.out
     assert "path/to/file3.jpg is duplicated 3 times" in captured.out
