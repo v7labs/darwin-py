@@ -54,14 +54,18 @@ class Options:
         parser_convert.add_argument(
             "format", type=str, help="Annotation format to convert to."
         )
-
         parser_convert.add_argument(
             "files",
             type=str,
             nargs="+",
             help="Annotation files (or folders) to convert.",
         )
-
+        parser_convert.add_argument(
+            "--no-legacy",
+            action="store_false",
+            dest="legacy",
+            help="Do not convert annotation using legacy process (isotropic transformation).",
+        )
         parser_convert.add_argument(
             "output_dir", type=str, help="Where to store output files."
         )
@@ -289,6 +293,7 @@ class Options:
             action="store_true",
             help="Ignores slots and only pulls the first slot of each item into a flat file structure ({prefix}/{file_name}).",
         )
+
         # Import
         parser_import = dataset_action.add_parser(
             "import", help="Import data to an existing (remote) dataset."
@@ -301,7 +306,6 @@ class Options:
         parser_import.add_argument(
             "format", type=str, help="The format of the annotations to import."
         )
-
         parser_import.add_argument(
             "files",
             type=str,
@@ -338,6 +342,12 @@ class Options:
             action="store_true",
             help="Bypass warnings about overwiting existing annotations.",
         )
+        parser_import.add_argument(
+            "--no-legacy",
+            action="store_false",
+            dest="legacy",
+            help="Do not importing annotation files using legacy process (isotropic transformation).",
+        )
 
         # Cpu limit for multiprocessing tasks
         def cpu_default_types(input: Any) -> Optional[int]:  # type: ignore
@@ -359,7 +369,6 @@ class Options:
         parser_convert = dataset_action.add_parser(
             "convert", help="Converts darwin json to other annotation formats."
         )
-
         parser_convert.add_argument(
             "dataset",
             type=str,
@@ -368,7 +377,11 @@ class Options:
         parser_convert.add_argument(
             "format", type=str, help="Annotation format to convert to."
         )
-
+        parser_convert.add_argument(
+            "legacy",
+            action="store_true",
+            help="Convert annotation using legacy process (isotropic transformation).",
+        )
         parser_convert.add_argument(
             "-o", "--output_dir", type=str, help="Where to store output files."
         )

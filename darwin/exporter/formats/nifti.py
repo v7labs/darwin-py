@@ -44,7 +44,11 @@ class Volume:
     from_raster_layer: bool
 
 
-def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path) -> None:
+def export(
+    annotation_files: Iterable[dt.AnnotationFile],
+    output_dir: Path,
+    legacy: bool = False,
+) -> None:
     """
     Exports the given ``AnnotationFile``\\s into nifti format inside of the given
     ``output_dir``. Deletes everything within ``output_dir/masks`` before writting to it.
@@ -55,12 +59,22 @@ def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path) -> N
         The ``AnnotationFile``\\s to be exported.
     output_dir : Path
         The folder where the new instance mask files will be.
+    legacy : bool, default=False
+        If ``True``, the exporter will use the legacy calculation.
+        If ``False``, the exporter will use the new calculation by dividing with pixdims.
+
 
     Returns
     -------
     sends output volumes, image_id and output_dir to the write_output_volume_to_disk function
 
     """
+
+    if legacy:
+        console.print(
+            "Legacy flag is set to True. Annotations will be resized using legacy calculations.",
+            style="bold blue",
+        )
 
     video_annotations = list(annotation_files)
     for video_annotation in video_annotations:
@@ -92,10 +106,10 @@ def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path) -> N
         ]
         if polygon_annotations:
             populate_output_volumes_from_polygons(
-                polygon_annotations, slot_map, output_volumes
+                polygon_annotations, slot_map, output_volumes, legacy=legacy
             )
         write_output_volume_to_disk(
-            output_volumes, image_id=image_id, output_dir=output_dir
+            output_volumes, image_id=image_id, output_dir=output_dir, legacy=legacy
         )
         # Need to map raster layers to SeriesInstanceUIDs
         if mask_present:
@@ -124,7 +138,10 @@ def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path) -> N
                     output_volumes=raster_output_volumes,
                 )
             write_output_volume_to_disk(
-                raster_output_volumes, image_id=image_id, output_dir=output_dir
+                raster_output_volumes,
+                image_id=image_id,
+                output_dir=output_dir,
+                legacy=legacy,
             )
 
 
@@ -302,6 +319,7 @@ def populate_output_volumes_from_polygons(
     annotations: List[Union[dt.Annotation, dt.VideoAnnotation]],
     slot_map: Dict,
     output_volumes: Dict,
+    legacy: bool = False,
 ):
     """
     Populates the output volumes with the given polygon annotations. The annotations are converted into masks
@@ -315,6 +333,9 @@ def populate_output_volumes_from_polygons(
         Dictionary of the different slots within the annotation file
     output_volumes : Dict
         Volumes created from the build_output_volumes file
+    legacy : bool, default=False
+        If ``True``, the exporter will use the legacy calculation.
+        If ``False``, the exporter will use the new calculation by dividing with pixdims.
     """
     for annotation in annotations:
         slot_name = annotation.slot_names[0]
@@ -341,7 +362,7 @@ def populate_output_volumes_from_polygons(
             if "paths" in frame_data:
                 # Dealing with a complex polygon
                 polygons = [
-                    shift_polygon_coords(polygon_path, pixdims)
+                    shift_polygon_coords(polygon_path, pixdims, legacy=legacy)
                     for polygon_path in frame_data["paths"]
                 ]
             else:
@@ -412,7 +433,10 @@ def populate_output_volumes_from_raster_layer(
 
 
 def write_output_volume_to_disk(
-    output_volumes: Dict, image_id: str, output_dir: Union[str, Path]
+    output_volumes: Dict,
+    image_id: str,
+    output_dir: Union[str, Path],
+    legacy: bool = False,
 ) -> None:
     """Writes the given output volumes to disk.
 
@@ -424,6 +448,9 @@ def write_output_volume_to_disk(
         The specific image id
     output_dir : Union[str, Path]
         The output directory to write the volumes to
+    legacy : bool, default=False
+        If ``True``, the exporter will use the legacy calculation.
+        If ``False``, the exporter will use the new calculation by dividing with pixdims.
 
     Returns
     -------
@@ -446,7 +473,7 @@ def write_output_volume_to_disk(
             dataobj=np.flip(volume.pixel_array, (0, 1, 2)).astype(np.int16),
             affine=volume.affine,
         )
-        if volume.original_affine is not None:
+        if legacy and volume.original_affine is not None:
             orig_ornt = io_orientation(
                 volume.original_affine
             )  # Get orientation of current affine
@@ -464,14 +491,19 @@ def write_output_volume_to_disk(
         nib.save(img=img, filename=output_path)
 
 
-def shift_polygon_coords(polygon: List[Dict], pixdim: List[Number]) -> List:
-    # Need to make it clear that we flip x/y because we need to take the transpose later.
-    if pixdim[1] > pixdim[0]:
-        return [{"x": p["y"], "y": p["x"] * pixdim[1] / pixdim[0]} for p in polygon]
-    elif pixdim[1] < pixdim[0]:
-        return [{"x": p["y"] * pixdim[0] / pixdim[1], "y": p["x"]} for p in polygon]
+def shift_polygon_coords(
+    polygon: List[Dict], pixdim: List[Number], legacy: bool = False
+) -> List:
+    if legacy:
+        # Need to make it clear that we flip x/y because we need to take the transpose later.
+        if pixdim[1] > pixdim[0]:
+            return [{"x": p["y"], "y": p["x"] * pixdim[1] / pixdim[0]} for p in polygon]
+        elif pixdim[1] < pixdim[0]:
+            return [{"x": p["y"] * pixdim[0] / pixdim[1], "y": p["x"]} for p in polygon]
+        else:
+            return [{"x": p["y"], "y": p["x"]} for p in polygon]
     else:
-        return [{"x": p["y"], "y": p["x"]} for p in polygon]
+        return [{"x": p["y"] // pixdim[1], "y": p["x"] // pixdim[0]} for p in polygon]
 
 
 def get_view_idx(frame_idx: int, groups: List) -> int:
