@@ -1,5 +1,6 @@
 from pathlib import Path
-from typing import List
+from typing import Callable, List
+from unittest.mock import MagicMock
 
 import pytest
 import responses
@@ -300,3 +301,48 @@ def test_remove_empty_directories_with_ds_store(tmp_path: Path) -> None:
     dm._remove_empty_directories(root_dir)
 
     assert not subdir_1.exists()
+
+
+def create_mock_download_function(filepath: str) -> Callable[[], None]:
+    mock_func = MagicMock()
+    mock_func.args = [None, None, filepath]
+    return mock_func
+
+
+def test__check_for_duplicate_local_filepaths_no_duplicates(capsys):
+    download_functions = [
+        create_mock_download_function("path/to/file1.jpg"),
+        create_mock_download_function("path/to/file2.jpg"),
+        create_mock_download_function("path/to/file3.jpg"),
+    ]
+    dm._check_for_duplicate_local_filepaths(download_functions)
+    captured = capsys.readouterr()
+    assert "Warning: Duplicate download paths detected" not in captured.out
+
+
+def test__check_for_duplicate_local_filepaths_single_duplicate(capsys):
+    download_functions = [
+        create_mock_download_function("path/to/file1.jpg"),
+        create_mock_download_function("path/to/file2.jpg"),
+        create_mock_download_function("path/to/file1.jpg"),
+    ]
+    dm._check_for_duplicate_local_filepaths(download_functions)
+    captured = capsys.readouterr()
+    assert "Warning: Duplicate download paths detected" in captured.out
+    assert "path/to/file1.jpg is duplicated 2 times" in captured.out
+
+
+def test__check_for_duplicate_local_filepaths_multiple_duplicates(capsys):
+    download_functions = [
+        create_mock_download_function("path/to/file1.jpg"),
+        create_mock_download_function("path/to/file2.jpg"),
+        create_mock_download_function("path/to/file1.jpg"),
+        create_mock_download_function("path/to/file3.jpg"),
+        create_mock_download_function("path/to/file3.jpg"),
+        create_mock_download_function("path/to/file3.jpg"),
+    ]
+    dm._check_for_duplicate_local_filepaths(download_functions)
+    captured = capsys.readouterr()
+    assert "Warning: Duplicate download paths detected" in captured.out
+    assert "path/to/file1.jpg is duplicated 2 times" in captured.out
+    assert "path/to/file3.jpg is duplicated 3 times" in captured.out
