@@ -224,7 +224,7 @@ class RemoteDataset(ABC):
         force_replace : bool, default: False
             Forces the re-download of an existing image.
         remove_extra : bool, default: False
-            Removes existing images for which there is not corresponding annotation.
+            Removes local files that would not be overwritten by the release being pulled.
         subset_filter_annotations_function: Optional[Callable], default: None
             This function receives the directory where the annotations are downloaded and can
             perform any operation on them i.e. filtering them with custom rules or else.

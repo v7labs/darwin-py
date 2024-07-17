@@ -5,7 +5,7 @@ import pytest
 import responses
 
 from darwin.dataset import download_manager as dm
-from darwin.datatypes import Slot
+from darwin.datatypes import AnnotationClass, AnnotationFile, Slot
 from tests.fixtures import *
 
 
@@ -74,3 +74,229 @@ def test_get_segment_manifests(
         assert segment_manifests[3].items[0].absolute_frame == 6
         assert segment_manifests[3].items[1].absolute_frame == 7
         assert segment_manifests[3].items[1].visibility is True
+
+
+def test_single_slot_without_folders_planned_image_paths():
+    annotation = AnnotationFile(
+        path=Path("/local/annotations/image.json"),
+        filename="image.jpg",
+        annotation_classes={
+            AnnotationClass(name="test_class", annotation_type="polygon")
+        },
+        annotations=[],
+        slots=[
+            Slot(
+                name="slot1",
+                type="image",
+                source_files=[{"file_name": "source_name.jpg"}],
+            )
+        ],
+        remote_path="/",
+    )
+    images_path = Path("/local/images")
+    result = dm._get_planned_image_paths(annotation, images_path, use_folders=False)
+    expected = [images_path / "image.jpg"]
+    assert result == expected
+
+
+def test_single_slot_with_folders_planned_image_paths():
+    annotation = AnnotationFile(
+        path=Path("/local/annotations/image.json"),
+        filename="image.jpg",
+        annotation_classes={
+            AnnotationClass(name="test_class", annotation_type="polygon")
+        },
+        annotations=[],
+        slots=[
+            Slot(
+                name="slot1",
+                type="image",
+                source_files=[{"file_name": "source_name.jpg"}],
+            )
+        ],
+        remote_path="/remote/path",
+    )
+    images_path = Path("/local/images")
+    result = dm._get_planned_image_paths(annotation, images_path, use_folders=True)
+    expected = [images_path / "remote/path/image.jpg"]
+    assert result == expected
+
+
+def test_multi_slot_without_folders_planned_image_paths():
+    annotation = AnnotationFile(
+        path=Path("/local/annotations/image.json"),
+        filename="image.jpg",
+        annotation_classes={
+            AnnotationClass(name="test_class", annotation_type="polygon")
+        },
+        annotations=[],
+        slots=[
+            Slot(
+                name="slot1",
+                type="image",
+                source_files=[{"file_name": "source_name_1.jpg"}],
+            ),
+            Slot(
+                name="slot2",
+                type="image",
+                source_files=[{"file_name": "source_name_2.jpg"}],
+            ),
+        ],
+        remote_path="/",
+    )
+    images_path = Path("/local/images")
+    result = dm._get_planned_image_paths(annotation, images_path, use_folders=False)
+    expected = [
+        images_path / "image.jpg" / "slot1" / "source_name_1.jpg",
+        images_path / "image.jpg" / "slot2" / "source_name_2.jpg",
+    ]
+    assert result == expected
+
+
+def test_multi_slot_with_folders_planned_image_path():
+    annotation = AnnotationFile(
+        path=Path("/local/annotations/image.json"),
+        filename="image.jpg",
+        annotation_classes={
+            AnnotationClass(name="test_class", annotation_type="polygon")
+        },
+        annotations=[],
+        slots=[
+            Slot(
+                name="slot1",
+                type="image",
+                source_files=[{"file_name": "source_name_1.jpg"}],
+            ),
+            Slot(
+                name="slot2",
+                type="image",
+                source_files=[{"file_name": "source_name_2.jpg"}],
+            ),
+        ],
+        remote_path="/remote/path",
+    )
+    images_path = Path("/local/images")
+    result = dm._get_planned_image_paths(annotation, images_path, use_folders=True)
+    expected = [
+        images_path / "remote/path" / "image.jpg" / "slot1" / "source_name_1.jpg",
+        images_path / "remote/path" / "image.jpg" / "slot2" / "source_name_2.jpg",
+    ]
+    assert result == expected
+
+
+def test_single_slot_root_path_with_folders_planned_image_paths():
+    annotation = AnnotationFile(
+        path=Path("/local/annotations/image.json"),
+        filename="image.jpg",
+        annotation_classes={
+            AnnotationClass(name="test_class", annotation_type="polygon")
+        },
+        annotations=[],
+        slots=[
+            Slot(
+                name="slot1",
+                type="image",
+                source_files=[{"file_name": "source_name.jpg"}],
+            )
+        ],
+        remote_path="/",
+    )
+    images_path = Path("/local/images")
+    result = dm._get_planned_image_paths(annotation, images_path, use_folders=True)
+    expected = [images_path / "image.jpg"]
+    assert result == expected
+
+
+def test_multiple_source_files_planned_image_paths():
+    annotation = AnnotationFile(
+        path=Path("/local/annotations/image.json"),
+        filename="image.jpg",
+        annotation_classes={
+            AnnotationClass(name="test_class", annotation_type="polygon")
+        },
+        annotations=[],
+        slots=[
+            Slot(
+                name="slot1",
+                type="image",
+                source_files=[
+                    {"file_name": "source_name_1.jpg"},
+                    {"file_name": "source_name_2.jpg"},
+                ],
+            )
+        ],
+    )
+    images_path = Path("/local/images")
+    results = dm._get_planned_image_paths(annotation, images_path, use_folders=False)
+    expected = [
+        images_path / "image.jpg" / "slot1" / "source_name_1.jpg",
+        images_path / "image.jpg" / "slot1" / "source_name_2.jpg",
+    ]
+    assert results == expected
+
+
+def test__remove_empty_directories(tmp_path: Path) -> None:
+    root_dir = tmp_path / "root"
+    root_dir.mkdir()
+    subdir_1 = root_dir / "subdir_1"
+    subdir_1.mkdir()
+    subdir_2 = root_dir / "subdir_2"
+    subdir_2.mkdir()
+    nested_subdir = subdir_1 / "nested_subdir"
+    nested_subdir.mkdir()
+
+    (subdir_2 / "file.txt").write_text("This is a test file")
+    (nested_subdir / ".DS_Store").write_text("This is a .DS_Store file")
+
+    assert subdir_1.exists()
+    assert subdir_2.exists()
+    assert nested_subdir.exists()
+
+    dm._remove_empty_directories(root_dir)
+
+    assert not nested_subdir.exists()
+    assert subdir_1.exists()
+    assert subdir_2.exists()
+    assert (subdir_1 / ".DS_Store").exists() is False
+
+
+def test__remove_empty_directories_with_no_empty_dirs(tmp_path: Path) -> None:
+    root_dir = tmp_path / "root"
+    root_dir.mkdir()
+    subdir_1 = root_dir / "subdir_1"
+    subdir_1.mkdir()
+    subdir_2 = root_dir / "subdir_2"
+    subdir_2.mkdir()
+    (subdir_1 / "file1.txt").write_text("File in subdir_1")
+    (subdir_2 / "file2.txt").write_text("File in subdir_2")
+
+    dm._remove_empty_directories(root_dir)
+
+    assert subdir_1.exists()
+    assert subdir_2.exists()
+
+
+def test__remove_empty_directories_all_empty(tmp_path: Path) -> None:
+    root_dir = tmp_path / "root"
+    root_dir.mkdir()
+    subdir_1 = root_dir / "subdir_1"
+    subdir_1.mkdir()
+    subdir_2 = root_dir / "subdir_2"
+    subdir_2.mkdir()
+
+    dm._remove_empty_directories(root_dir)
+
+    assert not subdir_1.exists()
+    assert not subdir_2.exists()
+
+
+def test_remove_empty_directories_with_ds_store(tmp_path: Path) -> None:
+    root_dir = tmp_path / "root"
+    root_dir.mkdir()
+    subdir_1 = root_dir / "subdir_1"
+    subdir_1.mkdir()
+    (subdir_1 / ".DS_Store").write_text("This is a .DS_Store file")
+
+    dm._remove_empty_directories(root_dir)
+
+    assert not subdir_1.exists()

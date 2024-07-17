@@ -110,21 +110,21 @@ def is_image_extension_allowed_by_filename(filename: str) -> bool:
     return any(filename.lower().endswith(ext) for ext in SUPPORTED_IMAGE_EXTENSIONS)
 
 
-def is_image_extension_allowed(extension: str) -> bool:
+def is_file_extension_allowed(filename: str) -> bool:
     """
     Returns whether or not the given image extension is allowed.
 
     Parameters
     ----------
-    extension : str
-        The image extension.
+    filename : str
+        The name of the file.
 
     Returns
     -------
     bool
         Whether or not the given extension is allowed.
     """
-    return extension.lower() in SUPPORTED_IMAGE_EXTENSIONS
+    return any(filename.lower().endswith(ext) for ext in SUPPORTED_EXTENSIONS)
 
 
 def urljoin(*parts: str) -> str:
