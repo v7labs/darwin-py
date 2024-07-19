@@ -712,8 +712,8 @@ class RemoteDatasetV2(RemoteDataset):
                 item["extract_views"] = "true"
             items.append(item)
 
-        # Do not register more than 500 items in a single request
-        chunk_size = 500
+        # Do not register more than 10 items in a single request
+        chunk_size = 10
         chunked_items = chunk_items(items, chunk_size)
         print(f"Registering {len(items)} items in chunks of {chunk_size} items...")
         results = {
@@ -810,8 +810,8 @@ class RemoteDatasetV2(RemoteDataset):
                 }
             )
 
-        # Do not register more than 500 items in a single request
-        chunk_size = 500
+        # Do not register more than 10 items in a single request
+        chunk_size = 10
         chunked_items = chunk_items(items, chunk_size)
         print(f"Registering {len(items)} items in chunks of {chunk_size} items...")
         results = {
