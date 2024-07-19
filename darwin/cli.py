@@ -155,6 +155,9 @@ def _run(args: Namespace, parser: ArgumentParser) -> None:
                 args.video_frames,
                 args.force_slots,
                 args.ignore_slots,
+                args.retry,
+                args.retry_timeout,
+                args.retry_interval,
             )
         elif args.action == "import":
             f.dataset_import(

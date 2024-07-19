@@ -411,6 +411,9 @@ def pull_dataset(
     video_frames: bool = False,
     force_slots: bool = False,
     ignore_slots: bool = False,
+    retry: bool = False,
+    retry_timeout: int = 600,
+    retry_interval: int = 10,
 ) -> None:
     """
     Downloads a remote dataset (images and annotations) in the datasets directory.
@@ -429,6 +432,12 @@ def pull_dataset(
         Pulls video frames images instead of video files. Defaults to False.
     force_slots: bool
         Pulls all slots of items into deeper file structure ({prefix}/{item_name}/{slot_name}/{file_name})
+    retry: bool
+        If True, will repeatedly try to download the release if it is still processing until the timeout is reached.
+    retry_timeout: int
+        If retrying, total time to wait for the release to be ready for download
+    retry_interval: int
+        If retrying, time to wait between retries of checking if the release is ready for download.
     """
     version: str = DatasetIdentifier.parse(dataset_slug).version or "latest"
     client: Client = _load_client(offline=False, maybe_guest=True)
@@ -445,7 +454,7 @@ def pull_dataset(
         _error("please re-authenticate")
 
     try:
-        release: Release = dataset.get_release(version)
+        release: Release = dataset.get_release(version, retry)
         dataset.pull(
             release=release,
             only_annotations=only_annotations,
@@ -453,11 +462,14 @@ def pull_dataset(
             video_frames=video_frames,
             force_slots=force_slots,
             ignore_slots=ignore_slots,
+            retry=retry,
+            retry_timeout=retry_timeout,
+            retry_interval=retry_interval,
         )
         print_new_version_info(client)
     except NotFound:
         _error(
-            f"Version '{dataset.identifier}:{version}' does not exist "
+            f"Version '{dataset.identifier}:{version}' does not exist. "
             f"Use 'darwin dataset releases' to list all available versions."
         )
     except UnsupportedExportFormat as uef:

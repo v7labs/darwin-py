@@ -1,11 +1,18 @@
 import datetime
 import shutil
+from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, Optional
 
 import requests
 
 from darwin.dataset.identifier import DatasetIdentifier
+
+
+class ReleaseStatus(Enum):
+    PENDING = "pending"
+    COMPLETE = "complete"
+    FAILED = "failed"
 
 
 class Release:
@@ -23,6 +30,8 @@ class Release:
         The version of the ``Release``.
     name : str
         The name of the ``Release``.
+    status : ReleaseStatus
+        The status of the ``Release``.
     url : Optional[str]
         The full url used to download the ``Release``.
     export_date : datetime.datetime
@@ -48,6 +57,8 @@ class Release:
         The version of the ``Release``.
     name : str
         The name of the ``Release``.
+    status : ReleaseStatus
+        The status of the ``Release``.
     url : Optional[str]
         The full url used to download the ``Release``.
     export_date : datetime.datetime
@@ -70,6 +81,7 @@ class Release:
         team_slug: str,
         version: str,
         name: str,
+        status: ReleaseStatus,
         url: Optional[str],
         export_date: datetime.datetime,
         image_count: Optional[int],
@@ -82,6 +94,7 @@ class Release:
         self.team_slug = team_slug
         self.version = version
         self.name = name
+        self.status = ReleaseStatus(status)
         self.url = url
         self.export_date = export_date
         self.image_count = image_count
@@ -156,6 +169,7 @@ class Release:
                 team_slug=team_slug,
                 version=payload["version"],
                 name=payload["name"],
+                status=payload["status"],
                 export_date=export_date,
                 url=None,
                 available=False,
@@ -170,6 +184,7 @@ class Release:
             team_slug=team_slug,
             version=payload["version"],
             name=payload["name"],
+            status=payload["status"],
             image_count=payload["metadata"]["num_images"],
             class_count=len(payload["metadata"]["annotation_classes"]),
             export_date=export_date,

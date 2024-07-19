@@ -1,11 +1,13 @@
 import shutil
+from datetime import datetime
 from pathlib import Path
-from typing import Generator
+from typing import Generator, List
 from zipfile import ZipFile
 
 import pytest
 
 from darwin.config import Config
+from darwin.dataset.release import Release, ReleaseStatus
 
 
 @pytest.fixture
@@ -118,3 +120,50 @@ def local_config_file(
     shutil.rmtree(darwin_path)
     if backup_darwin_path.exists():
         shutil.move(backup_darwin_path, darwin_path)
+
+
+@pytest.fixture
+def pending_release() -> Release:
+    return Release(
+        dataset_slug="dataset_slug",
+        team_slug="team_slug",
+        version="1",
+        name="name",
+        status=ReleaseStatus("pending"),
+        url=None,
+        export_date=datetime.now(),
+        image_count=1,
+        class_count=1,
+        available=False,
+        latest=False,
+        format="json",
+    )
+
+
+@pytest.fixture
+def releases_api_response() -> List[dict]:
+    return [
+        {
+            "name": "release_1",
+            "status": ReleaseStatus("complete"),
+            "version": 1,
+            "format": "darwin_json_2",
+            "metadata": {
+                "num_images": 1,
+                "annotation_classes": [{"id": 1, "name": "test_class"}],
+            },
+            "inserted_at": "2024-06-28T12:29:02Z",
+            "latest": True,
+            "download_url": "download_url",
+        },
+        {
+            "name": "release_2",
+            "status": ReleaseStatus("pending"),
+            "version": 2,
+            "format": "darwin_json_2",
+            "metadata": {},
+            "inserted_at": "2024-06-28T12:32:33Z",
+            "latest": False,
+            "download_url": None,
+        },
+    ]
