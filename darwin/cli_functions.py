@@ -935,6 +935,7 @@ def dataset_import(
             overwrite,
             use_multi_cpu,
             cpu_limit,
+            no_legacy=False if legacy else True,
         )
 
     except ImporterNotFoundError:
