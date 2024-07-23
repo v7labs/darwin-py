@@ -726,6 +726,7 @@ def _check_for_duplicate_local_filepaths(
     Parameters
     ----------
     download_functions : List[Callable[[], None]]
+        A list of download functions. Each one is responsible for downloading a single file.
     """
     image_paths_to_download = [
         download_function.args[2] for download_function in download_functions
