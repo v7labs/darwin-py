@@ -271,10 +271,14 @@ class Options:
         )
         parser_pull.add_argument(
             "--folders",
-            nargs="?",
-            const=True,
+            action="store_true",
             default=True,
             help="Recreates image folders.",
+        )
+        parser_pull.add_argument(
+            "--no-folders",
+            action="store_true",
+            help="Does not recreate image folders.",
         )
         parser_pull.add_argument(
             "--video-frames",
@@ -531,9 +535,6 @@ class Options:
             The tuple with the namespace and parser to use.
         """
         args = self.parser.parse_args()
-
-        if args.action == "pull" and args.folders is not True:
-            args.folders = args.folders.lower() == "true"
 
         if not args.command:
             self.parser.print_help()
