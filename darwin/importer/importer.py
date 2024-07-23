@@ -736,8 +736,14 @@ def import_annotations(  # noqa: C901
 
     console = Console(theme=_console_theme())
 
-    if importer.__module__ == "darwin.importer.formats.nifti" and no_legacy:
-        importer = partial(importer, legacy=True)
+    # The below try / except block is necessary, but temporary
+    # CLI-initiated imports will raise an AttributeError because of the partial function
+    # This block handles SDK-initiated imports
+    try:
+        if importer.__module__ == "darwin.importer.formats.nifti" and not no_legacy:
+            importer = partial(importer, legacy=True)
+    except AttributeError:
+        pass
 
     if append and delete_for_empty:
         raise IncompatibleOptions(
