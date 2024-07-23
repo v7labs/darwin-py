@@ -407,10 +407,11 @@ def export_dataset(
 def pull_dataset(
     dataset_slug: str,
     only_annotations: bool = False,
-    folders: bool = False,
+    folders: bool = True,
     video_frames: bool = False,
     force_slots: bool = False,
     ignore_slots: bool = False,
+    no_folders: bool = False,
     retry: bool = False,
     retry_timeout: int = 600,
     retry_interval: int = 10,
@@ -427,11 +428,13 @@ def pull_dataset(
     only_annotations: bool
         Download only the annotations and no corresponding images. Defaults to False.
     folders: bool
-        Recreates the folders in the dataset. Defaults to False.
+        Recreates the folders in the dataset. Defaults to True.
     video_frames: bool
         Pulls video frames images instead of video files. Defaults to False.
     force_slots: bool
         Pulls all slots of items into deeper file structure ({prefix}/{item_name}/{slot_name}/{file_name})
+    no_folders: bool
+        Does not recreate the folders in the dataset. Defaults to False.
     retry: bool
         If True, will repeatedly try to download the release if it is still processing until the timeout is reached.
     retry_timeout: int
@@ -452,7 +455,8 @@ def pull_dataset(
         )
     except Unauthenticated:
         _error("please re-authenticate")
-
+    if no_folders:
+        folders = False
     try:
         release: Release = dataset.get_release(version, retry)
         dataset.pull(

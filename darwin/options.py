@@ -274,7 +274,15 @@ class Options:
             help="Download only annotations and no corresponding images.",
         )
         parser_pull.add_argument(
-            "--folders", action="store_true", help="Recreates image folders."
+            "--folders",
+            action="store_true",
+            default=True,
+            help="Recreates image folders.",
+        )
+        parser_pull.add_argument(
+            "--no-folders",
+            action="store_true",
+            help="Does not recreate image folders.",
         )
         parser_pull.add_argument(
             "--video-frames",
