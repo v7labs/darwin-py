@@ -1,6 +1,7 @@
 import os
 import shutil
 import tempfile
+import time
 import zipfile
 from datetime import datetime
 from pathlib import Path
@@ -207,6 +208,9 @@ class RemoteDataset(ABC):
         video_frames: bool = False,
         force_slots: bool = False,
         ignore_slots: bool = False,
+        retry: bool = False,
+        retry_timeout: int = 600,
+        retry_interval: int = 10,
     ) -> Tuple[Optional[Callable[[], Iterator[Any]]], int]:
         """
         Downloads a remote dataset (images and annotations) to the datasets directory.
@@ -237,6 +241,8 @@ class RemoteDataset(ABC):
             Pulls video frames images instead of video files.
         force_slots: bool
             Pulls all slots of items into deeper file structure ({prefix}/{item_name}/{slot_name}/{file_name})
+        retry: bool
+            If True, will repeatedly try to download the release if it is still processing up to a maximum of 5 minutes.
 
         Returns
         -------
@@ -251,15 +257,43 @@ class RemoteDataset(ABC):
             If the given ``release`` has an invalid format.
         ValueError
             If darwin in unable to get ``Team`` configuration.
+        ValueError
+            If the release is still processing after the maximum retry duration.
         """
 
         console = self.console or Console()
 
+        if retry and retry_timeout < retry_interval:
+            raise ValueError(
+                f"The value of retry_timeout '{retry_timeout}' must be greater than or equal to the value of retry_interval '{retry_interval}'."
+            )
+
         if release is None:
-            release = self.get_release()
+            release = self.get_release(include_unavailable=retry)
 
         if release.format != "json" and release.format != "darwin_json_2":
             raise UnsupportedExportFormat(release.format)
+
+        if release.status.value == "pending":
+            if retry:
+                while release.status.value == "pending" and retry_timeout > 0:
+                    console.print(
+                        f"Release '{release.name}' for dataset '{self.name}' is still processing. Retrying in {retry_interval} seconds... {retry_timeout} seconds left before timeout."
+                    )
+                    time.sleep(retry_interval)
+                    retry_timeout -= retry_interval
+                    release = self.get_release(release.name, include_unavailable=retry)
+                if release.status.value == "pending":
+                    raise ValueError(
+                        f"Release {release.name} for dataset '{self.name}' is still processing. Please try again later."
+                    )
+            else:
+                raise ValueError(
+                    f"Release '{release.name}' for dataset '{self.name}' is still processing. Please wait for it to be ready.\n\n If you would like to automatically retry, set the `retry` parameter to `True` with the SDK, or use the `--retry` flag with the CLI."
+                )
+        console.print(
+            f"Release '{release.name}' for dataset '{self.name}' is ready for download. Starting download..."
+        )
 
         release_dir = self.local_releases_path / release.name
         release_dir.mkdir(parents=True, exist_ok=True)
@@ -715,9 +749,14 @@ class RemoteDataset(ABC):
         """
 
     @abstractmethod
-    def get_releases(self) -> List["Release"]:
+    def get_releases(self, include_unavailable: bool = False) -> List["Release"]:
         """
         Get a sorted list of releases with the most recent first.
+
+        Parameters
+        ----------
+        include_unavailable : bool, default: False
+            If True, return  all releases, including those that are not available.
 
         Returns
         -------
@@ -725,7 +764,9 @@ class RemoteDataset(ABC):
             Returns a sorted list of available ``Release``\\s with the most recent first.
         """
 
-    def get_release(self, name: str = "latest") -> "Release":
+    def get_release(
+        self, name: str = "latest", include_unavailable: bool = True
+    ) -> "Release":
         """
         Get a specific ``Release`` for this ``RemoteDataset``.
 
@@ -733,6 +774,8 @@ class RemoteDataset(ABC):
         ----------
         name : str, default: "latest"
             Name of the export.
+        include_unavailable : bool, default: True
+            If True, return all releases, including those that are not available.
 
         Returns
         -------
@@ -744,22 +787,30 @@ class RemoteDataset(ABC):
         NotFound
             The selected ``Release`` does not exist.
         """
-        releases = self.get_releases()
+        releases = self.get_releases(include_unavailable=include_unavailable)
         if not releases:
-            raise NotFound(str(self.identifier))
+            raise NotFound(
+                str(
+                    f"No releases found for dataset '{self.name}'. Please create an export of this dataset first."
+                )
+            )
 
         # overwrite default name with stored dataset.release if supplied
         if self.release and name == "latest":
             name = self.release
         elif name == "latest":
-            return next((release for release in releases if release.latest))
+            return (
+                sorted(releases, key=lambda x: x.export_date, reverse=True)[0]
+                if include_unavailable
+                else next((release for release in releases if release.latest))
+            )
 
         for release in releases:
             if str(release.name) == name:
                 return release
         raise NotFound(
             str(
-                f"Release name {name} not found in dataset {self.name}. Please check this release exists for this dataset."
+                f"Release name '{name}' not found in dataset '{self.name}'. Please check this release exists for this dataset."
             )
         )
 

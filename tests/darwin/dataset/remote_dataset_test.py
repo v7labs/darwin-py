@@ -16,7 +16,7 @@ from darwin.client import Client
 from darwin.config import Config
 from darwin.dataset import RemoteDataset
 from darwin.dataset.download_manager import _download_image_from_json_annotation
-from darwin.dataset.release import Release
+from darwin.dataset.release import Release, ReleaseStatus
 from darwin.dataset.remote_dataset_v2 import RemoteDatasetV2
 from darwin.dataset.upload_manager import LocalFile, UploadHandlerV2
 from darwin.datatypes import ManifestItem, ObjectStore, SegmentManifest
@@ -662,6 +662,7 @@ class TestPull:
             "team-slug",
             "0.1.0",
             "release-name",
+            ReleaseStatus("complete"),
             "http://darwin-fake-url.com",
             datetime.now(),
             None,
@@ -692,6 +693,7 @@ class TestPull:
             "team-slug",
             "0.1.0",
             "release-name",
+            ReleaseStatus("complete"),
             "http://darwin-fake-url.com",
             datetime.now(),
             None,
@@ -724,6 +726,7 @@ class TestPull:
             "team-slug",
             "0.1.0",
             "release-name",
+            ReleaseStatus("complete"),
             "http://darwin-fake-url.com",
             datetime.now(),
             None,
@@ -758,6 +761,7 @@ class TestPull:
             remote_dataset.team,
             "0.1.0",
             "release-name",
+            ReleaseStatus("complete"),
             "http://darwin-fake-url.com",
             datetime.now(),
             None,
@@ -779,6 +783,7 @@ class TestPull:
             "team-slug",
             "0.1.0",
             "release-name",
+            ReleaseStatus("complete"),
             "http://darwin-fake-url.com",
             datetime.now(),
             None,
@@ -807,6 +812,27 @@ class TestPull:
                     / "metadata.json"
                 )
                 assert metadata_path.exists()
+
+    @patch("time.sleep", return_value=None)
+    def test_num_retries(self, mock_sleep, remote_dataset, pending_release):
+        with patch.object(remote_dataset, "get_release", return_value=pending_release):
+            with pytest.raises(ValueError):
+                remote_dataset.pull(release=pending_release, retry=True)
+            assert (
+                mock_sleep.call_count == 60
+            )  # Default values of 600 seconds / 10 seconds interval
+
+    @patch("time.sleep", return_value=None)
+    def test_raises_after_max_retry_duration(
+        self, mock_sleep, remote_dataset, pending_release
+    ):
+        with patch.object(remote_dataset, "get_release", return_value=pending_release):
+            with pytest.raises(ValueError, match="is still processing"):
+                remote_dataset.pull(release=pending_release, retry=True)
+
+    def test_raises_error_if_timeout_less_than_interval(self, remote_dataset):
+        with pytest.raises(ValueError):
+            remote_dataset.pull(retry=True, retry_timeout=5, retry_interval=10)
 
 
 class TestPullNamingConvention:
@@ -1324,3 +1350,25 @@ class TestRegisterMultiSlotted:
         )
         assert len(result["registered"]) == 0
         assert len(result["blocked"]) == 1
+
+
+@pytest.mark.usefixtures("file_read_write_test")
+class TestGetReleases:
+    @patch("darwin.backend_v2.BackendV2.get_exports")
+    def test_returns_unavailable_releases_when_retry_is_true(
+        self, mock_get_exports, remote_dataset, releases_api_response
+    ):
+        mock_get_exports.return_value = releases_api_response
+        releases = remote_dataset.get_releases(include_unavailable=True)
+        assert len(releases) == 2
+        assert isinstance(releases[0], Release)
+        assert isinstance(releases[1], Release)
+
+    @patch("darwin.backend_v2.BackendV2.get_exports")
+    def test_omits_unavailable_releases_when_retry_is_false(
+        self, mock_get_exports, remote_dataset, releases_api_response
+    ):
+        mock_get_exports.return_value = releases_api_response
+        releases = remote_dataset.get_releases(include_unavailable=False)
+        assert len(releases) == 1
+        assert isinstance(releases[0], Release)

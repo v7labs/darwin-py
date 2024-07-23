@@ -100,7 +100,7 @@ def _run(args: Namespace, parser: ArgumentParser) -> None:
         print(__version__)
 
     elif args.command == "convert":
-        f.convert(args.format, args.files, args.output_dir)
+        f.convert(args.format, args.files, args.output_dir, legacy=args.legacy)
     elif args.command == "dataset":
         if args.action == "remote":
             f.list_remote_datasets(args.all, args.team)
@@ -156,6 +156,9 @@ def _run(args: Namespace, parser: ArgumentParser) -> None:
                 args.force_slots,
                 args.ignore_slots,
                 args.no_folders,
+                args.retry,
+                args.retry_timeout,
+                args.retry_interval,
             )
         elif args.action == "import":
             f.dataset_import(
@@ -168,10 +171,13 @@ def _run(args: Namespace, parser: ArgumentParser) -> None:
                 args.import_annotators,
                 args.import_reviewers,
                 args.overwrite,
+                legacy=args.legacy,
                 cpu_limit=args.cpu_limit,
             )
         elif args.action == "convert":
-            f.dataset_convert(args.dataset, args.format, args.output_dir)
+            f.dataset_convert(
+                args.dataset, args.format, args.output_dir, legacy=args.legacy
+            )
         elif args.action == "set-file-status":
             f.set_file_status(args.dataset, args.status, args.files)
         elif args.action == "delete-files":

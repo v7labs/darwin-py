@@ -1,6 +1,7 @@
 import concurrent.futures
 import uuid
 from collections import defaultdict
+from functools import partial
 from logging import getLogger
 from multiprocessing import cpu_count
 from pathlib import Path
@@ -677,6 +678,7 @@ def import_annotations(  # noqa: C901
     overwrite: bool = False,
     use_multi_cpu: bool = False,
     cpu_limit: Optional[int] = None,
+    no_legacy: Optional[bool] = False,
 ) -> None:
     """
     Imports the given given Annotations into the given Dataset.
@@ -718,6 +720,9 @@ def import_annotations(  # noqa: C901
         If ``cpu_limit`` is greater than the number of available CPU cores, it will be set to the number of available cores.
         If ``cpu_limit`` is less than 1, it will be set to CPU count - 2.
         If ``cpu_limit`` is omitted, it will be set to CPU count - 2.
+    no_legacy : bool, default: False
+        If ``True`` will not use the legacy isotropic transformation to resize annotations
+        If ``False`` will use the legacy isotropic transformation to resize annotations
     Raises
     -------
     ValueError
@@ -730,6 +735,15 @@ def import_annotations(  # noqa: C901
     """
 
     console = Console(theme=_console_theme())
+
+    # The below try / except block is necessary, but temporary
+    # CLI-initiated imports will raise an AttributeError because of the partial function
+    # This block handles SDK-initiated imports
+    try:
+        if importer.__module__ == "darwin.importer.formats.nifti" and not no_legacy:
+            importer = partial(importer, legacy=True)
+    except AttributeError:
+        pass
 
     if append and delete_for_empty:
         raise IncompatibleOptions(

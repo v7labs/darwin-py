@@ -115,9 +115,14 @@ class RemoteDatasetV2(RemoteDataset):
             version=2,
         )
 
-    def get_releases(self) -> List["Release"]:
+    def get_releases(self, include_unavailable: bool = False) -> List["Release"]:
         """
         Get a sorted list of releases with the most recent first.
+
+        Parameters
+        ----------
+        include_unavailable : bool, default: False
+            If True, return  all releases, including those that are not available.
 
         Returns
         -------
@@ -135,8 +140,13 @@ class RemoteDatasetV2(RemoteDataset):
             Release.parse_json(self.slug, self.team, payload)
             for payload in releases_json
         ]
+
         return sorted(
-            filter(lambda x: x.available, releases),
+            (
+                releases
+                if include_unavailable
+                else filter(lambda x: x.available, releases)
+            ),
             key=lambda x: x.version,
             reverse=True,
         )
@@ -702,8 +712,8 @@ class RemoteDatasetV2(RemoteDataset):
                 item["extract_views"] = "true"
             items.append(item)
 
-        # Do not register more than 500 items in a single request
-        chunk_size = 500
+        # Do not register more than 10 items in a single request
+        chunk_size = 10
         chunked_items = chunk_items(items, chunk_size)
         print(f"Registering {len(items)} items in chunks of {chunk_size} items...")
         results = {
@@ -800,8 +810,8 @@ class RemoteDatasetV2(RemoteDataset):
                 }
             )
 
-        # Do not register more than 500 items in a single request
-        chunk_size = 500
+        # Do not register more than 10 items in a single request
+        chunk_size = 10
         chunked_items = chunk_items(items, chunk_size)
         print(f"Registering {len(items)} items in chunks of {chunk_size} items...")
         results = {

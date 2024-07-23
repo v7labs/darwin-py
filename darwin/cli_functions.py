@@ -5,6 +5,7 @@ import json
 import os
 import sys
 import traceback
+from functools import partial
 from glob import glob
 from itertools import tee
 from pathlib import Path
@@ -411,6 +412,9 @@ def pull_dataset(
     force_slots: bool = False,
     ignore_slots: bool = False,
     no_folders: bool = False,
+    retry: bool = False,
+    retry_timeout: int = 600,
+    retry_interval: int = 10,
 ) -> None:
     """
     Downloads a remote dataset (images and annotations) in the datasets directory.
@@ -431,6 +435,12 @@ def pull_dataset(
         Pulls all slots of items into deeper file structure ({prefix}/{item_name}/{slot_name}/{file_name})
     no_folders: bool
         Does not recreate the folders in the dataset. Defaults to False.
+    retry: bool
+        If True, will repeatedly try to download the release if it is still processing until the timeout is reached.
+    retry_timeout: int
+        If retrying, total time to wait for the release to be ready for download
+    retry_interval: int
+        If retrying, time to wait between retries of checking if the release is ready for download.
     """
     version: str = DatasetIdentifier.parse(dataset_slug).version or "latest"
     client: Client = _load_client(offline=False, maybe_guest=True)
@@ -448,7 +458,7 @@ def pull_dataset(
     if no_folders:
         folders = False
     try:
-        release: Release = dataset.get_release(version)
+        release: Release = dataset.get_release(version, retry)
         dataset.pull(
             release=release,
             only_annotations=only_annotations,
@@ -456,11 +466,14 @@ def pull_dataset(
             video_frames=video_frames,
             force_slots=force_slots,
             ignore_slots=ignore_slots,
+            retry=retry,
+            retry_timeout=retry_timeout,
+            retry_interval=retry_interval,
         )
         print_new_version_info(client)
     except NotFound:
         _error(
-            f"Version '{dataset.identifier}:{version}' does not exist "
+            f"Version '{dataset.identifier}:{version}' does not exist. "
             f"Use 'darwin dataset releases' to list all available versions."
         )
     except UnsupportedExportFormat as uef:
@@ -856,6 +869,7 @@ def dataset_import(
     import_annotators: bool = False,
     import_reviewers: bool = False,
     overwrite: bool = False,
+    legacy: bool = False,
     use_multi_cpu: bool = False,
     cpu_limit: Optional[int] = None,
 ) -> None:
@@ -889,6 +903,9 @@ def dataset_import(
     overwrite : bool, default: False
         If ``True`` it will bypass a warning that the import will overwrite the current annotations if any are present.
         If ``False`` this warning will be skipped and the import will overwrite the current annotations without warning.
+    legacy : bool, default: False
+        If ``True`` it will not resize the annotations to be isotropic.
+        If ``False`` it will resize the annotations to be isotropic.
     use_multi_cpu : bool, default: False
         If ``True`` it will use all multiple CPUs to speed up the import process.
     cpu_limit : Optional[int], default: Core count - 2
@@ -899,6 +916,10 @@ def dataset_import(
 
     try:
         importer: ImportParser = get_importer(format)
+
+        if format == "nifti" and legacy:
+            importer = partial(importer, legacy=True)
+
         dataset: RemoteDataset = client.get_remote_dataset(
             dataset_identifier=dataset_slug
         )
@@ -918,6 +939,7 @@ def dataset_import(
             overwrite,
             use_multi_cpu,
             cpu_limit,
+            no_legacy=False if legacy else True,
         )
 
     except ImporterNotFoundError:
@@ -1170,7 +1192,10 @@ def validate_schemas(
 
 
 def dataset_convert(
-    dataset_identifier: str, format: str, output_dir: Optional[PathLike] = None
+    dataset_identifier: str,
+    format: str,
+    output_dir: Optional[PathLike] = None,
+    legacy: bool = False,
 ) -> None:
     """
     Converts the annotations from the given dataset to the given format.
@@ -1186,12 +1211,20 @@ def dataset_convert(
     output_dir : Optional[PathLike], default: None
         The folder where the exported annotation files will be. If None it will be the inside the
         annotations folder of the dataset under 'other_formats/{format}'.
+    legacy : bool, default: False
+        This flag is only for the nifti format.
+        If True, it will not export the annotations using legacy calculations.
+        If False, it will resize the annotations using the new calculation by dividing with pixdims.
     """
     identifier: DatasetIdentifier = DatasetIdentifier.parse(dataset_identifier)
     client: Client = _load_client(team_slug=identifier.team_slug)
 
     try:
         parser: ExportParser = get_exporter(format)
+
+        if format == "nifti" and legacy:
+            parser = partial(parser, legacy=True)
+
         dataset: RemoteDataset = client.get_remote_dataset(
             dataset_identifier=identifier
         )
@@ -1222,7 +1255,9 @@ def dataset_convert(
         _error(f"No dataset with name '{e.name}'")
 
 
-def convert(format: str, files: List[PathLike], output_dir: Path) -> None:
+def convert(
+    format: str, files: List[PathLike], output_dir: Path, legacy: bool = False
+) -> None:
     """
     Converts the given files to the specified format.
 
@@ -1234,9 +1269,15 @@ def convert(format: str, files: List[PathLike], output_dir: Path) -> None:
         List of files to be converted.
     output_dir: Path
         Folder where the exported annotations will be placed.
+    legacy: bool, default: False
+        This flag is only for the nifti format.
+        If True, it will not export the annotations using legacy calculations.
+        If False, it will resize the annotations using the new calculation by dividing with pixdims.
     """
     try:
         parser: ExportParser = get_exporter(format)
+        if format == "nifti" and legacy:
+            parser = partial(parser, legacy=True)
     except ExporterNotFoundError:
         _error(f"Unsupported export format, currently supported: {export_formats}")
     except AttributeError:
