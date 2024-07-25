@@ -184,13 +184,14 @@ def _build_attribute_lookup(dataset: "RemoteDataset") -> Dict[str, Unknown]:
 
 def _get_remote_files(
     dataset: "RemoteDataset", filenames: List[str], chunk_size: int = 100
-) -> Dict[str, Tuple[str, str]]:
+) -> Dict[str, Tuple[str, List[str], Dict[str, Any]]]:
     """
     Fetches remote files from the datasets in chunks; by default 100 filenames at a time.
 
-    The output is a two-element tuple of:
-    - file ID
-    - the name of the first slot of the item
+    The output is a three-element tuple of:
+    - Item ID
+    - A list of each slot name for the item
+    - The layout version of the item
 
     Fetching slot name is necessary here to avoid double-trip to Api downstream for remote files.
     """
@@ -200,17 +201,30 @@ def _get_remote_files(
         for remote_file in dataset.fetch_remote_files(
             {"types": "image,playback_video,video_frame", "item_names": chunk}
         ):
-            slot_name = _get_slot_name(remote_file)
-            remote_files[remote_file.full_path] = (remote_file.id, slot_name)
+            slot_names = _get_slot_names(remote_file)
+            remote_files[remote_file.full_path] = (
+                remote_file.id,
+                slot_names,
+                remote_file.layout,
+            )
     return remote_files
 
 
-def _get_slot_name(remote_file: DatasetItem) -> str:
-    slot = next(iter(remote_file.slots), {"slot_name": "0"})
-    if slot:
-        return slot["slot_name"]
-    else:
-        return "0"
+def _get_slot_names(remote_file: DatasetItem) -> List[str]:
+    """
+    Returns the a list of slot name for a dataset item
+
+    Parameters
+    ----------
+    remote_file : DatasetItem
+        A DatasetItem object representing a single remote dataset item
+
+    Returns
+    -------
+    List[str]
+        A list of slot names associated with the item
+    """
+    return [slot["slot_name"] for slot in remote_file.slots]
 
 
 def _resolve_annotation_classes(
@@ -804,7 +818,7 @@ def import_annotations(  # noqa: C901
     console.print("Fetching remote file list...", style="info")
     # This call will only filter by filename; so can return a superset of matched files across different paths
     # There is logic in this function to then include paths to narrow down to the single correct matching file
-    remote_files: Dict[str, Tuple[str, str]] = {}
+    remote_files: Dict[str, Tuple[str, List[str], Dict[str, Any]]] = {}
 
     # Try to fetch files in large chunks; in case the filenames are too large and exceed the url size
     # retry in smaller chunks
@@ -823,6 +837,8 @@ def import_annotations(  # noqa: C901
             local_files_missing_remotely.append(parsed_file)
         else:
             local_files.append(parsed_file)
+
+    _verify_slot_annotation_alignment(local_files, remote_files, console)
 
     console.print(
         f"{len(local_files) + len(local_files_missing_remotely)} annotation file(s) found.",
@@ -1472,3 +1488,44 @@ def _overwrite_warning(
         if proceed.lower() != "y":
             return False
     return True
+
+
+def _verify_slot_annotation_alignment(
+    local_files: List[dt.AnnotationFile],
+    remote_files: Dict[str, Tuple[str, List[str], Dict[str, Any]]],
+    console: Console,
+) -> None:
+    blocking_warnings = []
+    non_blocking_warnings = []
+    local_file_validity = {}
+    filenames = [local_file.filename for local_file in local_files]
+
+    for remote_file in remote_files.items():
+        layout_version = remote_file[1][2]["version"]
+        if layout_version is 1 or 2:
+            continue  # Multi-slotted logic
+        elif layout_version is 3:
+            continue  # Multi-channel logic
+        else:
+            raise Exception(f"Unknown layout version: {layout_version}")
+
+    # For multi-channeled items, pull out the base slot of each one as well
+
+    # Next, perform three sets of checks:
+    # For multi-slotted items, append 1 non-blocking warning per annotation uploaded
+    # to a non-specified slot. Display which slot we will be uploading it to by name
+
+    # For multi-channeled items, append 1 non-blocking warning per annotation uploaded
+    # to a non-specified slot. Explain that we are uploading it to the base slot
+
+    # For multi-channeled items, append 1 blocking warning per annotation uploaded to
+    # a non-base slot. Explain why this is a problem and block this import, but
+    # continue with the rest of the import
+    if blocking_warnings:
+        for warning in blocking_warnings:
+            # Add initial print warning
+            console.print(f"Error found: {warning}")
+            return
+    if non_blocking_warnings:
+        for warning in non_blocking_warnings:
+            console.print(f"Error found: {warning}")
