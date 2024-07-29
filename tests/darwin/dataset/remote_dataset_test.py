@@ -1093,6 +1093,7 @@ def dataset_item(dataset_slug: str) -> DatasetItem:
         current_workflow=None,
         path="/",
         slots=[],
+        layout={"type": "grid", "version": 3, "slots": ["0", "1"]},
     )
 
 
