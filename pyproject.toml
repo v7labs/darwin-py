@@ -81,7 +81,7 @@ tqdm = "^4.64.1"
 types-pyyaml = "^6.0.12.9"
 types-requests = "^2.28.11.8"
 upolygon = "0.1.11"
-tenacity = "8.3.0"
+tenacity = "8.5.0"
 
 [tool.poetry.extras]
 dev = ["black", "isort", "flake8", "mypy", "debugpy", "responses", "pytest", "flake8-pyproject", "pytest-rerunfailures", "ruff", "validate-pyproject"]
@@ -163,7 +163,7 @@ version = "^1.0.0"
 
 [tool.poetry.dependencies.opencv-python-headless]
 optional = true
-version = "4.10.0.82"
+version = "4.10.0.84"
 
 [tool.poetry.dependencies.pytest-rerunfailures]
 optional = true
@@ -171,7 +171,7 @@ version = "^12.0"
 
 [tool.poetry.dependencies.ruff]
 optional = true
-version = "^0.4.7"
+version = ">=0.4.7,<0.6.0"
 
 [tool.poetry.dependencies.validate-pyproject]
 optional = true
