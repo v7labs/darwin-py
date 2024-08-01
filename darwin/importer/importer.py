@@ -212,7 +212,7 @@ def _get_remote_files(
 
 def _get_slot_names(remote_file: DatasetItem) -> List[str]:
     """
-    Returns the a list of slot names for a dataset item:
+    Returns the list of slot names for a dataset item:
     - If the item's layout is V1 or V2, it is multi-slotted.
       In this case we return the slot names in the order they appear in `slots`.
       This ensures that the default slot is the first item in the list
@@ -983,7 +983,7 @@ def import_annotations(  # noqa: C901
         local_path: Path,
         remote_files: Dict[str, Dict[str, Any]],
         annotation_format: str,
-    ) -> Tuple[Path, List[str], List[str]]:
+    ) -> Tuple[Path, List[str], List[str]]:  # type: ignore
         imported_files: Union[List[dt.AnnotationFile], dt.AnnotationFile, None] = (
             importer(local_path)
         )
@@ -1058,7 +1058,7 @@ def import_annotations(  # noqa: C901
                         )
                     )
 
-            return local_path, file_slot_warnings, file_slot_errors
+            return local_path, file_slot_warnings, file_slot_errors  # type: ignore
 
     def _validate_slot_alignment_and_import(
         file: dt.AnnotationFile, remote_file: Dict[str, Any], annotation_format: str
@@ -1086,7 +1086,7 @@ def import_annotations(  # noqa: C901
             ):
                 try:
                     local_path, file_slot_warnings, file_slot_errors = future.result()
-                    slot_warnings, slot_errors = handle_slot_warnings_and_errors(
+                    slot_warnings, slot_errors = _handle_slot_warnings_and_errors(
                         local_path,
                         file_slot_warnings,
                         file_slot_errors,
@@ -1103,7 +1103,7 @@ def import_annotations(  # noqa: C901
             local_path, file_slot_warnings, file_slot_errors = process_local_file(
                 local_path, remote_files, annotation_format
             )
-            slot_warnings, slot_errors = handle_slot_warnings_and_errors(
+            slot_warnings, slot_errors = _handle_slot_warnings_and_errors(
                 local_path,
                 file_slot_warnings,
                 file_slot_errors,
@@ -1582,7 +1582,7 @@ def _display_slot_alignment_errors(
 
     if slot_warnings:
         console.print(
-            "WARNING: Although they imported successfully, the following files had the following non-blocking warnings:",
+            f"WARNING: Although they imported successfully, the following {len(slot_warnings)} file(s) had the following non-blocking warnings:",
             style="warning",
         )
         for file in slot_warnings:
@@ -1592,11 +1592,11 @@ def _display_slot_alignment_errors(
 
     if slot_errors:
         console.print(
-            f"WARNING: {len(slot_errors)} file(s) have the following blocking issues and could not be. Please resolve these issues and re-import them.",
+            f"WARNING: {len(slot_errors)} file(s) have the following blocking issues and could not be imported. Please resolve these issues and re-import them.",
             style="warning",
         )
         for file in slot_errors:
-            console.print(f"- File: {file}, issues:", style="info")
+            console.print(f"- File: {file}, errors:", style="info")
             for warning in slot_errors[file]:
                 console.print(f"  - {warning}")
 
@@ -1627,7 +1627,7 @@ def _check_annotation_format_slot_compatibility(
         return
     for local_file in local_files:
         remote_file = remote_files[local_file.full_path]
-        if len(remote_file["slot_names"] > 1):
+        if len(remote_file["slot_names"]) > 1:
             raise TypeError(
                 f"You are attempting to import annotations to multi-slotted or multi-channeled items using an annotation format ({annotation_format}) that doesn't support them. To import annotations to multi-slotted or multi-channeled items, please use the Darwin JSON 2.0 format: https://docs.v7labs.com/reference/darwin-json"
             )
@@ -1684,7 +1684,7 @@ def _verify_slot_annotation_alignment(
                 annotation_slot = annotation.slot_names[0]
             except IndexError:
                 file_slot_warnings.append(
-                    f"Annotation imported to multi-slotted item not assigned slot. Uploading to the default slot: {base_slot}"
+                    f"Annotation imported to multi-slotted item {local_file.full_path} not assigned slot. Uploading to the default slot: {base_slot}"
                 )
 
     elif layout_version == 3:  # Multi-channeled item
@@ -1693,13 +1693,13 @@ def _verify_slot_annotation_alignment(
                 annotation_slot = annotation.slot_names[0]
             except IndexError:
                 file_slot_warnings.append(
-                    f"Annotation imported to multi-channeled item not assigned a slot. Uploading to the base slot: {base_slot}"
+                    f"Annotation imported to multi-channeled item {local_file.full_path} not assigned a slot. Uploading to the base slot: {base_slot}"
                 )
                 annotation.slot_names = [base_slot]
                 continue
             if annotation_slot != base_slot:
                 file_slot_errors.append(
-                    f"Annotation is linked to slot {annotation_slot} of the multi-channeled item {local_file.full_path}. Annotations uploaded to multi-channeled items have to be uploaded to the base slot, which for this item is {base_slot}."
+                    f"Annotation linked to slot {annotation_slot} of the multi-channeled item {local_file.full_path}. Annotations uploaded to multi-channeled items have to be uploaded to the base slot, which for this item is {base_slot}."
                 )
     else:
         raise Exception(f"Unknown layout version: {layout_version}")
@@ -1707,13 +1707,36 @@ def _verify_slot_annotation_alignment(
     return local_file, file_slot_warnings, file_slot_errors
 
 
-def handle_slot_warnings_and_errors(
+def _handle_slot_warnings_and_errors(
     local_path,
     file_slot_warnings,
     file_slot_errors,
     slot_warnings,
     slot_errors,
 ):
+    """
+    Adds warnings and errors for a specific local annotation file to the slot_warnings and slot_errors dictionaries
+
+    Parameters
+    ---------
+    local_path : str
+        Path to the local annotation file
+    file_slot_warnings : List[str]
+        A list of non-blocking warnings for the annotation file
+    file_slot_errors : List[str]
+        A list of blocking errors for the annotation file
+    slot_warnings : Dict[str, List[str]]
+        A dictionary of all non-blocking warnings for a specific local annotation file
+    slot_errors : Dict[str, List[str]]
+        A dictionary of all blocking errors for a specific local annotation file
+
+    Returns
+    -------
+    slot_warnings : Dict[str, List[str]]
+        A dictionary of all non-blocking warnings for a specific local annotation file
+    slot_errors : Dict[str, List[str]]
+        A dictionary of all blocking errors for a specific local annotation file
+    """
     if file_slot_warnings:
         if local_path not in slot_warnings:
             slot_warnings[local_path] = []

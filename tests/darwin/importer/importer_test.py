@@ -6,6 +6,7 @@ from unittest.mock import MagicMock, Mock, _patch, patch
 from zipfile import ZipFile
 
 import pytest
+from rich.console import Console
 from rich.theme import Theme
 
 from darwin import datatypes as dt
@@ -13,16 +14,20 @@ from darwin.importer import get_importer
 from darwin.importer.importer import (
     _build_attribute_lookup,
     _build_main_annotations_lookup_table,
+    _check_annotation_format_slot_compatibility,
     _console_theme,
+    _display_slot_alignment_errors,
     _find_and_parse,
     _get_annotation_format,
     _get_remote_files,
     _get_slot_names,
+    _handle_slot_warnings_and_errors,
     _import_annotations,
     _is_skeleton_class,
     _overwrite_warning,
     _parse_empty_masks,
     _resolve_annotation_classes,
+    _verify_slot_annotation_alignment,
 )
 
 
@@ -910,3 +915,234 @@ def test__get_annotation_format():
     assert _get_annotation_format(get_importer("nifti")) == "nifti"
     assert _get_annotation_format(get_importer("pascal_voc")) == "pascal_voc"
     assert _get_annotation_format(get_importer("superannotate")) == "superannotate"
+
+
+def test__verify_slot_annotation_alignment_passes_on_single_slotted_items():
+    bounding_box_class = dt.AnnotationClass(
+        name="class1", annotation_type="bounding_box"
+    )
+    local_file = dt.AnnotationFile(
+        path=Path("path/to/file"),
+        filename="file",
+        annotation_classes=set(),
+        annotations=[
+            dt.Annotation(
+                annotation_class=bounding_box_class,
+                data={"x": 5, "y": 10, "w": 5, "h": 10},
+                slot_names=[],
+            ),
+            dt.Annotation(
+                annotation_class=bounding_box_class,
+                data={"x": 15, "y": 20, "w": 15, "h": 20},
+                slot_names=[],
+            ),
+        ],
+        remote_path="/",
+    )
+    remote_file = {"slot_names": ["0"], "layout": {"version": 1}}
+
+    result_file, slot_warnings, slot_errors = _verify_slot_annotation_alignment(
+        local_file, remote_file
+    )
+
+    assert result_file == local_file
+    assert slot_warnings == []
+    assert slot_errors == []
+
+
+def test__verify_slot_annotation_alignment_returns_warning_for_multi_slotted_no_slot():
+    annotation_class = dt.AnnotationClass(name="class1", annotation_type="bounding_box")
+    local_file = dt.AnnotationFile(
+        path=Path("path/to/file"),
+        filename="file",
+        annotation_classes=set(),
+        annotations=[
+            dt.Annotation(
+                annotation_class=annotation_class,
+                data={},
+                slot_names=[],
+            ),
+            dt.Annotation(
+                annotation_class=annotation_class,
+                data={},
+                slot_names=[],
+            ),
+        ],
+        remote_path="/",
+    )
+    remote_file = {"slot_names": ["0", "1"], "layout": {"version": 1}}
+
+    result_file, slot_warnings, slot_errors = _verify_slot_annotation_alignment(
+        local_file, remote_file
+    )
+
+    assert result_file == local_file
+    assert slot_warnings == [
+        "Annotation imported to multi-slotted item /file not assigned slot. Uploading to the default slot: 0",
+        "Annotation imported to multi-slotted item /file not assigned slot. Uploading to the default slot: 0",
+    ]
+    assert slot_errors == []
+
+
+def test__verify_slot_annotation_alignment_returns_warning_for_multi_channeled_no_slot():
+    annotation_class = dt.AnnotationClass(name="class1", annotation_type="bounding_box")
+    local_file = dt.AnnotationFile(
+        path=Path("path/to/file"),
+        filename="file",
+        annotation_classes=set(),
+        annotations=[
+            dt.Annotation(
+                annotation_class=annotation_class,
+                data={},
+                slot_names=[],
+            ),
+            dt.Annotation(
+                annotation_class=annotation_class,
+                data={},
+                slot_names=[],
+            ),
+        ],
+        remote_path="/",
+    )
+    remote_file = {"slot_names": ["0", "1"], "layout": {"version": 3}}
+
+    result_file, slot_warnings, slot_errors = _verify_slot_annotation_alignment(
+        local_file, remote_file
+    )
+
+    assert result_file.annotations[0].slot_names == ["0"]
+    assert result_file.annotations[1].slot_names == ["0"]
+    assert slot_warnings == [
+        "Annotation imported to multi-channeled item /file not assigned a slot. Uploading to the base slot: 0",
+        "Annotation imported to multi-channeled item /file not assigned a slot. Uploading to the base slot: 0",
+    ]
+    assert slot_errors == []
+
+
+def test__verify_slot_annotation_alignment_returns_error_for_multi_channeled_not_base_slot():
+    annotation_class = dt.AnnotationClass(name="class1", annotation_type="bounding_box")
+    local_file = dt.AnnotationFile(
+        path=Path("path/to/file"),
+        filename="file",
+        annotation_classes=set(),
+        annotations=[
+            dt.Annotation(
+                annotation_class=annotation_class,
+                data={},
+                slot_names=["1"],
+            ),
+            dt.Annotation(
+                annotation_class=annotation_class,
+                data={},
+                slot_names=["2"],
+            ),
+        ],
+        remote_path="/",
+    )
+    remote_file = {"slot_names": ["0", "1"], "layout": {"version": 3}}
+
+    result_file, slot_warnings, slot_errors = _verify_slot_annotation_alignment(
+        local_file, remote_file
+    )
+
+    assert result_file == local_file
+    assert slot_warnings == []
+    assert slot_errors == [
+        "Annotation linked to slot 1 of the multi-channeled item /file. Annotations uploaded to multi-channeled items have to be uploaded to the base slot, which for this item is 0.",
+        "Annotation linked to slot 2 of the multi-channeled item /file. Annotations uploaded to multi-channeled items have to be uploaded to the base slot, which for this item is 0.",
+    ]
+
+
+def test__handle_slot_warnings_and_errors():
+    slot_warnings = {"path/to/file": ["warning1", "warning2"]}
+    slot_errors = {}
+    local_path = "path/to/file"
+    file_slot_warnings = ["warning3", "warning4"]
+    file_slot_errors = ["error1", "error2"]
+
+    slot_warnings, slot_errors = _handle_slot_warnings_and_errors(
+        local_path, file_slot_warnings, file_slot_errors, slot_warnings, slot_errors
+    )
+
+    assert slot_warnings == {
+        local_path: ["warning1", "warning2", "warning3", "warning4"]
+    }
+    assert slot_errors == {local_path: ["error1", "error2"]}
+
+
+def test__display_slot_alignment_errors():
+    console = Console()
+    slot_warnings = {
+        "path/to/file_1": ["warning1", "warning2"],
+        "path/to/file_2": ["warning3", "warning4"],
+    }
+    slot_errors = {"path/to/file_1": ["error1", "error2"]}
+
+    with patch.object(console, "print") as mock_print:
+        _display_slot_alignment_errors(slot_warnings, slot_errors, console)
+
+    mock_print.assert_any_call(
+        "WARNING: 1 file(s) have the following blocking issues and could not be imported. Please resolve these issues and re-import them.",
+        style="warning",
+    )
+    mock_print.assert_any_call("- File: path/to/file_1, errors:", style="info")
+    mock_print.assert_any_call("  - error1")
+    mock_print.assert_any_call("  - error2")
+
+    mock_print.assert_any_call(
+        "WARNING: Although they imported successfully, the following 1 file(s) had the following non-blocking warnings:",
+        style="warning",
+    )
+    mock_print.assert_any_call("- File: path/to/file_2, warnings:", style="info")
+    mock_print.assert_any_call("  - warning3")
+    mock_print.assert_any_call("  - warning4")
+
+    # Check that warnings for files with errors are not printed
+    assert "warning1" not in [call.args[0] for call in mock_print.call_args_list]
+    assert "warning2" not in [call.args[0] for call in mock_print.call_args_list]
+
+
+class TestCheckAnnotationFormatSlotCompatibility:
+    @pytest.fixture
+    def local_files(self):
+        return [
+            dt.AnnotationFile(
+                path=Path("/"),
+                filename="path/to/file1.json",
+                annotation_classes=set(),
+                annotations=[],
+                remote_path="/",
+            )
+        ]
+
+    @pytest.fixture
+    def remote_files(self):
+        return {
+            "/path/to/file1.json": {
+                "slot_names": ["0", "1"],
+                "layout": {"version": 1},
+            }
+        }
+
+    def test_darwin_format(self, local_files, remote_files):
+        try:
+            _check_annotation_format_slot_compatibility(
+                local_files, remote_files, "darwin"
+            )
+        except Exception as e:
+            pytest.fail(f"Unexpected exception raised: {e}")
+
+    def test_non_darwin_format_multiple_slots(self, local_files, remote_files):
+        with pytest.raises(TypeError):
+            _check_annotation_format_slot_compatibility(
+                local_files, remote_files, "coco"
+            )
+
+    def test_non_darwin_format_single_slot(self, local_files, remote_files):
+        remote_files["/path/to/file1.json"]["slot_names"] = ["0"]
+        try:
+            _check_annotation_format_slot_compatibility(
+                local_files, remote_files, "coco"
+            )
+        except Exception as e:
+            pytest.fail(f"Unexpected exception raised: {e}")
