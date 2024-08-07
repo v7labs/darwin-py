@@ -17,6 +17,7 @@ def response_json_slots() -> dict:
         "workflow_data": {"workflow_id": "test_workflow_id"},
         "workflow_status": "test_workflow_status",
         "slots": [{"size_bytes": 1, "path": "test_path"}],
+        "layout": {"type": "grid", "version": 3, "slots": ["0", "1"]},
     }
 
 
