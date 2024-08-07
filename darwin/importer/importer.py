@@ -212,7 +212,7 @@ def _get_remote_files(
 
 def _get_slot_names(remote_file: DatasetItem) -> List[str]:
     """
-    Returns the a list of slot names for a dataset item:
+    Returns a list of slot names for a dataset item:
     - If the item's layout is V1 or V2, it is multi-slotted.
       In this case we return the slot names in the order they appear in `slots`.
       This ensures that the default slot is the first item in the list
