@@ -979,16 +979,13 @@ def import_annotations(  # noqa: C901
             for error in errors:
                 console.print(f"\t{error}", style="error")
 
-    def process_local_file(local_path):
-        imported_files: Union[List[dt.AnnotationFile], dt.AnnotationFile, None] = (
-            importer(local_path)
-        )
-        if imported_files is None:
+    def process_local_file(local_file):
+        if local_file is None:
             parsed_files = []
-        elif not isinstance(imported_files, List):
-            parsed_files = [imported_files]
+        elif not isinstance(local_file, List):
+            parsed_files = [local_file]
         else:
-            parsed_files = imported_files
+            parsed_files = local_file
 
         # Remove files missing on the server
         missing_files = [
@@ -1047,8 +1044,8 @@ def import_annotations(  # noqa: C901
     if use_multi_cpu:
         with concurrent.futures.ThreadPoolExecutor(max_workers=cpu_limit) as executor:
             futures = [
-                executor.submit(process_local_file, local_path)
-                for local_path in {local_file.path for local_file in local_files}
+                executor.submit(process_local_file, local_file)
+                for local_file in local_files
             ]
             for _ in tqdm(
                 concurrent.futures.as_completed(futures),
@@ -1061,11 +1058,8 @@ def import_annotations(  # noqa: C901
                 except Exception as exc:
                     console.print(f"Generated an exception: {exc}", style="error")
     else:
-        for local_path in tqdm(
-            {local_file.path for local_file in local_files},
-            desc="Processing local annotation files",
-        ):
-            process_local_file(local_path)
+        for local_file in tqdm(local_files, desc="Processing local annotation files"):
+            process_local_file(local_file)
 
 
 def _get_multi_cpu_settings(
@@ -1457,7 +1451,7 @@ def _overwrite_warning(
     client: "Client",
     dataset: "RemoteDataset",
     local_files: List[dt.AnnotationFile],
-    remote_files: Dict[str, Tuple[str, str]],
+    remote_files: Dict[str, Dict[str, Any]],
     console: Console,
 ) -> bool:
     """
