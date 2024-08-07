@@ -1135,6 +1135,7 @@ def test_non_base_slot_for_channeled_annotations_causes_blocking_warnings():
         remote_files,
     )
 
+    assert not local_files
     assert not slot_warnings
     assert len(slot_errors) == 1
     for file in slot_errors:

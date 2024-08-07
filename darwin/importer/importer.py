@@ -1606,7 +1606,9 @@ def _verify_slot_annotation_alignment(
             del slot_warnings[key]
 
     local_files = [
-        local_file for local_file in local_files if local_file.path not in slot_errors
+        local_file
+        for local_file in local_files
+        if str(local_file.path) not in slot_errors
     ]
 
     return local_files, slot_errors, slot_warnings
