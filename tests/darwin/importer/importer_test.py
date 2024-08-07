@@ -1,23 +1,18 @@
 import json
 import tempfile
-from contextlib import nullcontext as does_not_raise
-from contextlib import redirect_stdout
-from io import StringIO
 from pathlib import Path
 from typing import List, Tuple
 from unittest.mock import MagicMock, Mock, _patch, patch
 from zipfile import ZipFile
 
 import pytest
-from rich.console import Console
-from rich.theme import Theme
 
 from darwin import datatypes as dt
 from darwin.importer import get_importer
 from darwin.importer.importer import (
     _build_attribute_lookup,
     _build_main_annotations_lookup_table,
-    _console_theme,
+    _display_slot_warnings_and_errors,
     _find_and_parse,
     _get_annotation_format,
     _get_remote_files,
@@ -812,12 +807,6 @@ def test__import_annotations() -> None:
         assert output["overwrite"] == assertion["overwrite"]
 
 
-def test_console_theme() -> None:
-    from darwin.importer.importer import _console_theme
-
-    assert isinstance(_console_theme(), Theme)
-
-
 def test_overwrite_warning_proceeds_with_import():
     annotations: List[dt.AnnotationLike] = [
         dt.Annotation(
@@ -955,19 +944,14 @@ def test_no_verify_warning_for_single_slotted_items():
             "layout": {"type": "grid", "version": 1, "slots": ["0"]},
         },
     }
-    annotation_format = "darwin"
 
-    stream = StringIO()
-    with redirect_stdout(stream):
-        _verify_slot_annotation_alignment(
-            local_files,
-            remote_files,
-            annotation_format,
-            Console(theme=_console_theme()),
-        )
+    local_files, slot_errors, slot_warnings = _verify_slot_annotation_alignment(
+        local_files,
+        remote_files,
+    )
 
-    output = stream.getvalue()
-    assert "WARNING" not in output
+    assert not slot_warnings
+    assert not slot_errors
 
 
 def test_no_slot_name_causes_non_blocking_multi_slotted_warning():
@@ -1024,29 +1008,22 @@ def test_no_slot_name_causes_non_blocking_multi_slotted_warning():
             "layout": {"type": "grid", "version": 1, "slots": ["0", "1"]},
         },
     }
-    annotation_format = "darwin"
-    stream = StringIO()
-    with redirect_stdout(stream):
-        _verify_slot_annotation_alignment(
-            local_files,
-            remote_files,
-            annotation_format,
-            Console(theme=_console_theme()),
-        )
 
-    output = stream.getvalue().replace("\n", "")
-    assert (
-        "WARNING: 2 file(s) have the following non-blocking warnings. Imports of these files will continue:"
-        in output
+    local_files, slot_errors, slot_warnings = _verify_slot_annotation_alignment(
+        local_files,
+        remote_files,
     )
-    assert "file1" in output
-    assert "file2" in output
-    assert (
-        output.count(
-            "Annotation imported to multi-slotted item not assigned slot. Uploading to the default slot: 0"
-        )
-        == 4
-    )
+
+    assert not slot_errors
+    assert len(slot_warnings) == 2
+    for file in slot_warnings:
+        file_warnings = slot_warnings[file]
+        assert len(file_warnings) == 2
+        for warning in file_warnings:
+            assert (
+                warning
+                == "Annotation imported to multi-slotted item not assigned slot. Uploading to the default slot: 0"
+            )
 
 
 def test_no_slot_name_causes_non_blocking_multi_channeled_warning():
@@ -1104,29 +1081,21 @@ def test_no_slot_name_causes_non_blocking_multi_channeled_warning():
         },
     }
 
-    stream = StringIO()
-    annotation_format = "darwin"
-    with redirect_stdout(stream):
-        _verify_slot_annotation_alignment(
-            local_files,
-            remote_files,
-            annotation_format,
-            Console(theme=_console_theme()),
-        )
+    local_files, slot_errors, slot_warnings = _verify_slot_annotation_alignment(
+        local_files,
+        remote_files,
+    )
 
-    output = stream.getvalue().replace("\n", "")
-    assert (
-        "WARNING: 2 file(s) have the following non-blocking warnings. Imports of these files will continue:"
-        in output
-    )
-    assert "file1" in output
-    assert "file2" in output
-    assert (
-        output.count(
-            "Annotation imported to multi-channeled item not assigned a slot. Uploading to the base slot: 0"
-        )
-        == 4
-    )
+    assert not slot_errors
+    assert len(slot_warnings) == 2
+    for file in slot_warnings:
+        file_warnings = slot_warnings[file]
+        assert len(file_warnings) == 2
+        for warning in file_warnings:
+            assert (
+                warning
+                == "Annotation imported to multi-channeled item not assigned a slot. Uploading to the base slot: 0"
+            )
 
 
 def test_non_base_slot_for_channeled_annotations_causes_blocking_warnings():
@@ -1161,28 +1130,21 @@ def test_non_base_slot_for_channeled_annotations_causes_blocking_warnings():
         },
     }
 
-    stream = StringIO()
-    annotation_format = "darwin"
-    with redirect_stdout(stream):
-        _verify_slot_annotation_alignment(
-            local_files,
-            remote_files,
-            annotation_format,
-            Console(theme=_console_theme()),
-        )
+    local_files, slot_errors, slot_warnings = _verify_slot_annotation_alignment(
+        local_files,
+        remote_files,
+    )
 
-    output = stream.getvalue().replace("\n", "")
-    assert (
-        "WARNING: 1 file(s) have the following blocking issues and will not be imported. Please resolve these issues and re-import them"
-        in output
-    )
-    assert "file1" in output
-    assert (
-        output.count(
-            "Annotation is linked to slot 1 of the multi-channeled item /file1. Annotations uploaded to multi-channeled items have to be uploaded to the base slot, which for this item is 0."
-        )
-        == 2
-    )
+    assert not slot_warnings
+    assert len(slot_errors) == 1
+    for file in slot_errors:
+        file_errors = slot_errors[file]
+        assert len(file_errors) == 2
+        for error in file_errors:
+            assert (
+                error
+                == "Annotation is linked to slot 1 of the multi-channeled item /file1. Annotations uploaded to multi-channeled items have to be uploaded to the base slot, which for this item is 0."
+            )
 
 
 def test_multiple_non_blocking_and_blocking_errors():
@@ -1263,40 +1225,29 @@ def test_multiple_non_blocking_and_blocking_errors():
         },
     }
 
-    stream = StringIO()
-    annotation_format = "darwin"
-    with redirect_stdout(stream):
-        _verify_slot_annotation_alignment(
-            local_files,
-            remote_files,
-            annotation_format,
-            Console(theme=_console_theme()),
-        )
+    local_files, slot_errors, slot_warnings = _verify_slot_annotation_alignment(
+        local_files,
+        remote_files,
+    )
 
-    output = stream.getvalue().replace("\n", "")
-    assert "file1" in output
-    assert "file2" in output
-    assert "file3" in output
-    assert (
-        "WARNING: 2 file(s) have the following non-blocking warnings. Imports of these files will continue:"
-        in output
-    )
-    assert (
-        output.count(
-            "Annotation imported to multi-channeled item not assigned a slot. Uploading to the base slot: 0"
-        )
-        == 4
-    )
-    assert (
-        "WARNING: 1 file(s) have the following blocking issues and will not be imported. Please resolve these issues and re-import them."
-        in output
-    )
-    assert (
-        output.count(
-            "Annotation is linked to slot 1 of the multi-channeled item /file3. Annotations uploaded to multi-channeled items have to be uploaded to the base slot, which for this item is 0."
-        )
-        == 2
-    )
+    assert len(slot_warnings) == 2
+    assert len(slot_errors) == 1
+    for file in slot_warnings:
+        file_warnings = slot_warnings[file]
+        assert len(file_warnings) == 2
+        for warning in file_warnings:
+            assert (
+                warning
+                == "Annotation imported to multi-channeled item not assigned a slot. Uploading to the base slot: 0"
+            )
+    for file in slot_errors:
+        file_errors = slot_errors[file]
+        assert len(file_errors) == 2
+        for error in file_errors:
+            assert (
+                error
+                == "Annotation is linked to slot 1 of the multi-channeled item /file3. Annotations uploaded to multi-channeled items have to be uploaded to the base slot, which for this item is 0."
+            )
 
 
 def test_blocking_errors_override_non_blocking_errors():
@@ -1331,29 +1282,70 @@ def test_blocking_errors_override_non_blocking_errors():
         },
     }
 
-    stream = StringIO()
-    annotation_format = "darwin"
-    with redirect_stdout(stream):
-        _verify_slot_annotation_alignment(
-            local_files,
-            remote_files,
-            annotation_format,
-            Console(theme=_console_theme()),
-        )
+    local_files, slot_errors, slot_warnings = _verify_slot_annotation_alignment(
+        local_files,
+        remote_files,
+    )
 
-    output = stream.getvalue().replace("\n", "")
-    assert (
-        "WARNING: 1 file(s) have the following blocking issues and will not be imported. Please resolve these issues and re-import them."
-        in output
+    assert not slot_warnings
+    assert len(slot_errors) == 1
+    for file in slot_errors:
+        file_errors = slot_errors[file]
+        assert len(file_errors) == 1
+        for error in file_errors:
+            assert (
+                error
+                == "Annotation is linked to slot 1 of the multi-channeled item /file1. Annotations uploaded to multi-channeled items have to be uploaded to the base slot, which for this item is 0."
+            )
+
+
+def test_assign_base_slot_if_missing_from_channel_annotations():
+    bounding_box_class = dt.AnnotationClass(
+        name="class1", annotation_type="bounding_box"
     )
-    assert "file1" in output
-    assert (
-        output.count(
-            "Annotation is linked to slot 1 of the multi-channeled item /file1. Annotations uploaded to multi-channeled items have to be uploaded to the base slot, which for this item is 0."
-        )
-        == 1
+    local_files = [
+        dt.AnnotationFile(
+            path=Path("file1"),
+            remote_path="/",
+            filename="file1",
+            annotation_classes={bounding_box_class},
+            annotations=[
+                dt.Annotation(
+                    annotation_class=bounding_box_class,
+                    data={"x": 5, "y": 10, "w": 5, "h": 10},
+                ),
+                dt.Annotation(
+                    annotation_class=bounding_box_class,
+                    data={"x": 15, "y": 20, "w": 15, "h": 20},
+                ),
+            ],
+        ),
+    ]
+    remote_files = {
+        "/file1": {
+            "item_id": "123",
+            "slot_names": ["0", "1"],
+            "layout": {"type": "grid", "version": 3, "slots": ["0", "1"]},
+        },
+    }
+
+    local_files, slot_errors, slot_warnings = _verify_slot_annotation_alignment(
+        local_files,
+        remote_files,
     )
-    assert "non-blocking" not in output
+
+    assert not slot_errors
+    assert len(slot_warnings) == 1
+    for file in slot_warnings:
+        file_warnings = slot_warnings[file]
+        assert len(file_warnings) == 2
+        for warning in file_warnings:
+            assert (
+                warning
+                == "Annotation imported to multi-channeled item not assigned a slot. Uploading to the base slot: 0"
+            )
+    assert local_files[0].annotations[0].slot_names == ["0"]
+    assert local_files[0].annotations[1].slot_names == ["0"]
 
 
 def test_raises_error_for_non_darwin_format_with_warnings():
@@ -1387,13 +1379,14 @@ def test_raises_error_for_non_darwin_format_with_warnings():
             "layout": {"type": "grid", "version": 1, "slots": ["0", "1"]},
         },
     }
-    annotation_format = "coco"
+    local_files, slot_errors, slot_warnings = _verify_slot_annotation_alignment(
+        local_files,
+        remote_files,
+    )
+    console = MagicMock()
     with pytest.raises(TypeError) as excinfo:
-        _verify_slot_annotation_alignment(
-            local_files,
-            remote_files,
-            annotation_format,
-            Console(theme=_console_theme()),
+        _display_slot_warnings_and_errors(
+            slot_errors, slot_warnings, "non-darwin", console
         )
     assert (
         "You are attempting to import annotations to multi-slotted or multi-channeled items using an annotation format that doesn't support them."
@@ -1432,11 +1425,13 @@ def test_does_not_raise_error_for_darwin_format_with_warnings():
             "layout": {"type": "grid", "version": 1, "slots": ["0", "1"]},
         },
     }
-    annotation_format = "darwin"
-    with does_not_raise():
-        _verify_slot_annotation_alignment(
-            local_files,
-            remote_files,
-            annotation_format,
-            Console(theme=_console_theme()),
-        )
+
+    local_files, slot_errors, slot_warnings = _verify_slot_annotation_alignment(
+        local_files,
+        remote_files,
+    )
+
+    console = MagicMock()
+    _display_slot_warnings_and_errors(slot_errors, slot_warnings, "darwin", console)
+
+    assert not slot_errors
