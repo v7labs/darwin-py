@@ -24,7 +24,11 @@ try:
 except ImportError:
     NDArray = Any  # type:ignore
 
-from darwin.future.data_objects.properties import PropertyType, SelectedProperty
+from darwin.future.data_objects.properties import (
+    PropertyGranularity,
+    PropertyType,
+    SelectedProperty,
+)
 from darwin.path_utils import construct_full_path, is_properties_enabled, parse_metadata
 
 # Utility types
@@ -419,6 +423,9 @@ class Property:
     # Property options
     property_values: list[dict[str, Any]]
 
+    # Granularity of the property
+    granularity: PropertyGranularity
+
     # Description of the property
     description: Optional[str] = None
 
@@ -514,6 +521,9 @@ class AnnotationFile:
 
     #: List of ``VideoAnnotation``\s or ``Annotation``\s.
     annotations: Sequence[Union[Annotation, VideoAnnotation]]
+
+    # Item-level properties
+    item_properties: Optional[List[Dict[str, str]]] = None
 
     # Deprecated
     #: Whether the annotations in the ``annotations`` attribute are ``VideoAnnotation`` or not.

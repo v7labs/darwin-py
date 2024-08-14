@@ -28,7 +28,8 @@
                             "color": "rgba(0, 0, 255, 0)"
                         }
                     ],
-                    "required": true
+                    "required": true,
+                    "granularity": "section"
                 },
                 {
                     "name": "Shape (expanded format)",
@@ -44,7 +45,8 @@
                             "color": "rgba(150, 150, 150, 0)"
                         }
                     ],
-                    "required": false
+                    "required": false,
+                    "granularity": "section"
                 }
             ]
         }

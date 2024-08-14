@@ -525,6 +525,7 @@ def _parse_darwin_v2(path: Path, data: Dict[str, Any]) -> dt.AnnotationFile:
             frame_urls=None,
             remote_path=item["path"],
             slots=slots,
+            item_properties=data.get("properties", []),
         )
     else:
         slot = slots[0]
@@ -553,6 +554,7 @@ def _parse_darwin_v2(path: Path, data: Dict[str, Any]) -> dt.AnnotationFile:
             remote_path=item["path"],
             slots=slots,
             frame_count=slot.frame_count,
+            item_properties=data.get("properties", []),
         )
 
     return annotation_file
@@ -1208,6 +1210,7 @@ def split_video_annotation(annotation: dt.AnnotationFile) -> List[dt.AnnotationF
                 filename,
                 annotation_classes,
                 annotations,
+                [],
                 False,
                 annotation.image_width,
                 annotation.image_height,

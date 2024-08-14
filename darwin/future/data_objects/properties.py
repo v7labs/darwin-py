@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+from enum import Enum
 from pathlib import Path
 from typing import List, Literal, Optional, Tuple
 
@@ -17,6 +18,12 @@ PropertyType = Literal[
     "instance_id",
     "directional_vector",
 ]
+
+
+class PropertyGranularity(Enum):
+    item = "item"
+    annotation = "annotation"
+    section = "section"
 
 
 class PropertyValue(DefaultDarwin):
@@ -72,29 +79,41 @@ class FullProperty(DefaultDarwin):
     team_id: Optional[int] = None
     annotation_class_id: Optional[int] = None
     property_values: Optional[List[PropertyValue]] = None
+    granularity: PropertyGranularity
+    dataset_ids: Optional[List[int]] = None
     options: Optional[List[PropertyValue]] = None
 
     def to_create_endpoint(
         self,
     ) -> dict:
-        if self.annotation_class_id is None:
+        if (
+            self.annotation_class_id is None
+            and self.granularity != PropertyGranularity.item
+        ):
             raise ValueError("annotation_class_id must be set")
+        include_fields = {
+            "name": True,
+            "type": True,
+            "required": True,
+            "property_values": {"__all__": {"value", "color", "type"}},
+            "description": True,
+            "granularity": True,
+        }
+        if self.dataset_ids is not None:
+            include_fields["dataset_ids"] = True
+        if self.granularity != PropertyGranularity.item:
+            include_fields["annotation_class_id"] = True
         return self.model_dump(
-            include={
-                "name": True,
-                "type": True,
-                "required": True,
-                "annotation_class_id": True,
-                "property_values": {"__all__": {"value", "color"}},
-                "description": True,
-            }
+            include=include_fields,
+            mode="json",
         )
 
     def to_update_endpoint(self) -> Tuple[str, dict]:
         if self.id is None:
             raise ValueError("id must be set")
+
         updated_base = self.to_create_endpoint()
-        del updated_base["annotation_class_id"]  # can't update this field
+        del updated_base["granularity"]  # Can't update this field
         return self.id, updated_base
 
 

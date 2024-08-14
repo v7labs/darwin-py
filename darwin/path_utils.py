@@ -113,10 +113,16 @@ def is_properties_enabled(
         return False
 
     # .v7 directory exists, parse the metadata file and check if any class has properties
+    # Additionally check if there are any item-level properties
     metadata_path = v7_path / filename
-    metadata_classes = parse_metadata(metadata_path).get("classes", [])
+    metadata = parse_metadata(metadata_path)
+    metadata_classes = metadata.get("classes", [])
+    metadata_item_level_properties = metadata.get("properties", [])
     for _cls in metadata_classes:
         if _cls.get("properties"):
+            return metadata_path
+    for _item_level_property in metadata_item_level_properties:
+        if _item_level_property.get("property_values"):
             return metadata_path
 
     return False

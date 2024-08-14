@@ -166,6 +166,7 @@ def test_import_annotations() -> None:
             [],
         )
     ]
+    item_properties = []
     default_slot_name = "test_slot"
     append = False
     delete_for_empty = False
@@ -198,6 +199,7 @@ def test_import_annotations() -> None:
             remote_classes,
             attributes,
             annotations,
+            item_properties,
             default_slot_name,
             mock_dataset,
             append,
@@ -723,6 +725,7 @@ def test__import_annotations() -> None:
             {"bbox": {"test_class": "1337"}},
             {},
             [annotation],
+            [],
             "test_slot",
             mock_dataset,
             "test_append_in",  # type: ignore
