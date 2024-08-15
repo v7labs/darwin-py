@@ -355,7 +355,7 @@ def _import_properties(
         # parse metadata.json file -> list[PropertyClass]
         metadata = parse_metadata(metadata_path)
         metadata_property_classes = parse_property_classes(metadata)
-        metadata_item_props = metadata["properties"]
+        metadata_item_props = metadata.get("properties", [])
 
     # get team properties
     team_properties_annotation_lookup, team_item_properties_lookup = (
@@ -590,7 +590,7 @@ def _import_properties(
             ].add(t_prop_val.id)
 
     # Create/Update team properties based on metadata
-    _create_update_item_properties(
+    create_properties, update_properties = _create_update_item_properties(
         _normalize_item_properties(metadata_item_prop_lookup),
         team_item_properties_lookup,
         create_properties,
@@ -645,7 +645,7 @@ def _import_properties(
     update_properties = []
 
     # Create/Update properties from item_properties arg
-    _create_update_item_properties(
+    create_properties, update_properties = _create_update_item_properties(
         _normalize_item_properties(item_properties),
         team_item_properties_lookup,
         create_properties,
@@ -749,9 +749,9 @@ def _create_update_item_properties(
     create_properties: List[FullProperty],
     update_properties: List[FullProperty],
     client: "Client",
-) -> None:
+) -> Tuple[List[FullProperty], List[FullProperty]]:
     """
-    Creates/Updates item-level properties based on the provided item_properties and team_item_properties_lookup.
+    Compares item-level properties present in `item_properties` with the team item properties and plans to create or update them.
 
     Args:
         item_properties (Dict[str, Dict[str, Any]]): Dictionary of item-level properties present in the annotation file
@@ -760,8 +760,8 @@ def _create_update_item_properties(
         update_properties (List[FullProperty]): List to store properties to be updated
         client (Client): Darwin Client object
 
-    Raises:
-        ValueError: raise error if property value is missing for a property that requires a value
+    Returns:
+        Tuple[List[FullProperty], List[FullProperty]]: Tuple of lists of properties to be created and updated
     """
     for item_prop_name, m_prop in item_properties.items():
         m_prop_values = [
@@ -807,7 +807,7 @@ def _create_update_item_properties(
                 full_property = FullProperty(
                     name=item_prop_name,
                     type=m_prop.get("type", "multi_select"),
-                    required=bool(m_prop.get("required", "false")),
+                    required=bool(m_prop.get("required", False)),
                     description=m_prop.get(
                         "description", "property-created-during-annotation-import"
                     ),
@@ -817,6 +817,8 @@ def _create_update_item_properties(
                     granularity=PropertyGranularity.item,
                 )
                 create_properties.append(full_property)
+
+    return create_properties, update_properties
 
 
 def _assign_item_properties_to_dataset(

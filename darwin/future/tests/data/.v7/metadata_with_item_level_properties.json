@@ -1,0 +1,138 @@
+{
+    "classes": [
+        {
+            "name": "Test bounding box",
+            "type": "bounding_box",
+            "description": null,
+            "color": "rgba(255,145,82,1)",
+            "sub_types": [
+                "inference"
+            ],
+            "properties": [
+                {
+                    "name": "Property 1",
+                    "type": "multi_select",
+                    "property_values": [
+                        {
+                            "type": "string",
+                            "value": "first value",
+                            "color": "rgba(255,92,0,1.0)"
+                        },
+                        {
+                            "type": "string",
+                            "value": "second value",
+                            "color": "rgba(0,0,0,1.0)"
+                        }
+                    ],
+                    "granularity": "section",
+                    "required": false
+                },
+                {
+                    "name": "Property 2",
+                    "type": "single_select",
+                    "property_values": [
+                        {
+                            "type": "string",
+                            "value": "first value",
+                            "color": "rgba(0,194,255,1.0)"
+                        },
+                        {
+                            "type": "string",
+                            "value": "second value",
+                            "color": "rgba(255,255,255,1.0)"
+                        }
+                    ],
+                    "granularity": "section",
+                    "required": false
+                }
+            ]
+        },
+        {
+            "name": "Test Polygon",
+            "type": "polygon",
+            "description": null,
+            "color": "rgba(219,255,0,1.0)",
+            "sub_types": [
+                "directional_vector",
+                "attributes",
+                "text",
+                "instance_id",
+                "inference"
+            ],
+            "properties": [
+                {
+                    "name": "Property 1",
+                    "type": "multi_select",
+                    "property_values": [
+                        {
+                            "type": "string",
+                            "value": "first value",
+                            "color": "rgba(255,92,0,1.0)"
+                        },
+                        {
+                            "type": "string",
+                            "value": "second value",
+                            "color": "rgba(0,0,0,1.0)"
+                        }
+                    ],
+                    "granularity": "section",
+                    "required": false
+                },
+                {
+                    "name": "Property 2",
+                    "type": "single_select",
+                    "property_values": [
+                        {
+                            "type": "string",
+                            "value": "first value",
+                            "color": "rgba(0,194,255,1.0)"
+                        },
+                        {
+                            "type": "string",
+                            "value": "second value",
+                            "color": "rgba(255,255,255,1.0)"
+                        }
+                    ],
+                    "granularity": "section",
+                    "required": false
+                }
+            ]
+        }
+    ],
+    "properties": [
+        {
+            "name": "prop1",
+            "type": "single_select",
+            "description": "",
+            "required": true,
+            "property_values": [
+                {
+                    "value": "1",
+                    "color": "rgba(0,0,0,1.0)"
+                },
+                {
+                    "value": "2",
+                    "color": "rgba(255,255,255,1.0)"
+                }
+            ],
+            "granularity": "item"
+        },
+        {
+            "name": "prop2",
+            "type": "multi_select",
+            "description": "",
+            "required": false,
+            "property_values": [
+                {
+                    "value": "1",
+                    "color": "rgba(255,92,0,1.0)"
+                },
+                {
+                    "value": "2",
+                    "color": "rgba(0,0,0,1.0)"
+                }
+            ],
+            "granularity": "item"
+        }
+    ]
+}

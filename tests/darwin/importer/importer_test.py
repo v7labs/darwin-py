@@ -9,19 +9,66 @@ import pytest
 from rich.theme import Theme
 
 from darwin import datatypes as dt
+from darwin.future.data_objects.properties import (
+    FullProperty,
+    PropertyGranularity,
+    PropertyValue,
+)
 from darwin.importer import get_importer
 from darwin.importer.importer import (
+    _assign_item_properties_to_dataset,
     _build_attribute_lookup,
     _build_main_annotations_lookup_table,
+    _create_update_item_properties,
     _find_and_parse,
     _get_remote_files,
     _get_slot_name,
     _import_annotations,
+    _import_properties,
     _is_skeleton_class,
     _overwrite_warning,
     _parse_empty_masks,
     _resolve_annotation_classes,
 )
+
+
+@pytest.fixture
+def mock_client():
+    client = Mock()
+    client.default_team = "test_team"
+    return client
+
+
+@pytest.fixture
+def mock_dataset(mock_client):
+    dataset = Mock()
+    dataset.team = mock_client.default_team
+    dataset.dataset_id = 123456
+    return dataset
+
+
+@pytest.fixture
+def mock_console():
+    return Mock()
+
+
+@pytest.fixture
+def annotation_class_ids_map():
+    return {("test_class", "bbox"): "1337"}
+
+
+@pytest.fixture
+def annotations():
+    return [Mock()]
+
+
+@pytest.fixture
+def item_properties():
+    return [
+        {"name": "prop1", "value": "1"},
+        {"name": "prop2", "value": "2"},
+        {"name": "prop2", "value": "3"},
+    ]
 
 
 def root_path(x: str) -> str:
@@ -879,3 +926,899 @@ def test_overwrite_warning_aborts_import():
     with patch("builtins.input", return_value="n"):
         result = _overwrite_warning(client, dataset, files, remote_files, console)
         assert result is False
+
+
+class TestImportItemLevelProperties:
+    def test_import_properties_creates_missing_item_level_properties_from_annotations_no_manifest(
+        self,
+        mock_client,
+        mock_dataset,
+        annotations,
+        annotation_class_ids_map,
+        item_properties,
+    ):
+        with patch(
+            "darwin.importer.importer._get_team_properties_annotation_lookup"
+        ) as mock_get_team_props, patch(
+            "darwin.importer.importer._create_update_item_properties"
+        ) as mock_create_update_props:
+
+            metadata_path = False
+            mock_get_team_props.side_effect = [
+                ({}, {}),
+                ({}, {}),
+                (
+                    {},
+                    {
+                        "prop1": FullProperty(
+                            name="prop1",
+                            type="multi_select",
+                            description="property-created-during-annotation-import",
+                            required=False,
+                            slug="test_team",
+                            dataset_ids=[],
+                            granularity=PropertyGranularity("item"),
+                            property_values=[
+                                PropertyValue(type="string", value="1"),
+                            ],
+                        ),
+                        "prop2": FullProperty(
+                            name="prop2",
+                            type="multi_select",
+                            description="property-created-during-annotation-import",
+                            required=False,
+                            slug="test_team",
+                            dataset_ids=[],
+                            granularity=PropertyGranularity("item"),
+                            property_values=[
+                                PropertyValue(type="string", value="2"),
+                                PropertyValue(type="string", value="3"),
+                            ],
+                        ),
+                    },
+                ),
+            ]
+            mock_create_update_props.side_effect = _create_update_item_properties
+
+            _import_properties(
+                metadata_path=metadata_path,
+                item_properties=item_properties,
+                client=mock_client,
+                annotations=annotations,
+                annotation_class_ids_map=annotation_class_ids_map,
+                dataset=mock_dataset,
+            )
+
+            create_properties_first_call, update_properties_first_call = (
+                mock_create_update_props.call_args_list[0][0][2:4]
+            )
+            create_properties_second_call, update_properties_second_call = (
+                mock_create_update_props.call_args_list[1][0][2:4]
+            )
+
+            assert len(create_properties_first_call) == 0
+            assert len(update_properties_first_call) == 0
+            assert len(create_properties_second_call) == 2
+            assert len(update_properties_second_call) == 0
+
+            assert create_properties_second_call[0] == FullProperty(
+                name="prop1",
+                type="multi_select",
+                description="property-created-during-annotation-import",
+                required=False,
+                slug="test_team",
+                granularity=PropertyGranularity("item"),
+                property_values=[
+                    PropertyValue(type="string", value="1"),
+                ],
+            )
+            assert create_properties_second_call[1] == FullProperty(
+                name="prop2",
+                type="multi_select",
+                description="property-created-during-annotation-import",
+                required=False,
+                slug="test_team",
+                granularity=PropertyGranularity("item"),
+                property_values=[
+                    PropertyValue(type="string", value="2"),
+                    PropertyValue(type="string", value="3"),
+                ],
+            )
+
+    def test_import_properties_creates_missing_item_level_properties_from_manifest_no_annotations(
+        self,
+        mock_client,
+        mock_dataset,
+        annotation_class_ids_map,
+        item_properties,
+    ):
+        with patch(
+            "darwin.importer.importer._get_team_properties_annotation_lookup"
+        ) as mock_get_team_props, patch(
+            "darwin.importer.importer._create_update_item_properties"
+        ) as mock_create_update_props:
+
+            metadata_path = Path(
+                "darwin/future/tests/data/.v7/metadata_with_item_level_properties.json"
+            )
+            mock_get_team_props.side_effect = [
+                ({}, {}),
+                (
+                    {},
+                    {
+                        "prop1": FullProperty(
+                            name="prop1",
+                            type="single_select",
+                            description="",
+                            required=True,
+                            slug="test_team",
+                            dataset_ids=[],
+                            granularity=PropertyGranularity("item"),
+                            property_values=[
+                                PropertyValue(type="string", value="1"),
+                                PropertyValue(type="string", value="2"),
+                            ],
+                        ),
+                        "prop2": FullProperty(
+                            name="prop2",
+                            type="multi_select",
+                            description="",
+                            required=False,
+                            slug="test_team",
+                            dataset_ids=[],
+                            granularity=PropertyGranularity("item"),
+                            property_values=[
+                                PropertyValue(type="string", value="1"),
+                                PropertyValue(type="string", value="2"),
+                            ],
+                        ),
+                    },
+                ),
+                (
+                    {},
+                    {
+                        "prop1": FullProperty(
+                            name="prop1",
+                            type="single_select",
+                            description="",
+                            required=True,
+                            slug="test_team",
+                            dataset_ids=[],
+                            granularity=PropertyGranularity("item"),
+                            property_values=[
+                                PropertyValue(type="string", value="1"),
+                                PropertyValue(type="string", value="2"),
+                            ],
+                        ),
+                        "prop2": FullProperty(
+                            name="prop2",
+                            type="multi_select",
+                            description="",
+                            required=False,
+                            slug="test_team",
+                            dataset_ids=[],
+                            granularity=PropertyGranularity("item"),
+                            property_values=[
+                                PropertyValue(type="string", value="1"),
+                                PropertyValue(type="string", value="2"),
+                            ],
+                        ),
+                    },
+                ),
+            ]
+            mock_create_update_props.side_effect = _create_update_item_properties
+
+            _import_properties(
+                metadata_path=metadata_path,
+                item_properties={},
+                client=mock_client,
+                annotations=[],
+                annotation_class_ids_map=annotation_class_ids_map,
+                dataset=mock_dataset,
+            )
+
+            create_properties_first_call, update_properties_first_call = (
+                mock_create_update_props.call_args_list[0][0][2:4]
+            )
+            create_properties_second_call, update_properties_second_call = (
+                mock_create_update_props.call_args_list[1][0][2:4]
+            )
+
+            assert len(create_properties_first_call) == 2
+            assert len(update_properties_first_call) == 0
+            assert len(create_properties_second_call) == 0
+            assert len(update_properties_second_call) == 0
+
+            assert create_properties_first_call[0] == FullProperty(
+                name="prop1",
+                type="single_select",
+                description="",
+                required=True,
+                slug="test_team",
+                granularity=PropertyGranularity("item"),
+                property_values=[
+                    PropertyValue(type="string", value="1"),
+                    PropertyValue(type="string", value="2"),
+                ],
+            )
+            assert create_properties_first_call[1] == FullProperty(
+                name="prop2",
+                type="multi_select",
+                description="",
+                required=False,
+                slug="test_team",
+                granularity=PropertyGranularity("item"),
+                property_values=[
+                    PropertyValue(type="string", value="1"),
+                    PropertyValue(type="string", value="2"),
+                ],
+            )
+
+    def test_import_properties_creates_missing_item_level_properties_from_manifest_and_annotations(
+        self,
+        mock_client,
+        mock_dataset,
+        annotations,
+        annotation_class_ids_map,
+        item_properties,
+    ):
+        with patch(
+            "darwin.importer.importer._get_team_properties_annotation_lookup"
+        ) as mock_get_team_props, patch(
+            "darwin.importer.importer._create_update_item_properties"
+        ) as mock_create_update_props:
+
+            metadata_path = Path(
+                "darwin/future/tests/data/.v7/metadata_with_item_level_properties.json"
+            )
+            mock_get_team_props.side_effect = [
+                ({}, {}),
+                (
+                    {},
+                    {
+                        "prop1": FullProperty(
+                            name="prop1",
+                            type="single_select",
+                            description="",
+                            required=True,
+                            slug="test_team",
+                            dataset_ids=[],
+                            granularity=PropertyGranularity("item"),
+                            property_values=[
+                                PropertyValue(type="string", value="1"),
+                                PropertyValue(type="string", value="2"),
+                            ],
+                        ),
+                        "prop2": FullProperty(
+                            name="prop2",
+                            type="multi_select",
+                            description="",
+                            required=False,
+                            slug="test_team",
+                            dataset_ids=[],
+                            granularity=PropertyGranularity("item"),
+                            property_values=[
+                                PropertyValue(type="string", value="1"),
+                                PropertyValue(type="string", value="2"),
+                            ],
+                        ),
+                    },
+                ),
+                (
+                    {},
+                    {
+                        "prop1": FullProperty(
+                            name="prop1",
+                            type="single_select",
+                            description="",
+                            required=True,
+                            slug="test_team",
+                            dataset_ids=[],
+                            granularity=PropertyGranularity("item"),
+                            property_values=[
+                                PropertyValue(type="string", value="1"),
+                                PropertyValue(type="string", value="2"),
+                            ],
+                        ),
+                        "prop2": FullProperty(
+                            name="prop2",
+                            type="multi_select",
+                            description="",
+                            required=False,
+                            slug="test_team",
+                            dataset_ids=[],
+                            granularity=PropertyGranularity("item"),
+                            property_values=[
+                                PropertyValue(type="string", value="1"),
+                                PropertyValue(type="string", value="2"),
+                                PropertyValue(type="string", value="3"),
+                            ],
+                        ),
+                    },
+                ),
+            ]
+            mock_create_update_props.side_effect = _create_update_item_properties
+
+            _import_properties(
+                metadata_path=metadata_path,
+                item_properties=item_properties,
+                client=mock_client,
+                annotations=annotations,
+                annotation_class_ids_map=annotation_class_ids_map,
+                dataset=mock_dataset,
+            )
+
+            create_properties_first_call, update_properties_first_call = (
+                mock_create_update_props.call_args_list[0][0][2:4]
+            )
+            create_properties_second_call, update_properties_second_call = (
+                mock_create_update_props.call_args_list[1][0][2:4]
+            )
+
+            assert len(create_properties_first_call) == 2
+            assert len(update_properties_first_call) == 0
+            assert len(create_properties_second_call) == 0
+            assert len(update_properties_second_call) == 1
+
+            assert create_properties_first_call[0] == FullProperty(
+                name="prop1",
+                type="single_select",
+                description="",
+                required=True,
+                slug="test_team",
+                granularity=PropertyGranularity("item"),
+                property_values=[
+                    PropertyValue(type="string", value="1"),
+                    PropertyValue(type="string", value="2"),
+                ],
+            )
+            assert create_properties_first_call[1] == FullProperty(
+                name="prop2",
+                type="multi_select",
+                description="",
+                required=False,
+                slug="test_team",
+                granularity=PropertyGranularity("item"),
+                property_values=[
+                    PropertyValue(type="string", value="1"),
+                    PropertyValue(type="string", value="2"),
+                ],
+            )
+            assert update_properties_second_call[0] == FullProperty(
+                name="prop2",
+                type="multi_select",
+                description="",
+                required=False,
+                slug="test_team",
+                granularity=PropertyGranularity("item"),
+                property_values=[
+                    PropertyValue(type="string", value="3"),
+                ],
+            )
+
+    def test_import_properties_creates_missing_item_level_property_values_from_manifest_no_annotations(
+        self,
+        mock_client,
+        mock_dataset,
+        annotation_class_ids_map,
+        item_properties,
+    ):
+        with patch(
+            "darwin.importer.importer._get_team_properties_annotation_lookup"
+        ) as mock_get_team_props, patch(
+            "darwin.importer.importer._create_update_item_properties"
+        ) as mock_create_update_props:
+
+            metadata_path = Path(
+                "darwin/future/tests/data/.v7/metadata_with_item_level_properties.json"
+            )
+            mock_get_team_props.side_effect = [
+                (
+                    {},
+                    {
+                        "prop1": FullProperty(
+                            name="prop1",
+                            type="single_select",
+                            description="",
+                            required=True,
+                            slug="test_team",
+                            dataset_ids=[],
+                            granularity=PropertyGranularity("item"),
+                            property_values=[
+                                PropertyValue(type="string", value="1"),
+                            ],
+                        ),
+                        "prop2": FullProperty(
+                            name="prop2",
+                            type="multi_select",
+                            description="",
+                            required=False,
+                            slug="test_team",
+                            dataset_ids=[],
+                            granularity=PropertyGranularity("item"),
+                            property_values=[
+                                PropertyValue(type="string", value="2"),
+                            ],
+                        ),
+                    },
+                ),
+                (
+                    {},
+                    {
+                        "prop1": FullProperty(
+                            name="prop1",
+                            type="single_select",
+                            description="",
+                            required=True,
+                            slug="test_team",
+                            dataset_ids=[],
+                            granularity=PropertyGranularity("item"),
+                            property_values=[
+                                PropertyValue(type="string", value="1"),
+                                PropertyValue(type="string", value="2"),
+                            ],
+                        ),
+                        "prop2": FullProperty(
+                            name="prop2",
+                            type="multi_select",
+                            description="",
+                            required=False,
+                            slug="test_team",
+                            dataset_ids=[],
+                            granularity=PropertyGranularity("item"),
+                            property_values=[
+                                PropertyValue(type="string", value="1"),
+                                PropertyValue(type="string", value="2"),
+                            ],
+                        ),
+                    },
+                ),
+                (
+                    {},
+                    {
+                        "prop1": FullProperty(
+                            name="prop1",
+                            type="single_select",
+                            description="",
+                            required=True,
+                            slug="test_team",
+                            dataset_ids=[],
+                            granularity=PropertyGranularity("item"),
+                            property_values=[
+                                PropertyValue(type="string", value="1"),
+                                PropertyValue(type="string", value="2"),
+                            ],
+                        ),
+                        "prop2": FullProperty(
+                            name="prop2",
+                            type="multi_select",
+                            description="",
+                            required=False,
+                            slug="test_team",
+                            dataset_ids=[],
+                            granularity=PropertyGranularity("item"),
+                            property_values=[
+                                PropertyValue(type="string", value="1"),
+                                PropertyValue(type="string", value="2"),
+                            ],
+                        ),
+                    },
+                ),
+            ]
+            mock_create_update_props.side_effect = _create_update_item_properties
+
+            _import_properties(
+                metadata_path=metadata_path,
+                item_properties={},
+                client=mock_client,
+                annotations=[],
+                annotation_class_ids_map=annotation_class_ids_map,
+                dataset=mock_dataset,
+            )
+
+            create_properties_first_call, update_properties_first_call = (
+                mock_create_update_props.call_args_list[0][0][2:4]
+            )
+            create_properties_second_call, update_properties_second_call = (
+                mock_create_update_props.call_args_list[1][0][2:4]
+            )
+
+            assert len(create_properties_first_call) == 0
+            assert len(update_properties_first_call) == 2
+            assert len(create_properties_second_call) == 0
+            assert len(update_properties_second_call) == 0
+
+            assert update_properties_first_call[0] == FullProperty(
+                name="prop1",
+                type="single_select",
+                description="",
+                required=True,
+                slug="test_team",
+                granularity=PropertyGranularity("item"),
+                property_values=[
+                    PropertyValue(type="string", value="2"),
+                ],
+            )
+            assert update_properties_first_call[1] == FullProperty(
+                name="prop2",
+                type="multi_select",
+                description="",
+                required=False,
+                slug="test_team",
+                granularity=PropertyGranularity("item"),
+                property_values=[
+                    PropertyValue(type="string", value="1"),
+                ],
+            )
+
+    def test_import_properties_creates_missing_item_level_property_values_from_annotations_no_manifest(
+        self,
+        mock_client,
+        mock_dataset,
+        annotations,
+        annotation_class_ids_map,
+        item_properties,
+    ):
+        with patch(
+            "darwin.importer.importer._get_team_properties_annotation_lookup"
+        ) as mock_get_team_props, patch(
+            "darwin.importer.importer._create_update_item_properties"
+        ) as mock_create_update_props:
+
+            metadata_path = False
+            mock_get_team_props.side_effect = [
+                (
+                    {},
+                    {
+                        "prop1": FullProperty(
+                            name="prop1",
+                            type="multi_select",
+                            description="",
+                            required=False,
+                            slug="test_team",
+                            dataset_ids=[],
+                            granularity=PropertyGranularity("item"),
+                            property_values=[
+                                PropertyValue(type="string", value="1"),
+                                PropertyValue(type="string", value="2"),
+                            ],
+                        ),
+                        "prop2": FullProperty(
+                            name="prop2",
+                            type="multi_select",
+                            description="",
+                            required=False,
+                            slug="test_team",
+                            dataset_ids=[],
+                            granularity=PropertyGranularity("item"),
+                            property_values=[
+                                PropertyValue(type="string", value="1"),
+                                PropertyValue(type="string", value="2"),
+                            ],
+                        ),
+                    },
+                ),
+                (
+                    {},
+                    {
+                        "prop1": FullProperty(
+                            name="prop1",
+                            type="multi_select",
+                            description="",
+                            required=False,
+                            slug="test_team",
+                            dataset_ids=[],
+                            granularity=PropertyGranularity("item"),
+                            property_values=[
+                                PropertyValue(type="string", value="1"),
+                                PropertyValue(type="string", value="2"),
+                            ],
+                        ),
+                        "prop2": FullProperty(
+                            name="prop2",
+                            type="multi_select",
+                            description="",
+                            required=False,
+                            slug="test_team",
+                            dataset_ids=[],
+                            granularity=PropertyGranularity("item"),
+                            property_values=[
+                                PropertyValue(type="string", value="1"),
+                                PropertyValue(type="string", value="2"),
+                            ],
+                        ),
+                    },
+                ),
+                (
+                    {},
+                    {
+                        "prop1": FullProperty(
+                            name="prop1",
+                            type="multi_select",
+                            description="",
+                            required=False,
+                            slug="test_team",
+                            dataset_ids=[],
+                            granularity=PropertyGranularity("item"),
+                            property_values=[
+                                PropertyValue(type="string", value="1"),
+                                PropertyValue(type="string", value="2"),
+                            ],
+                        ),
+                        "prop2": FullProperty(
+                            name="prop2",
+                            type="multi_select",
+                            description="",
+                            required=False,
+                            slug="test_team",
+                            dataset_ids=[],
+                            granularity=PropertyGranularity("item"),
+                            property_values=[
+                                PropertyValue(type="string", value="1"),
+                                PropertyValue(type="string", value="2"),
+                                PropertyValue(type="string", value="3"),
+                            ],
+                        ),
+                    },
+                ),
+            ]
+            mock_create_update_props.side_effect = _create_update_item_properties
+
+            _import_properties(
+                metadata_path=metadata_path,
+                item_properties=item_properties,
+                client=mock_client,
+                annotations=annotations,
+                annotation_class_ids_map=annotation_class_ids_map,
+                dataset=mock_dataset,
+            )
+
+            create_properties_first_call, update_properties_first_call = (
+                mock_create_update_props.call_args_list[0][0][2:4]
+            )
+            create_properties_second_call, update_properties_second_call = (
+                mock_create_update_props.call_args_list[1][0][2:4]
+            )
+
+            assert len(create_properties_first_call) == 0
+            assert len(update_properties_first_call) == 0
+            assert len(create_properties_second_call) == 0
+            assert len(update_properties_second_call) == 1
+
+            assert update_properties_second_call[0] == FullProperty(
+                name="prop2",
+                type="multi_select",
+                description="",
+                required=False,
+                slug="test_team",
+                granularity=PropertyGranularity("item"),
+                property_values=[
+                    PropertyValue(type="string", value="3"),
+                ],
+            )
+
+    def test_import_properties_creates_missing_item_level_property_values_from_manifest_and_annotations(
+        self,
+        mock_client,
+        mock_dataset,
+        annotations,
+        annotation_class_ids_map,
+        item_properties,
+    ):
+        with patch(
+            "darwin.importer.importer._get_team_properties_annotation_lookup"
+        ) as mock_get_team_props, patch(
+            "darwin.importer.importer._create_update_item_properties"
+        ) as mock_create_update_props:
+
+            metadata_path = Path(
+                "darwin/future/tests/data/.v7/metadata_with_item_level_properties.json"
+            )
+            mock_get_team_props.side_effect = [
+                (
+                    {},
+                    {
+                        "prop1": FullProperty(
+                            name="prop1",
+                            type="single_select",
+                            description="",
+                            required=True,
+                            slug="test_team",
+                            dataset_ids=[],
+                            granularity=PropertyGranularity("item"),
+                            property_values=[
+                                PropertyValue(type="string", value="1"),
+                            ],
+                        ),
+                        "prop2": FullProperty(
+                            name="prop2",
+                            type="multi_select",
+                            description="",
+                            required=False,
+                            slug="test_team",
+                            dataset_ids=[],
+                            granularity=PropertyGranularity("item"),
+                            property_values=[
+                                PropertyValue(type="string", value="1"),
+                            ],
+                        ),
+                    },
+                ),
+                (
+                    {},
+                    {
+                        "prop1": FullProperty(
+                            name="prop1",
+                            type="single_select",
+                            description="",
+                            required=True,
+                            slug="test_team",
+                            dataset_ids=[],
+                            granularity=PropertyGranularity("item"),
+                            property_values=[
+                                PropertyValue(type="string", value="1"),
+                                PropertyValue(type="string", value="2"),
+                            ],
+                        ),
+                        "prop2": FullProperty(
+                            name="prop2",
+                            type="multi_select",
+                            description="",
+                            required=False,
+                            slug="test_team",
+                            dataset_ids=[],
+                            granularity=PropertyGranularity("item"),
+                            property_values=[
+                                PropertyValue(type="string", value="1"),
+                                PropertyValue(type="string", value="2"),
+                            ],
+                        ),
+                    },
+                ),
+                (
+                    {},
+                    {
+                        "prop1": FullProperty(
+                            name="prop1",
+                            type="single_select",
+                            description="",
+                            required=True,
+                            slug="test_team",
+                            dataset_ids=[],
+                            granularity=PropertyGranularity("item"),
+                            property_values=[
+                                PropertyValue(type="string", value="1"),
+                                PropertyValue(type="string", value="2"),
+                            ],
+                        ),
+                        "prop2": FullProperty(
+                            name="prop2",
+                            type="multi_select",
+                            description="",
+                            required=False,
+                            slug="test_team",
+                            dataset_ids=[],
+                            granularity=PropertyGranularity("item"),
+                            property_values=[
+                                PropertyValue(type="string", value="1"),
+                                PropertyValue(type="string", value="2"),
+                                PropertyValue(type="string", value="3"),
+                            ],
+                        ),
+                    },
+                ),
+            ]
+            mock_create_update_props.side_effect = _create_update_item_properties
+
+            _import_properties(
+                metadata_path=metadata_path,
+                item_properties=item_properties,
+                client=mock_client,
+                annotations=annotations,
+                annotation_class_ids_map=annotation_class_ids_map,
+                dataset=mock_dataset,
+            )
+
+            create_properties_first_call, update_properties_first_call = (
+                mock_create_update_props.call_args_list[0][0][2:4]
+            )
+            create_properties_second_call, update_properties_second_call = (
+                mock_create_update_props.call_args_list[1][0][2:4]
+            )
+
+            assert len(create_properties_first_call) == 0
+            assert len(update_properties_first_call) == 2
+            assert len(create_properties_second_call) == 0
+            assert len(update_properties_second_call) == 1
+
+            assert update_properties_first_call[0] == FullProperty(
+                name="prop1",
+                type="single_select",
+                description="",
+                required=True,
+                slug="test_team",
+                granularity=PropertyGranularity("item"),
+                property_values=[
+                    PropertyValue(type="string", value="2"),
+                ],
+            )
+            assert update_properties_first_call[1] == FullProperty(
+                name="prop2",
+                type="multi_select",
+                description="",
+                required=False,
+                slug="test_team",
+                granularity=PropertyGranularity("item"),
+                property_values=[
+                    PropertyValue(type="string", value="2"),
+                ],
+            )
+            assert update_properties_second_call[0] == FullProperty(
+                name="prop2",
+                type="multi_select",
+                description="",
+                required=False,
+                slug="test_team",
+                granularity=PropertyGranularity("item"),
+                property_values=[
+                    PropertyValue(type="string", value="3"),
+                ],
+            )
+
+
+def test__assign_item_properties_to_dataset(mock_client, mock_dataset, mock_console):
+    item_properties = [
+        {"name": "prop1", "value": "1"},
+        {"name": "prop2", "value": "2"},
+    ]
+
+    team_item_properties_lookup = {
+        "prop1": FullProperty(
+            name="prop1",
+            type="single_select",
+            description="",
+            required=True,
+            slug="test_team",
+            dataset_ids=[123],
+            granularity=PropertyGranularity("item"),
+            property_values=[
+                PropertyValue(type="string", value="1"),
+            ],
+        ),
+        "prop2": FullProperty(
+            name="prop2",
+            type="multi_select",
+            description="",
+            required=False,
+            slug="test_team",
+            dataset_ids=[456],
+            granularity=PropertyGranularity("item"),
+            property_values=[
+                PropertyValue(type="string", value="2"),
+            ],
+        ),
+    }
+
+    with patch(
+        "darwin.importer.importer._get_team_properties_annotation_lookup"
+    ) as mock_get_team_props, patch.object(
+        mock_client, "update_property"
+    ) as mock_update_property:
+        mock_get_team_props.return_value = ({}, team_item_properties_lookup)
+
+        _assign_item_properties_to_dataset(
+            item_properties, mock_client, mock_dataset, mock_console
+        )
+
+        assert mock_update_property.call_count == 2
+
+        updated_prop1 = mock_update_property.call_args_list[0][0][1]
+        updated_prop2 = mock_update_property.call_args_list[1][0][1]
+
+        assert mock_dataset.dataset_id in updated_prop1.dataset_ids
+        assert 123 in updated_prop1.dataset_ids
+        assert 123456 in updated_prop1.dataset_ids
+
+        assert mock_dataset.dataset_id in updated_prop2.dataset_ids
+        assert 456 in updated_prop2.dataset_ids
+        assert 123456 in updated_prop2.dataset_ids
