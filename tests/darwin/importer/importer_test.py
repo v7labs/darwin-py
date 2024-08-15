@@ -6,21 +6,23 @@ from unittest.mock import MagicMock, Mock, _patch, patch
 from zipfile import ZipFile
 
 import pytest
-from rich.theme import Theme
 
 from darwin import datatypes as dt
 from darwin.importer import get_importer
 from darwin.importer.importer import (
     _build_attribute_lookup,
     _build_main_annotations_lookup_table,
+    _display_slot_warnings_and_errors,
     _find_and_parse,
+    _get_annotation_format,
     _get_remote_files,
-    _get_slot_name,
+    _get_slot_names,
     _import_annotations,
     _is_skeleton_class,
     _overwrite_warning,
     _parse_empty_masks,
     _resolve_annotation_classes,
+    _verify_slot_annotation_alignment,
 )
 
 
@@ -94,32 +96,53 @@ def test__build_attribute_lookup() -> None:
 def test__get_remote_files() -> None:
     mock_dataset = Mock()
     mock_dataset.fetch_remote_files.return_value = [
-        Mock(full_path="path/to/file1", id="file1_id"),
-        Mock(full_path="path/to/file2", id="file2_id"),
+        Mock(full_path="path/to/file1", id="file1_id", layout="layout1"),
+        Mock(full_path="path/to/file2", id="file2_id", layout="layout2"),
     ]
 
     filenames = ["file1", "file2"]
     expected_result = {
-        "path/to/file1": ("file1_id", "slot_name1"),
-        "path/to/file2": ("file2_id", "slot_name2"),
+        "path/to/file1": {
+            "item_id": "file1_id",
+            "slot_names": ["slot_name1"],
+            "layout": "layout1",
+        },
+        "path/to/file2": {
+            "item_id": "file2_id",
+            "slot_names": ["slot_name2"],
+            "layout": "layout2",
+        },
     }
 
-    with patch("darwin.importer.importer._get_slot_name") as mock_get_slot_name:
-        mock_get_slot_name.side_effect = ["slot_name1", "slot_name2"]
+    with patch("darwin.importer.importer._get_slot_names") as mock_get_slot_names:
+        mock_get_slot_names.side_effect = [["slot_name1"], ["slot_name2"]]
         result = _get_remote_files(mock_dataset, filenames)
         assert result == expected_result
-        assert mock_get_slot_name.call_count == 2
+        assert mock_get_slot_names.call_count == 2
 
 
-def test__get_slot_name() -> None:
-    mock_remote_file_with_slots = Mock()
-    mock_remote_file_with_slots.slots = [{"slot_name": "1"}]
+def test__get_slot_names() -> None:
+    mock_remote_file_with_slots_v1 = Mock()
+    mock_remote_file_with_slots_v1.layout = {"version": 1}
+    mock_remote_file_with_slots_v1.slots = [{"slot_name": "1"}, {"slot_name": "2"}]
 
-    mock_remote_file_without_slots = Mock()
-    mock_remote_file_without_slots.slots = []
+    mock_remote_file_without_slots_v1 = Mock()
+    mock_remote_file_without_slots_v1.layout = {"version": 1}
+    mock_remote_file_without_slots_v1.slots = []
 
-    assert _get_slot_name(mock_remote_file_with_slots) == "1"
-    assert _get_slot_name(mock_remote_file_without_slots) == "0"
+    mock_remote_file_with_slots_v3 = Mock()
+    mock_remote_file_with_slots_v3.layout = {"version": 3, "slots_grid": [[["1", "2"]]]}
+    mock_remote_file_with_slots_v3.slots = []
+
+    mock_remote_file_without_slots_v3 = Mock()
+    mock_remote_file_without_slots_v3.layout = {"version": 3, "slots_grid": [[[]]]}
+    mock_remote_file_without_slots_v3.slots = []
+
+    assert _get_slot_names(mock_remote_file_with_slots_v1) == ["1", "2"]
+    assert _get_slot_names(mock_remote_file_without_slots_v1) == []
+
+    assert _get_slot_names(mock_remote_file_with_slots_v3) == ["1", "2"]
+    assert _get_slot_names(mock_remote_file_without_slots_v3) == []
 
 
 def test__resolve_annotation_classes() -> None:
@@ -784,12 +807,6 @@ def test__import_annotations() -> None:
         assert output["overwrite"] == assertion["overwrite"]
 
 
-def test_console_theme() -> None:
-    from darwin.importer.importer import _console_theme
-
-    assert isinstance(_console_theme(), Theme)
-
-
 def test_overwrite_warning_proceeds_with_import():
     annotations: List[dt.AnnotationLike] = [
         dt.Annotation(
@@ -876,3 +893,546 @@ def test_overwrite_warning_aborts_import():
     with patch("builtins.input", return_value="n"):
         result = _overwrite_warning(client, dataset, files, remote_files, console)
         assert result is False
+
+
+def test__get_annotation_format():
+    assert _get_annotation_format(get_importer("coco")) == "coco"
+    assert _get_annotation_format(get_importer("csv_tags_video")) == "csv_tags_video"
+    assert _get_annotation_format(get_importer("csv_tags")) == "csv_tags"
+    assert _get_annotation_format(get_importer("darwin")) == "darwin"
+    assert _get_annotation_format(get_importer("dataloop")) == "dataloop"
+    assert _get_annotation_format(get_importer("labelbox")) == "labelbox"
+    assert _get_annotation_format(get_importer("nifti")) == "nifti"
+    assert _get_annotation_format(get_importer("pascal_voc")) == "pascal_voc"
+    assert _get_annotation_format(get_importer("superannotate")) == "superannotate"
+
+
+def test_no_verify_warning_for_single_slotted_items():
+    bounding_box_class = dt.AnnotationClass(
+        name="class1", annotation_type="bounding_box"
+    )
+    local_files = [
+        dt.AnnotationFile(
+            path=Path(filename),
+            remote_path="/",
+            filename=filename,
+            annotation_classes={bounding_box_class},
+            annotations=[
+                dt.Annotation(
+                    annotation_class=bounding_box_class,
+                    data={"x": 5, "y": 10, "w": 5, "h": 10},
+                    slot_names=["0"],
+                ),
+                dt.Annotation(
+                    annotation_class=bounding_box_class,
+                    data={"x": 5, "y": 10, "w": 5, "h": 10},
+                    slot_names=["0"],
+                ),
+            ],
+        )
+        for filename in ["file1", "file2"]
+    ]
+    remote_files = {
+        "/file1": {
+            "item_id": "1",
+            "slot_names": ["0"],
+            "layout": {"type": "grid", "version": 1, "slots": ["0"]},
+        },
+        "/file2": {
+            "item_id": "2",
+            "slot_names": ["0"],
+            "layout": {"type": "grid", "version": 1, "slots": ["0"]},
+        },
+    }
+
+    local_files, slot_errors, slot_warnings = _verify_slot_annotation_alignment(
+        local_files,
+        remote_files,
+    )
+
+    assert not slot_warnings
+    assert not slot_errors
+
+
+def test_no_slot_name_causes_non_blocking_multi_slotted_warning():
+    bounding_box_class = dt.AnnotationClass(
+        name="class1", annotation_type="bounding_box"
+    )
+    local_files = [
+        dt.AnnotationFile(
+            path=Path("file1"),
+            remote_path="/",
+            filename="file1",
+            annotation_classes={bounding_box_class},
+            annotations=[
+                dt.Annotation(
+                    annotation_class=bounding_box_class,
+                    data={"x": 5, "y": 10, "w": 5, "h": 10},
+                    slot_names=[],
+                ),
+                dt.Annotation(
+                    annotation_class=bounding_box_class,
+                    data={"x": 15, "y": 20, "w": 15, "h": 20},
+                    slot_names=[],
+                ),
+            ],
+        ),
+        dt.AnnotationFile(
+            path=Path("file2"),
+            remote_path="/",
+            filename="file2",
+            annotation_classes={bounding_box_class},
+            annotations=[
+                dt.Annotation(
+                    annotation_class=bounding_box_class,
+                    data={"x": 5, "y": 10, "w": 5, "h": 10},
+                    slot_names=[],
+                ),
+                dt.Annotation(
+                    annotation_class=bounding_box_class,
+                    data={"x": 15, "y": 20, "w": 15, "h": 20},
+                    slot_names=[],
+                ),
+            ],
+        ),
+    ]
+    remote_files = {
+        "/file1": {
+            "item_id": "123",
+            "slot_names": ["0", "1"],
+            "layout": {"type": "grid", "version": 1, "slots": ["0", "1"]},
+        },
+        "/file2": {
+            "item_id": "124",
+            "slot_names": ["0", "1"],
+            "layout": {"type": "grid", "version": 1, "slots": ["0", "1"]},
+        },
+    }
+
+    local_files, slot_errors, slot_warnings = _verify_slot_annotation_alignment(
+        local_files,
+        remote_files,
+    )
+
+    assert not slot_errors
+    assert len(slot_warnings) == 2
+    for file in slot_warnings:
+        file_warnings = slot_warnings[file]
+        assert len(file_warnings) == 2
+        for warning in file_warnings:
+            assert (
+                warning
+                == "Annotation imported to multi-slotted item not assigned slot. Uploading to the default slot: 0"
+            )
+
+
+def test_no_slot_name_causes_non_blocking_multi_channeled_warning():
+    bounding_box_class = dt.AnnotationClass(
+        name="class1", annotation_type="bounding_box"
+    )
+    local_files = [
+        dt.AnnotationFile(
+            path=Path("file1"),
+            remote_path="/",
+            filename="file1",
+            annotation_classes={bounding_box_class},
+            annotations=[
+                dt.Annotation(
+                    annotation_class=bounding_box_class,
+                    data={"x": 5, "y": 10, "w": 5, "h": 10},
+                    slot_names=[],
+                ),
+                dt.Annotation(
+                    annotation_class=bounding_box_class,
+                    data={"x": 15, "y": 20, "w": 15, "h": 20},
+                    slot_names=[],
+                ),
+            ],
+        ),
+        dt.AnnotationFile(
+            path=Path("file2"),
+            remote_path="/",
+            filename="file2",
+            annotation_classes={bounding_box_class},
+            annotations=[
+                dt.Annotation(
+                    annotation_class=bounding_box_class,
+                    data={"x": 5, "y": 10, "w": 5, "h": 10},
+                    slot_names=[],
+                ),
+                dt.Annotation(
+                    annotation_class=bounding_box_class,
+                    data={"x": 15, "y": 20, "w": 15, "h": 20},
+                    slot_names=[],
+                ),
+            ],
+        ),
+    ]
+    remote_files = {
+        "/file1": {
+            "item_id": "123",
+            "slot_names": ["0", "1"],
+            "layout": {"type": "grid", "version": 3, "slots": ["0", "1"]},
+        },
+        "/file2": {
+            "item_id": "124",
+            "slot_names": ["0", "1"],
+            "layout": {"type": "grid", "version": 3, "slots": ["0", "1"]},
+        },
+    }
+
+    local_files, slot_errors, slot_warnings = _verify_slot_annotation_alignment(
+        local_files,
+        remote_files,
+    )
+
+    assert not slot_errors
+    assert len(slot_warnings) == 2
+    for file in slot_warnings:
+        file_warnings = slot_warnings[file]
+        assert len(file_warnings) == 2
+        for warning in file_warnings:
+            assert (
+                warning
+                == "Annotation imported to multi-channeled item not assigned a slot. Uploading to the base slot: 0"
+            )
+
+
+def test_non_base_slot_for_channeled_annotations_causes_blocking_warnings():
+    bounding_box_class = dt.AnnotationClass(
+        name="class1", annotation_type="bounding_box"
+    )
+    local_files = [
+        dt.AnnotationFile(
+            path=Path("file1"),
+            remote_path="/",
+            filename="file1",
+            annotation_classes={bounding_box_class},
+            annotations=[
+                dt.Annotation(
+                    annotation_class=bounding_box_class,
+                    data={"x": 5, "y": 10, "w": 5, "h": 10},
+                    slot_names=["1"],  # Non-base slot
+                ),
+                dt.Annotation(
+                    annotation_class=bounding_box_class,
+                    data={"x": 15, "y": 20, "w": 15, "h": 20},
+                    slot_names=["1"],  # Non-base slot
+                ),
+            ],
+        ),
+    ]
+    remote_files = {
+        "/file1": {
+            "item_id": "123",
+            "slot_names": ["0", "1"],
+            "layout": {"type": "grid", "version": 3, "slots": ["0", "1"]},
+        },
+    }
+
+    local_files, slot_errors, slot_warnings = _verify_slot_annotation_alignment(
+        local_files,
+        remote_files,
+    )
+
+    assert not local_files
+    assert not slot_warnings
+    assert len(slot_errors) == 1
+    for file in slot_errors:
+        file_errors = slot_errors[file]
+        assert len(file_errors) == 2
+        for error in file_errors:
+            assert (
+                error
+                == "Annotation is linked to slot 1 of the multi-channeled item /file1. Annotations uploaded to multi-channeled items have to be uploaded to the base slot, which for this item is 0."
+            )
+
+
+def test_multiple_non_blocking_and_blocking_errors():
+    bounding_box_class = dt.AnnotationClass(
+        name="class1", annotation_type="bounding_box"
+    )
+    local_files = [
+        dt.AnnotationFile(
+            path=Path("file1"),
+            remote_path="/",
+            filename="file1",
+            annotation_classes={bounding_box_class},
+            annotations=[
+                dt.Annotation(
+                    annotation_class=bounding_box_class,
+                    data={"x": 5, "y": 10, "w": 5, "h": 10},
+                    slot_names=[],
+                ),
+                dt.Annotation(
+                    annotation_class=bounding_box_class,
+                    data={"x": 15, "y": 20, "w": 15, "h": 20},
+                    slot_names=[],
+                ),
+            ],
+        ),
+        dt.AnnotationFile(
+            path=Path("file2"),
+            remote_path="/",
+            filename="file2",
+            annotation_classes={bounding_box_class},
+            annotations=[
+                dt.Annotation(
+                    annotation_class=bounding_box_class,
+                    data={"x": 5, "y": 10, "w": 5, "h": 10},
+                    slot_names=[],
+                ),
+                dt.Annotation(
+                    annotation_class=bounding_box_class,
+                    data={"x": 15, "y": 20, "w": 15, "h": 20},
+                    slot_names=[],
+                ),
+            ],
+        ),
+        dt.AnnotationFile(
+            path=Path("file3"),
+            remote_path="/",
+            filename="file3",
+            annotation_classes={bounding_box_class},
+            annotations=[
+                dt.Annotation(
+                    annotation_class=bounding_box_class,
+                    data={"x": 5, "y": 10, "w": 5, "h": 10},
+                    slot_names=["1"],
+                ),
+                dt.Annotation(
+                    annotation_class=bounding_box_class,
+                    data={"x": 15, "y": 20, "w": 15, "h": 20},
+                    slot_names=["1"],
+                ),
+            ],
+        ),
+    ]
+    remote_files = {
+        "/file1": {
+            "item_id": "123",
+            "slot_names": ["0", "1"],
+            "layout": {"type": "grid", "version": 3, "slots": ["0", "1"]},
+        },
+        "/file2": {
+            "item_id": "124",
+            "slot_names": ["0", "1"],
+            "layout": {"type": "grid", "version": 3, "slots": ["0", "1"]},
+        },
+        "/file3": {
+            "item_id": "125",
+            "slot_names": ["0", "1"],
+            "layout": {"type": "grid", "version": 3, "slots": ["0", "1"]},
+        },
+    }
+
+    local_files, slot_errors, slot_warnings = _verify_slot_annotation_alignment(
+        local_files,
+        remote_files,
+    )
+
+    assert len(slot_warnings) == 2
+    assert len(slot_errors) == 1
+    for file in slot_warnings:
+        file_warnings = slot_warnings[file]
+        assert len(file_warnings) == 2
+        for warning in file_warnings:
+            assert (
+                warning
+                == "Annotation imported to multi-channeled item not assigned a slot. Uploading to the base slot: 0"
+            )
+    for file in slot_errors:
+        file_errors = slot_errors[file]
+        assert len(file_errors) == 2
+        for error in file_errors:
+            assert (
+                error
+                == "Annotation is linked to slot 1 of the multi-channeled item /file3. Annotations uploaded to multi-channeled items have to be uploaded to the base slot, which for this item is 0."
+            )
+
+
+def test_blocking_errors_override_non_blocking_errors():
+    bounding_box_class = dt.AnnotationClass(
+        name="class1", annotation_type="bounding_box"
+    )
+    local_files = [
+        dt.AnnotationFile(
+            path=Path("file1"),
+            remote_path="/",
+            filename="file1",
+            annotation_classes={bounding_box_class},
+            annotations=[
+                dt.Annotation(
+                    annotation_class=bounding_box_class,
+                    data={"x": 5, "y": 10, "w": 5, "h": 10},
+                    slot_names=[],
+                ),
+                dt.Annotation(
+                    annotation_class=bounding_box_class,
+                    data={"x": 15, "y": 20, "w": 15, "h": 20},
+                    slot_names=["1"],
+                ),
+            ],
+        ),
+    ]
+    remote_files = {
+        "/file1": {
+            "item_id": "123",
+            "slot_names": ["0", "1"],
+            "layout": {"type": "grid", "version": 3, "slots": ["0", "1"]},
+        },
+    }
+
+    local_files, slot_errors, slot_warnings = _verify_slot_annotation_alignment(
+        local_files,
+        remote_files,
+    )
+
+    assert not slot_warnings
+    assert len(slot_errors) == 1
+    for file in slot_errors:
+        file_errors = slot_errors[file]
+        assert len(file_errors) == 1
+        for error in file_errors:
+            assert (
+                error
+                == "Annotation is linked to slot 1 of the multi-channeled item /file1. Annotations uploaded to multi-channeled items have to be uploaded to the base slot, which for this item is 0."
+            )
+
+
+def test_assign_base_slot_if_missing_from_channel_annotations():
+    bounding_box_class = dt.AnnotationClass(
+        name="class1", annotation_type="bounding_box"
+    )
+    local_files = [
+        dt.AnnotationFile(
+            path=Path("file1"),
+            remote_path="/",
+            filename="file1",
+            annotation_classes={bounding_box_class},
+            annotations=[
+                dt.Annotation(
+                    annotation_class=bounding_box_class,
+                    data={"x": 5, "y": 10, "w": 5, "h": 10},
+                ),
+                dt.Annotation(
+                    annotation_class=bounding_box_class,
+                    data={"x": 15, "y": 20, "w": 15, "h": 20},
+                ),
+            ],
+        ),
+    ]
+    remote_files = {
+        "/file1": {
+            "item_id": "123",
+            "slot_names": ["0", "1"],
+            "layout": {"type": "grid", "version": 3, "slots": ["0", "1"]},
+        },
+    }
+
+    local_files, slot_errors, slot_warnings = _verify_slot_annotation_alignment(
+        local_files,
+        remote_files,
+    )
+
+    assert not slot_errors
+    assert len(slot_warnings) == 1
+    for file in slot_warnings:
+        file_warnings = slot_warnings[file]
+        assert len(file_warnings) == 2
+        for warning in file_warnings:
+            assert (
+                warning
+                == "Annotation imported to multi-channeled item not assigned a slot. Uploading to the base slot: 0"
+            )
+    assert local_files[0].annotations[0].slot_names == ["0"]
+    assert local_files[0].annotations[1].slot_names == ["0"]
+
+
+def test_raises_error_for_non_darwin_format_with_warnings():
+    bounding_box_class = dt.AnnotationClass(
+        name="class1", annotation_type="bounding_box"
+    )
+    local_files = [
+        dt.AnnotationFile(
+            path=Path("file1"),
+            remote_path="/",
+            filename="file1",
+            annotation_classes={bounding_box_class},
+            annotations=[
+                dt.Annotation(
+                    annotation_class=bounding_box_class,
+                    data={"x": 5, "y": 10, "w": 5, "h": 10},
+                    slot_names=[],
+                ),
+                dt.Annotation(
+                    annotation_class=bounding_box_class,
+                    data={"x": 15, "y": 20, "w": 15, "h": 20},
+                    slot_names=[],
+                ),
+            ],
+        ),
+    ]
+    remote_files = {
+        "/file1": {
+            "item_id": "123",
+            "slot_names": ["0", "1"],
+            "layout": {"type": "grid", "version": 1, "slots": ["0", "1"]},
+        },
+    }
+    local_files, slot_errors, slot_warnings = _verify_slot_annotation_alignment(
+        local_files,
+        remote_files,
+    )
+    console = MagicMock()
+    with pytest.raises(TypeError) as excinfo:
+        _display_slot_warnings_and_errors(
+            slot_errors, slot_warnings, "non-darwin", console
+        )
+    assert (
+        "You are attempting to import annotations to multi-slotted or multi-channeled items using an annotation format that doesn't support them."
+        in str(excinfo.value)
+    )
+
+
+def test_does_not_raise_error_for_darwin_format_with_warnings():
+    bounding_box_class = dt.AnnotationClass(
+        name="class1", annotation_type="bounding_box"
+    )
+    local_files = [
+        dt.AnnotationFile(
+            path=Path("file1"),
+            remote_path="/",
+            filename="file1",
+            annotation_classes={bounding_box_class},
+            annotations=[
+                dt.Annotation(
+                    annotation_class=bounding_box_class,
+                    data={"x": 5, "y": 10, "w": 5, "h": 10},
+                    slot_names=[],
+                ),
+                dt.Annotation(
+                    annotation_class=bounding_box_class,
+                    data={"x": 15, "y": 20, "w": 15, "h": 20},
+                    slot_names=[],
+                ),
+            ],
+        ),
+    ]
+    remote_files = {
+        "/file1": {
+            "item_id": "123",
+            "slot_names": ["0", "1"],
+            "layout": {"type": "grid", "version": 1, "slots": ["0", "1"]},
+        },
+    }
+
+    local_files, slot_errors, slot_warnings = _verify_slot_annotation_alignment(
+        local_files,
+        remote_files,
+    )
+
+    console = MagicMock()
+    _display_slot_warnings_and_errors(slot_errors, slot_warnings, "darwin", console)
+
+    assert not slot_errors

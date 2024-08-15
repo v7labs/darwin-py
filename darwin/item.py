@@ -49,6 +49,9 @@ class DatasetItem(BaseModel):
     #: only used for v2 dataset items
     slots: List[Any]
 
+    #: Information about the slot layout of the item including type, version, and slot names
+    layout: Dict
+
     #: Metadata of this ``DatasetItem``'s workflow. A ``None`` value means this ``DatasetItem`` is
     #: new and was never worked on, or was reset to the new state.
     current_workflow: Optional[Dict[str, Any]] = None
@@ -95,6 +98,7 @@ class DatasetItem(BaseModel):
                 "current_workflow_id": raw.get("workflow_data", {}).get("workflow_id"),
                 "current_workflow": raw.get("workflow_data"),
                 "slots": raw["slots"],
+                "layout": raw["layout"],
             }
         else:
             data = {
