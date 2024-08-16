@@ -1482,7 +1482,7 @@ def _overwrite_warning(
     """
     files_to_overwrite = []
     for local_file in local_files:
-        item_id = remote_files.get(local_file.full_path)[0]
+        item_id = remote_files.get(local_file.full_path)["item_id"]
         remote_annotations = client.api_v2._get_remote_annotations(
             item_id,
             dataset.team,
