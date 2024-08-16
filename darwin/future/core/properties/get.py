@@ -68,3 +68,28 @@ def get_property_by_id(
     response = client.get(f"/v2/teams/{team_slug}/properties/{str(property_id)}")
     assert isinstance(response, dict)
     return FullProperty.model_validate(response)
+
+
+def get_properties_state_for_item(
+    client: ClientCore, item_id: str, team_slug: Optional[str] = None
+) -> List[FullProperty]:
+    """
+    Returns a list of FullProperty objects for the specified item id.
+
+    Parameters:
+        client (ClientCore): The client to use for the request.
+        item_id (str): The ID of the item to get properties for.
+        team_slug (Optional[str]): The slug of the team to get. If not specified, the
+            default team from the client's config will be used.
+
+    Returns:
+        List[FullProperty]: List of FullProperty objects for the specified item id.
+
+    Raises:
+        HTTPError: If the response status code is not in the 200-299 range.
+    """
+    if not team_slug:
+        team_slug = client.config.default_team
+    response = client.get(f"/v2/teams/{team_slug}/items/{item_id}/properties")
+    assert isinstance(response, dict)
+    return [FullProperty.model_validate(item) for item in response["properties"]]

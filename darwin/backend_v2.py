@@ -293,3 +293,18 @@ class BackendV2:
             The team slug.
         """
         return self._client._get(f"v2/teams/{team_slug}/items/{item_id}/annotations")
+
+    def _get_properties_state_for_item(
+        self, item_id: str, team_slug
+    ) -> Dict[str, Dict[str, Any]]:
+        """
+        Returns the state of property values for the specified item.
+
+        Parameters
+        ----------
+        item_id: str
+            The ID of the item to get properties for.
+        team_slug: str
+            The slug of the team to get.
+        """
+        return self._client._get(f"/v2/teams/{team_slug}/items/{item_id}/properties")
