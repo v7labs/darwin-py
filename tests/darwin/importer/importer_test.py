@@ -843,7 +843,18 @@ def test_overwrite_warning_proceeds_with_import():
             remote_path="/",
         ),
     ]
-    remote_files = {"/file1": ("id1", "path1"), "/file2": ("id2", "path2")}
+    remote_files = {
+        "/file1": {
+            "item_id": "id1",
+            "slot_names": ["0"],
+            "layout": {"type": "simple", "version": 1, "slots": ["0"]},
+        },
+        "/file2": {
+            "item_id": "id2",
+            "slot_names": ["0"],
+            "layout": {"type": "simple", "version": 1, "slots": ["0"]},
+        },
+    }
     console = MagicMock()
 
     with patch("builtins.input", return_value="y"):
@@ -887,7 +898,18 @@ def test_overwrite_warning_aborts_import():
             remote_path="/",
         ),
     ]
-    remote_files = {"/file1": ("id1", "path1"), "/file2": ("id2", "path2")}
+    remote_files = {
+        "/file1": {
+            "item_id": "id1",
+            "slot_names": ["0"],
+            "layout": {"type": "simple", "version": 1, "slots": ["0"]},
+        },
+        "/file2": {
+            "item_id": "id2",
+            "slot_names": ["0"],
+            "layout": {"type": "simple", "version": 1, "slots": ["0"]},
+        },
+    }
     console = MagicMock()
 
     with patch("builtins.input", return_value="n"):
