@@ -7,6 +7,7 @@ on:
   pull_request:
     paths:
       - "e2e_tests/**"
+  workflow_call:
 jobs:
   e2e:
     name: End to End Testing
@@ -41,22 +42,19 @@ jobs:
           E2E_API_KEY: ${{ secrets.E2E_API_KEY }}
           E2E_ENVIRONMENT: ${{ secrets.E2E_ENVIRONMENT }}
           E2E_TEAM: ${{ secrets.E2E_TEAM }}
+
   slack-notifier:
     name: Slack Notifier Bot
     needs: e2e
     if: failure() && github.event_name == 'schedule'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Notify Slack
-        uses: ./.github/workflows/JOB_slack_message.yml
-        with:
-          secrets: inherit
-          icon: ":warning:"
-          at_team: true
-          message: |
-            *Nightly E2E run failed*
+    uses: ./.github/workflows/JOB_slack_message.yml
+    with:
+      message: |
+        *Nightly E2E run failed*
 
-            :link:
-              - https://github.com/v7labs/darwin-py/actions/runs/${{ github.run_id }}
-            :warning: ${{ github.workflow }} failed.
-
+        :link:
+          - https://github.com/v7labs/darwin-py/actions/runs/${{ github.run_id }}
+        :warning: ${{ github.workflow }} failed.
+      icon: ":warning:"
+      at_team: true
+    secrets: inherit

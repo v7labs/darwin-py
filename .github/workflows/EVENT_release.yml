@@ -47,8 +47,12 @@ jobs:
     needs: validate_tag
     uses: ./.github/workflows/JOB_tests.yml
 
+  run_e2e:
+    needs: run_tests
+    uses: ./.github/workflows/JOB_e2e.yml
+
   release:
-    needs: [run_tests]
+    needs: [run_tests, run_e2e]
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     steps:
@@ -74,7 +78,7 @@ jobs:
           poetry publish --build
 
   test_release:
-    needs: [run_tests]
+    needs: [run_tests, run_e2e]
     if: startsWith(github.ref, 'refs/tags/test-')
     runs-on: ubuntu-latest
     steps:
@@ -108,8 +112,6 @@ jobs:
 
           poetry publish --build --repository test-pypi
           python ./deploy/revert_nightly_setup.py
-
-  # Linear tickets update
 
   notify_release:
     needs: [release]
