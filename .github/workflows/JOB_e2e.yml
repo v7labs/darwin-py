@@ -7,6 +7,7 @@ on:
   pull_request:
     paths:
       - "e2e_tests/**"
+  workflow_call:
 jobs:
   e2e:
     name: End to End Testing
