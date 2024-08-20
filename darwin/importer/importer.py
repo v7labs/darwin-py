@@ -957,7 +957,7 @@ def import_annotations(  # noqa: C901
 
     def import_annotation(parsed_file):
         image_id = remote_files[parsed_file.full_path]["item_id"]
-        default_slot_name = remote_files[parsed_file.full_path]["slot_names"]
+        default_slot_name = remote_files[parsed_file.full_path]["slot_names"][0]
         if parsed_file.slots and parsed_file.slots[0].name:
             default_slot_name = parsed_file.slots[0].name
 

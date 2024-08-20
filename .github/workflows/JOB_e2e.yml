@@ -42,14 +42,10 @@ jobs:
           E2E_ENVIRONMENT: ${{ secrets.E2E_ENVIRONMENT }}
           E2E_TEAM: ${{ secrets.E2E_TEAM }}
 
-      # Add this step to force a failure
-      - name: Force Failure for Testing
-        run: exit 1
-
   slack-notifier:
     name: Slack Notifier Bot
     needs: e2e
-    if: failure()
+    if: failure() && github.event_name == 'schedule'
     uses: ./.github/workflows/JOB_slack_message.yml
     with:
       message: |
