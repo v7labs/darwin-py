@@ -34,7 +34,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies with retry
-        uses: nick-invision/retry@v3
+        uses: nick-invision/retry@7152eba30c6575329ac0576536151aca5a72780e
         with:
           timeout_minutes: 10
           max_attempts: 3
