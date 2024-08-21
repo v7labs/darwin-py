@@ -8,6 +8,13 @@ on:
     paths:
       - "e2e_tests/**"
   workflow_call:
+    secrets:
+      E2E_API_KEY:
+        required: true
+      E2E_ENVIRONMENT:
+        required: true
+      E2E_TEAM:
+        required: true
 jobs:
   e2e:
     name: End to End Testing
@@ -26,7 +33,7 @@ jobs:
       - name: Upgrade pip
         run: python -m pip install --upgrade pip
       - name: Setup Poetry
-        uses: abatilo/actions-poetry@v2
+        uses: abatilo/actions-poetry@c31426b23a8080795905ec73c9e458a2447cb2f2
         with:
           poetry-version: ${{ matrix.poetry-version }}
       - name: Install dependencies
