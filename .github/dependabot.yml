@@ -38,4 +38,14 @@ updates:
   - package-ecosystem: docker
     directory: /
     schedule:
-      interval: daily
+      interval: "monthly"
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          - "version-update:semver-major"
+    reviewers:
+      - "saurbhc"
+      - "JBWilkie"
+    open-pull-requests-limit: 1
+    labels:
+      - "dependencies"

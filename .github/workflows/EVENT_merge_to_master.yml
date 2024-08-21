@@ -15,27 +15,48 @@ jobs:
 
   run_tests:
     name: Run tests
-    uses: ./.github/workflows/JOB_tests.yml
+    runs-on: ubuntu-latest
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@5c7944e73c4c2a096b17a9cb74d65b6c2bbafbde # v2.9.1
+        with:
+          egress-policy: audit
+      - name: Run tests
+        uses: ./.github/workflows/JOB_tests.yml
 
   documentation:
     name: Documentation
-    uses: ./.github/workflows/JOB_generate_documentation.yml
-    secrets: inherit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@5c7944e73c4c2a096b17a9cb74d65b6c2bbafbde # v2.9.1
+        with:
+          egress-policy: audit
+      - name: Generate Documentation
+        uses: ./.github/workflows/JOB_generate_documentation.yml
+        secrets: inherit
 
   warn_on_fail:
     needs: [run_tests, documentation]
-    if : ${{ failure() }}
+    if: ${{ failure() }}
     name: Slack message us on fail
-    uses: ./.github/workflows/JOB_slack_message.yml
-    secrets: inherit
-    with:
-      at_team: true
-      icon: ':warning:'
-      message: 'Master is failing after a push event, please review at ${{ github.event.repository.html_url }}/actions/runs/${{ github.run_id }}'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@5c7944e73c4c2a096b17a9cb74d65b6c2bbafbde # v2.9.1
+        with:
+          egress-policy: audit
+      - name: Send Slack message
+        uses: ./.github/workflows/JOB_slack_message.yml
+        secrets: inherit
+        with:
+          at_team: true
+          icon: ':warning:'
+          message: 'Master is failing after a push event, please review at ${{ github.event.repository.html_url }}/actions/runs/${{ github.run_id }}'
 
   success:
     needs: [run_tests, documentation]
-    if : ${{ success() }}
+    if: ${{ success() }}
     name: Success
     runs-on: ubuntu-latest
     steps:
@@ -43,7 +64,6 @@ jobs:
         uses: step-security/harden-runner@5c7944e73c4c2a096b17a9cb74d65b6c2bbafbde # v2.9.1
         with:
           egress-policy: audit
-
       - name: Set branch status to success
         uses: actions/github-script@ffc2c79a5b2490bd33e0a41c1de74b877714d736 # v3.2.0
         with:
