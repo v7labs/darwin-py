@@ -5,6 +5,8 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
 
+permissions:
+  contents: read
 
 # Prevent running concurrently
 concurrency:
@@ -41,4 +43,3 @@ jobs:
   run_tests:
     name: Run tests
     uses: ./.github/workflows/JOB_tests.yml
-

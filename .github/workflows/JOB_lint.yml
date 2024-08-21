@@ -9,6 +9,9 @@ on:
         description: "Files to lint"
         required: true
 
+permissions:
+  contents: read
+
 jobs:
   lint:
     if: ${{ inputs.files != '' }}
@@ -33,4 +36,3 @@ jobs:
     - name: Ruff Lint
       shell: bash
       run: bash ${{ github.workspace }}/deploy/format_lint.sh lint ${{ inputs.files }}
-

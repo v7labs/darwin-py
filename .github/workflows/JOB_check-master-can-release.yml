@@ -4,6 +4,9 @@ run-name: check-master-can-release
 on:
   workflow_call:
 
+permissions:
+  contents: read
+
 jobs:
   check-master-can-release:
     runs-on: ubuntu-latest

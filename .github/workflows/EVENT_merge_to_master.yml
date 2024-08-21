@@ -7,6 +7,9 @@ on:
       - master
   workflow_call:
 
+permissions:
+  contents: write
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -24,7 +27,7 @@ jobs:
 
   warn_on_fail:
     needs: [run_tests, documentation]
-    if : ${{ failure() }}
+    if: ${{ failure() }}
     name: Slack message us on fail
     uses: ./.github/workflows/JOB_slack_message.yml
     secrets: inherit
@@ -35,7 +38,7 @@ jobs:
 
   success:
     needs: [run_tests, documentation]
-    if : ${{ success() }}
+    if: ${{ success() }}
     name: Success
     runs-on: ubuntu-latest
     steps:

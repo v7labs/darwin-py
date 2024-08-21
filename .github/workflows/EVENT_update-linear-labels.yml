@@ -1,5 +1,8 @@
 name: "Update Linear Labels"
 
+permissions:
+  contents: read
+
 on:
   pull_request:
     branches: [master]
