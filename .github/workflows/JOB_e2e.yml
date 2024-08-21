@@ -38,7 +38,7 @@ jobs:
       - name: Upgrade pip
         run: python -m pip install --upgrade pip
       - name: Setup Poetry
-        uses: abatilo/actions-poetry@c31426b23a8080795905ec73c9e458a2447cb2f2
+        uses: abatilo/actions-poetry@7b6d33e44b4f08d7021a1dee3c044e9c253d6439
         with:
           poetry-version: ${{ matrix.poetry-version }}
       - name: Install dependencies
