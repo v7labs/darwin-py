@@ -64,8 +64,9 @@ def download_all_images_from_annotations(
         Recreate folders
     video_frames : bool, default: False
         Pulls video frames images instead of video files
-    force_slots: bool
+    force_slots: bool, default: False
         Pulls all slots of items into deeper file structure ({prefix}/{item_name}/{slot_name}/{file_name})
+        If False, all multi-slotted items and items with slots containing multiple source files will be downloaded as the deeper file structure
 
     Returns
     -------
@@ -108,16 +109,12 @@ def download_all_images_from_annotations(
             ):
                 continue
 
-        if not force_slots:
-            force_slots_for_item = False
-            if len(annotation.slots) > 1:
-                force_slots_for_item = True
-
-            for slot in annotation.slots:
-                if len(slot.source_files) > 1:
-                    force_slots_for_item = True
-        else:
+        if force_slots:
             force_slots_for_item = True
+        else:
+            force_slots_for_item = len(annotation.slots) > 1 or any(
+                len(slot.source_files) > 1 for slot in annotation.slots
+            )
 
         annotations_to_download_path.append((annotation_path, force_slots_for_item))
 
