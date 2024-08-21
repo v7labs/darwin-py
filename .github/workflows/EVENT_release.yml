@@ -48,8 +48,11 @@ jobs:
     uses: ./.github/workflows/JOB_tests.yml
 
   run_e2e:
-    needs: run_tests
     uses: ./.github/workflows/JOB_e2e.yml
+    secrets:
+      E2E_API_KEY: ${{ secrets.E2E_API_KEY }}
+      E2E_ENVIRONMENT: ${{ secrets.E2E_ENVIRONMENT }}
+      E2E_TEAM: ${{ secrets.E2E_TEAM }}
 
   release:
     needs: [run_tests, run_e2e]
@@ -101,9 +104,7 @@ jobs:
           poetry-version: "1.3.1"
       - name: Build package
         run: |
-          python ./deploy/nightly_package_setup.py
           poetry build
-          python ./deploy/revert_nightly_setup.py
 
       - name: Publish to Test PyPI
         uses: pypa/gh-action-pypi-publish@ec4db0b4ddc65acdf4bff5fa45ac92d78b56bdf0

@@ -8,6 +8,13 @@ on:
     paths:
       - "e2e_tests/**"
   workflow_call:
+    secrets:
+      E2E_API_KEY:
+        required: true
+      E2E_ENVIRONMENT:
+        required: true
+      E2E_TEAM:
+        required: true
 jobs:
   e2e:
     name: End to End Testing
