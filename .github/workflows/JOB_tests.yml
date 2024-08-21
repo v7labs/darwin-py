@@ -5,6 +5,9 @@ run-name: Tests
 on:
   workflow_call:
 
+permissions:
+  contents: read
+
 jobs:
   test:
     name: "Run Testing OS: ${{ matrix.os }} Python: ${{ matrix.python-version }}"
@@ -24,12 +27,17 @@ jobs:
             python-version: "3.9"
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - name: Harden Runner
+        uses: step-security/harden-runner@5c7944e73c4c2a096b17a9cb74d65b6c2bbafbde # v2.9.1
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
           ref: ${{ github.head_ref || github.ref }}
 
       - name: Install Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@39cd14951b08e74b54015e9e001cdefcf80e669f # v5.1.1
         with:
           python-version: ${{ matrix.python-version }}
 

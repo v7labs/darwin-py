@@ -11,9 +11,14 @@ jobs:
     name: Update Linear
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Harden Runner
+        uses: step-security/harden-runner@5c7944e73c4c2a096b17a9cb74d65b6c2bbafbde # v2.9.1
+        with:
+          egress-policy: audit
 
-      - uses: v7labs/update-linear-labels-action@v1
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - uses: v7labs/update-linear-labels-action@0d527ddba6f2f0e0c28c3ec5c8a26767caf13ee3 # v1
         with:
           label_name: "DarwinPy"
           branch_name: "${{ github.head_ref }}"

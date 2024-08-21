@@ -20,6 +20,9 @@ on:
 env:
   GH_TOKEN: ${{ github.token }}
 
+permissions:
+  contents: read
+
 jobs:
   get_changed_files:
     name: Get changed files
@@ -30,7 +33,12 @@ jobs:
       yaml_changed_files: ${{ steps.changed_yaml_files.outputs.yaml_changed_files }}
       json_changed_files: ${{ steps.changed_json_files.outputs.json_changed_files }}
     steps:
-      - uses: actions/checkout@v4
+      - name: Harden Runner
+        uses: step-security/harden-runner@5c7944e73c4c2a096b17a9cb74d65b6c2bbafbde # v2.9.1
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
           ref: ${{ github.head_ref || github.ref }}
       - name: Get changed files
