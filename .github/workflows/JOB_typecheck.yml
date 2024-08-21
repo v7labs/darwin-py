@@ -9,16 +9,24 @@ on:
         description: "Files to lint"
         required: true
 
+permissions:
+  contents: read
+
 jobs:
   typecheck:
     if: ${{ inputs.files != '' }}
     runs-on: ubuntu-latest
     steps:
+    - name: Harden Runner
+      uses: step-security/harden-runner@5c7944e73c4c2a096b17a9cb74d65b6c2bbafbde # v2.9.1
+      with:
+        egress-policy: audit
+
     - name: Check out source repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
     - name: Set up Python environment
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@39cd14951b08e74b54015e9e001cdefcf80e669f # v5.1.1
       with:
         python-version: "3.10"
 
