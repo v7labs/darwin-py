@@ -2,6 +2,7 @@
 
 [![Downloads](https://static.pepy.tech/personalized-badge/darwin-py?period=total&units=international_system&left_color=black&right_color=blue&left_text=Downloads)](https://pepy.tech/project/darwin-py) [![Downloads](https://static.pepy.tech/personalized-badge/darwin-py?period=month&units=international_system&left_color=black&right_color=blue&left_text=This%20month)](https://pepy.tech/project/darwin-py) [![GitHub Repo stars](https://img.shields.io/github/stars/v7labs/darwin-py?style=social)](https://github.com/v7labs/darwin-py/stargazers)
 [![Twitter Follow](https://img.shields.io/twitter/follow/V7Labs?style=social)](https://twitter.com/V7Labs)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/v7labs/darwin-py/badge)](https://scorecard.dev/viewer/?uri=github.com/v7labs/darwin-py)
 
 ⚡️ Official library to annotate, manage datasets, and models on
 [V7's Darwin Training Data Platform](https://darwin.v7labs.com). ⚡️
