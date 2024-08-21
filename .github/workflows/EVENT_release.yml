@@ -48,8 +48,11 @@ jobs:
     uses: ./.github/workflows/JOB_tests.yml
 
   run_e2e:
-    needs: run_tests
     uses: ./.github/workflows/JOB_e2e.yml
+    secrets:
+      E2E_API_KEY: ${{ secrets.E2E_API_KEY }}
+      E2E_ENVIRONMENT: ${{ secrets.E2E_ENVIRONMENT }}
+      E2E_TEAM: ${{ secrets.E2E_TEAM }}
 
   release:
     needs: [run_tests, run_e2e]
@@ -101,41 +104,39 @@ jobs:
           poetry-version: "1.3.1"
       - name: Build package
         run: |
-          python ./deploy/nightly_package_setup.py
           poetry build
-          python ./deploy/revert_nightly_setup.py
 
       - name: Publish to Test PyPI
         uses: pypa/gh-action-pypi-publish@ec4db0b4ddc65acdf4bff5fa45ac92d78b56bdf0
         with:
           repository-url: https://test.pypi.org/legacy/
 
-  notify_release:
-    needs: [release]
-    if: success()
-    uses: ./.github/workflows/JOB_slack_message.yml
-    secrets: inherit
-    with:
-      icon: ":rocket:"
-      at_team: true
-      message: |
-        :tada: *${{ inputs.release_tag || github.event.release.tag_name }}* has been released!
-        :link:
-          - https://pypi.org/project/darwin-py
-          - ${{ github.event.release.html_url }}
+  # notify_release:
+  #   needs: [release]
+  #   if: success()
+  #   uses: ./.github/workflows/JOB_slack_message.yml
+  #   secrets: inherit
+  #   with:
+  #     icon: ":rocket:"
+  #     at_team: true
+  #     message: |
+  #       :tada: *${{ inputs.release_tag || github.event.release.tag_name }}* has been released!
+  #       :link:
+  #         - https://pypi.org/project/darwin-py
+  #         - ${{ github.event.release.html_url }}
 
-  notify_failed_release:
-    needs: [release]
-    if: failure()
-    uses: ./.github/workflows/JOB_slack_message.yml
-    secrets: inherit
-    with:
-      icon: ":warning:"
-      at_team: true
-      message: |
-        :warning: *${{ inputs.release_tag || github.event.release.tag_name }}* Release has failed to be released!
+  # notify_failed_release:
+  #   needs: [release]
+  #   if: failure()
+  #   uses: ./.github/workflows/JOB_slack_message.yml
+  #   secrets: inherit
+  #   with:
+  #     icon: ":warning:"
+  #     at_team: true
+  #     message: |
+  #       :warning: *${{ inputs.release_tag || github.event.release.tag_name }}* Release has failed to be released!
 
-        *An error occurred performing release, and you may need to release manually.*
+  #       *An error occurred performing release, and you may need to release manually.*
 
-        :link:
-          - ${{ github.event.release.html_url }}
+  #       :link:
+  #         - ${{ github.event.release.html_url }}
