@@ -18,6 +18,8 @@ jobs:
   get_changed_files:
     name: Get changed files
     uses: ./.github/workflows/JOB_get_changed_files.yml
+    permissions:
+      contents: read
 
   format:
     name: Check format of python
@@ -25,6 +27,8 @@ jobs:
     uses: ./.github/workflows/JOB_format.yml
     with:
       files: ${{ needs.get_changed_files.outputs.python_changed_files }}
+    permissions:
+      contents: read
 
   lint:
     name: Lint python
@@ -32,6 +36,8 @@ jobs:
     uses: ./.github/workflows/JOB_lint.yml
     with:
       files: ${{ needs.get_changed_files.outputs.python_changed_files }}
+    permissions:
+      contents: read
 
   # typecheck:
   #   name: Analyse types in python
@@ -39,7 +45,11 @@ jobs:
   #   uses: ./.github/workflows/JOB_typecheck.yml
   #   with:
   #     files: ${{ needs.get_changed_files.outputs.python_changed_files }}
+  #   permissions:
+  #     contents: read
 
   run_tests:
     name: Run tests
     uses: ./.github/workflows/JOB_tests.yml
+    permissions:
+      contents: read

@@ -21,6 +21,8 @@ on:
 jobs:
   e2e:
     name: End to End Testing
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
@@ -62,6 +64,8 @@ jobs:
     name: Slack Notifier Bot
     needs: e2e
     if: failure() && github.event_name == 'schedule'
+    permissions:
+      contents: read
     uses: ./.github/workflows/JOB_slack_message.yml
     with:
       message: |
