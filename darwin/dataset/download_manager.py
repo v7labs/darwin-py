@@ -64,8 +64,9 @@ def download_all_images_from_annotations(
         Recreate folders
     video_frames : bool, default: False
         Pulls video frames images instead of video files
-    force_slots: bool
+    force_slots: bool, default: False
         Pulls all slots of items into deeper file structure ({prefix}/{item_name}/{slot_name}/{file_name})
+        If False, all multi-slotted items and items with slots containing multiple source files will be downloaded as the deeper file structure
 
     Returns
     -------
@@ -90,7 +91,7 @@ def download_all_images_from_annotations(
         if is_file_extension_allowed(image.name)
     }
 
-    annotations_to_download_path = []
+    annotations_to_download_path: List = []
     for annotation_path in annotations_path.glob(f"*.{annotation_format}"):
         annotation = parse_darwin_json(annotation_path, count=0)
         if annotation is None:
@@ -108,13 +109,14 @@ def download_all_images_from_annotations(
             ):
                 continue
 
-        annotations_to_download_path.append(annotation_path)
-        if len(annotation.slots) > 1:
-            force_slots = True
+        if force_slots:
+            force_slots_for_item = True
+        else:
+            force_slots_for_item = len(annotation.slots) > 1 or any(
+                len(slot.source_files) > 1 for slot in annotation.slots
+            )
 
-        for slot in annotation.slots:
-            if len(slot.source_files) > 1:
-                force_slots = True
+        annotations_to_download_path.append((annotation_path, force_slots_for_item))
 
     if remove_extra:
         annotations = (
@@ -138,7 +140,7 @@ def download_all_images_from_annotations(
 
     # Create the generator with the partial functions
     download_functions: List = []
-    for annotation_path in annotations_to_download_path:
+    for annotation_path, force_slots in annotations_to_download_path:
         file_download_functions = lazy_download_image_from_annotation(
             api_key,
             annotation_path,

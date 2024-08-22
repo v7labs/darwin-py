@@ -9,6 +9,7 @@ on:
 
 permissions:
   contents: read
+  id-token: write # Necessary for the generate documentation job 
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -24,6 +25,9 @@ jobs:
     name: Documentation
     uses: ./.github/workflows/JOB_generate_documentation.yml
     secrets: inherit
+    permissions:
+      id-token: write
+      contents: read
 
   warn_on_fail:
     needs: [run_tests, documentation]
