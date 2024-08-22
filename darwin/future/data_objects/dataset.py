@@ -1,6 +1,6 @@
 from typing import List, Optional
 
-from pydantic import PositiveInt, validator
+from pydantic import PositiveInt, field_validator
 
 from darwin.future.data_objects.release import ReleaseList
 from darwin.future.data_objects.validators import parse_name
@@ -30,7 +30,7 @@ class DatasetCore(DefaultDarwin):
     releases: Optional[ReleaseList] = None
 
     # Data Validation
-    _name_validator = validator("name", allow_reuse=True)(parse_name)
+    _name_validator = field_validator("name")(parse_name)
 
 
 DatasetList = List[DatasetCore]

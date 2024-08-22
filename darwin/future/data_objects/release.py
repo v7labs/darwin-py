@@ -1,6 +1,6 @@
 from typing import List
 
-from pydantic import validator
+from pydantic import field_validator
 
 from darwin.future.data_objects import validators as darwin_validators
 from darwin.future.pydantic_base import DefaultDarwin
@@ -26,7 +26,7 @@ class ReleaseCore(DefaultDarwin):
         return self.name
 
     # Data Validation
-    _name_validator = validator("name", allow_reuse=True)(darwin_validators.parse_name)
+    _name_validator = field_validator("name")(darwin_validators.parse_name)
 
 
 ReleaseList = List[ReleaseCore]

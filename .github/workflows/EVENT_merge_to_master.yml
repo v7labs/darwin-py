@@ -7,6 +7,9 @@ on:
       - master
   workflow_call:
 
+permissions:
+  contents: read
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -24,7 +27,7 @@ jobs:
 
   warn_on_fail:
     needs: [run_tests, documentation]
-    if : ${{ failure() }}
+    if: ${{ failure() }}
     name: Slack message us on fail
     uses: ./.github/workflows/JOB_slack_message.yml
     secrets: inherit
@@ -35,9 +38,12 @@ jobs:
 
   success:
     needs: [run_tests, documentation]
-    if : ${{ success() }}
+    if: ${{ success() }}
     name: Success
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      statuses: write
     steps:
       - name: Harden Runner
         uses: step-security/harden-runner@5c7944e73c4c2a096b17a9cb74d65b6c2bbafbde # v2.9.1
