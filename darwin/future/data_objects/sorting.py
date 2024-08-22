@@ -1,6 +1,6 @@
 from typing import Literal, Optional
 
-from pydantic import BaseModel, Field, root_validator
+from pydantic import BaseModel, Field, model_validator
 
 
 class SortingMethods(BaseModel):
@@ -12,7 +12,7 @@ class SortingMethods(BaseModel):
     priority: Optional[Literal["asc", "desc"]] = Field(None)
     updated_at: Optional[Literal["asc", "desc"]] = Field(None)
 
-    @root_validator(pre=True)
+    @model_validator(mode="before")
     def check_at_least_one_field(cls, values):
         assert any(value is not None for value in values.values())
         return values

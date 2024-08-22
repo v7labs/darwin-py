@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import List, Optional
 
-from pydantic import validator
+from pydantic import field_validator
 
 from darwin.future.core.client import ClientCore
 from darwin.future.core.team.get_raw import get_team_raw
@@ -56,7 +56,7 @@ class TeamCore(DefaultDarwin):
     default_role: TeamMemberRole = TeamMemberRole.USER
 
     # Data Validation
-    _slug_validator = validator("slug", allow_reuse=True)(parse_name)
+    _slug_validator = field_validator("slug")(parse_name)
 
     @staticmethod
     def from_client(client: ClientCore, team_slug: Optional[str] = None) -> TeamCore:

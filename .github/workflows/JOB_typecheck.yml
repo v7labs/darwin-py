@@ -36,6 +36,5 @@ jobs:
     - name: MyPy typecheck
       shell: bash
       run: |
-        pip install pydantic
+        pip install pydantic==2.8.2
         bash ${{ github.workspace }}/deploy/format_lint.sh typecheck ${{ inputs.files }}
-

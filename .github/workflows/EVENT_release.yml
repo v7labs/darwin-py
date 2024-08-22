@@ -22,6 +22,9 @@ on:
         description: "Is the release a draft"
         required: false
 
+permissions:
+  contents: read
+
 env:
   release_id: ${{ inputs.release_id || github.event.release.id }}
   release_tag: ${{ inputs.release_tag || github.event.release.tag_name }}
@@ -31,6 +34,8 @@ env:
 jobs:
   validate_tag:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Harden Runner
         uses: step-security/harden-runner@5c7944e73c4c2a096b17a9cb74d65b6c2bbafbde # v2.9.1
@@ -70,6 +75,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       id-token: write
+      contents: write
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
@@ -98,6 +104,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       id-token: write
+      contents: write
     steps:
       - name: Harden Runner
         uses: step-security/harden-runner@5c7944e73c4c2a096b17a9cb74d65b6c2bbafbde # v2.9.1
