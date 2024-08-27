@@ -1351,8 +1351,10 @@ def _import_annotations(
         )
 
         if (
-            annotation_type not in remote_classes
-            or annotation_class.name not in remote_classes[annotation_type]
+            (
+                annotation_type not in remote_classes
+                or annotation_class.name not in remote_classes[annotation_type]
+            )
             and annotation_type
             != "raster_layer"  # We do not skip raster layers as they are always available.
         ):
