@@ -196,6 +196,18 @@ def create_annotation_file(
         f.write(op)
 
 
+@pytest.fixture
+def mock_remote_dataset():
+    client = MagicMock()
+    return RemoteDatasetV2(
+        client=client,
+        team="test_team",
+        name="test_dataset",
+        slug="test-dataset",
+        dataset_id=1,
+    )
+
+
 @pytest.fixture()
 def files_content() -> Dict[str, Any]:
     return {
@@ -581,6 +593,89 @@ class TestFetchRemoteFiles:
             responses.calls[0].request.params["item_names[]"]
             == "example,with, comma.mp4"
         )
+
+
+@pytest.mark.usefixtures("file_read_write_test")
+class TestFetchRemoteClasses:
+    @responses.activate
+    def test_fetch_remote_classes_team_wide(
+        self,
+        darwin_client: Client,
+        dataset_name: str,
+        dataset_slug: str,
+        team_slug_darwin_json_v2: str,
+    ):
+        remote_dataset = RemoteDatasetV2(
+            client=darwin_client,
+            team=team_slug_darwin_json_v2,
+            name=dataset_name,
+            slug=dataset_slug,
+            dataset_id=1,
+        )
+        with patch.object(
+            remote_dataset.client,
+            "fetch_remote_classes",
+            return_value=[
+                {
+                    "name": "class1",
+                    "datasets": [{"id": 1}],
+                    "annotation_types": ["type1"],
+                },
+                {
+                    "name": "class2",
+                    "datasets": [{"id": 2}],
+                    "annotation_types": ["type2"],
+                },
+                {
+                    "name": "raster_class",
+                    "datasets": [],
+                    "annotation_types": ["raster_layer"],
+                },
+            ],
+        ):
+            result = remote_dataset.fetch_remote_classes(team_wide=True)
+            assert len(result) == 3
+            assert any(cls["name"] == "raster_class" for cls in result)
+
+    @responses.activate
+    def test_fetch_remote_classes_local_to_dataset(
+        self,
+        darwin_client: Client,
+        dataset_name: str,
+        dataset_slug: str,
+        team_slug_darwin_json_v2: str,
+    ):
+        remote_dataset = RemoteDatasetV2(
+            client=darwin_client,
+            team=team_slug_darwin_json_v2,
+            name=dataset_name,
+            slug=dataset_slug,
+            dataset_id=1,
+        )
+        with patch.object(
+            remote_dataset.client,
+            "fetch_remote_classes",
+            return_value=[
+                {
+                    "name": "class1",
+                    "datasets": [{"id": 1}],
+                    "annotation_types": ["type1"],
+                },
+                {
+                    "name": "class2",
+                    "datasets": [{"id": 2}],
+                    "annotation_types": ["type2"],
+                },
+                {
+                    "name": "raster_class",
+                    "datasets": [],
+                    "annotation_types": ["raster_layer"],
+                },
+            ],
+        ):
+            result = remote_dataset.fetch_remote_classes(team_wide=False)
+            assert len(result) == 2
+            assert any(cls["name"] == "raster_class" for cls in result)
 
 
 @pytest.fixture
