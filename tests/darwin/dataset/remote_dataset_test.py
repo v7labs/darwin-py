@@ -196,18 +196,6 @@ def create_annotation_file(
         f.write(op)
 
 
-@pytest.fixture
-def mock_remote_dataset():
-    client = MagicMock()
-    return RemoteDatasetV2(
-        client=client,
-        team="test_team",
-        name="test_dataset",
-        slug="test-dataset",
-        dataset_id=1,
-    )
-
-
 @pytest.fixture()
 def files_content() -> Dict[str, Any]:
     return {
@@ -597,6 +585,36 @@ class TestFetchRemoteFiles:
 
 @pytest.mark.usefixtures("file_read_write_test")
 class TestFetchRemoteClasses:
+    def setup_method(self):
+        self.mock_classes = [
+            {
+                "name": "class1",
+                "datasets": [{"id": 1}],
+                "annotation_types": ["type1"],
+            },
+            {
+                "name": "class2",
+                "datasets": [{"id": 2}],
+                "annotation_types": ["type2"],
+            },
+            {
+                "name": "raster_class",
+                "datasets": [],
+                "annotation_types": ["raster_layer"],
+            },
+        ]
+
+    def create_remote_dataset(
+        self, darwin_client, dataset_name, dataset_slug, team_slug_darwin_json_v2
+    ):
+        return RemoteDatasetV2(
+            client=darwin_client,
+            team=team_slug_darwin_json_v2,
+            name=dataset_name,
+            slug=dataset_slug,
+            dataset_id=1,
+        )
+
     @responses.activate
     def test_fetch_remote_classes_team_wide(
         self,
@@ -605,33 +623,13 @@ class TestFetchRemoteClasses:
         dataset_slug: str,
         team_slug_darwin_json_v2: str,
     ):
-        remote_dataset = RemoteDatasetV2(
-            client=darwin_client,
-            team=team_slug_darwin_json_v2,
-            name=dataset_name,
-            slug=dataset_slug,
-            dataset_id=1,
+        remote_dataset = self.create_remote_dataset(
+            darwin_client, dataset_name, dataset_slug, team_slug_darwin_json_v2
         )
         with patch.object(
             remote_dataset.client,
             "fetch_remote_classes",
-            return_value=[
-                {
-                    "name": "class1",
-                    "datasets": [{"id": 1}],
-                    "annotation_types": ["type1"],
-                },
-                {
-                    "name": "class2",
-                    "datasets": [{"id": 2}],
-                    "annotation_types": ["type2"],
-                },
-                {
-                    "name": "raster_class",
-                    "datasets": [],
-                    "annotation_types": ["raster_layer"],
-                },
-            ],
+            return_value=self.mock_classes,
         ):
             result = remote_dataset.fetch_remote_classes(team_wide=True)
             assert len(result) == 3
@@ -645,33 +643,13 @@ class TestFetchRemoteClasses:
         dataset_slug: str,
         team_slug_darwin_json_v2: str,
     ):
-        remote_dataset = RemoteDatasetV2(
-            client=darwin_client,
-            team=team_slug_darwin_json_v2,
-            name=dataset_name,
-            slug=dataset_slug,
-            dataset_id=1,
+        remote_dataset = self.create_remote_dataset(
+            darwin_client, dataset_name, dataset_slug, team_slug_darwin_json_v2
         )
         with patch.object(
             remote_dataset.client,
             "fetch_remote_classes",
-            return_value=[
-                {
-                    "name": "class1",
-                    "datasets": [{"id": 1}],
-                    "annotation_types": ["type1"],
-                },
-                {
-                    "name": "class2",
-                    "datasets": [{"id": 2}],
-                    "annotation_types": ["type2"],
-                },
-                {
-                    "name": "raster_class",
-                    "datasets": [],
-                    "annotation_types": ["raster_layer"],
-                },
-            ],
+            return_value=self.mock_classes,
         ):
             result = remote_dataset.fetch_remote_classes(team_wide=False)
             assert len(result) == 2
