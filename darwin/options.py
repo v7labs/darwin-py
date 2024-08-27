@@ -183,6 +183,12 @@ class Options:
             action="store_true",
             help="Preserve the local folder structure in the dataset.",
         )
+        parser_push.add_argument(
+            "--item-merge-mode",
+            type=str,
+            choices=["slots", "series", "channels"],
+            help="Specify the item merge mode: slots, series, or channels",
+        )
 
         # Remove
         parser_remove = dataset_action.add_parser(

@@ -18,7 +18,9 @@ from darwin.dataset import RemoteDataset
 from darwin.dataset.release import Release
 from darwin.dataset.upload_manager import (
     FileUploadCallback,
+    ItemMergeMode,
     LocalFile,
+    MultiFileItem,
     ProgressCallback,
     UploadHandler,
     UploadHandlerV2,
@@ -166,6 +168,7 @@ class RemoteDatasetV2(RemoteDataset):
         preserve_folders: bool = False,
         progress_callback: Optional[ProgressCallback] = None,
         file_upload_callback: Optional[FileUploadCallback] = None,
+        item_merge_mode: Optional[str] = None,
     ) -> UploadHandler:
         """
         Uploads a local dataset (images ONLY) in the datasets directory.
@@ -173,7 +176,8 @@ class RemoteDatasetV2(RemoteDataset):
         Parameters
         ----------
         files_to_upload : Optional[List[Union[PathLike, LocalFile]]]
-            List of files to upload. Those can be folders.
+            List of files to upload. These can be folders.
+            If `item_merge_mode` is set, these must be folders.
         blocking : bool, default: True
             If False, the dataset is not uploaded and a generator function is returned instead.
         multi_threaded : bool, default: True
@@ -188,7 +192,7 @@ class RemoteDatasetV2(RemoteDataset):
         extract_views: bool, default: False
             When the uploading file is a volume, specify whether it's going to be split into orthogonal views.
         files_to_exclude : Optional[PathLike]], default: None
-            Optional list of files to exclude from the file scan. Those can be folders.
+            Optional list of files to exclude from the file scan. These can be folders.
         path: Optional[str], default: None
             Optional path to store the files in.
         preserve_folders : bool, default: False
@@ -197,6 +201,13 @@ class RemoteDatasetV2(RemoteDataset):
             Optional callback, called every time the progress of an uploading files is reported.
         file_upload_callback: Optional[FileUploadCallback], default: None
             Optional callback, called every time a file chunk is uploaded.
+        item_merge_mode: Optional[str], default: None
+            If set, each file path passed to `files_to_upload` behaves as follows:
+            - Every path that points directly to a file is ignored
+            - Each folder of files passed to `files_to_upload` will be uploaded according to the following modes:
+                - "slots": Each file in the folder will be uploaded to a different slot of the same item.
+                - "series": All `.dcm` files in the folder will be concatenated into a single slot. All other files are ignored.
+                - "channels": Each file in the folder will be uploaded to a different channel of the same item.
 
         Returns
         -------
@@ -216,39 +227,41 @@ class RemoteDatasetV2(RemoteDataset):
         if files_to_upload is None:
             raise ValueError("No files or directory specified.")
 
+        if item_merge_mode:
+            try:
+                item_merge_mode = ItemMergeMode(item_merge_mode)
+            except ValueError:
+                raise ValueError(
+                    f"Invalid item merge mode: {item_merge_mode}. Valid options are: 'slots', 'series', 'channels"
+                )
+
+        if item_merge_mode and preserve_folders:
+            raise TypeError("Cannot use `preserve_folders` with `item_merge_mode`")
+
+        # Direct file paths
         uploading_files = [
             item for item in files_to_upload if isinstance(item, LocalFile)
         ]
+
+        # Folder paths
         search_files = [
             item for item in files_to_upload if not isinstance(item, LocalFile)
         ]
 
-        generic_parameters_specified = (
-            path is not None or fps != 0 or as_frames is not False
-        )
-        if uploading_files and generic_parameters_specified:
-            raise ValueError("Cannot specify a path when uploading a LocalFile object.")
-
-        for found_file in find_files(search_files, files_to_exclude=files_to_exclude):
-            local_path = path
-            if preserve_folders:
-                source_files = [
-                    source_file
-                    for source_file in search_files
-                    if is_relative_to(found_file, source_file)
-                ]
-                if source_files:
-                    local_path = str(
-                        found_file.relative_to(source_files[0]).parent.as_posix()
-                    )
-            uploading_files.append(
-                LocalFile(
-                    found_file,
-                    fps=fps,
-                    as_frames=as_frames,
-                    extract_views=extract_views,
-                    path=local_path,
-                )
+        if item_merge_mode:
+            uploading_files = find_files_to_upload_merging(
+                search_files, files_to_exclude, item_merge_mode
+            )
+        else:
+            uploading_files = find_files_to_upload_no_merging(
+                search_files,
+                files_to_exclude,
+                path,
+                fps,
+                as_frames,
+                extract_views,
+                preserve_folders,
+                uploading_files,
             )
 
         if not uploading_files:
@@ -842,3 +855,68 @@ class RemoteDatasetV2(RemoteDataset):
                 print(f"  - {item}")
         print(f"Reistration complete. Check your items in the dataset: {self.slug}")
         return results
+
+
+def find_files_to_upload_merging(
+    search_files: List[PathLike],
+    files_to_exclude: Optional[List[PathLike]],
+    item_merge_mode: str,
+) -> List[MultiFileItem]:
+    multi_file_items = []
+    for directory in search_files:
+        files_in_directory = list(
+            find_files([directory], files_to_exclude=files_to_exclude, recursive=False)
+        )
+        if not files_in_directory:
+            print(
+                f"Warning: There are no uploading files in the first level of {directory}, skipping"
+            )
+            continue
+        multi_file_items.append(
+            MultiFileItem(directory, files_in_directory, item_merge_mode)
+        )
+    if not multi_file_items:
+        raise ValueError(
+            "No valid folders to upload after searching the passed directories for files"
+        )
+    return multi_file_items
+
+
+def find_files_to_upload_no_merging(
+    search_files: List[PathLike],
+    files_to_exclude: Optional[List[PathLike]],
+    path: Optional[str],
+    fps: int,
+    as_frames: bool,
+    extract_views: bool,
+    preserve_folders: bool,
+    uploading_files: List[LocalFile],
+) -> List[LocalFile]:
+    generic_parameters_specified = (
+        path is not None or fps != 0 or as_frames is not False
+    )
+    if uploading_files and generic_parameters_specified:
+        raise ValueError("Cannot specify a path when uploading a LocalFile object.")
+
+    for found_file in find_files(search_files, files_to_exclude=files_to_exclude):
+        local_path = path
+        if preserve_folders:
+            source_files = [
+                source_file
+                for source_file in search_files
+                if is_relative_to(found_file, source_file)
+            ]
+            if source_files:
+                local_path = str(
+                    found_file.relative_to(source_files[0]).parent.as_posix()
+                )
+        uploading_files.append(
+            LocalFile(
+                found_file,
+                fps=fps,
+                as_frames=as_frames,
+                extract_views=extract_views,
+                path=local_path,
+            )
+        )
+    return uploading_files

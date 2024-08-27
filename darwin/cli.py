@@ -126,6 +126,7 @@ def _run(args: Namespace, parser: ArgumentParser) -> None:
                 args.extract_views,
                 args.preserve_folders,
                 args.verbose,
+                args.item_merge_mode,
             )
         # Remove a project (remotely)
         elif args.action == "remove":

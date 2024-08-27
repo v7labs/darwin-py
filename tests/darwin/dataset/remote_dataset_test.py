@@ -659,6 +659,20 @@ class TestPush:
         with pytest.raises(UnsupportedFileType):
             remote_dataset.push(["test.txt"])
 
+    def test_raises_if_invalid_item_merge_mode(self, remote_dataset: RemoteDataset):
+        with pytest.raises(ValueError):
+            remote_dataset.push(["path/to/dir"], item_merge_mode="invalid")
+
+    def test_raises_if_preserve_folders_with_item_merge_mode(
+        self, remote_dataset: RemoteDataset
+    ):
+        with pytest.raises(TypeError):
+            remote_dataset.push(
+                ["path/to/dir"],
+                item_merge_mode="slots",
+                preserve_folders=True,
+            )
+
 
 @pytest.mark.usefixtures("file_read_write_test")
 class TestPull:

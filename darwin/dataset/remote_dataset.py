@@ -138,6 +138,7 @@ class RemoteDataset(ABC):
         preserve_folders: bool = False,
         progress_callback: Optional[ProgressCallback] = None,
         file_upload_callback: Optional[FileUploadCallback] = None,
+        item_merge_mode: Optional[str] = None,
     ) -> UploadHandler:
         pass
 

@@ -656,6 +656,7 @@ def upload_data(
     extract_views: bool = False,
     preserve_folders: bool = False,
     verbose: bool = False,
+    item_merge_mode: Optional[str] = None,
 ) -> None:
     """
     Uploads the provided files to the remote dataset.
@@ -684,6 +685,13 @@ def upload_data(
         Specify whether or not to preserve folder paths when uploading.
     verbose : bool
         Specify whether to have full traces print when uploading files or not.
+    item_merge_mode : Optional[str]
+        If set, each file path passed to `files_to_upload` behaves as follows:
+        - Every path that points directly to a file is ignored
+        - Each folder of files passed to `files_to_upload` will be uploaded according to the following modes:
+            - "slots": Each file in the folder will be uploaded to a different slot of the same item.
+            - "series": All `.dcm` files in the folder will be concatenated into a single slot. All other files are ignored.
+            - "channels": Each file in the folder will be uploaded to a different channel of the same item.
     """
     client: Client = _load_client()
     try:
@@ -773,6 +781,7 @@ def upload_data(
                 preserve_folders=preserve_folders,
                 progress_callback=progress_callback,
                 file_upload_callback=file_upload_callback,
+                item_merge_mode=item_merge_mode,
             )
         console = Console(theme=_console_theme())
 

@@ -2,6 +2,7 @@ import concurrent.futures
 import os
 import time
 from dataclasses import dataclass
+from enum import Enum
 from pathlib import Path
 from typing import (
     TYPE_CHECKING,
@@ -29,6 +30,12 @@ if TYPE_CHECKING:
 
 from abc import ABC, abstractmethod
 from typing import Dict
+
+
+class ItemMergeMode(Enum):
+    SLOTS = "slots"
+    SERIES = "series"
+    CHANNELS = "channels"
 
 
 class ItemPayload:
@@ -184,6 +191,31 @@ class LocalFile:
     def full_path(self) -> str:
         """The full ``Path`` (with filename inclduded) to the file."""
         return construct_full_path(self.data["path"], self.data["filename"])
+
+
+class MultiFileItem:
+    def __init__(
+        self, directory: PathLike, files: List[PathLike], merge_mode: ItemMergeMode
+    ):
+        self.directory = directory
+        self.files = files
+        self.merge_mode = merge_mode
+        self.layout = self._create_layout()
+        self.temp = {"version": 2, "slots": ["1", "2", "3"], "type": "grid"}
+
+    def _create_layout(self):
+        # TODO
+        if (
+            self.merge_mode == ItemMergeMode.slots
+            or self.merge_mode == ItemMergeMode.series
+        ):
+            return {
+                "version": 2,
+                "slots": [str(i) for i in range(len(self.files))],
+                "type": "grid",  # Worth experimenting with - Is this the best option? Should we change this dynamically?
+            }
+        else:
+            return {"version": 3, "slots_grid": [[[file.name for file in self.files]]]}
 
 
 class FileMonitor(object):
