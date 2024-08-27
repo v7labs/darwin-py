@@ -1518,6 +1518,9 @@ def _get_annotation_format(
     annotation_format : str
         The annotation format of the importer used to parse local files
     """
+    # This `if` block is temporary, but necessary while we migrate NifTI imports between the legacy method & the new method
+    if isinstance(importer, partial):
+        return importer.func.__module__.split(".")[3]
     return importer.__module__.split(".")[3]
 
 
