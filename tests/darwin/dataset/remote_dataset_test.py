@@ -20,8 +20,17 @@ from darwin.dataset.download_manager import (
     download_all_images_from_annotations,
 )
 from darwin.dataset.release import Release, ReleaseStatus
-from darwin.dataset.remote_dataset_v2 import RemoteDatasetV2
-from darwin.dataset.upload_manager import LocalFile, UploadHandlerV2
+from darwin.dataset.remote_dataset_v2 import (
+    RemoteDatasetV2,
+    _find_files_to_upload_merging,
+    _find_files_to_upload_no_merging,
+)
+from darwin.dataset.upload_manager import (
+    ItemMergeMode,
+    LocalFile,
+    MultiFileItem,
+    UploadHandlerV2,
+)
 from darwin.datatypes import ManifestItem, ObjectStore, SegmentManifest
 from darwin.exceptions import UnsupportedExportFormat, UnsupportedFileType
 from darwin.item import DatasetItem
@@ -601,6 +610,14 @@ def remote_dataset(
 
 @pytest.mark.usefixtures("file_read_write_test")
 class TestPush:
+    @pytest.fixture(scope="class")
+    def setup_zip(self):
+        zip_path = Path("tests/darwin/data/push_test_dir.zip")
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with zipfile.ZipFile(zip_path, "r") as zip_ref:
+                zip_ref.extractall(tmpdir)
+            yield Path(tmpdir)
+
     def test_raises_if_files_are_not_provided(self, remote_dataset: RemoteDataset):
         with pytest.raises(ValueError):
             remote_dataset.push(None)
@@ -672,6 +689,131 @@ class TestPush:
                 item_merge_mode="slots",
                 preserve_folders=True,
             )
+
+    def test_find_files_to_upload_merging_slots(self, setup_zip):
+        base_path = setup_zip / "push_test_dir" / "dir1"
+        search_files = [base_path / "item1", base_path / "item2"]
+        multi_file_items = _find_files_to_upload_merging(search_files, [], "slots")
+        assert len(multi_file_items) == 2
+        assert all(isinstance(item, MultiFileItem) for item in multi_file_items)
+
+    def test_find_files_to_upload_merging_series(self, setup_zip):
+        base_path = setup_zip / "push_test_dir" / "dir1"
+        search_files = [base_path / "dicoms"]
+        multi_file_items = _find_files_to_upload_merging(search_files, [], "series")
+        assert len(multi_file_items) == 1
+        assert all(isinstance(item, MultiFileItem) for item in multi_file_items)
+
+    def test_find_files_to_upload_merging_channels(self, setup_zip):
+        base_path = setup_zip / "push_test_dir" / "dir1"
+        search_files = [base_path / "item1", base_path / "item2"]
+        multi_file_items = _find_files_to_upload_merging(search_files, [], "slots")
+        assert len(multi_file_items) == 2
+
+    def test_find_files_to_upload_merging_does_not_search_recursively(self, setup_zip):
+        base_path = setup_zip / "push_test_dir" / "dir2"
+        search_files = [base_path / "recursive_search"]
+        multi_file_items = _find_files_to_upload_merging(search_files, [], "slots")
+        assert len(multi_file_items) == 1
+        assert len(multi_file_items[0].files) == 2
+
+    def test_find_files_to_upload_no_merging_searches_recursively(self, setup_zip):
+        base_path = setup_zip / "push_test_dir" / "dir2"
+        search_files = [base_path / "recursive_search"]
+        local_files = _find_files_to_upload_no_merging(
+            search_files,
+            [],
+            None,
+            0,
+            False,
+            False,
+            False,
+            [],
+        )
+        assert len(local_files) == 11
+        assert all(isinstance(file, LocalFile) for file in local_files)
+
+    def test_find_files_to_upload_no_merging_no_files(self, setup_zip):
+        base_path = setup_zip / "push_test_dir" / "dir2"
+        search_files = [base_path / "no_files1", base_path / "no_files2"]
+        with pytest.raises(
+            ValueError,
+            match="No files to upload, check your path, exclusion filters and resume flag",
+        ):
+            _find_files_to_upload_no_merging(
+                search_files,
+                [],
+                None,
+                0,
+                False,
+                False,
+                False,
+                [],
+            )
+
+
+class TestMultiFileItem:
+    @pytest.fixture(scope="class")
+    def setup_zip(self):
+        zip_path = Path("tests/darwin/data/push_test_dir.zip")
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with zipfile.ZipFile(zip_path, "r") as zip_ref:
+                zip_ref.extractall(tmpdir)
+            yield Path(tmpdir)
+
+    def test_create_multi_file_item_slots(self, setup_zip):
+        base_path = setup_zip / "push_test_dir" / "dir1" / "item1"
+        files = list(base_path.glob("*"))
+        item = MultiFileItem(base_path, files, merge_mode=ItemMergeMode.SLOTS)
+        assert len(item.files) == 7
+        assert item.name == "item1"
+        assert item.layout == {
+            "version": 2,
+            "slots": ["0", "1", "2", "3", "4", "5", "6"],
+            "type": "grid",
+        }
+
+    def test_create_multi_file_item_series(self, setup_zip):
+        base_path = setup_zip / "push_test_dir" / "dir1" / "dicoms"
+        files = list(base_path.glob("*"))
+        item = MultiFileItem(base_path, files, merge_mode=ItemMergeMode.SERIES)
+        assert len(item.files) == 6
+        assert item.name == "dicoms"
+        assert item.layout == {
+            "version": 2,
+            "slots": ["0", "1", "2", "3", "4", "5"],
+            "type": "grid",
+        }
+
+    def test_create_multi_file_item_channels(self, setup_zip):
+        base_path = setup_zip / "push_test_dir" / "dir1" / "item1"
+        files = list(base_path.glob("*"))
+        item = MultiFileItem(base_path, files, merge_mode=ItemMergeMode.CHANNELS)
+        assert len(item.files) == 7
+        assert item.name == "item1"
+        assert item.layout == {
+            "version": 3,
+            "slots_grid": [
+                [["4.jpg", "5.JPG", "7.JPG", "6.jpg", "3.JPG", "1.JPG", "2"]]
+            ],
+        }
+
+    def test_create_series_no_valid_files(self, setup_zip):
+        base_path = setup_zip / "push_test_dir" / "dir1" / "item1"
+        files = list(base_path.glob("*"))
+        with pytest.raises(
+            ValueError, match="No DICOM files found in 1st level of directory"
+        ):
+            MultiFileItem(base_path, files, merge_mode=ItemMergeMode.SERIES)
+
+    def test_create_channels_too_many_files(self, setup_zip):
+        base_path = setup_zip / "push_test_dir" / "dir2" / "too_many_channels"
+        files = list(base_path.glob("*"))
+        with pytest.raises(
+            ValueError,
+            match=f"No multi-channel item can have more than 16 channels. The following directory has 17 files: {base_path}",
+        ):
+            MultiFileItem(base_path, files, merge_mode=ItemMergeMode.CHANNELS)
 
 
 @pytest.mark.usefixtures("file_read_write_test")

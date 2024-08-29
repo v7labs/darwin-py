@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -204,7 +205,8 @@ class RemoteDatasetV2(RemoteDataset):
         item_merge_mode: Optional[str], default: None
             If set, each file path passed to `files_to_upload` behaves as follows:
             - Every path that points directly to a file is ignored
-            - Each folder of files passed to `files_to_upload` will be uploaded according to the following modes:
+            - Each folder of files passed to `files_to_upload` will be uploaded according to the following mode rules.
+              Note that folders will not be recursively searched, so only files in the first level of the folder will be uploaded:
                 - "slots": Each file in the folder will be uploaded to a different slot of the same item.
                 - "series": All `.dcm` files in the folder will be concatenated into a single slot. All other files are ignored.
                 - "channels": Each file in the folder will be uploaded to a different channel of the same item.
@@ -229,7 +231,7 @@ class RemoteDatasetV2(RemoteDataset):
 
         if item_merge_mode:
             try:
-                item_merge_mode = ItemMergeMode(item_merge_mode)
+                ItemMergeMode(item_merge_mode)
             except ValueError:
                 raise ValueError(
                     f"Invalid item merge mode: {item_merge_mode}. Valid options are: 'slots', 'series', 'channels"
@@ -249,11 +251,11 @@ class RemoteDatasetV2(RemoteDataset):
         ]
 
         if item_merge_mode:
-            uploading_files = find_files_to_upload_merging(
+            uploading_files = _find_files_to_upload_merging(
                 search_files, files_to_exclude, item_merge_mode
             )
         else:
-            uploading_files = find_files_to_upload_no_merging(
+            uploading_files = _find_files_to_upload_no_merging(
                 search_files,
                 files_to_exclude,
                 path,
@@ -262,11 +264,6 @@ class RemoteDatasetV2(RemoteDataset):
                 extract_views,
                 preserve_folders,
                 uploading_files,
-            )
-
-        if not uploading_files:
-            raise ValueError(
-                "No files to upload, check your path, exclusion filters and resume flag"
             )
 
         handler = UploadHandlerV2(self, uploading_files)
@@ -857,11 +854,33 @@ class RemoteDatasetV2(RemoteDataset):
         return results
 
 
-def find_files_to_upload_merging(
+def _find_files_to_upload_merging(
     search_files: List[PathLike],
-    files_to_exclude: Optional[List[PathLike]],
+    files_to_exclude: List[PathLike],
     item_merge_mode: str,
 ) -> List[MultiFileItem]:
+    """
+    Finds files to upload as either:
+        - Multi-slotted items
+        - Multi-channel items
+        - Single-slotted items containing multiple `.dcm` files
+
+    Does not search each directory recursively, only considers files in the first level of each directory.
+
+    Parameters
+    ----------
+    search_files : List[PathLike]
+        List of directories to search for files.
+    files_to_exclude : List[PathLike]
+        List of files to exclude from the file scan.
+    item_merge_mode : str
+        Mode to merge the files in the folders. Valid options are: 'slots', 'series', 'channels'.
+
+    Returns
+    -------
+    List[MultiFileItem]
+        List of files to upload.
+    """
     multi_file_items = []
     for directory in search_files:
         files_in_directory = list(
@@ -873,7 +892,9 @@ def find_files_to_upload_merging(
             )
             continue
         multi_file_items.append(
-            MultiFileItem(directory, files_in_directory, item_merge_mode)
+            MultiFileItem(
+                Path(directory), files_in_directory, ItemMergeMode(item_merge_mode)
+            )
         )
     if not multi_file_items:
         raise ValueError(
@@ -882,9 +903,9 @@ def find_files_to_upload_merging(
     return multi_file_items
 
 
-def find_files_to_upload_no_merging(
+def _find_files_to_upload_no_merging(
     search_files: List[PathLike],
-    files_to_exclude: Optional[List[PathLike]],
+    files_to_exclude: List[PathLike],
     path: Optional[str],
     fps: int,
     as_frames: bool,
@@ -892,6 +913,33 @@ def find_files_to_upload_no_merging(
     preserve_folders: bool,
     uploading_files: List[LocalFile],
 ) -> List[LocalFile]:
+    """
+    Finds files to upload as single-slotted dataset items. Recursively searches the passed directories for files.
+
+    Parameters
+    ----------
+    search_files : List[PathLike]
+        List of directories to search for files.
+    files_to_exclude : Optional[List[PathLike]]
+        List of files to exclude from the file scan.
+    path : Optional[str]
+        Path to store the files in.
+    fps: int
+        When uploading video files, specify the framerate.
+    as_frames: bool
+        When uploading video files, specify whether to upload as a list of frames.
+    extract_views: bool
+        When uploading volume files, specify whether to split into orthogonal views.
+    preserve_folders: bool
+        Specify whether or not to preserve folder paths when uploading.
+    uploading_files : List[LocalFile]
+        List of files to upload.
+
+    Returns
+    -------
+    List[LocalFile]
+        List of files to upload.
+    """
     generic_parameters_specified = (
         path is not None or fps != 0 or as_frames is not False
     )
@@ -919,4 +967,10 @@ def find_files_to_upload_no_merging(
                 path=local_path,
             )
         )
+
+    if not uploading_files:
+        raise ValueError(
+            "No files to upload, check your path, exclusion filters and resume flag"
+        )
+
     return uploading_files

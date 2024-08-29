@@ -14,6 +14,7 @@ from typing import (
     Optional,
     Set,
     Tuple,
+    Union,
 )
 
 import requests
@@ -194,27 +195,46 @@ class LocalFile:
 
 
 class MultiFileItem:
-    def __init__(
-        self, directory: PathLike, files: List[PathLike], merge_mode: ItemMergeMode
-    ):
+    def __init__(self, directory: Path, files: List[Path], merge_mode: ItemMergeMode):
         self.directory = directory
+        self.name = directory.name
         self.files = files
         self.merge_mode = merge_mode
         self.layout = self._create_layout()
-        self.temp = {"version": 2, "slots": ["1", "2", "3"], "type": "grid"}
 
     def _create_layout(self):
-        # TODO
-        if (
-            self.merge_mode == ItemMergeMode.slots
-            or self.merge_mode == ItemMergeMode.series
-        ):
+        """
+        Creates the layout to be used when uploading the files:
+        - For multi-slotted items: LayoutV2
+        - For series items: LayoutV2, but only with `.dcm` files
+        - For multi-channel items: LayoutV3
+
+        Raises
+        ------
+        ValueError
+            - If no DICOM files are found in the directory for ItemMergeMode.SEIRES items
+            - If the number of files is greater than 16 for ItemMergeMode.CHANNELS items
+        """
+        if self.merge_mode == ItemMergeMode.SLOTS:
             return {
                 "version": 2,
                 "slots": [str(i) for i in range(len(self.files))],
-                "type": "grid",  # Worth experimenting with - Is this the best option? Should we change this dynamically?
+                "type": "grid",
             }
-        else:
+        elif self.merge_mode == ItemMergeMode.SERIES:
+            self.files = [file for file in self.files if file.suffix.lower() == ".dcm"]
+            if not self.files:
+                raise ValueError("No DICOM files found in 1st level of directory")
+            return {
+                "version": 2,
+                "slots": [str(i) for i in range(len(self.files))],
+                "type": "grid",
+            }
+        elif self.merge_mode == ItemMergeMode.CHANNELS:
+            if len(self.files) > 16:
+                raise ValueError(
+                    f"No multi-channel item can have more than 16 channels. The following directory has {len(self.files)} files: {self.directory}"
+                )
             return {"version": 3, "slots_grid": [[[file.name for file in self.files]]]}
 
 
@@ -434,7 +454,11 @@ class UploadHandler(ABC):
 
 
 class UploadHandlerV2(UploadHandler):
-    def __init__(self, dataset: "RemoteDataset", local_files: List[LocalFile]):
+    def __init__(
+        self,
+        dataset: "RemoteDataset",
+        local_files: Union[List[LocalFile], List[MultiFileItem]],
+    ):
         super().__init__(dataset=dataset, local_files=local_files)
 
     def _request_upload(self) -> Tuple[List[ItemPayload], List[ItemPayload]]:
