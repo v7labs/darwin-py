@@ -692,7 +692,7 @@ class TestPush:
 
     def test_find_files_to_upload_merging_slots(self, setup_zip):
         base_path = setup_zip / "push_test_dir" / "dir1"
-        search_files = [base_path / "item1", base_path / "item2"]
+        search_files = [base_path / "jpegs", base_path / "dicoms"]
         multi_file_items = _find_files_to_upload_merging(search_files, [], "slots")
         assert len(multi_file_items) == 2
         assert all(isinstance(item, MultiFileItem) for item in multi_file_items)
@@ -706,8 +706,8 @@ class TestPush:
 
     def test_find_files_to_upload_merging_channels(self, setup_zip):
         base_path = setup_zip / "push_test_dir" / "dir1"
-        search_files = [base_path / "item1", base_path / "item2"]
-        multi_file_items = _find_files_to_upload_merging(search_files, [], "slots")
+        search_files = [base_path / "jpegs", base_path / "dicoms"]
+        multi_file_items = _find_files_to_upload_merging(search_files, [], "channels")
         assert len(multi_file_items) == 2
 
     def test_find_files_to_upload_merging_does_not_search_recursively(self, setup_zip):
@@ -735,7 +735,7 @@ class TestPush:
 
     def test_find_files_to_upload_no_merging_no_files(self, setup_zip):
         base_path = setup_zip / "push_test_dir" / "dir2"
-        search_files = [base_path / "no_files1", base_path / "no_files2"]
+        search_files = [base_path / "no_files_1", base_path / "no_files_2"]
         with pytest.raises(
             ValueError,
             match="No files to upload, check your path, exclusion filters and resume flag",
@@ -762,14 +762,14 @@ class TestMultiFileItem:
             yield Path(tmpdir)
 
     def test_create_multi_file_item_slots(self, setup_zip):
-        base_path = setup_zip / "push_test_dir" / "dir1" / "item1"
+        base_path = setup_zip / "push_test_dir" / "dir1" / "jpegs"
         files = list(base_path.glob("*"))
         item = MultiFileItem(base_path, files, merge_mode=ItemMergeMode.SLOTS)
-        assert len(item.files) == 7
-        assert item.name == "item1"
+        assert len(item.files) == 6
+        assert item.name == "jpegs"
         assert item.layout == {
             "version": 2,
-            "slots": ["0", "1", "2", "3", "4", "5", "6"],
+            "slots": ["0", "1", "2", "3", "4", "5"],
             "type": "grid",
         }
 
@@ -786,20 +786,18 @@ class TestMultiFileItem:
         }
 
     def test_create_multi_file_item_channels(self, setup_zip):
-        base_path = setup_zip / "push_test_dir" / "dir1" / "item1"
+        base_path = setup_zip / "push_test_dir" / "dir1" / "jpegs"
         files = list(base_path.glob("*"))
         item = MultiFileItem(base_path, files, merge_mode=ItemMergeMode.CHANNELS)
-        assert len(item.files) == 7
-        assert item.name == "item1"
+        assert len(item.files) == 6
+        assert item.name == "jpegs"
         assert item.layout == {
             "version": 3,
-            "slots_grid": [
-                [["4.jpg", "5.JPG", "7.JPG", "6.jpg", "3.JPG", "1.JPG", "2"]]
-            ],
+            "slots_grid": [[["4.jpg", "5.JPG", "7.JPG", "6.jpg", "3.JPG", "1.JPG"]]],
         }
 
     def test_create_series_no_valid_files(self, setup_zip):
-        base_path = setup_zip / "push_test_dir" / "dir1" / "item1"
+        base_path = setup_zip / "push_test_dir" / "dir1" / "jpegs"
         files = list(base_path.glob("*"))
         with pytest.raises(
             ValueError, match="No DICOM files found in 1st level of directory"
