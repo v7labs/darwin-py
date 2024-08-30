@@ -884,7 +884,12 @@ def _find_files_to_upload_merging(
     multi_file_items = []
     for directory in search_files:
         files_in_directory = list(
-            find_files([directory], files_to_exclude=files_to_exclude, recursive=False)
+            find_files(
+                [directory],
+                files_to_exclude=files_to_exclude,
+                recursive=False,
+                sort=True,
+            )
         )
         if not files_in_directory:
             print(

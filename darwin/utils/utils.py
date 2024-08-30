@@ -25,6 +25,7 @@ import orjson as json
 import requests
 from json_stream.base import PersistentStreamingJSONList, PersistentStreamingJSONObject
 from jsonschema import validators
+from natsort import natsorted
 from requests import Response
 from rich.progress import ProgressType, track
 from upolygon import draw_polygon
@@ -216,6 +217,7 @@ def find_files(
     *,
     files_to_exclude: List[dt.PathLike] = [],
     recursive: bool = True,
+    sort: bool = False,
 ) -> List[Path]:
     """
     Retrieve a list of all files belonging to supported extensions. The exploration can be made
@@ -229,7 +231,8 @@ def find_files(
         List of files to exclude from the search.
     recursive : bool
         Flag for recursive search.
-
+    sort : bool
+        Flag for sorting the files naturally, i.e. file2.txt will come before file10.txt.
     Returns
     -------
     List[Path]
@@ -255,8 +258,12 @@ def find_files(
             raise UnsupportedFileType(path)
 
     files_to_exclude_full_paths = [str(Path(f)) for f in files_to_exclude]
-
-    return [f for f in found_files if str(f) not in files_to_exclude_full_paths]
+    filtered_files = [
+        f for f in found_files if str(f) not in files_to_exclude_full_paths
+    ]
+    if sort:
+        return natsorted(filtered_files)
+    return filtered_files
 
 
 def secure_continue_request() -> bool:

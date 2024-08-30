@@ -10,6 +10,7 @@ from unittest.mock import MagicMock, patch
 import orjson as json
 import pytest
 import responses
+from natsort import natsorted
 from pydantic import ValidationError
 
 from darwin.client import Client
@@ -763,7 +764,7 @@ class TestMultiFileItem:
 
     def test_create_multi_file_item_slots(self, setup_zip):
         base_path = setup_zip / "push_test_dir" / "dir1" / "jpegs"
-        files = list(base_path.glob("*"))
+        files = natsorted(list(base_path.glob("*")))
         item = MultiFileItem(base_path, files, merge_mode=ItemMergeMode.SLOTS)
         assert len(item.files) == 6
         assert item.name == "jpegs"
@@ -775,7 +776,7 @@ class TestMultiFileItem:
 
     def test_create_multi_file_item_series(self, setup_zip):
         base_path = setup_zip / "push_test_dir" / "dir1" / "dicoms"
-        files = list(base_path.glob("*"))
+        files = natsorted(list(base_path.glob("*")))
         item = MultiFileItem(base_path, files, merge_mode=ItemMergeMode.SERIES)
         assert len(item.files) == 6
         assert item.name == "dicoms"
@@ -787,18 +788,18 @@ class TestMultiFileItem:
 
     def test_create_multi_file_item_channels(self, setup_zip):
         base_path = setup_zip / "push_test_dir" / "dir1" / "jpegs"
-        files = list(base_path.glob("*"))
+        files = natsorted(list(base_path.glob("*")))
         item = MultiFileItem(base_path, files, merge_mode=ItemMergeMode.CHANNELS)
         assert len(item.files) == 6
         assert item.name == "jpegs"
         assert item.layout == {
             "version": 3,
-            "slots_grid": [[["4.jpg", "5.JPG", "7.JPG", "6.jpg", "3.JPG", "1.JPG"]]],
+            "slots_grid": [[["1.JPG", "3.JPG", "4.jpg", "5.JPG", "6.jpg", "7.JPG"]]],
         }
 
     def test_create_series_no_valid_files(self, setup_zip):
         base_path = setup_zip / "push_test_dir" / "dir1" / "jpegs"
-        files = list(base_path.glob("*"))
+        files = natsorted(list(base_path.glob("*")))
         with pytest.raises(
             ValueError, match="No DICOM files found in 1st level of directory"
         ):
@@ -806,7 +807,7 @@ class TestMultiFileItem:
 
     def test_create_channels_too_many_files(self, setup_zip):
         base_path = setup_zip / "push_test_dir" / "dir2" / "too_many_channels"
-        files = list(base_path.glob("*"))
+        files = natsorted(list(base_path.glob("*")))
         with pytest.raises(
             ValueError,
             match=f"No multi-channel item can have more than 16 channels. The following directory has 17 files: {base_path}",
