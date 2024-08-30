@@ -187,7 +187,7 @@ class Options:
             "--item-merge-mode",
             type=str,
             choices=["slots", "series", "channels"],
-            help="Specify the item merge mode: slots, series, or channels",
+            help="Specify the item merge mode: `slots`, `series`, or `channels`",
         )
 
         # Remove

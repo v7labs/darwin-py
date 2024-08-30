@@ -204,7 +204,7 @@ class MultiFileItem:
 
     def _create_layout(self):
         """
-        Creates the layout to be used when uploading the files:
+        Creates the layout to be used when uploading the files as a dataset item:
         - For multi-slotted items: LayoutV2
         - For series items: LayoutV2, but only with `.dcm` files
         - For multi-channel items: LayoutV3
@@ -212,8 +212,8 @@ class MultiFileItem:
         Raises
         ------
         ValueError
-            - If no DICOM files are found in the directory for ItemMergeMode.SEIRES items
-            - If the number of files is greater than 16 for ItemMergeMode.CHANNELS items
+            - If no DICOM files are found in the directory for `ItemMergeMode.SERIES` items
+            - If the number of files is greater than 16 for `ItemMergeMode.CHANNELS` items
         """
         if self.merge_mode == ItemMergeMode.SLOTS:
             return {
@@ -224,7 +224,7 @@ class MultiFileItem:
         elif self.merge_mode == ItemMergeMode.SERIES:
             self.files = [file for file in self.files if file.suffix.lower() == ".dcm"]
             if not self.files:
-                raise ValueError("No DICOM files found in 1st level of directory")
+                raise ValueError("No `.dcm` files found in 1st level of directory")
             return {
                 "version": 2,
                 "slots": [str(i) for i in range(len(self.files))],
@@ -233,7 +233,7 @@ class MultiFileItem:
         elif self.merge_mode == ItemMergeMode.CHANNELS:
             if len(self.files) > 16:
                 raise ValueError(
-                    f"No multi-channel item can have more than 16 channels. The following directory has {len(self.files)} files: {self.directory}"
+                    f"No multi-channel item can have more than 16 files. The following directory has {len(self.files)} files: {self.directory}"
                 )
             return {"version": 3, "slots_grid": [[[file.name for file in self.files]]]}
 

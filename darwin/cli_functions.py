@@ -687,8 +687,8 @@ def upload_data(
         Specify whether to have full traces print when uploading files or not.
     item_merge_mode : Optional[str]
         If set, each file path passed to `files_to_upload` behaves as follows:
-        - Every path that points directly to a file is ignored
-        - Each folder of files passed to `files_to_upload` will be uploaded according to the following mode rules.
+        - Paths pointing directly to individual files are ignored
+        - Paths pointing to folders of files will be uploaded according to the following mode rules.
           Note that folders will not be recursively searched, so only files in the first level of the folder will be uploaded:
             - "slots": Each file in the folder will be uploaded to a different slot of the same item.
             - "series": All `.dcm` files in the folder will be concatenated into a single slot. All other files are ignored.

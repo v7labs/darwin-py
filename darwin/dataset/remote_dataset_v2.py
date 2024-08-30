@@ -202,19 +202,18 @@ class RemoteDatasetV2(RemoteDataset):
             Optional callback, called every time the progress of an uploading files is reported.
         file_upload_callback: Optional[FileUploadCallback], default: None
             Optional callback, called every time a file chunk is uploaded.
-        item_merge_mode: Optional[str], default: None
+        item_merge_mode : Optional[str]
             If set, each file path passed to `files_to_upload` behaves as follows:
-            - Every path that points directly to a file is ignored
-            - Each folder of files passed to `files_to_upload` will be uploaded according to the following mode rules.
-              Note that folders will not be recursively searched, so only files in the first level of the folder will be uploaded:
+            - Paths pointing directly to individual files are ignored
+            - Paths pointing to folders of files will be uploaded according to the below mode rules.
+            Note that folders will not be recursively searched, so only files in the first level of the folder will be uploaded:
                 - "slots": Each file in the folder will be uploaded to a different slot of the same item.
                 - "series": All `.dcm` files in the folder will be concatenated into a single slot. All other files are ignored.
                 - "channels": Each file in the folder will be uploaded to a different channel of the same item.
-
         Returns
         -------
         handler : UploadHandler
-           Class for handling uploads, progress and error messages.
+            Class for handling uploads, progress and error messages.
 
         Raises
         ------
@@ -238,7 +237,9 @@ class RemoteDatasetV2(RemoteDataset):
                 )
 
         if item_merge_mode and preserve_folders:
-            raise TypeError("Cannot use `preserve_folders` with `item_merge_mode`")
+            raise TypeError(
+                "`item_merge_mode` does not support preserving local file structures with `preserve_folders` or `--folders`"
+            )
 
         # Direct file paths
         uploading_files = [

@@ -801,7 +801,7 @@ class TestMultiFileItem:
         base_path = setup_zip / "push_test_dir" / "dir1" / "jpegs"
         files = natsorted(list(base_path.glob("*")))
         with pytest.raises(
-            ValueError, match="No DICOM files found in 1st level of directory"
+            ValueError, match="No `.dcm` files found in 1st level of directory"
         ):
             MultiFileItem(base_path, files, merge_mode=ItemMergeMode.SERIES)
 
@@ -810,7 +810,7 @@ class TestMultiFileItem:
         files = natsorted(list(base_path.glob("*")))
         with pytest.raises(
             ValueError,
-            match=f"No multi-channel item can have more than 16 channels. The following directory has 17 files: {base_path}",
+            match=r"No multi-channel item can have more than 16 files. The following directory has 17 files: .*",
         ):
             MultiFileItem(base_path, files, merge_mode=ItemMergeMode.CHANNELS)
 
