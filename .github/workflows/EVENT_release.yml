@@ -82,13 +82,13 @@ jobs:
           ref: ${{ github.ref }}
 
       - name: Set up Python
-        uses: actions/setup-python@39cd14951b08e74b54015e9e001cdefcf80e669f # v5.1.1
+        uses: actions/setup-python@f677139bbe7f9c59b41e40162b753c062f5d49a3 # v5.2.0
         with:
           python-version: "3.9"
 
       - run: pip install pip --upgrade
       - name: Setup Poetry
-        uses: abatilo/actions-poetry@c31426b23a8080795905ec73c9e458a2447cb2f2
+        uses: abatilo/actions-poetry@7b6d33e44b4f08d7021a1dee3c044e9c253d6439
         with:
           poetry-version: "1.3.1"
 
@@ -96,7 +96,7 @@ jobs:
         run: poetry build
 
       - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@ec4db0b4ddc65acdf4bff5fa45ac92d78b56bdf0
+        uses: pypa/gh-action-pypi-publish@8a08d616893759ef8e1aa1f2785787c0b97e20d6
 
   test_release:
     needs: [run_tests, run_e2e]
@@ -116,12 +116,12 @@ jobs:
           ref: ${{ github.ref }}
 
       - name: Set up Python
-        uses: actions/setup-python@39cd14951b08e74b54015e9e001cdefcf80e669f # v5.1.1
+        uses: actions/setup-python@f677139bbe7f9c59b41e40162b753c062f5d49a3 # v5.2.0
         with:
           python-version: "3.9"
       - run: pip install pip --upgrade
       - name: Setup Poetry
-        uses: abatilo/actions-poetry@c31426b23a8080795905ec73c9e458a2447cb2f2
+        uses: abatilo/actions-poetry@7b6d33e44b4f08d7021a1dee3c044e9c253d6439
         with:
           poetry-version: "1.3.1"
       - name: Build package
@@ -129,7 +129,7 @@ jobs:
           poetry build
 
       - name: Publish to Test PyPI
-        uses: pypa/gh-action-pypi-publish@ec4db0b4ddc65acdf4bff5fa45ac92d78b56bdf0
+        uses: pypa/gh-action-pypi-publish@8a08d616893759ef8e1aa1f2785787c0b97e20d6
         with:
           repository-url: https://test.pypi.org/legacy/
 
