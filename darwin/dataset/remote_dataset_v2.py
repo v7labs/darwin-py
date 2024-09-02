@@ -178,7 +178,7 @@ class RemoteDatasetV2(RemoteDataset):
         ----------
         files_to_upload : Optional[List[Union[PathLike, LocalFile]]]
             List of files to upload. These can be folders.
-            If `item_merge_mode` is set, these must be folders.
+            If `item_merge_mode` is set, these paths must be folders.
         blocking : bool, default: True
             If False, the dataset is not uploaded and a generator function is returned instead.
         multi_threaded : bool, default: True
@@ -205,7 +205,7 @@ class RemoteDatasetV2(RemoteDataset):
         item_merge_mode : Optional[str]
             If set, each file path passed to `files_to_upload` behaves as follows:
             - Paths pointing directly to individual files are ignored
-            - Paths pointing to folders of files will be uploaded according to the below mode rules.
+            - Paths pointing to folders of files will be uploaded according to the following mode rules.
             Note that folders will not be recursively searched, so only files in the first level of the folder will be uploaded:
                 - "slots": Each file in the folder will be uploaded to a different slot of the same item.
                 - "series": All `.dcm` files in the folder will be concatenated into a single slot. All other files are ignored.
@@ -233,7 +233,7 @@ class RemoteDatasetV2(RemoteDataset):
                 ItemMergeMode(item_merge_mode)
             except ValueError:
                 raise ValueError(
-                    f"Invalid item merge mode: {item_merge_mode}. Valid options are: 'slots', 'series', 'channels"
+                    f"Invalid item merge mode: {item_merge_mode}. Valid options are: 'slots', 'series', 'channels'"
                 )
             if preserve_folders:
                 raise TypeError(
@@ -259,8 +259,8 @@ class RemoteDatasetV2(RemoteDataset):
                 files_to_exclude,
                 path,
                 fps,
-                extract_views,
                 as_frames,
+                extract_views,
                 preserve_folders,
                 local_files,
             )
@@ -880,8 +880,10 @@ def _find_files_to_upload_merging(
 
     Returns
     -------
+    List[LocalFile]
+        List of `LocalFile` objects contained within each `MultiFileItem`
     List[MultiFileItem]
-        List of files to upload.
+        List of `MultiFileItem` objects to be uploaded
     """
     multi_file_items, local_files = [], []
     for directory in search_files:

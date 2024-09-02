@@ -93,7 +93,7 @@ class ItemPayload:
         self.dataset_item_id = dataset_item_id
         self.filename = filename
         self.path = path
-        self.reason = reasons
+        self.reasons = reasons
         self.slots = slots
 
     @staticmethod
@@ -263,7 +263,6 @@ class MultiFileItem:
                 "slots_grid": [[[file.local_path.name for file in self.files]]],
             }
 
-    # Need to add a `data` attribute for MultFileItem? Where do we get `fps` from?
     def serialize_v2(self):
         optional_properties = ["fps"]
         slots = []
@@ -367,11 +366,11 @@ class UploadHandler(ABC):
     dataset : RemoteDataset
         Target ``RemoteDataset`` where we want to upload our files to.
     errors : List[UploadRequestError]
-        List of errors that happened during the upload process.
-    item_type : str
-        Either ``single_file`` or ``multi_file``. Indicates what type of data we are uploading
-    local_files : Optional[List[LocalFile]]
+        List of errors that happened during the upload process
+    local_files : List[LocalFile]
         List of ``LocalFile``\\s to be uploaded.
+    multi_file_items : List[MultiFileItem]
+        List of ``MultiFileItem``\\s to be uploaded.
     blocked_items : List[ItemPayload]
         List of items that were not able to be uploaded.
     pending_items : List[ItemPayload]
@@ -555,14 +554,12 @@ class UploadHandlerV2(UploadHandler):
             ]
         )
 
+        dataset_slug: str = self.dataset_identifier.dataset_slug
+        team_slug: Optional[str] = self.dataset_identifier.team_slug
         for upload_payload in upload_payloads:
-            dataset_slug: str = self.dataset_identifier.dataset_slug
-            team_slug: Optional[str] = self.dataset_identifier.team_slug
-
             data: Dict[str, Any] = self.client.api_v2.register_data(
                 dataset_slug, upload_payload, team_slug=team_slug
             )
-
             blocked_items.extend(
                 [ItemPayload.parse_v2(item) for item in data["blocked_items"]]
             )
@@ -585,7 +582,7 @@ class UploadHandlerV2(UploadHandler):
                 file = file_lookup.get(slot_path)
                 if not file:
                     raise ValueError(
-                        f"Cannot match {item.full_path} from payload with files to upload"
+                        f"Cannot match {slot_path} from payload with files to upload"
                     )
                 yield upload_function(
                     self.dataset.identifier.dataset_slug, file.local_path, upload_id

@@ -694,27 +694,35 @@ class TestPush:
     def test_find_files_to_upload_merging_slots(self, setup_zip):
         base_path = setup_zip / "push_test_dir" / "dir1"
         search_files = [base_path / "jpegs", base_path / "dicoms"]
-        multi_file_items = _find_files_to_upload_merging(search_files, [], "slots")
+        local_files, multi_file_items = _find_files_to_upload_merging(
+            search_files, [], 0, "slots"
+        )
         assert len(multi_file_items) == 2
         assert all(isinstance(item, MultiFileItem) for item in multi_file_items)
 
     def test_find_files_to_upload_merging_series(self, setup_zip):
         base_path = setup_zip / "push_test_dir" / "dir1"
         search_files = [base_path / "dicoms"]
-        multi_file_items = _find_files_to_upload_merging(search_files, [], "series")
+        local_files, multi_file_items = _find_files_to_upload_merging(
+            search_files, [], 0, "series"
+        )
         assert len(multi_file_items) == 1
         assert all(isinstance(item, MultiFileItem) for item in multi_file_items)
 
     def test_find_files_to_upload_merging_channels(self, setup_zip):
         base_path = setup_zip / "push_test_dir" / "dir1"
         search_files = [base_path / "jpegs", base_path / "dicoms"]
-        multi_file_items = _find_files_to_upload_merging(search_files, [], "channels")
+        local_files, multi_file_items = _find_files_to_upload_merging(
+            search_files, [], 0, "channels"
+        )
         assert len(multi_file_items) == 2
 
     def test_find_files_to_upload_merging_does_not_search_recursively(self, setup_zip):
         base_path = setup_zip / "push_test_dir" / "dir2"
         search_files = [base_path / "recursive_search"]
-        multi_file_items = _find_files_to_upload_merging(search_files, [], "slots")
+        local_files, multi_file_items = _find_files_to_upload_merging(
+            search_files, [], 0, "slots"
+        )
         assert len(multi_file_items) == 1
         assert len(multi_file_items[0].files) == 2
 
@@ -765,31 +773,32 @@ class TestMultiFileItem:
     def test_create_multi_file_item_slots(self, setup_zip):
         base_path = setup_zip / "push_test_dir" / "dir1" / "jpegs"
         files = natsorted(list(base_path.glob("*")))
-        item = MultiFileItem(base_path, files, merge_mode=ItemMergeMode.SLOTS)
+        item = MultiFileItem(base_path, files, merge_mode=ItemMergeMode.SLOTS, fps=0)
         assert len(item.files) == 6
         assert item.name == "jpegs"
         assert item.layout == {
             "version": 2,
             "slots": ["0", "1", "2", "3", "4", "5"],
             "type": "grid",
+            "layout_shape": [3, 2],
         }
 
     def test_create_multi_file_item_series(self, setup_zip):
         base_path = setup_zip / "push_test_dir" / "dir1" / "dicoms"
         files = natsorted(list(base_path.glob("*")))
-        item = MultiFileItem(base_path, files, merge_mode=ItemMergeMode.SERIES)
+        item = MultiFileItem(base_path, files, merge_mode=ItemMergeMode.SERIES, fps=0)
         assert len(item.files) == 6
         assert item.name == "dicoms"
         assert item.layout == {
             "version": 2,
-            "slots": ["0", "1", "2", "3", "4", "5"],
+            "slots": ["dicoms"],
             "type": "grid",
         }
 
     def test_create_multi_file_item_channels(self, setup_zip):
         base_path = setup_zip / "push_test_dir" / "dir1" / "jpegs"
         files = natsorted(list(base_path.glob("*")))
-        item = MultiFileItem(base_path, files, merge_mode=ItemMergeMode.CHANNELS)
+        item = MultiFileItem(base_path, files, merge_mode=ItemMergeMode.CHANNELS, fps=0)
         assert len(item.files) == 6
         assert item.name == "jpegs"
         assert item.layout == {
@@ -803,7 +812,7 @@ class TestMultiFileItem:
         with pytest.raises(
             ValueError, match="No `.dcm` files found in 1st level of directory"
         ):
-            MultiFileItem(base_path, files, merge_mode=ItemMergeMode.SERIES)
+            MultiFileItem(base_path, files, merge_mode=ItemMergeMode.SERIES, fps=0)
 
     def test_create_channels_too_many_files(self, setup_zip):
         base_path = setup_zip / "push_test_dir" / "dir2" / "too_many_channels"
@@ -812,7 +821,7 @@ class TestMultiFileItem:
             ValueError,
             match=r"No multi-channel item can have more than 16 files. The following directory has 17 files: .*",
         ):
-            MultiFileItem(base_path, files, merge_mode=ItemMergeMode.CHANNELS)
+            MultiFileItem(base_path, files, merge_mode=ItemMergeMode.CHANNELS, fps=0)
 
 
 @pytest.mark.usefixtures("file_read_write_test")
