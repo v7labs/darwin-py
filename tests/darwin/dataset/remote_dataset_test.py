@@ -10,7 +10,6 @@ from unittest.mock import MagicMock, patch
 import orjson as json
 import pytest
 import responses
-from natsort import natsorted
 from pydantic import ValidationError
 
 from darwin.client import Client
@@ -24,13 +23,12 @@ from darwin.dataset.release import Release, ReleaseStatus
 from darwin.dataset.remote_dataset_v2 import (
     RemoteDatasetV2,
     _find_files_to_upload_merging,
-    _find_files_to_upload_no_merging,
 )
 from darwin.dataset.upload_manager import (
     ItemMergeMode,
     LocalFile,
-    MultiFileItem,
     UploadHandlerV2,
+    LAYOUT_SHAPE_MAP,
 )
 from darwin.datatypes import ManifestItem, ObjectStore, SegmentManifest
 from darwin.exceptions import UnsupportedExportFormat, UnsupportedFileType
@@ -358,6 +356,15 @@ def files_content() -> Dict[str, Any]:
 #         assert dataset.release == None
 
 
+@pytest.fixture()
+def setup_zip():
+    zip_path = Path("tests/darwin/data/push_test_dir.zip")
+    with tempfile.TemporaryDirectory() as tmpdir:
+        with zipfile.ZipFile(zip_path, "r") as zip_ref:
+            zip_ref.extractall(tmpdir)
+        yield Path(tmpdir)
+
+
 @pytest.mark.usefixtures("file_read_write_test", "create_annotation_file")
 class TestSplitVideoAnnotations:
     def test_works_on_videos(
@@ -611,14 +618,6 @@ def remote_dataset(
 
 @pytest.mark.usefixtures("file_read_write_test")
 class TestPush:
-    @pytest.fixture(scope="class")
-    def setup_zip(self):
-        zip_path = Path("tests/darwin/data/push_test_dir.zip")
-        with tempfile.TemporaryDirectory() as tmpdir:
-            with zipfile.ZipFile(zip_path, "r") as zip_ref:
-                zip_ref.extractall(tmpdir)
-            yield Path(tmpdir)
-
     def test_raises_if_files_are_not_provided(self, remote_dataset: RemoteDataset):
         with pytest.raises(ValueError):
             remote_dataset.push(None)
@@ -691,137 +690,245 @@ class TestPush:
                 preserve_folders=True,
             )
 
-    def test_find_files_to_upload_merging_slots(self, setup_zip):
-        base_path = setup_zip / "push_test_dir" / "dir1"
-        search_files = [base_path / "jpegs", base_path / "dicoms"]
-        local_files, multi_file_items = _find_files_to_upload_merging(
-            search_files, [], 0, "slots"
-        )
-        assert len(multi_file_items) == 2
-        assert all(isinstance(item, MultiFileItem) for item in multi_file_items)
 
-    def test_find_files_to_upload_merging_series(self, setup_zip):
-        base_path = setup_zip / "push_test_dir" / "dir1"
-        search_files = [base_path / "dicoms"]
-        local_files, multi_file_items = _find_files_to_upload_merging(
-            search_files, [], 0, "series"
-        )
-        assert len(multi_file_items) == 1
-        assert all(isinstance(item, MultiFileItem) for item in multi_file_items)
+@pytest.mark.usefixtures("setup_zip")
+class TestPushMultiSlotItem:
+    def test_different_numbers_of_input_files(self, setup_zip):
+        base_path = setup_zip / "push_test_dir" / "num_files_tests"
+        directories = [d for d in base_path.iterdir() if d.is_dir()]
+        for directory in directories:
+            if directory.name == "0":
+                with pytest.raises(
+                    ValueError,
+                    match="No valid folders to upload after searching the passed directories for files",
+                ):
+                    _find_files_to_upload_merging(
+                        [directory], [], 0, item_merge_mode="slots"
+                    )
+                continue
 
-    def test_find_files_to_upload_merging_channels(self, setup_zip):
-        base_path = setup_zip / "push_test_dir" / "dir1"
-        search_files = [base_path / "jpegs", base_path / "dicoms"]
-        local_files, multi_file_items = _find_files_to_upload_merging(
-            search_files, [], 0, "channels"
-        )
-        assert len(multi_file_items) == 2
-
-    def test_find_files_to_upload_merging_does_not_search_recursively(self, setup_zip):
-        base_path = setup_zip / "push_test_dir" / "dir2"
-        search_files = [base_path / "recursive_search"]
-        local_files, multi_file_items = _find_files_to_upload_merging(
-            search_files, [], 0, "slots"
-        )
-        assert len(multi_file_items) == 1
-        assert len(multi_file_items[0].files) == 2
-
-    def test_find_files_to_upload_no_merging_searches_recursively(self, setup_zip):
-        base_path = setup_zip / "push_test_dir" / "dir2"
-        search_files = [base_path / "recursive_search"]
-        local_files = _find_files_to_upload_no_merging(
-            search_files,
-            [],
-            None,
-            0,
-            False,
-            False,
-            False,
-            [],
-        )
-        assert len(local_files) == 11
-        assert all(isinstance(file, LocalFile) for file in local_files)
-
-    def test_find_files_to_upload_no_merging_no_files(self, setup_zip):
-        base_path = setup_zip / "push_test_dir" / "dir2"
-        search_files = [base_path / "no_files_1", base_path / "no_files_2"]
-        with pytest.raises(
-            ValueError,
-            match="No files to upload, check your path, exclusion filters and resume flag",
-        ):
-            _find_files_to_upload_no_merging(
-                search_files,
-                [],
-                None,
-                0,
-                False,
-                False,
-                False,
-                [],
+            local_files, multi_file_items = _find_files_to_upload_merging(
+                [directory], [], 0, item_merge_mode="slots"
             )
+            num_local_files = len(local_files)
+            expected_num_files = int(directory.name)
+            assert len(multi_file_items) == 1
+            assert num_local_files == expected_num_files
+            assert multi_file_items[0].merge_mode == ItemMergeMode.SLOTS
+            assert multi_file_items[0].files == local_files
+            assert multi_file_items[0].directory == directory
+            assert multi_file_items[0].name == directory.name
+            assert multi_file_items[0].layout == {
+                "version": 2,
+                "slots": [str(i) for i in range(num_local_files)],
+                "type": "grid" if num_local_files >= 4 else "horizontal",
+                "layout_shape": LAYOUT_SHAPE_MAP.get(num_local_files, [4, 4]),
+            }
 
-
-class TestMultiFileItem:
-    @pytest.fixture(scope="class")
-    def setup_zip(self):
-        zip_path = Path("tests/darwin/data/push_test_dir.zip")
-        with tempfile.TemporaryDirectory() as tmpdir:
-            with zipfile.ZipFile(zip_path, "r") as zip_ref:
-                zip_ref.extractall(tmpdir)
-            yield Path(tmpdir)
-
-    def test_create_multi_file_item_slots(self, setup_zip):
-        base_path = setup_zip / "push_test_dir" / "dir1" / "jpegs"
-        files = natsorted(list(base_path.glob("*")))
-        item = MultiFileItem(base_path, files, merge_mode=ItemMergeMode.SLOTS, fps=0)
-        assert len(item.files) == 6
-        assert item.name == "jpegs"
-        assert item.layout == {
+    def test_does_not_recursively_search(self, setup_zip):
+        directory = setup_zip / "push_test_dir" / "topdir"
+        local_files, multi_file_items = _find_files_to_upload_merging(
+            [directory], [], 0, item_merge_mode="slots"
+        )
+        assert len(multi_file_items) == 1
+        assert len(local_files) == 2
+        assert multi_file_items[0].merge_mode == ItemMergeMode.SLOTS
+        assert multi_file_items[0].files == local_files
+        assert multi_file_items[0].directory == directory
+        assert multi_file_items[0].name == directory.name
+        assert multi_file_items[0].layout == {
             "version": 2,
-            "slots": ["0", "1", "2", "3", "4", "5"],
+            "slots": [str(i) for i in range(len(local_files))],
+            "type": "horizontal",
+            "layout_shape": [2, 1],
+        }
+
+    def test_dicoms(self, setup_zip):
+        directory = setup_zip / "push_test_dir" / "dicom_tests" / "dicoms"
+        local_files, multi_file_items = _find_files_to_upload_merging(
+            [directory], [], 0, item_merge_mode="slots"
+        )
+        assert len(multi_file_items) == 1
+        assert len(local_files) == 5
+        assert multi_file_items[0].merge_mode == ItemMergeMode.SLOTS
+        assert multi_file_items[0].files == local_files
+        assert multi_file_items[0].directory == directory
+        assert multi_file_items[0].name == directory.name
+        assert multi_file_items[0].layout == {
+            "version": 2,
+            "slots": [str(i) for i in range(len(local_files))],
             "type": "grid",
             "layout_shape": [3, 2],
         }
 
-    def test_create_multi_file_item_series(self, setup_zip):
-        base_path = setup_zip / "push_test_dir" / "dir1" / "dicoms"
-        files = natsorted(list(base_path.glob("*")))
-        item = MultiFileItem(base_path, files, merge_mode=ItemMergeMode.SERIES, fps=0)
-        assert len(item.files) == 6
-        assert item.name == "dicoms"
-        assert item.layout == {
+    def test_dicoms_and_other_files(self, setup_zip):
+        directory = (
+            setup_zip / "push_test_dir" / "dicom_tests" / "dicoms_and_other_files"
+        )
+        local_files, multi_file_items = _find_files_to_upload_merging(
+            [directory], [], 0, item_merge_mode="slots"
+        )
+        assert len(multi_file_items) == 1
+        assert len(local_files) == 10
+        assert multi_file_items[0].merge_mode == ItemMergeMode.SLOTS
+        assert multi_file_items[0].files == local_files
+        assert multi_file_items[0].directory == directory
+        assert multi_file_items[0].name == directory.name
+        assert multi_file_items[0].layout == {
             "version": 2,
-            "slots": ["dicoms"],
+            "slots": [str(i) for i in range(len(local_files))],
+            "type": "grid",
+            "layout_shape": [4, 3],
+        }
+
+    def test_multiple_file_types(self, setup_zip):
+        directory = setup_zip / "push_test_dir" / "multiple_file_types"
+        local_files, multi_file_items = _find_files_to_upload_merging(
+            [directory], [], 0, item_merge_mode="slots"
+        )
+        assert len(multi_file_items) == 1
+        assert len(local_files) == 12
+        assert multi_file_items[0].merge_mode == ItemMergeMode.SLOTS
+        assert multi_file_items[0].files == local_files
+        assert multi_file_items[0].directory == directory
+        assert multi_file_items[0].name == directory.name
+        assert multi_file_items[0].layout == {
+            "version": 2,
+            "slots": [str(i) for i in range(len(local_files))],
+            "type": "grid",
+            "layout_shape": [4, 3],
+        }
+
+
+@pytest.mark.usefixtures("setup_zip")
+class TestPushDICOMSeries:
+    def test_dicoms(self, setup_zip):
+        directory = setup_zip / "push_test_dir" / "dicom_tests" / "dicoms"
+        local_files, multi_file_items = _find_files_to_upload_merging(
+            [directory], [], 0, item_merge_mode="series"
+        )
+        assert len(multi_file_items) == 1
+        assert len(local_files) == 5
+        assert multi_file_items[0].merge_mode == ItemMergeMode.SERIES
+        assert multi_file_items[0].files == local_files
+        assert multi_file_items[0].directory == directory
+        assert multi_file_items[0].name == directory.name
+        assert multi_file_items[0].layout == {
+            "version": 2,
+            "slots": [directory.name],
             "type": "grid",
         }
 
-    def test_create_multi_file_item_channels(self, setup_zip):
-        base_path = setup_zip / "push_test_dir" / "dir1" / "jpegs"
-        files = natsorted(list(base_path.glob("*")))
-        item = MultiFileItem(base_path, files, merge_mode=ItemMergeMode.CHANNELS, fps=0)
-        assert len(item.files) == 6
-        assert item.name == "jpegs"
-        assert item.layout == {
-            "version": 3,
-            "slots_grid": [[["1.JPG", "3.JPG", "4.jpg", "5.JPG", "6.jpg", "7.JPG"]]],
+    def test_dicoms_and_other_files(self, setup_zip):
+        directory = (
+            setup_zip / "push_test_dir" / "dicom_tests" / "dicoms_and_other_files"
+        )
+        local_files, multi_file_items = _find_files_to_upload_merging(
+            [directory], [], 0, item_merge_mode="series"
+        )
+        assert len(multi_file_items) == 1
+        assert len(local_files) == 5
+        assert multi_file_items[0].merge_mode == ItemMergeMode.SERIES
+        assert multi_file_items[0].files == local_files
+        assert multi_file_items[0].directory == directory
+        assert multi_file_items[0].name == directory.name
+        assert multi_file_items[0].layout == {
+            "version": 2,
+            "slots": [directory.name],
+            "type": "grid",
         }
 
-    def test_create_series_no_valid_files(self, setup_zip):
-        base_path = setup_zip / "push_test_dir" / "dir1" / "jpegs"
-        files = natsorted(list(base_path.glob("*")))
-        with pytest.raises(
-            ValueError, match="No `.dcm` files found in 1st level of directory"
-        ):
-            MultiFileItem(base_path, files, merge_mode=ItemMergeMode.SERIES, fps=0)
+    def test_multiple_file_types(self, setup_zip):
+        directory = setup_zip / "push_test_dir" / "multiple_file_types"
+        local_files, multi_file_items = _find_files_to_upload_merging(
+            [directory], [], 0, item_merge_mode="series"
+        )
+        assert len(multi_file_items) == 1
+        assert len(local_files) == 3
+        assert multi_file_items[0].merge_mode == ItemMergeMode.SERIES
+        assert multi_file_items[0].files == local_files
+        assert multi_file_items[0].directory == directory
+        assert multi_file_items[0].name == directory.name
+        assert multi_file_items[0].layout == {
+            "version": 2,
+            "slots": [directory.name],
+            "type": "grid",
+        }
 
-    def test_create_channels_too_many_files(self, setup_zip):
-        base_path = setup_zip / "push_test_dir" / "dir2" / "too_many_channels"
-        files = natsorted(list(base_path.glob("*")))
-        with pytest.raises(
-            ValueError,
-            match=r"No multi-channel item can have more than 16 files. The following directory has 17 files: .*",
-        ):
-            MultiFileItem(base_path, files, merge_mode=ItemMergeMode.CHANNELS, fps=0)
+
+@pytest.mark.usefixtures("setup_zip")
+class TestPushMultiChannelItem:
+    def test_different_numbers_of_input_files(self, setup_zip):
+        base_path = setup_zip / "push_test_dir" / "num_files_tests"
+        directories = [d for d in base_path.iterdir() if d.is_dir()]
+        for directory in directories:
+            if directory.name == "0":
+                with pytest.raises(
+                    ValueError,
+                    match="No valid folders to upload after searching the passed directories for files",
+                ):
+                    _find_files_to_upload_merging(
+                        [directory], [], 0, item_merge_mode="channels"
+                    )
+                continue
+
+            if directory.name == "17":
+                with pytest.raises(
+                    ValueError,
+                    match="No multi-channel item can have more than 16 files. The following directory has 17 files: ",
+                ):
+                    _find_files_to_upload_merging(
+                        [directory], [], 0, item_merge_mode="channels"
+                    )
+                continue
+
+            local_files, multi_file_items = _find_files_to_upload_merging(
+                [directory], [], 0, item_merge_mode="channels"
+            )
+            num_local_files = len(local_files)
+            expected_num_files = int(directory.name)
+            assert len(multi_file_items) == 1
+            assert num_local_files == expected_num_files
+            assert multi_file_items[0].merge_mode == ItemMergeMode.CHANNELS
+            assert multi_file_items[0].files == local_files
+            assert multi_file_items[0].directory == directory
+            assert multi_file_items[0].name == directory.name
+            assert multi_file_items[0].layout == {
+                "version": 3,
+                "slots_grid": [[[file.local_path.name for file in local_files]]],
+            }
+
+    def test_does_not_recursively_search(self, setup_zip):
+        directory = setup_zip / "push_test_dir" / "topdir"
+        local_files, multi_file_items = _find_files_to_upload_merging(
+            [directory], [], 0, item_merge_mode="channels"
+        )
+        assert len(multi_file_items) == 1
+        assert len(local_files) == 2
+        assert multi_file_items[0].merge_mode == ItemMergeMode.CHANNELS
+        assert multi_file_items[0].files == local_files
+        assert multi_file_items[0].directory == directory
+        assert multi_file_items[0].name == directory.name
+        assert multi_file_items[0].layout == {
+            "version": 3,
+            "slots_grid": [[[file.local_path.name for file in local_files]]],
+        }
+
+    def test_multiple_file_types(self, setup_zip):
+        directory = setup_zip / "push_test_dir" / "multiple_file_types"
+        local_files, multi_file_items = _find_files_to_upload_merging(
+            [directory], [], 0, item_merge_mode="channels"
+        )
+        assert len(multi_file_items) == 1
+        assert len(local_files) == 5
+        assert multi_file_items[0].merge_mode == ItemMergeMode.CHANNELS
+        assert multi_file_items[0].files == local_files
+        assert multi_file_items[0].directory == directory
+        assert multi_file_items[0].name == directory.name
+        assert multi_file_items[0].layout == {
+            "version": 3,
+            "slots_grid": [[[file.local_path.name for file in local_files]]],
+        }
 
 
 @pytest.mark.usefixtures("file_read_write_test")

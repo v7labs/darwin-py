@@ -23,6 +23,7 @@ from darwin.datatypes import PathLike
 from darwin.doc_enum import DocEnum
 from darwin.path_utils import construct_full_path
 from darwin.utils import chunk
+from darwin.utils.utils import is_image_extension_allowed_by_filename
 
 if TYPE_CHECKING:
     from darwin.client import Client
@@ -254,6 +255,16 @@ class MultiFileItem:
                 "type": "grid",
             }
         elif self.merge_mode == ItemMergeMode.CHANNELS:
+            # Currently, only image files are supported in multi-channel items. This is planned to change in the future
+            self.files = [
+                file
+                for file in self.files
+                if is_image_extension_allowed_by_filename(str(file.local_path))
+            ]
+            if not self.files:
+                raise ValueError(
+                    "No supported filetypes found in 1st level of directory. Currently, multi-channel items only support images."
+                )
             if len(self.files) > 16:
                 raise ValueError(
                     f"No multi-channel item can have more than 16 files. The following directory has {len(self.files)} files: {self.directory}"
@@ -578,8 +589,8 @@ class UploadHandlerV2(UploadHandler):
         for item in self.pending_items:
             for slot in item.slots:
                 upload_id = slot["upload_id"]
-                slot_path = item.path + (slot["file_name"])
-                file = file_lookup.get(slot_path)
+                slot_path = Path(item.path) / Path((slot["file_name"]))
+                file = file_lookup.get(str(slot_path))
                 if not file:
                     raise ValueError(
                         f"Cannot match {slot_path} from payload with files to upload"

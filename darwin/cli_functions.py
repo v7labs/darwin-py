@@ -869,8 +869,8 @@ def upload_data(
         _error(f"No dataset with name '{e.name}'")
     except UnsupportedFileType as e:
         _error(f"Unsupported file type {e.path.suffix} ({e.path.name})")
-    except ValueError:
-        _error("No files found")
+    except ValueError as e:
+        _error(f"{e}")
 
 
 def dataset_import(

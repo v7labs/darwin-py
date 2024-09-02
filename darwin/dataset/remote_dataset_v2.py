@@ -237,7 +237,7 @@ class RemoteDatasetV2(RemoteDataset):
                 )
             if preserve_folders:
                 raise TypeError(
-                    "`item_merge_mode` does not support preserving local file structures with `preserve_folders` or `--folders`"
+                    "`item_merge_mode` does not support preserving local file structures with `preserve_folders`"
                 )
 
         # Direct file paths
