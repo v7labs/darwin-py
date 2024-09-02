@@ -235,16 +235,13 @@ class RemoteDatasetV2(RemoteDataset):
                 raise ValueError(
                     f"Invalid item merge mode: {item_merge_mode}. Valid options are: 'slots', 'series', 'channels"
                 )
-
-        if item_merge_mode and preserve_folders:
-            raise TypeError(
-                "`item_merge_mode` does not support preserving local file structures with `preserve_folders` or `--folders`"
-            )
+            if preserve_folders:
+                raise TypeError(
+                    "`item_merge_mode` does not support preserving local file structures with `preserve_folders` or `--folders`"
+                )
 
         # Direct file paths
-        uploading_files = [
-            item for item in files_to_upload if isinstance(item, LocalFile)
-        ]
+        local_files = [item for item in files_to_upload if isinstance(item, LocalFile)]
 
         # Folder paths
         search_files = [
@@ -252,22 +249,23 @@ class RemoteDatasetV2(RemoteDataset):
         ]
 
         if item_merge_mode:
-            uploading_files = _find_files_to_upload_merging(
-                search_files, files_to_exclude, item_merge_mode
+            local_files, multi_file_items = _find_files_to_upload_merging(
+                search_files, files_to_exclude, fps, item_merge_mode
             )
+            handler = UploadHandlerV2(self, local_files, multi_file_items)
         else:
-            uploading_files = _find_files_to_upload_no_merging(
+            local_files = _find_files_to_upload_no_merging(
                 search_files,
                 files_to_exclude,
                 path,
                 fps,
-                as_frames,
                 extract_views,
+                as_frames,
                 preserve_folders,
-                uploading_files,
+                local_files,
             )
+            handler = UploadHandlerV2(self, local_files)
 
-        handler = UploadHandlerV2(self, uploading_files)
         if blocking:
             handler.upload(
                 max_workers=max_workers,
@@ -858,8 +856,9 @@ class RemoteDatasetV2(RemoteDataset):
 def _find_files_to_upload_merging(
     search_files: List[PathLike],
     files_to_exclude: List[PathLike],
+    fps: int,
     item_merge_mode: str,
-) -> List[MultiFileItem]:
+) -> Tuple[List[LocalFile], List[MultiFileItem]]:
     """
     Finds files to upload as either:
         - Multi-slotted items
@@ -876,13 +875,15 @@ def _find_files_to_upload_merging(
         List of files to exclude from the file scan.
     item_merge_mode : str
         Mode to merge the files in the folders. Valid options are: 'slots', 'series', 'channels'.
+    fps : int
+        When uploading video files, specify the framerate
 
     Returns
     -------
     List[MultiFileItem]
         List of files to upload.
     """
-    multi_file_items = []
+    multi_file_items, local_files = [], []
     for directory in search_files:
         files_in_directory = list(
             find_files(
@@ -894,19 +895,20 @@ def _find_files_to_upload_merging(
         )
         if not files_in_directory:
             print(
-                f"Warning: There are no uploading files in the first level of {directory}, skipping"
+                f"Warning: There are no files in the first level of {directory}, skipping directory"
             )
             continue
-        multi_file_items.append(
-            MultiFileItem(
-                Path(directory), files_in_directory, ItemMergeMode(item_merge_mode)
-            )
+        multi_file_item = MultiFileItem(
+            Path(directory), files_in_directory, ItemMergeMode(item_merge_mode), fps
         )
+        multi_file_items.append(multi_file_item)
+        local_files.extend(multi_file_item.files)
+
     if not multi_file_items:
         raise ValueError(
             "No valid folders to upload after searching the passed directories for files"
         )
-    return multi_file_items
+    return local_files, multi_file_items
 
 
 def _find_files_to_upload_no_merging(

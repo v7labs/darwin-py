@@ -1,3 +1,4 @@
+from __future__ import annotations
 import concurrent.futures
 import os
 import time
@@ -14,7 +15,6 @@ from typing import (
     Optional,
     Set,
     Tuple,
-    Union,
 )
 
 import requests
@@ -31,6 +31,21 @@ if TYPE_CHECKING:
 
 from abc import ABC, abstractmethod
 from typing import Dict
+
+LAYOUT_SHAPE_MAP = {
+    1: [1, 1],
+    2: [2, 1],
+    3: [3, 1],
+    4: [2, 2],
+    5: [3, 2],
+    6: [3, 2],
+    7: [4, 2],
+    8: [4, 2],
+    9: [3, 3],
+    10: [4, 3],
+    11: [4, 3],
+    12: [4, 3],
+}
 
 
 class ItemMergeMode(Enum):
@@ -51,8 +66,8 @@ class ItemPayload:
         The filename of where this ``ItemPayload``'s data is.
     path : str
         The path to ``filename``.
-    reason : Optional[str], default: None
-        A reason to upload this ``ItemPayload``.
+    reasons : Optional[List[str]], default: None
+        A per-slot reason to upload this ``ItemPayload``.
 
     Attributes
     ----------
@@ -62,8 +77,8 @@ class ItemPayload:
         The filename of where this ``ItemPayload``'s data is.
     path : str
         The path to ``filename``.
-    reason : Optional[str], default: None
-        A reason to upload this ``ItemPayload``.
+    reasons : Optional[List[str]], default: None
+        A per-slot reason to upload this ``ItemPayload``.
     """
 
     def __init__(
@@ -72,25 +87,22 @@ class ItemPayload:
         dataset_item_id: int,
         filename: str,
         path: str,
-        reason: Optional[str] = None,
+        reasons: Optional[List[str]] = None,
         slots: Optional[any] = None,
     ):
         self.dataset_item_id = dataset_item_id
         self.filename = filename
         self.path = path
-        self.reason = reason
+        self.reason = reasons
         self.slots = slots
 
     @staticmethod
     def parse_v2(payload):
-        if len(payload["slots"]) > 1:
-            raise NotImplementedError("multiple files support not yet implemented")
-        slot = payload["slots"][0]
         return ItemPayload(
             dataset_item_id=payload.get("id", None),
             filename=payload["name"],
             path=payload["path"],
-            reason=slot.get("reason", None),
+            reasons=[slot.get("reason", None) for slot in payload["slots"]],
             slots=payload["slots"],
         )
 
@@ -160,7 +172,11 @@ class LocalFile:
 
     """
 
-    def __init__(self, local_path: PathLike, **kwargs):
+    def __init__(
+        self,
+        local_path: PathLike,
+        **kwargs,
+    ):
         self.local_path = Path(local_path)
         self.data = kwargs
         self._type_check(kwargs)
@@ -195,10 +211,12 @@ class LocalFile:
 
 
 class MultiFileItem:
-    def __init__(self, directory: Path, files: List[Path], merge_mode: ItemMergeMode):
+    def __init__(
+        self, directory: Path, files: List[Path], merge_mode: ItemMergeMode, fps: int
+    ):
         self.directory = directory
         self.name = directory.name
-        self.files = files
+        self.files = [LocalFile(file, fps=fps) for file in files]
         self.merge_mode = merge_mode
         self.layout = self._create_layout()
 
@@ -216,18 +234,23 @@ class MultiFileItem:
             - If the number of files is greater than 16 for `ItemMergeMode.CHANNELS` items
         """
         if self.merge_mode == ItemMergeMode.SLOTS:
+            num_files = len(self.files)
+            layout_shape = LAYOUT_SHAPE_MAP.get(num_files, [4, 4])
             return {
                 "version": 2,
-                "slots": [str(i) for i in range(len(self.files))],
-                "type": "grid",
+                "slots": [str(i) for i in range(num_files)],
+                "type": "grid" if num_files >= 4 else "horizontal",
+                "layout_shape": layout_shape,
             }
         elif self.merge_mode == ItemMergeMode.SERIES:
-            self.files = [file for file in self.files if file.suffix.lower() == ".dcm"]
+            self.files = [
+                file for file in self.files if file.local_path.suffix.lower() == ".dcm"
+            ]
             if not self.files:
                 raise ValueError("No `.dcm` files found in 1st level of directory")
             return {
                 "version": 2,
-                "slots": [str(i) for i in range(len(self.files))],
+                "slots": [self.name],
                 "type": "grid",
             }
         elif self.merge_mode == ItemMergeMode.CHANNELS:
@@ -235,7 +258,32 @@ class MultiFileItem:
                 raise ValueError(
                     f"No multi-channel item can have more than 16 files. The following directory has {len(self.files)} files: {self.directory}"
                 )
-            return {"version": 3, "slots_grid": [[[file.name for file in self.files]]]}
+            return {
+                "version": 3,
+                "slots_grid": [[[file.local_path.name for file in self.files]]],
+            }
+
+    # Need to add a `data` attribute for MultFileItem? Where do we get `fps` from?
+    def serialize_v2(self):
+        optional_properties = ["fps"]
+        slots = []
+        if self.merge_mode == ItemMergeMode.SLOTS:
+            slot_names = self.layout["slots"]
+        elif self.merge_mode == ItemMergeMode.SERIES:
+            slot_names = [self.name] * len(self.files)
+        elif self.merge_mode == ItemMergeMode.CHANNELS:
+            slot_names = self.layout["slots_grid"][0][0]
+        for idx, local_file in enumerate(self.files):
+            slot = {
+                "file_name": local_file.data["filename"],
+                "slot_name": slot_names[idx],
+            }
+            for optional_property in optional_properties:
+                if optional_property in local_file.data:
+                    slot[optional_property] = local_file.data.get(optional_property)
+            slots.append(slot)
+
+        return {"slots": slots, "layout": self.layout, "name": self.name, "path": "/"}
 
 
 class FileMonitor(object):
@@ -311,16 +359,18 @@ class UploadHandler(ABC):
     ----------
     dataset: RemoteDataset
         Target ``RemoteDataset`` where we want to upload our files to.
-    local_files : List[LocalFile]
-        List of ``LocalFile``\\s to be uploaded.
+    uploading_files : Union[List[LocalFile], List[MultiFileItems]]
+        List of ``LocalFile``\\s or ``MultiFileItem``\\s to be uploaded.
 
     Attributes
     ----------
     dataset : RemoteDataset
-        Target ``RemoteDataset`` where we want to upload our files to..
+        Target ``RemoteDataset`` where we want to upload our files to.
     errors : List[UploadRequestError]
         List of errors that happened during the upload process.
-    local_files : List[LocalFile]
+    item_type : str
+        Either ``single_file`` or ``multi_file``. Indicates what type of data we are uploading
+    local_files : Optional[List[LocalFile]]
         List of ``LocalFile``\\s to be uploaded.
     blocked_items : List[ItemPayload]
         List of items that were not able to be uploaded.
@@ -328,14 +378,19 @@ class UploadHandler(ABC):
         List of items waiting to be uploaded.
     """
 
-    def __init__(self, dataset: "RemoteDataset", local_files: List[LocalFile]):
-        self.dataset: RemoteDataset = dataset
-        self.errors: List[UploadRequestError] = []
-        self.local_files: List[LocalFile] = local_files
+    def __init__(
+        self,
+        dataset: "RemoteDataset",
+        local_files: List[LocalFile],
+        multi_file_items: Optional[List[MultiFileItem]] = None,
+    ):
         self._progress: Optional[
             Iterator[Callable[[Optional[ByteReadCallback]], None]]
         ] = None
-
+        self.multi_file_items = multi_file_items
+        self.local_files = local_files
+        self.dataset: RemoteDataset = dataset
+        self.errors: List[UploadRequestError] = []
         self.blocked_items, self.pending_items = self._request_upload()
 
     @staticmethod
@@ -457,16 +512,50 @@ class UploadHandlerV2(UploadHandler):
     def __init__(
         self,
         dataset: "RemoteDataset",
-        local_files: Union[List[LocalFile], List[MultiFileItem]],
+        local_files: List[LocalFile],
+        multi_file_items: Optional[List[MultiFileItem]] = None,
     ):
-        super().__init__(dataset=dataset, local_files=local_files)
+        super().__init__(
+            dataset=dataset,
+            local_files=local_files,
+            multi_file_items=multi_file_items,
+        )
 
     def _request_upload(self) -> Tuple[List[ItemPayload], List[ItemPayload]]:
         blocked_items = []
         items = []
         chunk_size: int = _upload_chunk_size()
-        for file_chunk in chunk(self.local_files, chunk_size):
-            upload_payload = {"items": [file.serialize_v2() for file in file_chunk]}
+        single_file_items = self.local_files
+        upload_payloads = []
+        if self.multi_file_items:
+            upload_payloads.extend(
+                [
+                    {
+                        "items": [file.serialize_v2() for file in file_chunk],
+                        "options": {"ignore_dicom_layout": True},
+                    }
+                    for file_chunk in chunk(self.multi_file_items, chunk_size)
+                ]
+            )
+            local_files_for_multi_file_items = [
+                file
+                for multi_file_item in self.multi_file_items
+                for file in multi_file_item.files
+            ]
+            single_file_items = [
+                file
+                for file in single_file_items
+                if file not in local_files_for_multi_file_items
+            ]
+
+        upload_payloads.extend(
+            [
+                {"items": [file.serialize_v2() for file in file_chunk]}
+                for file_chunk in chunk(single_file_items, chunk_size)
+            ]
+        )
+
+        for upload_payload in upload_payloads:
             dataset_slug: str = self.dataset_identifier.dataset_slug
             team_slug: Optional[str] = self.dataset_identifier.team_slug
 
@@ -490,17 +579,17 @@ class UploadHandlerV2(UploadHandler):
 
         file_lookup = {file.full_path: file for file in self.local_files}
         for item in self.pending_items:
-            if len(item.slots) != 1:
-                raise NotImplementedError("Multi file upload is not supported")
-            upload_id = item.slots[0]["upload_id"]
-            file = file_lookup.get(item.full_path)
-            if not file:
-                raise ValueError(
-                    f"Cannot match {item.full_path} from payload with files to upload"
+            for slot in item.slots:
+                upload_id = slot["upload_id"]
+                slot_path = item.path + (slot["file_name"])
+                file = file_lookup.get(slot_path)
+                if not file:
+                    raise ValueError(
+                        f"Cannot match {item.full_path} from payload with files to upload"
+                    )
+                yield upload_function(
+                    self.dataset.identifier.dataset_slug, file.local_path, upload_id
                 )
-            yield upload_function(
-                self.dataset.identifier.dataset_slug, file.local_path, upload_id
-            )
 
     def _upload_file(
         self,
