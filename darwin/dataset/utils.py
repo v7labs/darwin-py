@@ -6,6 +6,7 @@ from typing import Any, Dict, Generator, Iterator, List, Optional, Set, Tuple, U
 
 import numpy as np
 from PIL import Image as PILImage
+from PIL import ImageOps
 from rich.live import Live
 from rich.progress import ProgressBar, track
 
@@ -676,6 +677,7 @@ def load_pil_image(path: Path, to_rgb: Optional[bool] = True) -> PILImage.Image:
         The loaded image.
     """
     pic = PILImage.open(path)
+    pic = ImageOps.exif_transpose(pic)
     if to_rgb:
         pic = convert_to_rgb(pic)
     return pic
