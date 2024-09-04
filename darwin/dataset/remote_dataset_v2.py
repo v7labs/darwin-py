@@ -222,6 +222,12 @@ class RemoteDatasetV2(RemoteDataset):
             - If a path is specified when uploading a LocalFile object.
             - If there are no files to upload (because path is wrong or the exclude filter excludes everything).
         """
+        merge_incompatible_args = {
+            "preserve_folders": preserve_folders,
+            "as_frames": as_frames,
+            "extract_views": extract_views,
+        }
+
         if files_to_exclude is None:
             files_to_exclude = []
 
@@ -235,9 +241,14 @@ class RemoteDatasetV2(RemoteDataset):
                 raise ValueError(
                     f"Invalid item merge mode: {item_merge_mode}. Valid options are: 'slots', 'series', 'channels'"
                 )
-            if preserve_folders:
+            incompatible_args = [
+                arg for arg, value in merge_incompatible_args.items() if value
+            ]
+
+            if incompatible_args:
+                incompatible_args_str = ", ".join(incompatible_args)
                 raise TypeError(
-                    "`item_merge_mode` does not support preserving local file structures with `preserve_folders`"
+                    f"`item_merge_mode` does not support the following incompatible arguments: {incompatible_args_str}."
                 )
 
         # Direct file paths

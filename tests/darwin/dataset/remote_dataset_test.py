@@ -680,15 +680,21 @@ class TestPush:
         with pytest.raises(ValueError):
             remote_dataset.push(["path/to/dir"], item_merge_mode="invalid")
 
-    def test_raises_if_preserve_folders_with_item_merge_mode(
+    def test_raises_if_incompatible_args_with_item_merge_mode(
         self, remote_dataset: RemoteDataset
     ):
-        with pytest.raises(TypeError):
-            remote_dataset.push(
-                ["path/to/dir"],
-                item_merge_mode="slots",
-                preserve_folders=True,
-            )
+        incompatible_args = [
+            {"preserve_folders": True},
+            {"as_frames": True},
+            {"extract_views": True},
+        ]
+        for args in incompatible_args:
+            with pytest.raises(TypeError):
+                remote_dataset.push(
+                    ["path/to/dir"],
+                    item_merge_mode="slots",
+                    **args,  # type: ignore
+                )
 
 
 @pytest.mark.usefixtures("setup_zip")
