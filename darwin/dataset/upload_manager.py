@@ -4,7 +4,7 @@ import os
 import time
 from dataclasses import dataclass
 from enum import Enum
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -93,7 +93,7 @@ class ItemPayload:
     ):
         self.dataset_item_id = dataset_item_id
         self.filename = filename
-        self.path = path
+        self.path = PurePosixPath(path).as_posix()
         self.reasons = reasons
         self.slots = slots
 
@@ -589,7 +589,7 @@ class UploadHandlerV2(UploadHandler):
         for item in self.pending_items:
             for slot in item.slots:
                 upload_id = slot["upload_id"]
-                slot_path = Path(item.path) / Path((slot["file_name"]))
+                slot_path = (Path(item.path) / Path((slot["file_name"]))).as_posix()
                 file = file_lookup.get(str(slot_path))
                 if not file:
                     raise ValueError(
