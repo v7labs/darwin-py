@@ -422,6 +422,10 @@ class Property:
     # Description of the property
     description: Optional[str] = None
 
+    # Granularity of the property
+    # If none, we assume it is a section-level property
+    granularity: Optional[str] = None
+
 
 @dataclass
 class PropertyClass:
