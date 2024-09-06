@@ -4,7 +4,7 @@ import os
 import time
 from dataclasses import dataclass
 from enum import Enum
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -93,7 +93,7 @@ class ItemPayload:
     ):
         self.dataset_item_id = dataset_item_id
         self.filename = filename
-        self.path = path
+        self.path = PurePosixPath(path).as_posix()
         self.reasons = reasons
         self.slots = slots
 
