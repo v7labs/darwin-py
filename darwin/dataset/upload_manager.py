@@ -15,6 +15,7 @@ from typing import (
     Optional,
     Set,
     Tuple,
+    Union,
 )
 
 import requests
@@ -47,6 +48,8 @@ LAYOUT_SHAPE_MAP = {
     11: [4, 3],
     12: [4, 3],
 }
+
+MultiFileItemType = Union["MultiSlotItem", "DICOMSeriesItem", "MultiFileItem"]
 
 
 class ItemMergeMode(Enum):
@@ -213,12 +216,19 @@ class LocalFile:
 
 class MultiFileItem:
     def __init__(
-        self, directory: Path, files: List[Path], merge_mode: ItemMergeMode, fps: int
+        self,
+        item_name: str,
+        files: List[PathLike],
+        merge_mode: ItemMergeMode,
+        fps: int = 0,
+        slot_names: Optional[List[str]] = None,
+        layout_shape: Optional[List[int]] = None,
     ):
-        self.directory = directory
-        self.name = directory.name
+        self.item_name = item_name
         self.files = [LocalFile(file, fps=fps) for file in files]
         self.merge_mode = merge_mode
+        self.slot_names = slot_names if slot_names else None
+        self.layout_shape = layout_shape if layout_shape else None
         self.layout = self._create_layout()
 
     def _create_layout(self):
@@ -236,39 +246,20 @@ class MultiFileItem:
         """
         if self.merge_mode == ItemMergeMode.SLOTS:
             num_files = len(self.files)
-            layout_shape = LAYOUT_SHAPE_MAP.get(num_files, [4, 4])
+            layout_shape = self.layout_shape or LAYOUT_SHAPE_MAP.get(num_files, [4, 4])
             return {
                 "version": 2,
-                "slots": [str(i) for i in range(num_files)],
+                "slots": self.slot_names,
                 "type": "grid" if num_files >= 4 else "horizontal",
                 "layout_shape": layout_shape,
             }
         elif self.merge_mode == ItemMergeMode.SERIES:
-            self.files = [
-                file for file in self.files if file.local_path.suffix.lower() == ".dcm"
-            ]
-            if not self.files:
-                raise ValueError("No `.dcm` files found in 1st level of directory")
             return {
                 "version": 2,
-                "slots": [self.name],
+                "slots": [self.item_name],
                 "type": "grid",
             }
         elif self.merge_mode == ItemMergeMode.CHANNELS:
-            # Currently, only image files are supported in multi-channel items. This is planned to change in the future
-            self.files = [
-                file
-                for file in self.files
-                if is_image_extension_allowed_by_filename(str(file.local_path))
-            ]
-            if not self.files:
-                raise ValueError(
-                    "No supported filetypes found in 1st level of directory. Currently, multi-channel items only support images."
-                )
-            if len(self.files) > 16:
-                raise ValueError(
-                    f"No multi-channel item can have more than 16 files. The following directory has {len(self.files)} files: {self.directory}"
-                )
             return {
                 "version": 3,
                 "slots_grid": [[[file.local_path.name for file in self.files]]],
@@ -280,7 +271,7 @@ class MultiFileItem:
         if self.merge_mode == ItemMergeMode.SLOTS:
             slot_names = self.layout["slots"]
         elif self.merge_mode == ItemMergeMode.SERIES:
-            slot_names = [self.name] * len(self.files)
+            slot_names = [self.item_name] * len(self.files)
         elif self.merge_mode == ItemMergeMode.CHANNELS:
             slot_names = self.layout["slots_grid"][0][0]
         for idx, local_file in enumerate(self.files):
@@ -293,7 +284,179 @@ class MultiFileItem:
                     slot[optional_property] = local_file.data.get(optional_property)
             slots.append(slot)
 
-        return {"slots": slots, "layout": self.layout, "name": self.name, "path": "/"}
+        return {
+            "slots": slots,
+            "layout": self.layout,
+            "name": self.item_name,
+            "path": "/",
+        }
+
+
+class MultiSlotItem(MultiFileItem):
+    """
+    Class representing a multi-slotted dataset item for upload.
+
+    Parameters
+    ----------
+    item_name : str
+        The name of the dataset item to upload
+    slots : Dict[str, PathLike]
+        A dictionary where keys are slot names, and values are file paths to the files that should be placed in each slot
+    layout_shape : Optional[List[int]]
+        A 2-element array of integers representing the layout of the dataset item to upload: [num_columns, num_rows]
+        Each value must be at least 1 and no more than 4. If not supplied, a layout is created automatically
+    fps : int
+        If uploading video files, the framerate to upload
+        If not supplied, videos will be uploaded at their native framerate
+    """
+
+    def __init__(
+        self,
+        item_name: str,
+        slots: Dict[str, PathLike],
+        layout_shape: Optional[List[int]] = None,
+        fps: int = 0,
+    ):
+        slot_names, files = self.validate_args(slots, layout_shape)
+        super().__init__(
+            item_name=item_name,
+            files=files,
+            merge_mode=ItemMergeMode.SLOTS,
+            fps=fps,
+            slot_names=slot_names,
+            layout_shape=layout_shape,
+        )
+
+    def validate_args(
+        self, slots: Dict[str, PathLike], layout_shape: Optional[List[int]] = None
+    ):
+        """
+        Validates the arguments used to upload a specific multi-slotted dataset item
+
+        Parameters
+        ---------
+        slots : Dict[str, PathLike]
+            A dictionary where keys are slot names, and values are file paths to the files that should be placed in each slot
+        layout_shape : Optional[List[int]]
+            A 2-element array of integers representing the layout of the dataset item to upload: [num_columns, num_rows]
+            Each value must be at least 1 and no more than 4. If not supplied, a layout is created automatically
+
+        Raises
+        ------
+        ValueError
+            - If `layout_shape` is not a 2-element array of integers between 1 & 4
+        """
+        if layout_shape:
+            if not (isinstance(layout_shape, list) and len(layout_shape) == 2):
+                raise ValueError("`layout_shape` must be a 2-element array of integers")
+            if not all(isinstance(x, int) and 1 <= x <= 4 for x in layout_shape):
+                raise ValueError(
+                    "Each element in `layout_shape` must be an integer between 1 and 4"
+                )
+        files = list(slots.values())
+        slot_names = list(slots.keys())
+        return slot_names, files
+
+
+class DICOMSeriesItem(MultiFileItem):
+    """
+    Class representing a DICOM series dataset item for upload
+
+    Parameters
+    ----------
+    item_name : str
+        The name of the dataset item to upload
+    files : List[PathLike]
+        Ordered list of file paths to the `.dcm` files to be concatenated as a DICOM series
+    """
+
+    def __init__(self, item_name: str, files: List[PathLike]):
+        files = self.validate_args(files)
+        super().__init__(
+            item_name=item_name, files=files, merge_mode=ItemMergeMode.SERIES
+        )
+
+    def validate_args(self, files: List[PathLike]):
+        """
+        Validates the arguments used to upload a specific DICOM series dataset item
+
+        Parameters
+        ----------
+        files : List[PathLike]
+            Ordered list of file paths to the `.dcm` files to be concatenated as a DICOM series
+
+        Raises
+        ------
+        ValueError
+            - If no `dcm` files are included for upload to the DICOM series item
+        """
+        files = [file for file in files if Path(file).suffix.lower() == ".dcm"]
+        if not files:
+            raise ValueError("No `.dcm`. files found the this item.")
+        return files
+
+
+class MultiChannelItem(MultiFileItem):
+    """
+    Class representing a multi-channel dataset item for upload
+
+    Parameters
+    ----------
+    item_name : str
+        The name of the dataset item to upload
+    channels : Dict[str, PathLike]
+        A dictionary where the keys are the slot names, and the values are file paths to the file that should be placed in each slot
+    fps : int
+        If uploading video files, the framerate to upload
+        If not supplied, videos will be uploaded at their native framerate
+    """
+
+    def __init__(
+        self,
+        item_name: str,
+        channels: Dict[str, PathLike],
+        fps: int = 0,
+    ):
+        files, slot_names = self.validate_args(channels)
+        super().__init__(
+            item_name=item_name,
+            files=files,
+            merge_mode=ItemMergeMode.CHANNELS,
+            fps=fps,
+            slot_names=slot_names,
+        )
+
+    def validate_args(self, channels):
+        """
+        Validates the argument sused to upload a specific multi-channel dataset item
+
+        Parameters
+        ----------
+        channels : Dict[str, PathLike]
+            A dictionary where the keys are the slot names, and the values are file paths to the file that should be placed in each slot
+
+        Raises
+        ------
+        ValueError:
+            - If no supported filetypes are included for upload to the multi-channel item
+            - If more than 16 files are included fro upload to the multi-channel item
+        """
+
+        files = [
+            file
+            for file in list(channels.values())
+            if is_image_extension_allowed_by_filename(str(file))
+        ]
+        if not files:
+            raise ValueError(
+                "No supported filetypes included for upload to this multi-channel item. Currently, multi-channel items only support images."
+            )
+        if len(files) > 16:
+            raise ValueError(
+                f"No multi-channel item can have more than 16 files. One item had the following {len(files)} files: {', '.join([str(file) for file in files])}"
+            )
+        slot_names = list(channels.keys())
+        return files, slot_names
 
 
 class FileMonitor(object):
@@ -380,7 +543,7 @@ class UploadHandler(ABC):
         List of errors that happened during the upload process
     local_files : List[LocalFile]
         List of ``LocalFile``\\s to be uploaded.
-    multi_file_items : List[MultiFileItem]
+    multi_file_items : List[Union[MultiSlotItem, DICOMSeriesItem, MultiChannelItem]]
         List of ``MultiFileItem``\\s to be uploaded.
     blocked_items : List[ItemPayload]
         List of items that were not able to be uploaded.
@@ -392,7 +555,9 @@ class UploadHandler(ABC):
         self,
         dataset: "RemoteDataset",
         local_files: List[LocalFile],
-        multi_file_items: Optional[List[MultiFileItem]] = None,
+        multi_file_items: Optional[
+            List[Union[MultiSlotItem, DICOMSeriesItem, MultiChannelItem]]
+        ] = None,
     ):
         self._progress: Optional[
             Iterator[Callable[[Optional[ByteReadCallback]], None]]
@@ -523,7 +688,9 @@ class UploadHandlerV2(UploadHandler):
         self,
         dataset: "RemoteDataset",
         local_files: List[LocalFile],
-        multi_file_items: Optional[List[MultiFileItem]] = None,
+        multi_file_items: Optional[
+            List[Union[MultiSlotItem, DICOMSeriesItem, MultiChannelItem]]
+        ] = None,
     ):
         super().__init__(
             dataset=dataset,
@@ -698,3 +865,12 @@ def _upload_chunk_size() -> int:
         print("Cannot cast environment variable DEFAULT_UPLOAD_CHUNK_SIZE to integer")
         print(f"Setting chunk size to {DEFAULT_UPLOAD_CHUNK_SIZE}")
         return DEFAULT_UPLOAD_CHUNK_SIZE
+
+
+def create_multi_file_item(directory, files_in_directory, item_merge_mode, fps):
+    if item_merge_mode == ItemMergeMode.SLOTS:
+        return MultiSlotItem(directory, files_in_directory, fps)
+    elif item_merge_mode == ItemMergeMode.SERIES:
+        pass
+    elif item_merge_mode == ItemMergeMode.CHANNELS:
+        pass
