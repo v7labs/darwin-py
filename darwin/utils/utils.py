@@ -1149,9 +1149,10 @@ def _parse_properties(
 ) -> Optional[List[SelectedProperty]]:
     selected_properties = []
     for property in properties:
+        frame_index = property.get("frame_index")
         selected_properties.append(
             SelectedProperty(
-                frame_index=property.get("frame_index", None),
+                frame_index=frame_index if frame_index is not None else "global",
                 name=property.get("name", None),
                 value=property.get("value", None),
             )

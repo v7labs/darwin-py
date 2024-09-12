@@ -26,6 +26,7 @@ from darwin.future.data_objects.properties import (
     PropertyType,
     PropertyValue,
     SelectedProperty,
+    PropertyGranularity,
 )
 from darwin.item import DatasetItem
 from darwin.path_utils import is_properties_enabled, parse_metadata
@@ -412,6 +413,7 @@ def _import_properties(
                     # if property value is None, update annotation_property_map with empty set
                     if a_prop.value is None:
                         assert t_prop.id is not None
+
                         annotation_property_map[annotation_id][str(a_prop.frame_index)][
                             t_prop.id
                         ] = set()
@@ -516,6 +518,7 @@ def _import_properties(
                         slug=client.default_team,
                         annotation_class_id=int(annotation_class_id),
                         property_values=property_values,
+                        granularity=PropertyGranularity(m_prop.granularity.value),
                     )
                     create_properties.append(full_property)
                 continue
@@ -649,6 +652,7 @@ def _import_properties(
                 slug=client.default_team,
                 annotation_class_id=t_prop.annotation_class_id,
                 property_values=extra_property_values,
+                granularity=PropertyGranularity(t_prop.granularity.value),
             )
             console.print(
                 f"Updating property {full_property.name} ({full_property.type}) with extra metadata values {extra_values}",
