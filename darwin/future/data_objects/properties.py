@@ -84,8 +84,6 @@ class FullProperty(DefaultDarwin):
     options: Optional[List[PropertyValue]] = None
     granularity: PropertyGranularity = PropertyGranularity("section")
 
-    # model_config = ConfigDict(use_enum_values=True)
-
     def to_create_endpoint(
         self,
     ) -> dict:
