@@ -1,0 +1,49 @@
+{
+    "version": "1.0",
+    "schema_ref": "https://darwin-public.s3.eu-west-1.amazonaws.com/darwin_json/metadata/1.0/schema.json",
+    "classes": [
+      {
+        "name": "test_class",
+        "type": "bounding_box",
+        "description": null,
+        "color": "rgba(255,46,0,1.0)",
+        "sub_types": [
+          "inference"
+        ],
+        "properties": [
+          {
+            "name": "existing_property_single_select",
+            "type": "single_select",
+            "description": "",
+            "required": false,
+            "property_values": [
+              {
+                "value": "1",
+                "color": "rgba(255,46,0,1.0)"
+              }
+            ]
+          },
+          {
+            "name": "existing_property_multi_select",
+            "type": "multi_select",
+            "description": "",
+            "required": false,
+            "property_values": [
+              {
+                "value": "1",
+                "color": "rgba(173,255,0,1.0)"
+              },
+              {
+                "value": "2",
+                "color": "rgba(255,199,0,1.0)"
+              }
+            ]
+          }
+        ],
+        "sub_types_settings": {
+          "inference": {}
+        }
+      }
+    ],
+    "properties": []
+  }
