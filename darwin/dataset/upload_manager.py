@@ -15,6 +15,7 @@ from typing import (
     Optional,
     Set,
     Tuple,
+    Dict,
 )
 
 import requests
@@ -23,7 +24,7 @@ from darwin.datatypes import PathLike
 from darwin.doc_enum import DocEnum
 from darwin.path_utils import construct_full_path
 from darwin.utils import chunk
-from darwin.utils.utils import is_image_extension_allowed_by_filename
+from darwin.utils.utils import is_image_extension_allowed_by_filename, SLOTS_GRID_MAP
 
 if TYPE_CHECKING:
     from darwin.client import Client
@@ -31,7 +32,7 @@ if TYPE_CHECKING:
     from darwin.dataset.identifier import DatasetIdentifier
 
 from abc import ABC, abstractmethod
-from typing import Dict
+
 
 LAYOUT_SHAPE_MAP = {
     1: [1, 1],
@@ -219,14 +220,11 @@ class MultiFileItem:
         self.name = directory.name
         self.files = [LocalFile(file, fps=fps) for file in files]
         self.merge_mode = merge_mode
-        self.layout = self._create_layout()
+        self._create_layout()
 
     def _create_layout(self):
         """
-        Creates the layout to be used when uploading the files as a dataset item:
-        - For multi-slotted items: LayoutV2
-        - For series items: LayoutV2, but only with `.dcm` files
-        - For multi-channel items: LayoutV3
+        Sets the layout as a LayoutV3 object to be used when uploading the files as a dataset item.
 
         Raises
         ------
@@ -234,25 +232,25 @@ class MultiFileItem:
             - If no DICOM files are found in the directory for `ItemMergeMode.SERIES` items
             - If the number of files is greater than 16 for `ItemMergeMode.CHANNELS` items
         """
+        self.slot_names = []
         if self.merge_mode == ItemMergeMode.SLOTS:
-            num_files = len(self.files)
-            layout_shape = LAYOUT_SHAPE_MAP.get(num_files, [4, 4])
-            return {
-                "version": 2,
-                "slots": [str(i) for i in range(num_files)],
-                "type": "grid" if num_files >= 4 else "horizontal",
-                "layout_shape": layout_shape,
+            num_viewports = min(len(self.files), 16)
+            slots_grid = SLOTS_GRID_MAP.get(num_viewports)
+            self.layout = {
+                "version": 3,
+                "slots_grid": slots_grid,
             }
+            self.slot_names = [str(i) for i in range(len(self.files))]
         elif self.merge_mode == ItemMergeMode.SERIES:
             self.files = [
                 file for file in self.files if file.local_path.suffix.lower() == ".dcm"
             ]
             if not self.files:
                 raise ValueError("No `.dcm` files found in 1st level of directory")
-            return {
-                "version": 2,
-                "slots": [self.name],
-                "type": "grid",
+            self.slot_names = [self.name] * len(self.files)
+            self.layout = {
+                "version": 3,
+                "slots_grid": [[[self.name]]],
             }
         elif self.merge_mode == ItemMergeMode.CHANNELS:
             # Currently, only image files are supported in multi-channel items. This is planned to change in the future
@@ -269,24 +267,19 @@ class MultiFileItem:
                 raise ValueError(
                     f"No multi-channel item can have more than 16 files. The following directory has {len(self.files)} files: {self.directory}"
                 )
-            return {
+            self.layout = {
                 "version": 3,
                 "slots_grid": [[[file.local_path.name for file in self.files]]],
             }
+            self.slot_names = self.layout["slots_grid"][0][0]
 
     def serialize_v2(self):
         optional_properties = ["fps"]
         slots = []
-        if self.merge_mode == ItemMergeMode.SLOTS:
-            slot_names = self.layout["slots"]
-        elif self.merge_mode == ItemMergeMode.SERIES:
-            slot_names = [self.name] * len(self.files)
-        elif self.merge_mode == ItemMergeMode.CHANNELS:
-            slot_names = self.layout["slots_grid"][0][0]
         for idx, local_file in enumerate(self.files):
             slot = {
                 "file_name": local_file.data["filename"],
-                "slot_name": slot_names[idx],
+                "slot_name": self.slot_names[idx],
             }
             for optional_property in optional_properties:
                 if optional_property in local_file.data:

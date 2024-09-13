@@ -28,6 +28,4 @@ def test_returns_flattened_list_if_passed_nested_list_with_different_depth() -> 
 if __name__ == "__main__":
     import sys
 
-    import pytest
-
     sys.exit(pytest.main(["-v", "-x", __file__]))

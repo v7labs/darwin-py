@@ -45,7 +45,14 @@ from darwin.exceptions import NotFound, UnknownExportVersion
 from darwin.exporter.formats.darwin import build_image_annotation
 from darwin.item import DatasetItem
 from darwin.item_sorter import ItemSorter
-from darwin.utils import SUPPORTED_EXTENSIONS, find_files, urljoin
+from darwin.utils import (
+    SUPPORTED_EXTENSIONS,
+    PRESERVE_FOLDERS_KEY,
+    AS_FRAMES_KEY,
+    EXTRACT_VIEWS_KEY,
+    find_files,
+    urljoin,
+)
 
 if TYPE_CHECKING:
     from darwin.client import Client
@@ -223,9 +230,9 @@ class RemoteDatasetV2(RemoteDataset):
             - If there are no files to upload (because path is wrong or the exclude filter excludes everything).
         """
         merge_incompatible_args = {
-            "preserve_folders": preserve_folders,
-            "as_frames": as_frames,
-            "extract_views": extract_views,
+            PRESERVE_FOLDERS_KEY: preserve_folders,
+            AS_FRAMES_KEY: as_frames,
+            EXTRACT_VIEWS_KEY: extract_views,
         }
 
         if files_to_exclude is None:
@@ -251,32 +258,28 @@ class RemoteDatasetV2(RemoteDataset):
                     f"`item_merge_mode` does not support the following incompatible arguments: {incompatible_args_str}."
                 )
 
-        # Direct file paths
-        local_files = [item for item in files_to_upload if isinstance(item, LocalFile)]
-
         # Folder paths
         search_files = [
             item for item in files_to_upload if not isinstance(item, LocalFile)
         ]
 
         if item_merge_mode:
-            local_files, multi_file_items = _find_files_to_upload_merging(
+            local_files, multi_file_items = _find_files_to_upload_as_multi_file_items(
                 search_files, files_to_exclude, fps, item_merge_mode
             )
             handler = UploadHandlerV2(self, local_files, multi_file_items)
         else:
-            local_files = _find_files_to_upload_no_merging(
+            local_files = _find_files_to_upload_as_single_file_items(
                 search_files,
+                files_to_upload,
                 files_to_exclude,
                 path,
                 fps,
                 as_frames,
                 extract_views,
                 preserve_folders,
-                local_files,
             )
             handler = UploadHandlerV2(self, local_files)
-
         if blocking:
             handler.upload(
                 max_workers=max_workers,
@@ -864,18 +867,14 @@ class RemoteDatasetV2(RemoteDataset):
         return results
 
 
-def _find_files_to_upload_merging(
+def _find_files_to_upload_as_multi_file_items(
     search_files: List[PathLike],
     files_to_exclude: List[PathLike],
     fps: int,
     item_merge_mode: str,
 ) -> Tuple[List[LocalFile], List[MultiFileItem]]:
     """
-    Finds files to upload as either:
-        - Multi-slotted items
-        - Multi-channel items
-        - Single-slotted items containing multiple `.dcm` files
-
+    Finds files to upload according to the `item_merge_mode`.
     Does not search each directory recursively, only considers files in the first level of each directory.
 
     Parameters
@@ -924,15 +923,15 @@ def _find_files_to_upload_merging(
     return local_files, multi_file_items
 
 
-def _find_files_to_upload_no_merging(
+def _find_files_to_upload_as_single_file_items(
     search_files: List[PathLike],
+    files_to_upload: Optional[Sequence[Union[PathLike, LocalFile]]],
     files_to_exclude: List[PathLike],
     path: Optional[str],
     fps: int,
     as_frames: bool,
     extract_views: bool,
     preserve_folders: bool,
-    uploading_files: List[LocalFile],
 ) -> List[LocalFile]:
     """
     Finds files to upload as single-slotted dataset items. Recursively searches the passed directories for files.
@@ -941,8 +940,11 @@ def _find_files_to_upload_no_merging(
     ----------
     search_files : List[PathLike]
         List of directories to search for files.
+
     files_to_exclude : Optional[List[PathLike]]
         List of files to exclude from the file scan.
+    files_to_upload : Optional[List[Union[PathLike, LocalFile]]]
+        List of files to upload. These can be folders.
     path : Optional[str]
         Path to store the files in.
     fps: int
@@ -953,18 +955,23 @@ def _find_files_to_upload_no_merging(
         When uploading volume files, specify whether to split into orthogonal views.
     preserve_folders: bool
         Specify whether or not to preserve folder paths when uploading.
-    uploading_files : List[LocalFile]
-        List of files to upload.
 
     Returns
     -------
     List[LocalFile]
         List of files to upload.
     """
+    # Direct file paths
+    uploading_files = [item for item in files_to_upload if isinstance(item, LocalFile)]
+
     generic_parameters_specified = (
         path is not None or fps != 0 or as_frames is not False
     )
-    if uploading_files and generic_parameters_specified:
+
+    if (
+        any(isinstance(item, LocalFile) for item in uploading_files)
+        and generic_parameters_specified
+    ):
         raise ValueError("Cannot specify a path when uploading a LocalFile object.")
 
     for found_file in find_files(search_files, files_to_exclude=files_to_exclude):

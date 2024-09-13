@@ -12,6 +12,7 @@ from darwin.config import Config
 from darwin.dataset import RemoteDataset
 from darwin.dataset.remote_dataset_v2 import RemoteDatasetV2
 from tests.fixtures import *
+from darwin.utils import BLOCKED_UPLOAD_ERROR_ALREADY_EXISTS
 
 
 @pytest.fixture
@@ -57,7 +58,7 @@ class TestUploadData:
                         {
                             "type": "image",
                             "file_name": "test_1.jpg",
-                            "reason": "ALREADY_EXISTS",
+                            "reason": BLOCKED_UPLOAD_ERROR_ALREADY_EXISTS,
                             "slot_name": "0",
                             "upload_id": "123e4567-e89b-12d3-a456-426614174000",
                             "as_frames": False,
@@ -160,7 +161,7 @@ class TestUploadData:
                         {
                             "type": "image",
                             "file_name": "test_1.jpg",
-                            "reason": "ALREADY_EXISTS",
+                            "reason": BLOCKED_UPLOAD_ERROR_ALREADY_EXISTS,
                             "slot_name": "0",
                             "upload_id": "123e4567-e89b-12d3-a456-426614174000",
                             "as_frames": False,

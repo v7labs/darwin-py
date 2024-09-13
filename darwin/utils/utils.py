@@ -74,6 +74,68 @@ SUPPORTED_VIDEO_EXTENSIONS = [
 ]
 SUPPORTED_EXTENSIONS = SUPPORTED_IMAGE_EXTENSIONS + SUPPORTED_VIDEO_EXTENSIONS
 
+# Define incompatible `item_merge_mode` arguments
+PRESERVE_FOLDERS_KEY = "preserve_folders"
+AS_FRAMES_KEY = "as_frames"
+EXTRACT_VIEWS_KEY = "extract_views"
+
+# Define reasons for blocking slot uploads
+BLOCKED_UPLOAD_ERROR_ALREADY_EXISTS = "ALREADY_EXISTS"
+BLOCKED_UPLOAD_ERROR_FILE_UPLOAD_TIMEOUT = "FILE_UPLOAD_TIMEOUT"
+BLOCKED_UPLOAD_ERROR_FILE_UPLOAD_FAILED = "FILE_UPLOAD_FAILED"
+BLOCKED_UPLOAD_ERROR_UNEXPECTED_ERROR = "UNEXPECTED_ERROR"
+BLOCKED_UPLOAD_ERROR_ITEM_COUNT_LIMIT_EXCEEDED = "ITEM_COUNT_LIMIT_EXCEEDED"
+
+SLOTS_GRID_MAP = {
+    1: [[["0"]]],
+    2: [[["0"]], [["1"]]],
+    3: [[["0"]], [["1"]], [["2"]]],
+    4: [[["0"], ["2"]], [["1"], ["3"]]],
+    5: [[["0"], ["3"]], [["1"], ["4"]], [["2"]]],
+    6: [[["0"], ["3"]], [["1"], ["4"]], [["2"], ["5"]]],
+    7: [[["0"], ["3"], ["6"]], [["1"], ["4"]], [["2"], ["5"]]],
+    8: [[["0"], ["3"], ["6"]], [["1"], ["4"], ["7"]], [["2"], ["5"]]],
+    9: [[["0"], ["3"], ["6"]], [["1"], ["4"], ["7"]], [["2"], ["5"], ["8"]]],
+    10: [[["0"], ["4"], ["8"]], [["1"], ["5"], ["9"]], [["2"], ["6"]], [["3"], ["7"]]],
+    11: [
+        [["0"], ["4"], ["8"]],
+        [["1"], ["5"], ["9"]],
+        [["2"], ["6"], ["10"]],
+        [["3"], ["7"]],
+    ],
+    12: [
+        [["0"], ["4"], ["8"]],
+        [["1"], ["5"], ["9"]],
+        [["2"], ["6"], ["10"]],
+        [["3"], ["7"], ["11"]],
+    ],
+    13: [
+        [["0"], ["4"], ["8"], ["12"]],
+        [["1"], ["5"], ["9"]],
+        [["2"], ["6"], ["10"]],
+        [["3"], ["7"], ["11"]],
+    ],
+    14: [
+        [["0"], ["4"], ["8"], ["12"]],
+        [["1"], ["5"], ["9"], ["13"]],
+        [["2"], ["6"], ["10"]],
+        [["3"], ["7"], ["11"]],
+    ],
+    15: [
+        [["0"], ["4"], ["8"], ["12"]],
+        [["1"], ["5"], ["9"], ["13"]],
+        [["2"], ["6"], ["10"], ["14"]],
+        [["3"], ["7"], ["11"]],
+    ],
+    16: [
+        [["0"], ["4"], ["8"], ["12"]],
+        [["1"], ["5"], ["9"], ["13"]],
+        [["2"], ["6"], ["10"], ["14"]],
+        [["3"], ["7"], ["11"], ["15"]],
+    ],
+}
+
+
 _darwin_schema_cache = {}
 
 
