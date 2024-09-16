@@ -520,7 +520,9 @@ def _import_properties(
                         property_values=property_values,
                         granularity=PropertyGranularity(m_prop.granularity.value),
                     )
-                    create_properties.append(full_property)
+                    # Don't attempt the same propery creation multiple times
+                    if full_property not in create_properties:
+                        create_properties.append(full_property)
                 continue
 
             # check if property value is different in m_prop (.v7/metadata.json) options
@@ -568,7 +570,9 @@ def _import_properties(
                         )
                     ],
                 )
-                update_properties.append(full_property)
+                # Don't attempt the same propery update multiple times
+                if full_property not in update_properties:
+                    update_properties.append(full_property)
                 continue
 
             assert t_prop.id is not None
