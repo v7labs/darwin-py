@@ -378,6 +378,7 @@ class TestGetTeamProperties:
                         "slug": "property-question",
                         "team_id": 128,
                         "type": "multi_select",
+                        "granularity": "section",
                     },
                 ]
             },
