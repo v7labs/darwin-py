@@ -263,10 +263,10 @@ def raise_for_darwin_exception(response: requests.Response) -> None:
     if response.status_code == 200:
         return
     if response.status_code == 400:
-        raise BadRequest(response)
+        raise BadRequest(response, response.text)
     if response.status_code == 401:
-        raise Unauthorized(response)
+        raise Unauthorized(response, response.text)
     if response.status_code == 404:
-        raise NotFound(response)
+        raise NotFound(response, response.text)
     if response.status_code == 422:
-        raise UnprocessibleEntity(response)
+        raise UnprocessibleEntity(response, response.text)
