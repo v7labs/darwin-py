@@ -692,6 +692,8 @@ class RemoteDataset(ABC):
             cls["available"] = belongs_to_current_dataset
             if team_wide or belongs_to_current_dataset:
                 classes_to_return.append(cls)
+            elif cls["annotation_types"] == ["raster_layer"]:
+                classes_to_return.append(cls)
         return classes_to_return
 
     def fetch_remote_attributes(self) -> List[Dict[str, Any]]:

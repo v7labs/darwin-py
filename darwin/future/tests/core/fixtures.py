@@ -8,7 +8,11 @@ import pytest
 from darwin.future.core.client import ClientCore, DarwinConfig
 from darwin.future.data_objects.dataset import DatasetCore
 from darwin.future.data_objects.item import ItemCore, ItemLayout, ItemSlot
-from darwin.future.data_objects.properties import FullProperty, PropertyValue
+from darwin.future.data_objects.properties import (
+    FullProperty,
+    PropertyValue,
+    PropertyGranularity,
+)
 from darwin.future.data_objects.team import TeamCore, TeamMemberCore
 from darwin.future.data_objects.team_member_role import TeamMemberRole
 from darwin.future.data_objects.workflow import WorkflowCore
@@ -38,6 +42,7 @@ def base_property_object(base_property_value: PropertyValue) -> FullProperty:
         annotation_class_id=0,
         property_values=[base_property_value],
         options=[base_property_value],
+        granularity=PropertyGranularity("section"),
     )
 
 

@@ -3,7 +3,8 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
-from typing import List, Literal, Optional, Tuple
+from typing import List, Literal, Optional, Tuple, Union
+from enum import Enum
 
 from pydantic import field_validator
 
@@ -17,6 +18,12 @@ PropertyType = Literal[
     "instance_id",
     "directional_vector",
 ]
+
+
+class PropertyGranularity(str, Enum):
+    section = "section"
+    annotation = "annotation"
+    item = "item"
 
 
 class PropertyValue(DefaultDarwin):
@@ -60,6 +67,8 @@ class FullProperty(DefaultDarwin):
         type (str): Type of the property
         required (bool): If the property is required
         options (List[PropertyOption]): List of all options for the property
+        granularity (PropertyGranularity): Granularity of the property
+
     """
 
     id: Optional[str] = None
@@ -73,6 +82,7 @@ class FullProperty(DefaultDarwin):
     annotation_class_id: Optional[int] = None
     property_values: Optional[List[PropertyValue]] = None
     options: Optional[List[PropertyValue]] = None
+    granularity: PropertyGranularity = PropertyGranularity("section")
 
     def to_create_endpoint(
         self,
@@ -87,6 +97,7 @@ class FullProperty(DefaultDarwin):
                 "annotation_class_id": True,
                 "property_values": {"__all__": {"value", "color"}},
                 "description": True,
+                "granularity": True,
             }
         )
 
@@ -94,7 +105,8 @@ class FullProperty(DefaultDarwin):
         if self.id is None:
             raise ValueError("id must be set")
         updated_base = self.to_create_endpoint()
-        del updated_base["annotation_class_id"]  # can't update this field
+        del updated_base["annotation_class_id"]  # Can't update this field
+        del updated_base["granularity"]  # Can't update this field
         return self.id, updated_base
 
 
@@ -110,6 +122,7 @@ class MetaDataClass(DefaultDarwin):
         description (Optional[str]): Description of the class
         color (Optional[str]): Color of the class in the UI
         sub_types (Optional[List[str]]): Sub types of the class
+        granularity:(PropertyGranularity): Granularity of the property
         properties (List[FullProperty]): List of all properties for the class with all options
     """
 
@@ -118,6 +131,7 @@ class MetaDataClass(DefaultDarwin):
     description: Optional[str] = None
     color: Optional[str] = None
     sub_types: Optional[List[str]] = None
+    granularity: PropertyGranularity = PropertyGranularity("section")
     properties: List[FullProperty]
 
     @classmethod
@@ -141,13 +155,14 @@ class SelectedProperty(DefaultDarwin):
     Selected property for an annotation found inside a darwin annotation
 
     Attributes:
-        frame_index (int): Frame index of the annotation
+        frame_index (int | str): Frame index of the annotation
+        int for section-level properties, and "global" for annotation-level properties
         name (str): Name of the property
         type (str | None): Type of the property (if it exists)
         value (str): Value of the property
     """
 
-    frame_index: Optional[int] = None
+    frame_index: Optional[Union[int, str]] = None
     name: str
     type: Optional[str] = None
     value: Optional[str] = None
