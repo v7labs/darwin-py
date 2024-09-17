@@ -20,7 +20,7 @@ from typing import (
 
 import requests
 
-from darwin.datatypes import PathLike
+from darwin.datatypes import PathLike, Slot, SourceFile
 from darwin.doc_enum import DocEnum
 from darwin.path_utils import construct_full_path
 from darwin.utils import chunk
@@ -32,22 +32,6 @@ if TYPE_CHECKING:
     from darwin.dataset.identifier import DatasetIdentifier
 
 from abc import ABC, abstractmethod
-
-
-LAYOUT_SHAPE_MAP = {
-    1: [1, 1],
-    2: [2, 1],
-    3: [3, 1],
-    4: [2, 2],
-    5: [3, 2],
-    6: [3, 2],
-    7: [4, 2],
-    8: [4, 2],
-    9: [3, 3],
-    10: [4, 3],
-    11: [4, 3],
-    12: [4, 3],
-}
 
 
 class ItemMergeMode(Enum):
@@ -79,8 +63,6 @@ class ItemPayload:
         The filename of where this ``ItemPayload``'s data is.
     path : str
         The path to ``filename``.
-    reasons : Optional[List[str]], default: None
-        A per-slot reason to upload this ``ItemPayload``.
     """
 
     def __init__(
@@ -90,13 +72,21 @@ class ItemPayload:
         filename: str,
         path: str,
         reasons: Optional[List[str]] = None,
-        slots: Optional[any] = None,
+        slots: List[Dict[str, str]],
     ):
         self.dataset_item_id = dataset_item_id
         self.filename = filename
         self.path = PurePosixPath(path).as_posix()
-        self.reasons = reasons
-        self.slots = slots
+        self.slots = [
+            Slot(
+                type=slot["type"],
+                source_files=[SourceFile(file_name=slot["file_name"])],
+                name=slot["slot_name"],
+                upload_id=slot["upload_id"] if "upload_id" in slot else None,
+                reason=slot["reason"] if "reason" in slot else None,
+            )
+            for slot in slots
+        ]
 
     @staticmethod
     def parse_v2(payload):
@@ -193,7 +183,7 @@ class LocalFile:
             "name": self.data["filename"],
         }
 
-    def serialize_v2(self):
+    def serialize_darwin_json_v2(self):
         optional_properties = ["tags", "fps", "as_frames", "extract_views"]
         slot = {"file_name": self.data["filename"], "slot_name": "0"}
         for optional_property in optional_properties:
@@ -235,7 +225,7 @@ class MultiFileItem:
         self.slot_names = []
         if self.merge_mode == ItemMergeMode.SLOTS:
             num_viewports = min(len(self.files), 16)
-            slots_grid = SLOTS_GRID_MAP.get(num_viewports)
+            slots_grid = SLOTS_GRID_MAP[num_viewports]
             self.layout = {
                 "version": 3,
                 "slots_grid": slots_grid,
@@ -273,7 +263,7 @@ class MultiFileItem:
             }
             self.slot_names = self.layout["slots_grid"][0][0]
 
-    def serialize_v2(self):
+    def serialize_darwin_json_v2(self):
         optional_properties = ["fps"]
         slots = []
         for idx, local_file in enumerate(self.files):
@@ -534,7 +524,9 @@ class UploadHandlerV2(UploadHandler):
             upload_payloads.extend(
                 [
                     {
-                        "items": [file.serialize_v2() for file in file_chunk],
+                        "items": [
+                            file.serialize_darwin_json_v2() for file in file_chunk
+                        ],
                         "options": {"ignore_dicom_layout": True},
                     }
                     for file_chunk in chunk(self.multi_file_items, chunk_size)
@@ -553,7 +545,7 @@ class UploadHandlerV2(UploadHandler):
 
         upload_payloads.extend(
             [
-                {"items": [file.serialize_v2() for file in file_chunk]}
+                {"items": [file.serialize_darwin_json_v2() for file in file_chunk]}
                 for file_chunk in chunk(single_file_items, chunk_size)
             ]
         )
@@ -581,8 +573,10 @@ class UploadHandlerV2(UploadHandler):
         file_lookup = {file.full_path: file for file in self.local_files}
         for item in self.pending_items:
             for slot in item.slots:
-                upload_id = slot["upload_id"]
-                slot_path = (Path(item.path) / Path((slot["file_name"]))).as_posix()
+                upload_id = slot.upload_id
+                slot_path = (
+                    Path(item.path) / Path((slot.source_files[0].file_name))
+                ).as_posix()
                 file = file_lookup.get(str(slot_path))
                 if not file:
                     raise ValueError(

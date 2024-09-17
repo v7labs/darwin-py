@@ -361,7 +361,7 @@ class Slot:
     type: str
 
     #: Original upload information for the slot
-    source_files: List[Dict[str, str]]
+    source_files: List[SourceFile]
 
     #: Thumbnail url to the file
     thumbnail_url: Optional[str] = None
@@ -389,6 +389,21 @@ class Slot:
 
     #: Segments for video slots
     segments: Optional[List[Dict[str, UnknownType]]] = None
+
+    #: Upload ID
+    upload_id: Optional[str] = None
+
+    #: The reason for blocking upload of this slot, if it was blocked
+    reason: Optional[str] = None
+
+
+@dataclass
+class SourceFile:
+    #: File name of source file
+    file_name: str
+
+    #: URL of file
+    url: Optional[str] = None
 
 
 @dataclass

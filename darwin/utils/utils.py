@@ -658,10 +658,10 @@ def _parse_darwin_image(
         name=None,
         type="image",
         source_files=[
-            {
-                "url": data["image"].get("url"),
-                "file_name": _get_local_filename(data["image"]),
-            }
+            dt.SourceFile(
+                file_name=_get_local_filename(data["image"]),
+                url=data["image"].get("url"),
+            )
         ],
         thumbnail_url=data["image"].get("thumbnail_url"),
         width=data["image"].get("width"),
@@ -708,10 +708,10 @@ def _parse_darwin_video(
         name=None,
         type="video",
         source_files=[
-            {
-                "url": data["image"].get("url"),
-                "file_name": _get_local_filename(data["image"]),
-            }
+            dt.SourceFile(
+                file_name=_get_local_filename(data["image"]),
+                url=data["image"].get("url"),
+            )
         ],
         thumbnail_url=data["image"].get("thumbnail_url"),
         width=data["image"].get("width"),

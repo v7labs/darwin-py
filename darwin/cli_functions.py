@@ -800,8 +800,8 @@ def upload_data(
         other_skipped_items = []
         for item in upload_manager.blocked_items:
             for slot in item.slots:
-                if (slot["reason"] is not None) and (
-                    slot["reason"].upper() == BLOCKED_UPLOAD_ERROR_ALREADY_EXISTS
+                if (slot.reason is not None) and (
+                    slot.reason.upper() == BLOCKED_UPLOAD_ERROR_ALREADY_EXISTS
                 ):
                     already_existing_items.append(item)
                 else:
@@ -835,15 +835,15 @@ def upload_data(
         )
         for item in upload_manager.blocked_items:
             for slot in item.slots:
-                if (slot["reason"] is not None) and (
-                    slot["reason"].upper() != BLOCKED_UPLOAD_ERROR_ALREADY_EXISTS
+                if (slot.reason is not None) and (
+                    slot.reason.upper() != BLOCKED_UPLOAD_ERROR_ALREADY_EXISTS
                 ):
                     error_table.add_row(
                         str(item.dataset_item_id),
                         item.filename,
                         item.path,
                         "UPLOAD_REQUEST",
-                        slot["reason"],
+                        slot.reason,
                     )
         for error in upload_manager.errors:
             for local_file in upload_manager.local_files:

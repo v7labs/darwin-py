@@ -170,7 +170,7 @@ def _parse_nifti(
             dt.Slot(
                 name=slot_name,
                 type="dicom",
-                source_files=[{"url": None, "file_name": str(filename)}],
+                source_files=[dt.SourceFile(file_name=str(filename), url=None)],
             )
             for slot_name in slot_names
         ],
