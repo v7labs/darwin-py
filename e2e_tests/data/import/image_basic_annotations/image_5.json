@@ -1,0 +1,369 @@
+{
+  "version": "2.0",
+  "schema_ref": "https://darwin-public.s3.eu-west-1.amazonaws.com/darwin_json/2.0/schema.json",
+  "item": {
+    "name": "image_5",
+    "path": "/dir2",
+    "source_info": {
+      "item_id": "01920b88-51e0-30eb-618d-9a8f3679edb3",
+      "dataset": {
+        "name": "test_dataset_27f8e6a7-ed01-4282-bb48-96d8088d619f",
+        "slug": "test_dataset_27f8e6a7-ed01-4282-bb48-96d8088d619f",
+        "dataset_management_url": "https://staging.v7labs.com/datasets/339222/dataset-management"
+      },
+      "team": {
+        "name": "E2E Testing",
+        "slug": "e2e-testing"
+      },
+      "workview_url": "https://staging.v7labs.com/workview?dataset=339222&item=01920b88-51e0-30eb-618d-9a8f3679edb3"
+    },
+    "slots": [
+      {
+        "type": "image",
+        "slot_name": "0",
+        "width": 1920,
+        "height": 1080,
+        "thumbnail_url": "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/72e84b0f-4474-43f6-89e9-78f56665e9cd/thumbnail",
+        "source_files": [
+          {
+            "file_name": "image_5",
+            "storage_key": "darwin-py/images/image_5.jpg",
+            "url": "https://staging.v7labs.com/api/v2/teams/e2e-testing/uploads/37c060b2-b114-4af1-9d8a-46ef1900877e"
+          }
+        ]
+      }
+    ]
+  },
+  "annotations": [
+    {
+      "bounding_box": {
+        "h": 38.138,
+        "w": 67.608,
+        "x": 36.019,
+        "y": 50.273
+      },
+      "id": "047ed9e8-27cd-4809-9ad9-3fc566fab086",
+      "name": "test_bounding_box_basic",
+      "properties": [],
+      "slot_names": [
+        "0"
+      ]
+    },
+    {
+      "ellipse": {
+        "angle": 0.2004,
+        "center": {
+          "x": 214.5746,
+          "y": 259.1653
+        },
+        "radius": {
+          "x": 169.8191,
+          "y": 169.8191
+        }
+      },
+      "id": "41c2402e-c4a0-49cb-a2ba-03d551df8cd0",
+      "name": "test_ellipse_basic",
+      "properties": [],
+      "slot_names": [
+        "0"
+      ]
+    },
+    {
+      "id": "a70842c8-eca4-4091-aced-802793a65038",
+      "keypoint": {
+        "x": 483.2745,
+        "y": 199.3579
+      },
+      "name": "test_keypoint_basic",
+      "properties": [],
+      "slot_names": [
+        "0"
+      ]
+    },
+    {
+      "bounding_box": {
+        "h": 72.809,
+        "w": 91.878,
+        "x": 18.6838,
+        "y": 135.2167
+      },
+      "id": "b42f2409-feed-47fc-935c-ce10db9eab54",
+      "name": "test_polygon_basic",
+      "polygon": {
+        "paths": [
+          [
+            {
+              "x": 86.2921,
+              "y": 135.2167
+            },
+            {
+              "x": 18.6838,
+              "y": 208.0257
+            },
+            {
+              "x": 110.5618,
+              "y": 208.0257
+            },
+            {
+              "x": 23.8844,
+              "y": 135.2167
+            }
+          ]
+        ]
+      },
+      "properties": [],
+      "slot_names": [
+        "0"
+      ]
+    },
+    {
+      "id": "1575cf2d-4c80-4f73-ab30-bed32764f784",
+      "name": "test_skeleton_basic",
+      "properties": [],
+      "skeleton": {
+        "nodes": [
+          {
+            "name": "node",
+            "occluded": false,
+            "x": 55.0883,
+            "y": 303.3708
+          },
+          {
+            "name": "2",
+            "occluded": false,
+            "x": 70.3435,
+            "y": 275.634
+          }
+        ]
+      },
+      "slot_names": [
+        "0"
+      ]
+    },
+    {
+      "id": "0c4fb76b-402b-424e-9406-91139ce842eb",
+      "line": {
+        "path": [
+          {
+            "x": 136.565,
+            "y": 353.6437
+          },
+          {
+            "x": 107.0947,
+            "y": 402.183
+          },
+          {
+            "x": 169.5024,
+            "y": 407.3836
+          }
+        ]
+      },
+      "name": "test_line_basic",
+      "properties": [],
+      "slot_names": [
+        "0"
+      ]
+    },
+    {
+      "id": "4b56c891-95c3-438e-8e80-7f29bb6f8593",
+      "name": "test_tag_basic",
+      "properties": [],
+      "slot_names": [
+        "0"
+      ],
+      "tag": {}
+    },
+    {
+      "id": "499731b1-5885-460e-bf4c-1a5f81634545",
+      "mask": {},
+      "name": "test_mask_basic",
+      "properties": [],
+      "slot_names": [
+        "0"
+      ]
+    },
+    {
+      "id": "bd963672-e400-4c8f-8504-49096325d9a6",
+      "name": "__raster_layer__",
+      "properties": [],
+      "raster_layer": {
+        "dense_rle": [
+          0,
+          322890,
+          1,
+          6,
+          0,
+          1912,
+          1,
+          10,
+          0,
+          1910,
+          1,
+          10,
+          0,
+          1909,
+          1,
+          12,
+          0,
+          1908,
+          1,
+          12,
+          0,
+          1908,
+          1,
+          12,
+          0,
+          1907,
+          1,
+          13,
+          0,
+          1906,
+          1,
+          13,
+          0,
+          1907,
+          1,
+          13,
+          0,
+          1906,
+          1,
+          12,
+          0,
+          1908,
+          1,
+          12,
+          0,
+          1907,
+          1,
+          12,
+          0,
+          1908,
+          1,
+          11,
+          0,
+          1909,
+          1,
+          11,
+          0,
+          1909,
+          1,
+          16,
+          0,
+          1904,
+          1,
+          18,
+          0,
+          1902,
+          1,
+          18,
+          0,
+          1901,
+          1,
+          21,
+          0,
+          1899,
+          1,
+          23,
+          0,
+          1897,
+          1,
+          23,
+          0,
+          1897,
+          1,
+          24,
+          0,
+          1896,
+          1,
+          24,
+          0,
+          1896,
+          1,
+          24,
+          0,
+          1896,
+          1,
+          24,
+          0,
+          1896,
+          1,
+          24,
+          0,
+          1896,
+          1,
+          24,
+          0,
+          1896,
+          1,
+          23,
+          0,
+          1897,
+          1,
+          23,
+          0,
+          1897,
+          1,
+          21,
+          0,
+          1899,
+          1,
+          19,
+          0,
+          1901,
+          1,
+          19,
+          0,
+          1901,
+          1,
+          17,
+          0,
+          1903,
+          1,
+          17,
+          0,
+          1903,
+          1,
+          17,
+          0,
+          1903,
+          1,
+          17,
+          0,
+          1904,
+          1,
+          15,
+          0,
+          1905,
+          1,
+          15,
+          0,
+          1905,
+          1,
+          14,
+          0,
+          1907,
+          1,
+          12,
+          0,
+          1908,
+          1,
+          12,
+          0,
+          1910,
+          1,
+          8,
+          0,
+          1673906
+        ],
+        "mask_annotation_ids_mapping": {
+          "499731b1-5885-460e-bf4c-1a5f81634545": 1
+        },
+        "total_pixels": 2073600
+      },
+      "slot_names": [
+        "0"
+      ]
+    }
+  ],
+  "properties": []
+}

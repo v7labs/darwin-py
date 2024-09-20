@@ -2,14 +2,16 @@ from os import environ
 from os.path import dirname, join
 from pathlib import Path
 from time import sleep
-from typing import List
+from typing import List, Generator
 
 import dotenv
 import pytest
+import tempfile
 
 from darwin.future.data_objects.typing import UnknownType
 from e2e_tests.exceptions import E2EEnvironmentVariableNotSet
-from e2e_tests.objects import ConfigValues
+from e2e_tests.objects import ConfigValues, E2EDataset
+from e2e_tests.helpers import new_dataset  # noqa: F401
 from e2e_tests.setup_tests import (
     setup_annotation_classes,
     setup_datasets,
@@ -123,3 +125,12 @@ def config_values(request: UnknownType) -> ConfigValues:
         raise ValueError("E2E_TEAM is not set")
 
     return ConfigValues(server=server, api_key=api_key, team_slug=team)
+
+
+@pytest.fixture
+def local_dataset(
+    new_dataset: E2EDataset,  # noqa: F811
+) -> Generator[E2EDataset, None, None]:
+    with tempfile.TemporaryDirectory() as temp_directory:
+        new_dataset.directory = temp_directory
+        yield new_dataset
