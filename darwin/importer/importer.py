@@ -865,6 +865,22 @@ def import_annotations(  # noqa: C901
         slot_errors, slot_warnings, annotation_format, console
     )
 
+    if annotation_format == "darwin":
+        dataset.client.load_feature_flags()
+        
+        # Check if the flag exists. WHen the flag is deprecated in the future we will always perform this check
+        static_instance_id_feature_flag_exists = any(
+            feature.name == "STATIC_INSTANCE_ID"
+            for feature in dataset.client.features.get(dataset.team, [])
+        )
+        check_for_multi_instance_id_annotations = (
+            static_instance_id_feature_flag_exists
+            and dataset.client.feature_enabled("STATIC_INSTANCE_ID")
+        ) or not static_instance_id_feature_flag_exists
+
+        if check_for_multi_instance_id_annotations:
+            warn_for_annotations_with_multiple_instance_ids(local_files, console)
+
     console.print(
         f"{len(local_files) + len(local_files_missing_remotely)} annotation file(s) found.",
         style="info",
@@ -1680,3 +1696,39 @@ def _display_slot_warnings_and_errors(
             console.print(f"- File: {file}, issues:", style="info")
             for warning in slot_errors[file]:
                 console.print(f"  - {warning}")
+
+
+def warn_for_annotations_with_multiple_instance_ids(
+    local_files: List[dt.AnnotationFile], console: Console
+) -> None:
+    files_with_multi_instance_id_annotations = {}
+    files_with_video_annotations = [
+        local_file for local_file in local_files if local_file.is_video
+    ]
+    for file in files_with_video_annotations:
+        for annotation in file.annotations:
+            unique_instance_ids = []
+            for frame_idx in annotation.frames:  # type: ignore
+                for subannotation in annotation.frames[frame_idx].subs:  # type: ignore
+                    if subannotation.annotation_type == "instance_id":
+                        instance_id = subannotation.data
+                        if instance_id not in unique_instance_ids:
+                            unique_instance_ids.append(instance_id)
+
+            if len(unique_instance_ids) > 1:
+                if file.path not in files_with_multi_instance_id_annotations:
+                    files_with_multi_instance_id_annotations[file.path] = 1
+                else:
+                    files_with_multi_instance_id_annotations[file.path] += 1
+
+    if files_with_multi_instance_id_annotations:
+        console.print(
+            "The following files have at least one annotation with multiple instance IDs. Your team has static instance IDs enabled, so only the first instance ID of each annotation will be imported:",
+            style="warning",
+        )
+        for file in files_with_multi_instance_id_annotations:
+            console.print(
+                f"- File: {file} has {files_with_multi_instance_id_annotations[file]} annotation(s) with multiple instance IDs"
+            )
+        if not secure_continue_request():
+            raise SystemExit("Execution stopped by user.")
