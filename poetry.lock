@@ -2,34 +2,33 @@
 
 [[package]]
 name = "albucore"
-version = "0.0.13"
+version = "0.0.17"
 description = "A high-performance image processing library designed to optimize and extend the Albumentations library with specialized functions for advanced image transformations. Perfect for developers working in computer vision who require efficient and scalable image augmentation."
 optional = true
 python-versions = ">=3.8"
 files = [
-    {file = "albucore-0.0.13-py3-none-any.whl", hash = "sha256:5a00c931ff80149726b80ad0c4c0a8327048463f14cbdf0ca5ff34a051700a84"},
-    {file = "albucore-0.0.13.tar.gz", hash = "sha256:c36d0af878e06f6e97e7882731c5d29243e38c21caec2005ee420fe85db4a7bc"},
+    {file = "albucore-0.0.17-py3-none-any.whl", hash = "sha256:751a6d219a0b5217b44168d5fae90c27eadfa5bc381cbb7cc74536e90aeeac5b"},
+    {file = "albucore-0.0.17.tar.gz", hash = "sha256:e9956ac4debc47e804f0677ff4e23939ba322986eac16e801f8ea1c98269db65"},
 ]
 
 [package.dependencies]
-numpy = ">=1.24.4,<2"
+numpy = ">=1.24"
 opencv-python-headless = ">=4.9.0.80"
-tomli = ">=2.0.1"
-typing-extensions = ">=4.9.0"
+typing-extensions = {version = ">=4.9.0", markers = "python_version < \"3.10\""}
 
 [[package]]
 name = "albumentations"
-version = "1.4.14"
+version = "1.4.16"
 description = "An efficient library for image augmentation, providing extensive transformations to support machine learning and computer vision tasks."
 optional = true
 python-versions = ">=3.8"
 files = [
-    {file = "albumentations-1.4.14-py3-none-any.whl", hash = "sha256:a550bc2e182e4092ab9d914febd9c82a75fed88f0152d077fb323216b0b7ed51"},
-    {file = "albumentations-1.4.14.tar.gz", hash = "sha256:afc6caeba7eaf3c4e1128b2d9ff4475b03d1833f2f52f47a7e53a07afd5f72cc"},
+    {file = "albumentations-1.4.16-py3-none-any.whl", hash = "sha256:a8e90f8d1500e82abf46dfa10f67a8662b335fbc90fccfaeb16a7d30c764b8db"},
+    {file = "albumentations-1.4.16.tar.gz", hash = "sha256:d1b959ef0a20552226b7787529a29aab239ba71ef5024974082b1cd01bf424de"},
 ]
 
 [package.dependencies]
-albucore = ">=0.0.13"
+albucore = "0.0.17"
 eval-type-backport = "*"
 numpy = ">=1.24.4"
 opencv-python-headless = ">=4.9.0.80"
@@ -37,7 +36,7 @@ pydantic = ">=2.7.0"
 PyYAML = "*"
 scikit-image = ">=0.21.0"
 scipy = ">=1.10.0"
-typing-extensions = ">=4.9.0"
+typing-extensions = {version = ">=4.9.0", markers = "python_version < \"3.10\""}
 
 [package.extras]
 hub = ["huggingface-hub"]
