@@ -1840,7 +1840,7 @@ def test_no_instance_id_warning_with_no_video_annotations():
     console.print.assert_not_called()
 
 
-def test_warning_with_multiple_files_with_multi_instance_id_annotations(monkeypatch):
+def test_warning_with_multiple_files_with_multi_instance_id_annotations():
     bounding_box_class = dt.AnnotationClass(
         name="class1", annotation_type="bounding_box"
     )
@@ -1931,10 +1931,7 @@ def test_warning_with_multiple_files_with_multi_instance_id_annotations(monkeypa
         ),
     ]
     console = MagicMock()
-    # Simulate the user stopping the export at the warning
-    monkeypatch.setattr("builtins.input", lambda _: "n")
-    with pytest.raises(SystemExit):
-        _warn_for_annotations_with_multiple_instance_ids(local_files, console)
+    _warn_for_annotations_with_multiple_instance_ids(local_files, console)
     console.print.assert_called()
     assert (
         console.print.call_count == 3

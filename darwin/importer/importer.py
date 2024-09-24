@@ -1705,8 +1705,8 @@ def _warn_for_annotations_with_multiple_instance_ids(
     Warns the user if any video annotations have multiple unique instance IDs.
 
     This function checks each video annotation in the provided list of local annotation
-    files for multiple instance IDs. If any are found, a warning is printed to the console.
-    The user is then prompted to confirm if they want to proceed with the import.
+    files for multiple instance ID values. A warning is printed to the console for each
+    instance of this occurrence.
 
     Parameters
     ----------
@@ -1737,12 +1737,10 @@ def _warn_for_annotations_with_multiple_instance_ids(
 
     if files_with_multi_instance_id_annotations:
         console.print(
-            "The following files have at least one annotation with multiple instance IDs. Your team has static instance IDs enabled, so only the first instance ID of each annotation will be imported:",
+            "The following files have annotation(s) with multiple instance ID values. Only the first instance ID of each annotation will be imported:",
             style="warning",
         )
         for file in files_with_multi_instance_id_annotations:
             console.print(
                 f"- File: {file} has {files_with_multi_instance_id_annotations[file]} annotation(s) with multiple instance IDs"
             )
-        if not secure_continue_request():
-            raise SystemExit("Execution stopped by user.")
