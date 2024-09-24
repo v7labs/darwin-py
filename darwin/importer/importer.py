@@ -867,8 +867,8 @@ def import_annotations(  # noqa: C901
 
     if annotation_format == "darwin":
         dataset.client.load_feature_flags()
-        
-        # Check if the flag exists. WHen the flag is deprecated in the future we will always perform this check
+
+        # Check if the flag exists. When the flag is deprecated in the future we will always perform this check
         static_instance_id_feature_flag_exists = any(
             feature.name == "STATIC_INSTANCE_ID"
             for feature in dataset.client.features.get(dataset.team, [])
@@ -879,7 +879,7 @@ def import_annotations(  # noqa: C901
         ) or not static_instance_id_feature_flag_exists
 
         if check_for_multi_instance_id_annotations:
-            warn_for_annotations_with_multiple_instance_ids(local_files, console)
+            _warn_for_annotations_with_multiple_instance_ids(local_files, console)
 
     console.print(
         f"{len(local_files) + len(local_files_missing_remotely)} annotation file(s) found.",
@@ -1698,9 +1698,23 @@ def _display_slot_warnings_and_errors(
                 console.print(f"  - {warning}")
 
 
-def warn_for_annotations_with_multiple_instance_ids(
+def _warn_for_annotations_with_multiple_instance_ids(
     local_files: List[dt.AnnotationFile], console: Console
 ) -> None:
+    """
+    Warns the user if any video annotations have multiple unique instance IDs.
+
+    This function checks each video annotation in the provided list of local annotation
+    files for multiple instance IDs. If any are found, a warning is printed to the console.
+    The user is then prompted to confirm if they want to proceed with the import.
+
+    Parameters
+    ----------
+    local_files : List[dt.AnnotationFile]
+        A list of local annotation files to be checked.
+    console : Console
+        The console object used to print warnings and messages.
+    """
     files_with_multi_instance_id_annotations = {}
     files_with_video_annotations = [
         local_file for local_file in local_files if local_file.is_video
