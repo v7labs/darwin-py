@@ -1737,7 +1737,7 @@ def _warn_for_annotations_with_multiple_instance_ids(
 
     if files_with_multi_instance_id_annotations:
         console.print(
-            "The following files have annotation(s) with multiple instance ID values. Only the first instance ID of each annotation will be imported:",
+            "The following files have annotation(s) with multiple instance ID values. Instance IDs are static, so only the first instance ID of each annotation will be imported:",
             style="warning",
         )
         for file in files_with_multi_instance_id_annotations:
