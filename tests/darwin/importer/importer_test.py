@@ -13,7 +13,6 @@ from darwin.future.data_objects.properties import (
     PropertyValue,
 )
 import pytest
-
 from darwin import datatypes as dt
 from darwin.importer import get_importer
 from darwin.importer.importer import (
@@ -35,7 +34,7 @@ from darwin.importer.importer import (
 
 
 @pytest.fixture
-def setup_data(request):
+def setup_data(request, multiple_annotations=False):
     granularity = request.param
     client = Mock()
     client.default_team = "test_team"
@@ -70,6 +69,36 @@ def setup_data(request):
             ],
         )
     ]
+    if multiple_annotations:
+        annotations.append(
+            dt.Annotation(
+                dt.AnnotationClass("test_class_2", "polygon"),
+                {"paths": [[6, 7, 8, 9, 10]]},
+                [],
+                [],
+                id="annotation_id_2",
+                properties=[
+                    SelectedProperty(
+                        frame_index=None if granularity == "annotation" else "0",
+                        name="existing_property_single_select",
+                        type="single_select",
+                        value="1",
+                    ),
+                    SelectedProperty(
+                        frame_index=None if granularity == "annotation" else "0",
+                        name="existing_property_multi_select",
+                        type="multi_select",
+                        value="1",
+                    ),
+                    SelectedProperty(
+                        frame_index=None if granularity == "annotation" else "1",
+                        name="existing_property_multi_select",
+                        type="multi_select",
+                        value="2",
+                    ),
+                ],
+            )
+        )
     return client, team_slug, annotation_class_ids_map, annotations
 
 
@@ -1617,6 +1646,99 @@ def test_import_new_section_level_property_values_with_manifest(
                 PropertyValue(value="2", color="rgba(255,199,0,1.0)"),
             ],
         )
+
+
+@patch("darwin.importer.importer._get_team_properties_annotation_lookup")
+@pytest.mark.parametrize("setup_data", ["section"], indirect=True)
+def test_import_identical_properties_to_different_classes(
+    mock_get_team_properties, setup_data
+):
+    client, team_slug, _, _ = setup_data
+    # This test requires 2 annotations annotation
+    annotation_class_ids_map = {
+        ("test_class_1", "polygon"): 1,
+        ("test_class_2", "polygon"): 2,
+    }
+    annotations = [
+        (
+            dt.Annotation(
+                dt.AnnotationClass("test_class_1", "polygon"),
+                {"paths": [[1, 2, 3, 4, 5]]},
+                [],
+                [],
+                id="1",
+                properties=[
+                    SelectedProperty(
+                        frame_index="0",
+                        name="existing_property_single_select",
+                        type="single_select",
+                        value="1",
+                    ),
+                ],
+            )
+        ),
+        (
+            dt.Annotation(
+                dt.AnnotationClass("test_class_2", "polygon"),
+                {"paths": [[1, 2, 3, 4, 5]]},
+                [],
+                [],
+                id="2",
+                properties=[
+                    SelectedProperty(
+                        frame_index="0",
+                        name="existing_property_single_select",
+                        type="single_select",
+                        value="1",
+                    ),
+                ],
+            )
+        ),
+    ]
+    mock_get_team_properties.return_value = {}
+    metadata_path = (
+        Path(__file__).parents[1]
+        / "data"
+        / "metadata_identical_properties_different_classes.json"
+    )
+    with patch.object(client, "create_property") as mock_create_property:
+        mock_create_property.side_effect = [
+            FullProperty(
+                name="existing_property_single_select",
+                id="prop_id_1",
+                type="single_select",
+                required=False,
+                description="property-created-during-annotation-import",
+                annotation_class_id=1,
+                slug="test_team",
+                property_values=[
+                    PropertyValue(
+                        value="1", color="rgba(255,46,0,1.0)", id="prop_val_id_1"
+                    ),
+                ],
+                granularity=PropertyGranularity.section,
+            ),
+            FullProperty(
+                name="existing_property_single_select",
+                id="prop_id_2",
+                type="single_select",
+                required=False,
+                description="property-created-during-annotation-import",
+                annotation_class_id=2,
+                slug="test_team",
+                property_values=[
+                    PropertyValue(
+                        value="1", color="rgba(255,46,0,1.0)", id="prop_val_id_2"
+                    ),
+                ],
+                granularity=PropertyGranularity.section,
+            ),
+        ]
+        annotation_property_map = _import_properties(
+            metadata_path, client, annotations, annotation_class_ids_map, team_slug
+        )
+        assert annotation_property_map["1"]["0"]["prop_id_1"] == {"prop_val_id_1"}
+        assert annotation_property_map["2"]["0"]["prop_id_2"] == {"prop_val_id_2"}
 
 
 @patch("darwin.importer.importer._get_team_properties_annotation_lookup")

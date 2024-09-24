@@ -671,12 +671,23 @@ def _import_properties(
         if not annotation_id_map.get(annotation_id):
             continue
         annotation = annotation_id_map[annotation_id]
-
+        annotation_class = annotation.annotation_class
+        annotation_class_name = annotation_class.name
+        annotation_type = (
+            annotation_class.annotation_internal_type
+            or annotation_class.annotation_type
+        )
+        annotation_class_id = annotation_class_ids_map[
+            (annotation_class_name, annotation_type)
+        ]
         for a_prop in annotation.properties or []:
             frame_index = str(a_prop.frame_index)
 
             for prop in created_properties + updated_properties:
-                if prop.name == a_prop.name:
+                if (
+                    prop.name == a_prop.name
+                    and annotation_class_id == prop.annotation_class_id
+                ):
                     if a_prop.value is None:
                         if not annotation_property_map[annotation_id][frame_index][
                             prop.id
