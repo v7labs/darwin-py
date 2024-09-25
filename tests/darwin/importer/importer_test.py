@@ -30,6 +30,7 @@ from darwin.importer.importer import (
     _resolve_annotation_classes,
     _verify_slot_annotation_alignment,
     _import_properties,
+    _warn_for_annotations_with_multiple_instance_ids,
 )
 
 
@@ -1934,3 +1935,126 @@ def test_import_new_annotation_level_properties_with_manifest(
             ],
             granularity=PropertyGranularity.annotation,
         )
+
+
+def test_no_instance_id_warning_with_no_video_annotations():
+    bounding_box_class = dt.AnnotationClass(
+        name="class1", annotation_type="bounding_box"
+    )
+    local_files = [
+        dt.AnnotationFile(
+            path=Path("file1.json"),
+            is_video=False,
+            annotations=[],
+            filename="file1",
+            annotation_classes={bounding_box_class},
+        ),
+        dt.AnnotationFile(
+            path=Path("file2.json"),
+            is_video=False,
+            annotations=[],
+            filename="file2",
+            annotation_classes={bounding_box_class},
+        ),
+    ]
+    console = MagicMock()
+    _warn_for_annotations_with_multiple_instance_ids(local_files, console)
+    console.print.assert_not_called()
+
+
+def test_warning_with_multiple_files_with_multi_instance_id_annotations():
+    bounding_box_class = dt.AnnotationClass(
+        name="class1", annotation_type="bounding_box"
+    )
+    annotation1 = dt.VideoAnnotation(
+        annotation_class=bounding_box_class,
+        frames={
+            0: dt.Annotation(
+                annotation_class=dt.AnnotationClass(
+                    name="class1", annotation_type="bounding_box"
+                ),
+                data={"x": 5, "y": 10, "w": 5, "h": 10},
+                subs=[
+                    dt.SubAnnotation(annotation_type="instance_id", data="1"),
+                ],
+            ),
+            1: dt.Annotation(
+                annotation_class=dt.AnnotationClass(
+                    name="class1", annotation_type="bounding_box"
+                ),
+                data={"x": 15, "y": 20, "w": 15, "h": 20},
+                subs=[
+                    dt.SubAnnotation(annotation_type="instance_id", data="2"),
+                ],
+            ),
+            2: dt.Annotation(
+                annotation_class=dt.AnnotationClass(
+                    name="class1", annotation_type="bounding_box"
+                ),
+                data={"x": 25, "y": 30, "w": 25, "h": 30},
+                subs=[
+                    dt.SubAnnotation(annotation_type="instance_id", data="3"),
+                ],
+            ),
+        },
+        keyframes={0: True, 1: False, 2: True},
+        segments=[[0, 2]],
+        interpolated=False,
+    )
+    annotation2 = dt.VideoAnnotation(
+        annotation_class=bounding_box_class,
+        frames={
+            0: dt.Annotation(
+                annotation_class=dt.AnnotationClass(
+                    name="class1", annotation_type="bounding_box"
+                ),
+                data={"x": 5, "y": 10, "w": 5, "h": 10},
+                subs=[
+                    dt.SubAnnotation(annotation_type="instance_id", data="1"),
+                ],
+            ),
+            1: dt.Annotation(
+                annotation_class=dt.AnnotationClass(
+                    name="class1", annotation_type="bounding_box"
+                ),
+                data={"x": 15, "y": 20, "w": 15, "h": 20},
+                subs=[
+                    dt.SubAnnotation(annotation_type="instance_id", data="2"),
+                ],
+            ),
+            2: dt.Annotation(
+                annotation_class=dt.AnnotationClass(
+                    name="class1", annotation_type="bounding_box"
+                ),
+                data={"x": 25, "y": 30, "w": 25, "h": 30},
+                subs=[
+                    dt.SubAnnotation(annotation_type="instance_id", data="3"),
+                ],
+            ),
+        },
+        keyframes={0: True, 1: False, 2: True},
+        segments=[[0, 2]],
+        interpolated=False,
+    )
+    local_files = [
+        dt.AnnotationFile(
+            path=Path("file1.json"),
+            is_video=True,
+            annotations=[annotation1],
+            filename="file1",
+            annotation_classes={bounding_box_class},
+        ),
+        dt.AnnotationFile(
+            path=Path("file2.json"),
+            is_video=True,
+            annotations=[annotation2],
+            filename="file2",
+            annotation_classes={bounding_box_class},
+        ),
+    ]
+    console = MagicMock()
+    _warn_for_annotations_with_multiple_instance_ids(local_files, console)
+    console.print.assert_called()
+    assert (
+        console.print.call_count == 3
+    )  # One for the warning message, two for the file details
