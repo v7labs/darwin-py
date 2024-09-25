@@ -10,8 +10,8 @@ from darwin.future.data_objects.dataset import DatasetCore
 from darwin.future.data_objects.item import ItemCore, ItemLayout, ItemSlot
 from darwin.future.data_objects.properties import (
     FullProperty,
-    PropertyGranularity,
     PropertyValue,
+    PropertyGranularity,
 )
 from darwin.future.data_objects.team import TeamCore, TeamMemberCore
 from darwin.future.data_objects.team_member_role import TeamMemberRole

@@ -15,7 +15,7 @@ try:
     import nibabel as nib
     from scipy.ndimage import zoom
 except ImportError:
-    import_fail_string = """
+    import_fail_string = r"""
     You must install darwin-py with pip install darwin-py\[medical]
     in order to import using nifti format
     """

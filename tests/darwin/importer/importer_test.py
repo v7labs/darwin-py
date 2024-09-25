@@ -1,34 +1,38 @@
 import json
 import tempfile
+from functools import partial
 from pathlib import Path
 from typing import List, Tuple
 from unittest.mock import MagicMock, Mock, _patch, patch
 from zipfile import ZipFile
 
-import pytest
-from rich.theme import Theme
-
-from darwin import datatypes as dt
 from darwin.future.data_objects.properties import (
-    FullProperty,
     PropertyGranularity,
+    SelectedProperty,
+    FullProperty,
     PropertyValue,
 )
+import pytest
+from darwin import datatypes as dt
 from darwin.importer import get_importer
 from darwin.importer.importer import (
     _assign_item_properties_to_dataset,
     _build_attribute_lookup,
     _build_main_annotations_lookup_table,
     _create_update_item_properties,
+    _display_slot_warnings_and_errors,
     _find_and_parse,
+    _get_annotation_format,
     _get_remote_files,
-    _get_slot_name,
+    _get_slot_names,
     _import_annotations,
-    _import_properties,
     _is_skeleton_class,
     _overwrite_warning,
     _parse_empty_masks,
     _resolve_annotation_classes,
+    _verify_slot_annotation_alignment,
+    _import_properties,
+    _warn_for_annotations_with_multiple_instance_ids,
 )
 
 
@@ -69,6 +73,74 @@ def item_properties():
         {"name": "prop2", "value": "2"},
         {"name": "prop2", "value": "3"},
     ]
+
+
+def setup_data(request, multiple_annotations=False):
+    granularity = request.param
+    client = Mock()
+    client.default_team = "test_team"
+    team_slug = "test_team"
+    annotation_class_ids_map = {("test_class", "polygon"): "123"}
+    annotations = [
+        dt.Annotation(
+            dt.AnnotationClass("test_class", "polygon"),
+            {"paths": [[1, 2, 3, 4, 5]]},
+            [],
+            [],
+            id="annotation_id_1",
+            properties=[
+                SelectedProperty(
+                    frame_index=None if granularity == "annotation" else "0",
+                    name="existing_property_single_select",
+                    type="single_select",
+                    value="1",
+                ),
+                SelectedProperty(
+                    frame_index=None if granularity == "annotation" else "0",
+                    name="existing_property_multi_select",
+                    type="multi_select",
+                    value="1",
+                ),
+                SelectedProperty(
+                    frame_index=None if granularity == "annotation" else "1",
+                    name="existing_property_multi_select",
+                    type="multi_select",
+                    value="2",
+                ),
+            ],
+        )
+    ]
+    if multiple_annotations:
+        annotations.append(
+            dt.Annotation(
+                dt.AnnotationClass("test_class_2", "polygon"),
+                {"paths": [[6, 7, 8, 9, 10]]},
+                [],
+                [],
+                id="annotation_id_2",
+                properties=[
+                    SelectedProperty(
+                        frame_index=None if granularity == "annotation" else "0",
+                        name="existing_property_single_select",
+                        type="single_select",
+                        value="1",
+                    ),
+                    SelectedProperty(
+                        frame_index=None if granularity == "annotation" else "0",
+                        name="existing_property_multi_select",
+                        type="multi_select",
+                        value="1",
+                    ),
+                    SelectedProperty(
+                        frame_index=None if granularity == "annotation" else "1",
+                        name="existing_property_multi_select",
+                        type="multi_select",
+                        value="2",
+                    ),
+                ],
+            )
+        )
+    return client, team_slug, annotation_class_ids_map, annotations
 
 
 def root_path(x: str) -> str:
@@ -141,32 +213,53 @@ def test__build_attribute_lookup() -> None:
 def test__get_remote_files() -> None:
     mock_dataset = Mock()
     mock_dataset.fetch_remote_files.return_value = [
-        Mock(full_path="path/to/file1", id="file1_id"),
-        Mock(full_path="path/to/file2", id="file2_id"),
+        Mock(full_path="path/to/file1", id="file1_id", layout="layout1"),
+        Mock(full_path="path/to/file2", id="file2_id", layout="layout2"),
     ]
 
     filenames = ["file1", "file2"]
     expected_result = {
-        "path/to/file1": ("file1_id", "slot_name1"),
-        "path/to/file2": ("file2_id", "slot_name2"),
+        "path/to/file1": {
+            "item_id": "file1_id",
+            "slot_names": ["slot_name1"],
+            "layout": "layout1",
+        },
+        "path/to/file2": {
+            "item_id": "file2_id",
+            "slot_names": ["slot_name2"],
+            "layout": "layout2",
+        },
     }
 
-    with patch("darwin.importer.importer._get_slot_name") as mock_get_slot_name:
-        mock_get_slot_name.side_effect = ["slot_name1", "slot_name2"]
+    with patch("darwin.importer.importer._get_slot_names") as mock_get_slot_names:
+        mock_get_slot_names.side_effect = [["slot_name1"], ["slot_name2"]]
         result = _get_remote_files(mock_dataset, filenames)
         assert result == expected_result
-        assert mock_get_slot_name.call_count == 2
+        assert mock_get_slot_names.call_count == 2
 
 
-def test__get_slot_name() -> None:
-    mock_remote_file_with_slots = Mock()
-    mock_remote_file_with_slots.slots = [{"slot_name": "1"}]
+def test__get_slot_names() -> None:
+    mock_remote_file_with_slots_v1 = Mock()
+    mock_remote_file_with_slots_v1.layout = {"version": 1}
+    mock_remote_file_with_slots_v1.slots = [{"slot_name": "1"}, {"slot_name": "2"}]
 
-    mock_remote_file_without_slots = Mock()
-    mock_remote_file_without_slots.slots = []
+    mock_remote_file_without_slots_v1 = Mock()
+    mock_remote_file_without_slots_v1.layout = {"version": 1}
+    mock_remote_file_without_slots_v1.slots = []
 
-    assert _get_slot_name(mock_remote_file_with_slots) == "1"
-    assert _get_slot_name(mock_remote_file_without_slots) == "0"
+    mock_remote_file_with_slots_v3 = Mock()
+    mock_remote_file_with_slots_v3.layout = {"version": 3, "slots_grid": [[["1", "2"]]]}
+    mock_remote_file_with_slots_v3.slots = []
+
+    mock_remote_file_without_slots_v3 = Mock()
+    mock_remote_file_without_slots_v3.layout = {"version": 3, "slots_grid": [[[]]]}
+    mock_remote_file_without_slots_v3.slots = []
+
+    assert _get_slot_names(mock_remote_file_with_slots_v1) == ["1", "2"]
+    assert _get_slot_names(mock_remote_file_without_slots_v1) == []
+
+    assert _get_slot_names(mock_remote_file_with_slots_v3) == ["1", "2"]
+    assert _get_slot_names(mock_remote_file_without_slots_v3) == []
 
 
 def test__resolve_annotation_classes() -> None:
@@ -834,12 +927,6 @@ def test__import_annotations() -> None:
         assert output["overwrite"] == assertion["overwrite"]
 
 
-def test_console_theme() -> None:
-    from darwin.importer.importer import _console_theme
-
-    assert isinstance(_console_theme(), Theme)
-
-
 def test_overwrite_warning_proceeds_with_import():
     annotations: List[dt.AnnotationLike] = [
         dt.Annotation(
@@ -876,7 +963,18 @@ def test_overwrite_warning_proceeds_with_import():
             remote_path="/",
         ),
     ]
-    remote_files = {"/file1": ("id1", "path1"), "/file2": ("id2", "path2")}
+    remote_files = {
+        "/file1": {
+            "item_id": "id1",
+            "slot_names": ["0"],
+            "layout": {"type": "simple", "version": 1, "slots": ["0"]},
+        },
+        "/file2": {
+            "item_id": "id2",
+            "slot_names": ["0"],
+            "layout": {"type": "simple", "version": 1, "slots": ["0"]},
+        },
+    }
     console = MagicMock()
 
     with patch("builtins.input", return_value="y"):
@@ -920,7 +1018,18 @@ def test_overwrite_warning_aborts_import():
             remote_path="/",
         ),
     ]
-    remote_files = {"/file1": ("id1", "path1"), "/file2": ("id2", "path2")}
+    remote_files = {
+        "/file1": {
+            "item_id": "id1",
+            "slot_names": ["0"],
+            "layout": {"type": "simple", "version": 1, "slots": ["0"]},
+        },
+        "/file2": {
+            "item_id": "id2",
+            "slot_names": ["0"],
+            "layout": {"type": "simple", "version": 1, "slots": ["0"]},
+        },
+    }
     console = MagicMock()
 
     with patch("builtins.input", return_value="n"):
@@ -1822,3 +1931,1069 @@ def test__assign_item_properties_to_dataset(mock_client, mock_dataset, mock_cons
         assert mock_dataset.dataset_id in updated_prop2.dataset_ids
         assert 456 in updated_prop2.dataset_ids
         assert 123456 in updated_prop2.dataset_ids
+
+
+def test__get_annotation_format():
+    assert _get_annotation_format(get_importer("coco")) == "coco"
+    assert _get_annotation_format(get_importer("csv_tags_video")) == "csv_tags_video"
+    assert _get_annotation_format(get_importer("csv_tags")) == "csv_tags"
+    assert _get_annotation_format(get_importer("darwin")) == "darwin"
+    assert _get_annotation_format(get_importer("dataloop")) == "dataloop"
+    assert _get_annotation_format(get_importer("labelbox")) == "labelbox"
+    assert _get_annotation_format(get_importer("nifti")) == "nifti"
+    assert _get_annotation_format(get_importer("pascal_voc")) == "pascal_voc"
+    assert _get_annotation_format(get_importer("superannotate")) == "superannotate"
+
+
+def test__get_annotation_format_with_partial():
+    nifti_importer = get_importer("nifti")
+    legacy_nifti_importer = partial(nifti_importer, legacy=True)
+    assert _get_annotation_format(legacy_nifti_importer) == "nifti"
+
+
+def test_no_verify_warning_for_single_slotted_items():
+    bounding_box_class = dt.AnnotationClass(
+        name="class1", annotation_type="bounding_box"
+    )
+    local_files = [
+        dt.AnnotationFile(
+            path=Path(filename),
+            remote_path="/",
+            filename=filename,
+            annotation_classes={bounding_box_class},
+            annotations=[
+                dt.Annotation(
+                    annotation_class=bounding_box_class,
+                    data={"x": 5, "y": 10, "w": 5, "h": 10},
+                    slot_names=["0"],
+                ),
+                dt.Annotation(
+                    annotation_class=bounding_box_class,
+                    data={"x": 5, "y": 10, "w": 5, "h": 10},
+                    slot_names=["0"],
+                ),
+            ],
+        )
+        for filename in ["file1", "file2"]
+    ]
+    remote_files = {
+        "/file1": {
+            "item_id": "1",
+            "slot_names": ["0"],
+            "layout": {"type": "grid", "version": 1, "slots": ["0"]},
+        },
+        "/file2": {
+            "item_id": "2",
+            "slot_names": ["0"],
+            "layout": {"type": "grid", "version": 1, "slots": ["0"]},
+        },
+    }
+
+    local_files, slot_errors, slot_warnings = _verify_slot_annotation_alignment(
+        local_files,
+        remote_files,
+    )
+
+    assert not slot_warnings
+    assert not slot_errors
+
+
+def test_no_slot_name_causes_non_blocking_multi_slotted_warning():
+    bounding_box_class = dt.AnnotationClass(
+        name="class1", annotation_type="bounding_box"
+    )
+    local_files = [
+        dt.AnnotationFile(
+            path=Path("file1"),
+            remote_path="/",
+            filename="file1",
+            annotation_classes={bounding_box_class},
+            annotations=[
+                dt.Annotation(
+                    annotation_class=bounding_box_class,
+                    data={"x": 5, "y": 10, "w": 5, "h": 10},
+                    slot_names=[],
+                ),
+                dt.Annotation(
+                    annotation_class=bounding_box_class,
+                    data={"x": 15, "y": 20, "w": 15, "h": 20},
+                    slot_names=[],
+                ),
+            ],
+        ),
+        dt.AnnotationFile(
+            path=Path("file2"),
+            remote_path="/",
+            filename="file2",
+            annotation_classes={bounding_box_class},
+            annotations=[
+                dt.Annotation(
+                    annotation_class=bounding_box_class,
+                    data={"x": 5, "y": 10, "w": 5, "h": 10},
+                    slot_names=[],
+                ),
+                dt.Annotation(
+                    annotation_class=bounding_box_class,
+                    data={"x": 15, "y": 20, "w": 15, "h": 20},
+                    slot_names=[],
+                ),
+            ],
+        ),
+    ]
+    remote_files = {
+        "/file1": {
+            "item_id": "123",
+            "slot_names": ["0", "1"],
+            "layout": {"type": "grid", "version": 1, "slots": ["0", "1"]},
+        },
+        "/file2": {
+            "item_id": "124",
+            "slot_names": ["0", "1"],
+            "layout": {"type": "grid", "version": 1, "slots": ["0", "1"]},
+        },
+    }
+
+    local_files, slot_errors, slot_warnings = _verify_slot_annotation_alignment(
+        local_files,
+        remote_files,
+    )
+
+    assert not slot_errors
+    assert len(slot_warnings) == 2
+    for file in slot_warnings:
+        file_warnings = slot_warnings[file]
+        assert len(file_warnings) == 2
+        for warning in file_warnings:
+            assert (
+                warning
+                == "Annotation imported to multi-slotted item not assigned slot. Uploading to the default slot: 0"
+            )
+
+
+def test_no_slot_name_causes_non_blocking_multi_channeled_warning():
+    bounding_box_class = dt.AnnotationClass(
+        name="class1", annotation_type="bounding_box"
+    )
+    local_files = [
+        dt.AnnotationFile(
+            path=Path("file1"),
+            remote_path="/",
+            filename="file1",
+            annotation_classes={bounding_box_class},
+            annotations=[
+                dt.Annotation(
+                    annotation_class=bounding_box_class,
+                    data={"x": 5, "y": 10, "w": 5, "h": 10},
+                    slot_names=[],
+                ),
+                dt.Annotation(
+                    annotation_class=bounding_box_class,
+                    data={"x": 15, "y": 20, "w": 15, "h": 20},
+                    slot_names=[],
+                ),
+            ],
+        ),
+        dt.AnnotationFile(
+            path=Path("file2"),
+            remote_path="/",
+            filename="file2",
+            annotation_classes={bounding_box_class},
+            annotations=[
+                dt.Annotation(
+                    annotation_class=bounding_box_class,
+                    data={"x": 5, "y": 10, "w": 5, "h": 10},
+                    slot_names=[],
+                ),
+                dt.Annotation(
+                    annotation_class=bounding_box_class,
+                    data={"x": 15, "y": 20, "w": 15, "h": 20},
+                    slot_names=[],
+                ),
+            ],
+        ),
+    ]
+    remote_files = {
+        "/file1": {
+            "item_id": "123",
+            "slot_names": ["0", "1"],
+            "layout": {"type": "grid", "version": 3, "slots": ["0", "1"]},
+        },
+        "/file2": {
+            "item_id": "124",
+            "slot_names": ["0", "1"],
+            "layout": {"type": "grid", "version": 3, "slots": ["0", "1"]},
+        },
+    }
+
+    local_files, slot_errors, slot_warnings = _verify_slot_annotation_alignment(
+        local_files,
+        remote_files,
+    )
+
+    assert not slot_errors
+    assert len(slot_warnings) == 2
+    for file in slot_warnings:
+        file_warnings = slot_warnings[file]
+        assert len(file_warnings) == 2
+        for warning in file_warnings:
+            assert (
+                warning
+                == "Annotation imported to multi-channeled item not assigned a slot. Uploading to the base slot: 0"
+            )
+
+
+def test_non_base_slot_for_channeled_annotations_causes_blocking_warnings():
+    bounding_box_class = dt.AnnotationClass(
+        name="class1", annotation_type="bounding_box"
+    )
+    local_files = [
+        dt.AnnotationFile(
+            path=Path("file1"),
+            remote_path="/",
+            filename="file1",
+            annotation_classes={bounding_box_class},
+            annotations=[
+                dt.Annotation(
+                    annotation_class=bounding_box_class,
+                    data={"x": 5, "y": 10, "w": 5, "h": 10},
+                    slot_names=["1"],  # Non-base slot
+                ),
+                dt.Annotation(
+                    annotation_class=bounding_box_class,
+                    data={"x": 15, "y": 20, "w": 15, "h": 20},
+                    slot_names=["1"],  # Non-base slot
+                ),
+            ],
+        ),
+    ]
+    remote_files = {
+        "/file1": {
+            "item_id": "123",
+            "slot_names": ["0", "1"],
+            "layout": {"type": "grid", "version": 3, "slots": ["0", "1"]},
+        },
+    }
+
+    local_files, slot_errors, slot_warnings = _verify_slot_annotation_alignment(
+        local_files,
+        remote_files,
+    )
+
+    assert not local_files
+    assert not slot_warnings
+    assert len(slot_errors) == 1
+    for file in slot_errors:
+        file_errors = slot_errors[file]
+        assert len(file_errors) == 2
+        for error in file_errors:
+            assert (
+                error
+                == "Annotation is linked to slot 1 of the multi-channeled item /file1. Annotations uploaded to multi-channeled items have to be uploaded to the base slot, which for this item is 0."
+            )
+
+
+def test_multiple_non_blocking_and_blocking_errors():
+    bounding_box_class = dt.AnnotationClass(
+        name="class1", annotation_type="bounding_box"
+    )
+    local_files = [
+        dt.AnnotationFile(
+            path=Path("file1"),
+            remote_path="/",
+            filename="file1",
+            annotation_classes={bounding_box_class},
+            annotations=[
+                dt.Annotation(
+                    annotation_class=bounding_box_class,
+                    data={"x": 5, "y": 10, "w": 5, "h": 10},
+                    slot_names=[],
+                ),
+                dt.Annotation(
+                    annotation_class=bounding_box_class,
+                    data={"x": 15, "y": 20, "w": 15, "h": 20},
+                    slot_names=[],
+                ),
+            ],
+        ),
+        dt.AnnotationFile(
+            path=Path("file2"),
+            remote_path="/",
+            filename="file2",
+            annotation_classes={bounding_box_class},
+            annotations=[
+                dt.Annotation(
+                    annotation_class=bounding_box_class,
+                    data={"x": 5, "y": 10, "w": 5, "h": 10},
+                    slot_names=[],
+                ),
+                dt.Annotation(
+                    annotation_class=bounding_box_class,
+                    data={"x": 15, "y": 20, "w": 15, "h": 20},
+                    slot_names=[],
+                ),
+            ],
+        ),
+        dt.AnnotationFile(
+            path=Path("file3"),
+            remote_path="/",
+            filename="file3",
+            annotation_classes={bounding_box_class},
+            annotations=[
+                dt.Annotation(
+                    annotation_class=bounding_box_class,
+                    data={"x": 5, "y": 10, "w": 5, "h": 10},
+                    slot_names=["1"],
+                ),
+                dt.Annotation(
+                    annotation_class=bounding_box_class,
+                    data={"x": 15, "y": 20, "w": 15, "h": 20},
+                    slot_names=["1"],
+                ),
+            ],
+        ),
+    ]
+    remote_files = {
+        "/file1": {
+            "item_id": "123",
+            "slot_names": ["0", "1"],
+            "layout": {"type": "grid", "version": 3, "slots": ["0", "1"]},
+        },
+        "/file2": {
+            "item_id": "124",
+            "slot_names": ["0", "1"],
+            "layout": {"type": "grid", "version": 3, "slots": ["0", "1"]},
+        },
+        "/file3": {
+            "item_id": "125",
+            "slot_names": ["0", "1"],
+            "layout": {"type": "grid", "version": 3, "slots": ["0", "1"]},
+        },
+    }
+
+    local_files, slot_errors, slot_warnings = _verify_slot_annotation_alignment(
+        local_files,
+        remote_files,
+    )
+
+    assert len(slot_warnings) == 2
+    assert len(slot_errors) == 1
+    for file in slot_warnings:
+        file_warnings = slot_warnings[file]
+        assert len(file_warnings) == 2
+        for warning in file_warnings:
+            assert (
+                warning
+                == "Annotation imported to multi-channeled item not assigned a slot. Uploading to the base slot: 0"
+            )
+    for file in slot_errors:
+        file_errors = slot_errors[file]
+        assert len(file_errors) == 2
+        for error in file_errors:
+            assert (
+                error
+                == "Annotation is linked to slot 1 of the multi-channeled item /file3. Annotations uploaded to multi-channeled items have to be uploaded to the base slot, which for this item is 0."
+            )
+
+
+def test_blocking_errors_override_non_blocking_errors():
+    bounding_box_class = dt.AnnotationClass(
+        name="class1", annotation_type="bounding_box"
+    )
+    local_files = [
+        dt.AnnotationFile(
+            path=Path("file1"),
+            remote_path="/",
+            filename="file1",
+            annotation_classes={bounding_box_class},
+            annotations=[
+                dt.Annotation(
+                    annotation_class=bounding_box_class,
+                    data={"x": 5, "y": 10, "w": 5, "h": 10},
+                    slot_names=[],
+                ),
+                dt.Annotation(
+                    annotation_class=bounding_box_class,
+                    data={"x": 15, "y": 20, "w": 15, "h": 20},
+                    slot_names=["1"],
+                ),
+            ],
+        ),
+    ]
+    remote_files = {
+        "/file1": {
+            "item_id": "123",
+            "slot_names": ["0", "1"],
+            "layout": {"type": "grid", "version": 3, "slots": ["0", "1"]},
+        },
+    }
+
+    local_files, slot_errors, slot_warnings = _verify_slot_annotation_alignment(
+        local_files,
+        remote_files,
+    )
+
+    assert not slot_warnings
+    assert len(slot_errors) == 1
+    for file in slot_errors:
+        file_errors = slot_errors[file]
+        assert len(file_errors) == 1
+        for error in file_errors:
+            assert (
+                error
+                == "Annotation is linked to slot 1 of the multi-channeled item /file1. Annotations uploaded to multi-channeled items have to be uploaded to the base slot, which for this item is 0."
+            )
+
+
+def test_assign_base_slot_if_missing_from_channel_annotations():
+    bounding_box_class = dt.AnnotationClass(
+        name="class1", annotation_type="bounding_box"
+    )
+    local_files = [
+        dt.AnnotationFile(
+            path=Path("file1"),
+            remote_path="/",
+            filename="file1",
+            annotation_classes={bounding_box_class},
+            annotations=[
+                dt.Annotation(
+                    annotation_class=bounding_box_class,
+                    data={"x": 5, "y": 10, "w": 5, "h": 10},
+                ),
+                dt.Annotation(
+                    annotation_class=bounding_box_class,
+                    data={"x": 15, "y": 20, "w": 15, "h": 20},
+                ),
+            ],
+        ),
+    ]
+    remote_files = {
+        "/file1": {
+            "item_id": "123",
+            "slot_names": ["0", "1"],
+            "layout": {"type": "grid", "version": 3, "slots": ["0", "1"]},
+        },
+    }
+
+    local_files, slot_errors, slot_warnings = _verify_slot_annotation_alignment(
+        local_files,
+        remote_files,
+    )
+
+    assert not slot_errors
+    assert len(slot_warnings) == 1
+    for file in slot_warnings:
+        file_warnings = slot_warnings[file]
+        assert len(file_warnings) == 2
+        for warning in file_warnings:
+            assert (
+                warning
+                == "Annotation imported to multi-channeled item not assigned a slot. Uploading to the base slot: 0"
+            )
+    assert local_files[0].annotations[0].slot_names == ["0"]
+    assert local_files[0].annotations[1].slot_names == ["0"]
+
+
+def test_raises_error_for_non_darwin_format_with_warnings():
+    bounding_box_class = dt.AnnotationClass(
+        name="class1", annotation_type="bounding_box"
+    )
+    local_files = [
+        dt.AnnotationFile(
+            path=Path("file1"),
+            remote_path="/",
+            filename="file1",
+            annotation_classes={bounding_box_class},
+            annotations=[
+                dt.Annotation(
+                    annotation_class=bounding_box_class,
+                    data={"x": 5, "y": 10, "w": 5, "h": 10},
+                    slot_names=[],
+                ),
+                dt.Annotation(
+                    annotation_class=bounding_box_class,
+                    data={"x": 15, "y": 20, "w": 15, "h": 20},
+                    slot_names=[],
+                ),
+            ],
+        ),
+    ]
+    remote_files = {
+        "/file1": {
+            "item_id": "123",
+            "slot_names": ["0", "1"],
+            "layout": {"type": "grid", "version": 1, "slots": ["0", "1"]},
+        },
+    }
+    local_files, slot_errors, slot_warnings = _verify_slot_annotation_alignment(
+        local_files,
+        remote_files,
+    )
+    console = MagicMock()
+    with pytest.raises(TypeError) as excinfo:
+        _display_slot_warnings_and_errors(
+            slot_errors, slot_warnings, "non-darwin", console
+        )
+    assert (
+        "You are attempting to import annotations to multi-slotted or multi-channeled items using an annotation format that doesn't support them."
+        in str(excinfo.value)
+    )
+
+
+def test_does_not_raise_error_for_darwin_format_with_warnings():
+    bounding_box_class = dt.AnnotationClass(
+        name="class1", annotation_type="bounding_box"
+    )
+    local_files = [
+        dt.AnnotationFile(
+            path=Path("file1"),
+            remote_path="/",
+            filename="file1",
+            annotation_classes={bounding_box_class},
+            annotations=[
+                dt.Annotation(
+                    annotation_class=bounding_box_class,
+                    data={"x": 5, "y": 10, "w": 5, "h": 10},
+                    slot_names=[],
+                ),
+                dt.Annotation(
+                    annotation_class=bounding_box_class,
+                    data={"x": 15, "y": 20, "w": 15, "h": 20},
+                    slot_names=[],
+                ),
+            ],
+        ),
+    ]
+    remote_files = {
+        "/file1": {
+            "item_id": "123",
+            "slot_names": ["0", "1"],
+            "layout": {"type": "grid", "version": 1, "slots": ["0", "1"]},
+        },
+    }
+
+    local_files, slot_errors, slot_warnings = _verify_slot_annotation_alignment(
+        local_files,
+        remote_files,
+    )
+
+    console = MagicMock()
+    _display_slot_warnings_and_errors(slot_errors, slot_warnings, "darwin", console)
+
+    assert not slot_errors
+
+
+@patch("darwin.importer.importer._get_team_properties_annotation_lookup")
+@pytest.mark.parametrize("setup_data", ["section"], indirect=True)
+def test_import_existing_section_level_property_values_without_manifest(
+    mock_get_team_properties,
+    setup_data,
+):
+    client, team_slug, annotation_class_ids_map, annotations = setup_data
+    mock_get_team_properties.return_value = {
+        ("existing_property_single_select", 123): FullProperty(
+            id="property_id_1",
+            name="existing_property_single_select",
+            type="single_select",
+            required=False,
+            property_values=[
+                PropertyValue(value="1", id="property_value_id_1"),
+            ],
+        ),
+        ("existing_property_multi_select", 123): FullProperty(
+            id="property_id_2",
+            name="existing_property_multi_select",
+            type="multi_select",
+            required=False,
+            property_values=[
+                PropertyValue(value="1", id="property_value_id_2"),
+                PropertyValue(value="2", id="property_value_id_3"),
+            ],
+        ),
+    }
+    metadata_path = False
+    result = _import_properties(
+        metadata_path, client, annotations, annotation_class_ids_map, team_slug
+    )
+    assert result["annotation_id_1"]["0"]["property_id_1"] == {
+        "property_value_id_1",
+    }
+    assert result["annotation_id_1"]["0"]["property_id_2"] == {
+        "property_value_id_2",
+    }
+    assert result["annotation_id_1"]["1"]["property_id_2"] == {
+        "property_value_id_3",
+    }
+
+
+@patch("darwin.importer.importer._get_team_properties_annotation_lookup")
+@pytest.mark.parametrize("setup_data", ["section"], indirect=True)
+def test_import_new_section_level_property_values_with_manifest(
+    mock_get_team_properties,
+    setup_data,
+):
+    client, team_slug, annotation_class_ids_map, annotations = setup_data
+    mock_get_team_properties.return_value = {
+        ("existing_property_single_select", 123): FullProperty(
+            id="property_id_1",
+            name="existing_property_single_select",
+            type="single_select",
+            required=False,
+            property_values=[],
+        ),
+        ("existing_property_multi_select", 123): FullProperty(
+            id="property_id_2",
+            name="existing_property_multi_select",
+            type="multi_select",
+            required=False,
+            property_values=[
+                PropertyValue(value="1", id="property_value_id_2"),
+            ],
+        ),
+    }
+    metadata_path = (
+        Path(__file__).parents[1]
+        / "data"
+        / "metadata_missing_section_property_values.json"
+    )
+    with patch.object(client, "update_property") as mock_update_property:
+        result = _import_properties(
+            metadata_path, client, annotations, annotation_class_ids_map, team_slug
+        )
+        assert result["annotation_id_1"]["0"]["property_id_2"] == {
+            "property_value_id_2",
+        }
+        assert mock_update_property.call_args_list[0].kwargs["params"] == FullProperty(
+            id="property_id_1",
+            name="existing_property_single_select",
+            type="single_select",
+            required=False,
+            description="property-updated-during-annotation-import",
+            annotation_class_id=123,
+            slug="test_team",
+            property_values=[
+                PropertyValue(value="1", color="rgba(255,46,0,1.0)"),
+            ],
+        )
+        assert mock_update_property.call_args_list[1].kwargs["params"] == FullProperty(
+            id="property_id_2",
+            name="existing_property_multi_select",
+            type="multi_select",
+            required=False,
+            description="property-updated-during-annotation-import",
+            annotation_class_id=123,
+            slug="test_team",
+            property_values=[
+                PropertyValue(value="2", color="rgba(255,199,0,1.0)"),
+            ],
+        )
+
+
+@patch("darwin.importer.importer._get_team_properties_annotation_lookup")
+@pytest.mark.parametrize("setup_data", ["section"], indirect=True)
+def test_import_identical_properties_to_different_classes(
+    mock_get_team_properties, setup_data
+):
+    client, team_slug, _, _ = setup_data
+    # This test requires 2 annotations annotation
+    annotation_class_ids_map = {
+        ("test_class_1", "polygon"): 1,
+        ("test_class_2", "polygon"): 2,
+    }
+    annotations = [
+        (
+            dt.Annotation(
+                dt.AnnotationClass("test_class_1", "polygon"),
+                {"paths": [[1, 2, 3, 4, 5]]},
+                [],
+                [],
+                id="1",
+                properties=[
+                    SelectedProperty(
+                        frame_index="0",
+                        name="existing_property_single_select",
+                        type="single_select",
+                        value="1",
+                    ),
+                ],
+            )
+        ),
+        (
+            dt.Annotation(
+                dt.AnnotationClass("test_class_2", "polygon"),
+                {"paths": [[1, 2, 3, 4, 5]]},
+                [],
+                [],
+                id="2",
+                properties=[
+                    SelectedProperty(
+                        frame_index="0",
+                        name="existing_property_single_select",
+                        type="single_select",
+                        value="1",
+                    ),
+                ],
+            )
+        ),
+    ]
+    mock_get_team_properties.return_value = {}
+    metadata_path = (
+        Path(__file__).parents[1]
+        / "data"
+        / "metadata_identical_properties_different_classes.json"
+    )
+    with patch.object(client, "create_property") as mock_create_property:
+        mock_create_property.side_effect = [
+            FullProperty(
+                name="existing_property_single_select",
+                id="prop_id_1",
+                type="single_select",
+                required=False,
+                description="property-created-during-annotation-import",
+                annotation_class_id=1,
+                slug="test_team",
+                property_values=[
+                    PropertyValue(
+                        value="1", color="rgba(255,46,0,1.0)", id="prop_val_id_1"
+                    ),
+                ],
+                granularity=PropertyGranularity.section,
+            ),
+            FullProperty(
+                name="existing_property_single_select",
+                id="prop_id_2",
+                type="single_select",
+                required=False,
+                description="property-created-during-annotation-import",
+                annotation_class_id=2,
+                slug="test_team",
+                property_values=[
+                    PropertyValue(
+                        value="1", color="rgba(255,46,0,1.0)", id="prop_val_id_2"
+                    ),
+                ],
+                granularity=PropertyGranularity.section,
+            ),
+        ]
+        annotation_property_map = _import_properties(
+            metadata_path, client, annotations, annotation_class_ids_map, team_slug
+        )
+        assert annotation_property_map["1"]["0"]["prop_id_1"] == {"prop_val_id_1"}
+        assert annotation_property_map["2"]["0"]["prop_id_2"] == {"prop_val_id_2"}
+
+
+@patch("darwin.importer.importer._get_team_properties_annotation_lookup")
+@pytest.mark.parametrize("setup_data", ["section"], indirect=True)
+def test_import_new_section_level_properties_with_manifest(
+    mock_get_team_properties,
+    setup_data,
+):
+    client, team_slug, annotation_class_ids_map, annotations = setup_data
+    mock_get_team_properties.return_value = {}
+    metadata_path = (
+        Path(__file__).parents[1]
+        / "data"
+        / "metadata_missing_section_property_values.json"
+    )
+    with patch.object(client, "create_property") as mock_create_property:
+        _import_properties(
+            metadata_path, client, annotations, annotation_class_ids_map, team_slug
+        )
+        assert mock_create_property.call_args_list[0].kwargs["params"] == FullProperty(
+            id=None,
+            position=None,
+            name="existing_property_single_select",
+            type="single_select",
+            required=False,
+            description="property-created-during-annotation-import",
+            annotation_class_id=123,
+            slug="test_team",
+            team_id=None,
+            property_values=[
+                PropertyValue(value="1", color="rgba(255,46,0,1.0)"),
+            ],
+            options=None,
+            granularity=PropertyGranularity.section,
+        )
+        assert mock_create_property.call_args_list[1].kwargs["params"] == FullProperty(
+            name="existing_property_multi_select",
+            type="multi_select",
+            required=False,
+            description="property-created-during-annotation-import",
+            annotation_class_id=123,
+            slug="test_team",
+            property_values=[
+                PropertyValue(value="1", color="rgba(173,255,0,1.0)"),
+                PropertyValue(value="2", color="rgba(255,199,0,1.0)"),
+            ],
+        )
+
+
+@patch("darwin.importer.importer._get_team_properties_annotation_lookup")
+@pytest.mark.parametrize("setup_data", ["annotation"], indirect=True)
+def test_import_existing_annotation_level_property_values_without_manifest(
+    mock_get_team_properties,
+    setup_data,
+):
+    client, team_slug, annotation_class_ids_map, annotations = setup_data
+    mock_get_team_properties.return_value = {
+        ("existing_property_single_select", 123): FullProperty(
+            id="property_id_1",
+            name="existing_property_single_select",
+            type="single_select",
+            required=False,
+            property_values=[
+                PropertyValue(value="1", id="property_value_id_1"),
+            ],
+        ),
+        ("existing_property_multi_select", 123): FullProperty(
+            id="property_id_2",
+            name="existing_property_multi_select",
+            type="multi_select",
+            required=False,
+            property_values=[
+                PropertyValue(value="1", id="property_value_id_2"),
+                PropertyValue(value="2", id="property_value_id_3"),
+            ],
+        ),
+    }
+    metadata_path = False
+    result = _import_properties(
+        metadata_path, client, annotations, annotation_class_ids_map, team_slug
+    )
+    assert result["annotation_id_1"]["None"]["property_id_1"] == {
+        "property_value_id_1",
+    }
+    assert result["annotation_id_1"]["None"]["property_id_2"] == {
+        "property_value_id_2",
+        "property_value_id_3",
+    }
+
+
+@patch("darwin.importer.importer._get_team_properties_annotation_lookup")
+@pytest.mark.parametrize("setup_data", ["annotation"], indirect=True)
+def test_import_new_annotation_level_property_values_with_manifest(
+    mock_get_team_properties,
+    setup_data,
+):
+    client, team_slug, annotation_class_ids_map, annotations = setup_data
+    mock_get_team_properties.return_value = {
+        ("existing_property_single_select", 123): FullProperty(
+            id="property_id_1",
+            name="existing_property_single_select",
+            type="single_select",
+            required=False,
+            property_values=[],
+        ),
+        ("existing_property_multi_select", 123): FullProperty(
+            id="property_id_2",
+            name="existing_property_multi_select",
+            type="multi_select",
+            required=False,
+            property_values=[
+                PropertyValue(value="1", id="property_value_id_2"),
+            ],
+        ),
+    }
+    metadata_path = (
+        Path(__file__).parents[1]
+        / "data"
+        / "metadata_missing_annotation_property_values.json"
+    )
+    with patch.object(client, "update_property") as mock_update_property:
+        result = _import_properties(
+            metadata_path, client, annotations, annotation_class_ids_map, team_slug
+        )
+        assert result["annotation_id_1"]["None"]["property_id_2"] == {
+            "property_value_id_2",
+        }
+        assert mock_update_property.call_args_list[0].kwargs["params"] == FullProperty(
+            id="property_id_1",
+            name="existing_property_single_select",
+            type="single_select",
+            required=False,
+            description="property-updated-during-annotation-import",
+            annotation_class_id=123,
+            slug="test_team",
+            property_values=[
+                PropertyValue(value="1", color="rgba(255,46,0,1.0)"),
+            ],
+        )
+        assert mock_update_property.call_args_list[1].kwargs["params"] == FullProperty(
+            id="property_id_2",
+            name="existing_property_multi_select",
+            type="multi_select",
+            required=False,
+            description="property-updated-during-annotation-import",
+            annotation_class_id=123,
+            slug="test_team",
+            property_values=[
+                PropertyValue(value="2", color="rgba(255,199,0,1.0)"),
+            ],
+        )
+
+
+@patch("darwin.importer.importer._get_team_properties_annotation_lookup")
+@pytest.mark.parametrize("setup_data", ["annotation"], indirect=True)
+def test_import_new_annotation_level_properties_with_manifest(
+    mock_get_team_properties,
+    setup_data,
+):
+    client, team_slug, annotation_class_ids_map, annotations = setup_data
+    mock_get_team_properties.return_value = {}
+    metadata_path = (
+        Path(__file__).parents[1]
+        / "data"
+        / "metadata_missing_annotation_property_values.json"
+    )
+    with patch.object(client, "create_property") as mock_create_property:
+        _import_properties(
+            metadata_path, client, annotations, annotation_class_ids_map, team_slug
+        )
+        assert mock_create_property.call_args_list[0].kwargs["params"] == FullProperty(
+            name="existing_property_single_select",
+            type="single_select",
+            required=False,
+            description="property-created-during-annotation-import",
+            annotation_class_id=123,
+            slug="test_team",
+            property_values=[
+                PropertyValue(value="1", color="rgba(255,46,0,1.0)"),
+            ],
+            granularity=PropertyGranularity.annotation,
+        )
+        assert mock_create_property.call_args_list[1].kwargs["params"] == FullProperty(
+            name="existing_property_multi_select",
+            type="multi_select",
+            required=False,
+            description="property-created-during-annotation-import",
+            annotation_class_id=123,
+            slug="test_team",
+            property_values=[
+                PropertyValue(value="1", color="rgba(173,255,0,1.0)"),
+                PropertyValue(value="2", color="rgba(255,199,0,1.0)"),
+            ],
+            granularity=PropertyGranularity.annotation,
+        )
+
+
+def test_no_instance_id_warning_with_no_video_annotations():
+    bounding_box_class = dt.AnnotationClass(
+        name="class1", annotation_type="bounding_box"
+    )
+    local_files = [
+        dt.AnnotationFile(
+            path=Path("file1.json"),
+            is_video=False,
+            annotations=[],
+            filename="file1",
+            annotation_classes={bounding_box_class},
+        ),
+        dt.AnnotationFile(
+            path=Path("file2.json"),
+            is_video=False,
+            annotations=[],
+            filename="file2",
+            annotation_classes={bounding_box_class},
+        ),
+    ]
+    console = MagicMock()
+    _warn_for_annotations_with_multiple_instance_ids(local_files, console)
+    console.print.assert_not_called()
+
+
+def test_warning_with_multiple_files_with_multi_instance_id_annotations():
+    bounding_box_class = dt.AnnotationClass(
+        name="class1", annotation_type="bounding_box"
+    )
+    annotation1 = dt.VideoAnnotation(
+        annotation_class=bounding_box_class,
+        frames={
+            0: dt.Annotation(
+                annotation_class=dt.AnnotationClass(
+                    name="class1", annotation_type="bounding_box"
+                ),
+                data={"x": 5, "y": 10, "w": 5, "h": 10},
+                subs=[
+                    dt.SubAnnotation(annotation_type="instance_id", data="1"),
+                ],
+            ),
+            1: dt.Annotation(
+                annotation_class=dt.AnnotationClass(
+                    name="class1", annotation_type="bounding_box"
+                ),
+                data={"x": 15, "y": 20, "w": 15, "h": 20},
+                subs=[
+                    dt.SubAnnotation(annotation_type="instance_id", data="2"),
+                ],
+            ),
+            2: dt.Annotation(
+                annotation_class=dt.AnnotationClass(
+                    name="class1", annotation_type="bounding_box"
+                ),
+                data={"x": 25, "y": 30, "w": 25, "h": 30},
+                subs=[
+                    dt.SubAnnotation(annotation_type="instance_id", data="3"),
+                ],
+            ),
+        },
+        keyframes={0: True, 1: False, 2: True},
+        segments=[[0, 2]],
+        interpolated=False,
+    )
+    annotation2 = dt.VideoAnnotation(
+        annotation_class=bounding_box_class,
+        frames={
+            0: dt.Annotation(
+                annotation_class=dt.AnnotationClass(
+                    name="class1", annotation_type="bounding_box"
+                ),
+                data={"x": 5, "y": 10, "w": 5, "h": 10},
+                subs=[
+                    dt.SubAnnotation(annotation_type="instance_id", data="1"),
+                ],
+            ),
+            1: dt.Annotation(
+                annotation_class=dt.AnnotationClass(
+                    name="class1", annotation_type="bounding_box"
+                ),
+                data={"x": 15, "y": 20, "w": 15, "h": 20},
+                subs=[
+                    dt.SubAnnotation(annotation_type="instance_id", data="2"),
+                ],
+            ),
+            2: dt.Annotation(
+                annotation_class=dt.AnnotationClass(
+                    name="class1", annotation_type="bounding_box"
+                ),
+                data={"x": 25, "y": 30, "w": 25, "h": 30},
+                subs=[
+                    dt.SubAnnotation(annotation_type="instance_id", data="3"),
+                ],
+            ),
+        },
+        keyframes={0: True, 1: False, 2: True},
+        segments=[[0, 2]],
+        interpolated=False,
+    )
+    local_files = [
+        dt.AnnotationFile(
+            path=Path("file1.json"),
+            is_video=True,
+            annotations=[annotation1],
+            filename="file1",
+            annotation_classes={bounding_box_class},
+        ),
+        dt.AnnotationFile(
+            path=Path("file2.json"),
+            is_video=True,
+            annotations=[annotation2],
+            filename="file2",
+            annotation_classes={bounding_box_class},
+        ),
+    ]
+    console = MagicMock()
+    _warn_for_annotations_with_multiple_instance_ids(local_files, console)
+    console.print.assert_called()
+    assert (
+        console.print.call_count == 3
+    )  # One for the warning message, two for the file details

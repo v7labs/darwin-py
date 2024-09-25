@@ -368,8 +368,11 @@ class AlbumentationsTransform:
         if (
             masks is not None and masks.numel() > 0
         ):  # using numel() to check if tensor is non-empty
-            print("WE GOT MASKS")
-            albumentation_dict["masks"] = masks.numpy()
+            if isinstance(masks, torch.Tensor):
+                masks = masks.numpy()
+            if masks.ndim == 3:  # Ensure masks is a list of numpy arrays
+                masks = [masks[i] for i in range(masks.shape[0])]
+            albumentation_dict["masks"] = masks
 
         return albumentation_dict
 

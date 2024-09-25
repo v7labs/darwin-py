@@ -23,10 +23,10 @@ from typing import (
 from darwin.datatypes import AnnotationFile, Property, parse_property_classes
 from darwin.future.data_objects.properties import (
     FullProperty,
-    PropertyGranularity,
     PropertyType,
     PropertyValue,
     SelectedProperty,
+    PropertyGranularity,
 )
 from darwin.item import DatasetItem
 from darwin.path_utils import is_properties_enabled, parse_metadata
@@ -185,15 +185,16 @@ def _build_attribute_lookup(dataset: "RemoteDataset") -> Dict[str, Unknown]:
 
 def _get_remote_files(
     dataset: "RemoteDataset", filenames: List[str], chunk_size: int = 100
-) -> Dict[str, Tuple[str, str]]:
+) -> Dict[str, Dict[str, Any]]:
     """
     Fetches remote files from the datasets in chunks; by default 100 filenames at a time.
 
-    The output is a two-element tuple of:
-    - file ID
-    - the name of the first slot of the item
+    The output is a dictionary for each remote file with the following keys:
+    - "item_id": Item ID
+    - "slot_names": A list of each slot name for the item
+    - "layout": The layout of the item
 
-    Fetching slot name is necessary here to avoid double-trip to Api downstream for remote files.
+    Fetching slot names & layout is necessary here to avoid double-trip to API downstream for remote files.
     """
     remote_files = {}
     for i in range(0, len(filenames), chunk_size):
@@ -201,17 +202,40 @@ def _get_remote_files(
         for remote_file in dataset.fetch_remote_files(
             {"types": "image,playback_video,video_frame", "item_names": chunk}
         ):
-            slot_name = _get_slot_name(remote_file)
-            remote_files[remote_file.full_path] = (remote_file.id, slot_name)
+            slot_names = _get_slot_names(remote_file)
+            remote_files[remote_file.full_path] = {
+                "item_id": remote_file.id,
+                "slot_names": slot_names,
+                "layout": remote_file.layout,
+            }
     return remote_files
 
 
-def _get_slot_name(remote_file: DatasetItem) -> str:
-    slot = next(iter(remote_file.slots), {"slot_name": "0"})
-    if slot:
-        return slot["slot_name"]
-    else:
-        return "0"
+def _get_slot_names(remote_file: DatasetItem) -> List[str]:
+    """
+    Returns a list of slot names for a dataset item:
+    - If the item's layout is V1 or V2, it is multi-slotted.
+      In this case we return the slot names in the order they appear in `slots`.
+      This ensures that the default slot is the first item in the list
+    - If the item's layout is V3, it is multi-channeled.
+      In this case we return the slot names in the order they appear in `slots_grid`.
+      This ensures that the base slot is the first item in the list
+
+    Parameters
+    ----------
+    remote_file : DatasetItem
+        A DatasetItem object representing a single remote dataset item
+
+    Returns
+    -------
+    List[str]
+        A list of slot names associated with the item
+    """
+    layout_version = remote_file.layout["version"]
+    if layout_version == 1 or layout_version == 2:
+        return [slot["slot_name"] for slot in remote_file.slots]
+    elif layout_version == 3:
+        return list(remote_file.layout["slots_grid"][0][0])
 
 
 def _resolve_annotation_classes(
@@ -420,6 +444,7 @@ def _import_properties(
                     # if property value is None, update annotation_property_map with empty set
                     if a_prop.value is None:
                         assert t_prop.id is not None
+
                         annotation_property_map[annotation_id][str(a_prop.frame_index)][
                             t_prop.id
                         ] = set()
@@ -530,8 +555,10 @@ def _import_properties(
                             slug=client.default_team,
                             annotation_class_id=int(annotation_class_id),
                             property_values=property_values,
-                            granularity=m_prop.granularity,
+                            granularity=PropertyGranularity(m_prop.granularity),
                         )
+                    # Don't attempt the same propery creation multiple times
+                    if full_property not in create_properties:
                         create_properties.append(full_property)
                 continue
 
@@ -580,7 +607,9 @@ def _import_properties(
                         )
                     ],
                 )
-                update_properties.append(full_property)
+                # Don't attempt the same propery update multiple times
+                if full_property not in update_properties:
+                    update_properties.append(full_property)
                 continue
 
             assert t_prop.id is not None
@@ -688,17 +717,85 @@ def _import_properties(
             )
             updated_properties.append(prop)
 
+    # get latest team properties
+    team_properties_annotation_lookup = _get_team_properties_annotation_lookup(
+        client, dataset.team
+    )
+
+    # loop over metadata_cls_id_prop_lookup, and update additional metadata property values
+    for (annotation_class_id, prop_name), m_prop in metadata_cls_id_prop_lookup.items():
+        # does the annotation-property exist in the team? if not, skip
+        if (prop_name, annotation_class_id) not in team_properties_annotation_lookup:
+            continue
+
+        # get metadata property values
+        m_prop_values = {
+            m_prop_val["value"]: m_prop_val
+            for m_prop_val in m_prop.property_values or []
+            if m_prop_val["value"]
+        }
+
+        # get team property
+        t_prop: FullProperty = team_properties_annotation_lookup[
+            (prop_name, annotation_class_id)
+        ]
+
+        # get team property values
+        t_prop_values = [prop_val.value for prop_val in t_prop.property_values or []]
+
+        # get diff of metadata property values and team property values
+        extra_values = set(m_prop_values.keys()) - set(t_prop_values)
+
+        # if there are extra values in metadata, create a new FullProperty with the extra values
+        if extra_values:
+            extra_property_values = [
+                PropertyValue(
+                    value=m_prop_values[extra_value].get("value"),  # type: ignore
+                    color=m_prop_values[extra_value].get("color"),  # type: ignore
+                )
+                for extra_value in extra_values
+            ]
+            full_property = FullProperty(
+                id=t_prop.id,
+                name=t_prop.name,
+                type=t_prop.type,
+                required=t_prop.required,
+                description=t_prop.description,
+                slug=client.default_team,
+                annotation_class_id=t_prop.annotation_class_id,
+                property_values=extra_property_values,
+                granularity=PropertyGranularity(t_prop.granularity.value),
+            )
+            console.print(
+                f"Updating property {full_property.name} ({full_property.type}) with extra metadata values {extra_values}",
+                style="info",
+            )
+            prop = client.update_property(
+                team_slug=full_property.slug, params=full_property
+            )
+
     # update annotation_property_map with property ids from created_properties & updated_properties
     for annotation_id, _ in annotation_property_map.items():
         if not annotation_id_map.get(annotation_id):
             continue
         annotation = annotation_id_map[annotation_id]
-
+        annotation_class = annotation.annotation_class
+        annotation_class_name = annotation_class.name
+        annotation_type = (
+            annotation_class.annotation_internal_type
+            or annotation_class.annotation_type
+        )
+        annotation_class_id = annotation_class_ids_map[
+            (annotation_class_name, annotation_type)
+        ]
         for a_prop in annotation.properties or []:
             frame_index = str(a_prop.frame_index)
 
             for prop in created_properties + updated_properties:
-                if prop.name == a_prop.name:
+                if (
+                    prop.name == a_prop.name
+                    and annotation_class_id == prop.annotation_class_id
+                ):
                     if a_prop.value is None:
                         if not annotation_property_map[annotation_id][frame_index][
                             prop.id
@@ -999,7 +1096,7 @@ def import_annotations(  # noqa: C901
     console.print("Fetching remote file list...", style="info")
     # This call will only filter by filename; so can return a superset of matched files across different paths
     # There is logic in this function to then include paths to narrow down to the single correct matching file
-    remote_files: Dict[str, Tuple[str, str]] = {}
+    remote_files: Dict[str, Dict[str, Any]] = {}
 
     # Try to fetch files in large chunks; in case the filenames are too large and exceed the url size
     # retry in smaller chunks
@@ -1018,6 +1115,31 @@ def import_annotations(  # noqa: C901
             local_files_missing_remotely.append(parsed_file)
         else:
             local_files.append(parsed_file)
+
+    annotation_format = _get_annotation_format(importer)
+    local_files, slot_errors, slot_warnings = _verify_slot_annotation_alignment(
+        local_files, remote_files
+    )
+
+    _display_slot_warnings_and_errors(
+        slot_errors, slot_warnings, annotation_format, console
+    )
+
+    if annotation_format == "darwin":
+        dataset.client.load_feature_flags()
+
+        # Check if the flag exists. When the flag is deprecated in the future we will always perform this check
+        static_instance_id_feature_flag_exists = any(
+            feature.name == "STATIC_INSTANCE_ID"
+            for feature in dataset.client.features.get(dataset.team, [])
+        )
+        check_for_multi_instance_id_annotations = (
+            static_instance_id_feature_flag_exists
+            and dataset.client.feature_enabled("STATIC_INSTANCE_ID")
+        ) or not static_instance_id_feature_flag_exists
+
+        if check_for_multi_instance_id_annotations:
+            _warn_for_annotations_with_multiple_instance_ids(local_files, console)
 
     console.print(
         f"{len(local_files) + len(local_files_missing_remotely)} annotation file(s) found.",
@@ -1118,7 +1240,8 @@ def import_annotations(  # noqa: C901
             return
 
     def import_annotation(parsed_file):
-        image_id, default_slot_name = remote_files[parsed_file.full_path]
+        image_id = remote_files[parsed_file.full_path]["item_id"]
+        default_slot_name = remote_files[parsed_file.full_path]["slot_names"][0]
         if parsed_file.slots and parsed_file.slots[0].name:
             default_slot_name = parsed_file.slots[0].name
 
@@ -1145,16 +1268,13 @@ def import_annotations(  # noqa: C901
             for error in errors:
                 console.print(f"\t{error}", style="error")
 
-    def process_local_file(local_path):
-        imported_files: Union[List[dt.AnnotationFile], dt.AnnotationFile, None] = (
-            importer(local_path)
-        )
-        if imported_files is None:
+    def process_local_file(local_file):
+        if local_file is None:
             parsed_files = []
-        elif not isinstance(imported_files, List):
-            parsed_files = [imported_files]
+        elif not isinstance(local_file, List):
+            parsed_files = [local_file]
         else:
-            parsed_files = imported_files
+            parsed_files = local_file
 
         # Remove files missing on the server
         missing_files = [
@@ -1213,8 +1333,8 @@ def import_annotations(  # noqa: C901
     if use_multi_cpu:
         with concurrent.futures.ThreadPoolExecutor(max_workers=cpu_limit) as executor:
             futures = [
-                executor.submit(process_local_file, local_path)
-                for local_path in {local_file.path for local_file in local_files}
+                executor.submit(process_local_file, local_file)
+                for local_file in local_files
             ]
             for _ in tqdm(
                 concurrent.futures.as_completed(futures),
@@ -1227,11 +1347,8 @@ def import_annotations(  # noqa: C901
                 except Exception as exc:
                     console.print(f"Generated an exception: {exc}", style="error")
     else:
-        for local_path in tqdm(
-            {local_file.path for local_file in local_files},
-            desc="Processing local annotation files",
-        ):
-            process_local_file(local_path)
+        for local_file in tqdm(local_files, desc="Processing local annotation files"):
+            process_local_file(local_file)
 
 
 def _get_multi_cpu_settings(
@@ -1520,8 +1637,10 @@ def _import_annotations(
         )
 
         if (
-            annotation_type not in remote_classes
-            or annotation_class.name not in remote_classes[annotation_type]
+            (
+                annotation_type not in remote_classes
+                or annotation_class.name not in remote_classes[annotation_type]
+            )
             and annotation_type
             != "raster_layer"  # We do not skip raster layers as they are always available.
         ):
@@ -1628,7 +1747,7 @@ def _overwrite_warning(
     append: bool,
     dataset: "RemoteDataset",
     local_files: List[dt.AnnotationFile],
-    remote_files: Dict[str, Tuple[str, str]],
+    remote_files: Dict[str, Dict[str, Any]],
     console: Console,
 ) -> bool:
     """
@@ -1716,3 +1835,221 @@ def _overwrite_warning(
         if proceed.lower() != "y":
             return False
     return True
+
+
+def _get_annotation_format(
+    importer: Callable[[Path], Union[List[dt.AnnotationFile], dt.AnnotationFile, None]]
+) -> str:
+    """
+    Returns the annotation format of the importer used to parse local annotation files
+
+    Parameters
+    ----------
+    importer : Callable[[Path], Union[List[dt.AnnotationFile], dt.AnnotationFile, None]]
+        The importer used to parse local annotation files
+
+    Returns
+    -------
+    annotation_format : str
+        The annotation format of the importer used to parse local files
+    """
+    # This `if` block is temporary, but necessary while we migrate NifTI imports between the legacy method & the new method
+    if isinstance(importer, partial):
+        return importer.func.__module__.split(".")[3]
+    return importer.__module__.split(".")[3]
+
+
+def _verify_slot_annotation_alignment(
+    local_files: List[dt.AnnotationFile],
+    remote_files: Dict[str, Dict[str, Any]],
+) -> Tuple[List[dt.AnnotationFile], Dict[str, List[str]], Dict[str, List[str]]]:
+    """
+    Runs slot alignment validation against annotations being imported. The following checks are run:
+    - For multi-slotted items:
+        - For every annotation not uploaded to a specific slot:
+          A non-blocking warning is generated explaining that it will be uploaded to the default slot
+
+    - For multi-channeled items:
+        - For every annotation not uploaded to a specific slot:
+          A non-blocking warning is generated explaining that it will be uploaded to the base slot
+        - For every annotation uploaded to a slot other than the base slot:
+          A blocking error is generated explaining that annotations can only be uploaded to the base slot of multi-channeled items
+
+    Files that generate exclusively non-blocking warnings will have those warnings displayed, but their import will continue.
+    Files that generate any blocking error will only have their blocking errors displayed, and they are removed from the list of files to be imported.
+
+    Errors can only be generated by referring to multi-slotted or multi-channeled items.
+    These concepts are only supported by Darwin JSON 2.0, so stop imports of other formats if any warnings occur.
+
+    Parameters
+    ----------
+    local_files : List[dt.AnnotationFile]
+        A list of local annotation files to be uploaded
+    remote_files : Dict[str, Dict[str, Any]]
+        Information about each remote dataset item that corresponds to the local annotation file being uploaded
+
+    Returns
+    -------
+    local_files : List[dt.AnnotationFile]
+        A pruned list of the input annotation flies. It excludes any input files that generated a blocking warning
+    slot_errors : Dict[str, List[str]]
+        A dictionary of blocking errors for each file
+    slot_warnings : Dict[str, List[str]]
+        A dictionary of non-blocking warnings for each file
+    """
+
+    slot_errors, slot_warnings = {}, {}
+    for local_file in local_files:
+        remote_file = remote_files[local_file.full_path]
+        local_file_path = str(local_file.path)
+        if len(remote_file["slot_names"]) == 1:
+            continue  # Skip single-slotted items
+        base_slot = remote_file["slot_names"][0]
+        layout_version = remote_file["layout"]["version"]
+        if layout_version == 1 or layout_version == 2:  # Multi-slotted item
+            for annotation in local_file.annotations:
+                try:
+                    annotation_slot = annotation.slot_names[0]
+                except IndexError:
+                    if local_file_path not in slot_warnings:
+                        slot_warnings[local_file_path] = []
+                    slot_warnings[local_file_path].append(
+                        f"Annotation imported to multi-slotted item not assigned slot. Uploading to the default slot: {base_slot}"
+                    )
+
+        elif layout_version == 3:  # Channeled item
+            for annotation in local_file.annotations:
+                try:
+                    annotation_slot = annotation.slot_names[0]
+                except IndexError:
+                    if local_file_path not in slot_warnings:
+                        slot_warnings[local_file_path] = []
+                    slot_warnings[local_file_path].append(
+                        f"Annotation imported to multi-channeled item not assigned a slot. Uploading to the base slot: {base_slot}"
+                    )
+                    annotation.slot_names = [base_slot]
+                    continue
+                if annotation_slot != base_slot:
+                    if local_file_path not in slot_errors:
+                        slot_errors[local_file_path] = []
+                    slot_errors[local_file_path].append(
+                        f"Annotation is linked to slot {annotation_slot} of the multi-channeled item {local_file.full_path}. Annotations uploaded to multi-channeled items have to be uploaded to the base slot, which for this item is {base_slot}."
+                    )
+        else:
+            raise Exception(f"Unknown layout version: {layout_version}")
+
+    # Remove non-blocking warnings if there are corresponding blocking warnings
+    for key in slot_errors.keys():
+        if key in slot_warnings:
+            del slot_warnings[key]
+
+    local_files = [
+        local_file
+        for local_file in local_files
+        if str(local_file.path) not in slot_errors
+    ]
+
+    return local_files, slot_errors, slot_warnings
+
+
+def _display_slot_warnings_and_errors(
+    slot_errors: Dict[str, List[str]],
+    slot_warnings: Dict[str, List[str]],
+    annotation_format: str,
+    console: Console,
+) -> None:
+    """
+    Displays slot warnings and errors.
+
+    Parameters
+    ----------
+    local_files : List[dt.AnnotationFile]
+        A list of local annotation files to be uploaded
+    slot_errors : Dict[str, List[str]]
+        A dictionary of blocking warnings for each file
+    slot_warnings : Dict[str, List[str]]
+        A dictionary of non-blocking warnings for each file
+    annotation_format : str
+        The annotation format of the importer used to parse local files
+    console : Console
+        The console object
+
+    Raises
+    ------
+    TypeError
+        If there are any warnings generated and the annotation format is not Darwin JSON 2.0
+    """
+
+    # Warnings can only be generated by referring to slots, which is only supported by Darwin JSON
+    # Therefore, stop imports of all other formats if there are any warnings
+    if (slot_errors or slot_warnings) and annotation_format != "darwin":
+        raise TypeError(
+            "You are attempting to import annotations to multi-slotted or multi-channeled items using an annotation format that doesn't support them. To import annotations to multi-slotted or multi-channeled items, please use the Darwin JSON 2.0 format: https://docs.v7labs.com/reference/darwin-json"
+        )
+    if slot_warnings:
+        console.print(
+            f"WARNING: {len(slot_warnings)} file(s) have the following non-blocking warnings. Imports of these files will continue:",
+            style="warning",
+        )
+        for file in slot_warnings:
+            console.print(f"- File: {file}, warnings:", style="info")
+            for warning in slot_warnings[file]:
+                console.print(f"  - {warning}")
+
+    if slot_errors:
+        console.print(
+            f"WARNING: {len(slot_errors)} file(s) have the following blocking issues and will not be imported. Please resolve these issues and re-import them.",
+            style="warning",
+        )
+        for file in slot_errors:
+            console.print(f"- File: {file}, issues:", style="info")
+            for warning in slot_errors[file]:
+                console.print(f"  - {warning}")
+
+
+def _warn_for_annotations_with_multiple_instance_ids(
+    local_files: List[dt.AnnotationFile], console: Console
+) -> None:
+    """
+    Warns the user if any video annotations have multiple unique instance IDs.
+
+    This function checks each video annotation in the provided list of local annotation
+    files for multiple instance ID values. A warning is printed to the console for each
+    instance of this occurrence.
+
+    Parameters
+    ----------
+    local_files : List[dt.AnnotationFile]
+        A list of local annotation files to be checked.
+    console : Console
+        The console object used to print warnings and messages.
+    """
+    files_with_multi_instance_id_annotations = {}
+    files_with_video_annotations = [
+        local_file for local_file in local_files if local_file.is_video
+    ]
+    for file in files_with_video_annotations:
+        for annotation in file.annotations:
+            unique_instance_ids = []
+            for frame_idx in annotation.frames:  # type: ignore
+                for subannotation in annotation.frames[frame_idx].subs:  # type: ignore
+                    if subannotation.annotation_type == "instance_id":
+                        instance_id = subannotation.data
+                        if instance_id not in unique_instance_ids:
+                            unique_instance_ids.append(instance_id)
+
+            if len(unique_instance_ids) > 1:
+                if file.path not in files_with_multi_instance_id_annotations:
+                    files_with_multi_instance_id_annotations[file.path] = 1
+                else:
+                    files_with_multi_instance_id_annotations[file.path] += 1
+
+    if files_with_multi_instance_id_annotations:
+        console.print(
+            "The following files have annotation(s) with multiple instance ID values. Instance IDs are static, so only the first instance ID of each annotation will be imported:",
+            style="warning",
+        )
+        for file in files_with_multi_instance_id_annotations:
+            console.print(
+                f"- File: {file} has {files_with_multi_instance_id_annotations[file]} annotation(s) with multiple instance IDs"
+            )

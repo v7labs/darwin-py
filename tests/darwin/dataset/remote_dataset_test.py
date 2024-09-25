@@ -15,7 +15,10 @@ from pydantic import ValidationError
 from darwin.client import Client
 from darwin.config import Config
 from darwin.dataset import RemoteDataset
-from darwin.dataset.download_manager import _download_image_from_json_annotation
+from darwin.dataset.download_manager import (
+    _download_image_from_json_annotation,
+    download_all_images_from_annotations,
+)
 from darwin.dataset.release import Release, ReleaseStatus
 from darwin.dataset.remote_dataset_v2 import RemoteDatasetV2
 from darwin.dataset.upload_manager import LocalFile, UploadHandlerV2
@@ -23,6 +26,12 @@ from darwin.datatypes import ManifestItem, ObjectStore, SegmentManifest
 from darwin.exceptions import UnsupportedExportFormat, UnsupportedFileType
 from darwin.item import DatasetItem
 from tests.fixtures import *
+
+
+@pytest.fixture
+def mock_is_file_extension_allowed():
+    with patch("darwin.dataset.download_manager.is_file_extension_allowed") as mock:
+        yield mock
 
 
 @pytest.fixture
@@ -574,6 +583,79 @@ class TestFetchRemoteFiles:
         )
 
 
+@pytest.mark.usefixtures("file_read_write_test")
+class TestFetchRemoteClasses:
+    def setup_method(self):
+        self.mock_classes = [
+            {
+                "name": "class1",
+                "datasets": [{"id": 1}],
+                "annotation_types": ["type1"],
+            },
+            {
+                "name": "class2",
+                "datasets": [{"id": 2}],
+                "annotation_types": ["type2"],
+            },
+            {
+                "name": "raster_class",
+                "datasets": [],
+                "annotation_types": ["raster_layer"],
+            },
+        ]
+
+    def create_remote_dataset(
+        self, darwin_client, dataset_name, dataset_slug, team_slug_darwin_json_v2
+    ):
+        return RemoteDatasetV2(
+            client=darwin_client,
+            team=team_slug_darwin_json_v2,
+            name=dataset_name,
+            slug=dataset_slug,
+            dataset_id=1,
+        )
+
+    @responses.activate
+    def test_fetch_remote_classes_team_wide(
+        self,
+        darwin_client: Client,
+        dataset_name: str,
+        dataset_slug: str,
+        team_slug_darwin_json_v2: str,
+    ):
+        remote_dataset = self.create_remote_dataset(
+            darwin_client, dataset_name, dataset_slug, team_slug_darwin_json_v2
+        )
+        with patch.object(
+            remote_dataset.client,
+            "fetch_remote_classes",
+            return_value=self.mock_classes,
+        ):
+            result = remote_dataset.fetch_remote_classes(team_wide=True)
+            assert len(result) == 3
+            assert any(cls["name"] == "raster_class" for cls in result)
+
+    @responses.activate
+    def test_fetch_remote_classes_local_to_dataset(
+        self,
+        darwin_client: Client,
+        dataset_name: str,
+        dataset_slug: str,
+        team_slug_darwin_json_v2: str,
+    ):
+        remote_dataset = self.create_remote_dataset(
+            darwin_client, dataset_name, dataset_slug, team_slug_darwin_json_v2
+        )
+        with patch.object(
+            remote_dataset.client,
+            "fetch_remote_classes",
+            return_value=self.mock_classes,
+        ):
+            result = remote_dataset.fetch_remote_classes(team_wide=False)
+            assert len(result) == 2
+            assert any(cls["name"] == "raster_class" for cls in result)
+
+
 @pytest.fixture
 def remote_dataset(
     darwin_client: Client,
@@ -1093,6 +1175,7 @@ def dataset_item(dataset_slug: str) -> DatasetItem:
         current_workflow=None,
         path="/",
         slots=[],
+        layout={"type": "grid", "version": 3, "slots": ["0", "1"]},
     )
 
 
@@ -1372,3 +1455,71 @@ class TestGetReleases:
         releases = remote_dataset.get_releases(include_unavailable=False)
         assert len(releases) == 1
         assert isinstance(releases[0], Release)
+
+
+def test_force_slots_true(mock_is_file_extension_allowed):
+    mock_is_file_extension_allowed.return_value = True
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        with zipfile.ZipFile("tests/data.zip") as zfile:
+            zfile.extractall(tmp_dir)
+            annotations_path = Path(tmp_dir) / "v7-darwin-json-v2/force_slots"
+            images_path = Path("images")
+            generator, count = download_all_images_from_annotations(
+                api_key="api_key",
+                annotations_path=annotations_path,
+                images_path=images_path,
+                force_slots=True,
+                force_replace=True,
+            )
+
+    download_funcs = list(generator())
+    planned_paths = [download_funcs[i].args[2] for i in range(count)]
+    expected_paths = [
+        Path("images/dir1/single_slotted_video_flat/0/mini_uct.mp4"),
+        Path("images/dir1/multiple_slots_multiple_source_files/0.1/slice_1.dcm"),
+        Path("images/dir1/multiple_slots_multiple_source_files/0.1/slice_2.dcm"),
+        Path("images/dir1/multiple_slots_multiple_source_files/1.1/slice_1.dcm"),
+        Path("images/dir1/multiple_slots_multiple_source_files/1.1/slice_2.dcm"),
+        Path("images/dir1/multiple_slots_multiple_source_files/1.1/slice_3.dcm"),
+        Path("images/dir1/single_slotted_image_flat/0/001.png"),
+        Path("images/dir1/multi_slotted_item_flat/0/000000580654.jpg"),
+        Path("images/dir1/multi_slotted_item_flat/1/000000580676.jpg"),
+        Path("images/dir1/multi_slotted_item_flat/2/000000580703.jpg"),
+    ]
+    assert count == 10
+    for expected_path in expected_paths:
+        assert expected_path in planned_paths
+
+
+def test_force_slots_false(mock_is_file_extension_allowed):
+    mock_is_file_extension_allowed.return_value = True
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        with zipfile.ZipFile("tests/data.zip") as zfile:
+            zfile.extractall(tmp_dir)
+            annotations_path = Path(tmp_dir) / "v7-darwin-json-v2/force_slots"
+            images_path = Path("images")
+            generator, count = download_all_images_from_annotations(
+                api_key="api_key",
+                annotations_path=annotations_path,
+                images_path=images_path,
+                force_slots=False,
+                force_replace=True,
+            )
+
+    download_funcs = list(generator())
+    planned_paths = [download_funcs[i].args[2] for i in range(count)]
+    expected_paths = [
+        Path("images/dir1/single_slotted_video_flat.mp4"),
+        Path("images/dir1/multiple_slots_multiple_source_files/0.1/slice_1.dcm"),
+        Path("images/dir1/multiple_slots_multiple_source_files/0.1/slice_2.dcm"),
+        Path("images/dir1/multiple_slots_multiple_source_files/1.1/slice_1.dcm"),
+        Path("images/dir1/multiple_slots_multiple_source_files/1.1/slice_2.dcm"),
+        Path("images/dir1/multiple_slots_multiple_source_files/1.1/slice_3.dcm"),
+        Path("images/dir1/single_slotted_image_flat.png"),
+        Path("images/dir1/multi_slotted_item_flat/0/000000580654.jpg"),
+        Path("images/dir1/multi_slotted_item_flat/1/000000580676.jpg"),
+        Path("images/dir1/multi_slotted_item_flat/2/000000580703.jpg"),
+    ]
+    assert count == 10
+    for expected_path in expected_paths:
+        assert expected_path in planned_paths

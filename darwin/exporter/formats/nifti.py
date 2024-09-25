@@ -14,7 +14,7 @@ try:
     import nibabel as nib
     from nibabel.orientations import io_orientation, ornt_transform
 except ImportError:
-    import_fail_string = """
+    import_fail_string = r"""
     You must install darwin-py with pip install darwin-py\[medical]
     in order to export using nifti format
     """

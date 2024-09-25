@@ -25,9 +25,9 @@ except ImportError:
     NDArray = Any  # type:ignore
 
 from darwin.future.data_objects.properties import (
-    PropertyGranularity,
     PropertyType,
     SelectedProperty,
+    PropertyGranularity,
 )
 from darwin.path_utils import construct_full_path, is_properties_enabled, parse_metadata
 
@@ -429,6 +429,9 @@ class Property:
     # Description of the property
     description: Optional[str] = None
 
+    # Granularity of the property
+    granularity: PropertyGranularity = PropertyGranularity("section")
+
 
 @dataclass
 class PropertyClass:
@@ -461,6 +464,17 @@ def parse_property_classes(metadata: dict[str, Any]) -> list[PropertyClass]:
         assert (
             "properties" in metadata_cls
         ), "Metadata class does not contain properties"
+        properties = [
+            Property(
+                name=p["name"],
+                type=p["type"],
+                required=p["required"],
+                property_values=p["property_values"],
+                description=p.get("description"),
+                granularity=PropertyGranularity(p.get("granularity", "section")),
+            )
+            for p in metadata_cls["properties"]
+        ]
         classes.append(
             PropertyClass(
                 name=metadata_cls["name"],
@@ -468,10 +482,9 @@ def parse_property_classes(metadata: dict[str, Any]) -> list[PropertyClass]:
                 description=metadata_cls.get("description"),
                 color=metadata_cls.get("color"),
                 sub_types=metadata_cls.get("sub_types"),
-                properties=[Property(**p) for p in metadata_cls["properties"]],
+                properties=properties,
             )
         )
-
     return classes
 
 

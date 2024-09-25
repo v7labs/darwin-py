@@ -1,5 +1,8 @@
 name: E2E Tests
 
+permissions:
+  contents: read
+
 on:
   schedule:
     - cron: "0 8 * * mon-fri"
@@ -7,9 +10,19 @@ on:
   pull_request:
     paths:
       - "e2e_tests/**"
+  workflow_call:
+    secrets:
+      E2E_API_KEY:
+        required: true
+      E2E_ENVIRONMENT:
+        required: true
+      E2E_TEAM:
+        required: true
 jobs:
   e2e:
     name: End to End Testing
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
@@ -18,14 +31,19 @@ jobs:
         os: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Harden Runner
+        uses: step-security/harden-runner@5c7944e73c4c2a096b17a9cb74d65b6c2bbafbde # v2.9.1
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+      - uses: actions/setup-python@39cd14951b08e74b54015e9e001cdefcf80e669f # v5.1.1
         with:
           python-version: ${{ matrix.python-version }}
       - name: Upgrade pip
         run: python -m pip install --upgrade pip
       - name: Setup Poetry
-        uses: abatilo/actions-poetry@v2
+        uses: abatilo/actions-poetry@c31426b23a8080795905ec73c9e458a2447cb2f2
         with:
           poetry-version: ${{ matrix.poetry-version }}
       - name: Install dependencies
@@ -41,22 +59,21 @@ jobs:
           E2E_API_KEY: ${{ secrets.E2E_API_KEY }}
           E2E_ENVIRONMENT: ${{ secrets.E2E_ENVIRONMENT }}
           E2E_TEAM: ${{ secrets.E2E_TEAM }}
+
   slack-notifier:
     name: Slack Notifier Bot
     needs: e2e
     if: failure() && github.event_name == 'schedule'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Notify Slack
-        uses: ./.github/workflows/JOB_slack_message.yml
-        with:
-          secrets: inherit
-          icon: ":warning:"
-          at_team: true
-          message: |
-            *Nightly E2E run failed*
+    permissions:
+      contents: read
+    uses: ./.github/workflows/JOB_slack_message.yml
+    with:
+      message: |
+        *Nightly E2E run failed*
 
-            :link:
-              - https://github.com/v7labs/darwin-py/actions/runs/${{ github.run_id }}
-            :warning: ${{ github.workflow }} failed.
-
+        :link:
+          - https://github.com/v7labs/darwin-py/actions/runs/${{ github.run_id }}
+        :warning: ${{ github.workflow }} failed.
+      icon: ":warning:"
+      at_team: true
+    secrets: inherit
