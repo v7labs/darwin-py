@@ -1,20 +1,19 @@
 from subprocess import run
 from time import sleep
-from typing import Optional, Dict, Any, Tuple, List
+from typing import Optional
 
 from attr import dataclass
-
+from pathlib import Path
 from darwin.exceptions import DarwinException
-
+import datetime
 import json
 import re
-import tempfile
 import uuid
-from typing import Generator
 import pytest
 import requests
 import time
 from e2e_tests.objects import E2EDataset, ConfigValues
+from darwin.dataset.release import Release, ReleaseStatus
 
 
 @dataclass
@@ -27,6 +26,21 @@ class CLIResult:
 
 
 SERVER_WAIT_TIME = 10
+
+
+@pytest.fixture
+def new_dataset() -> E2EDataset:
+    """Create a new dataset via darwin cli and return the dataset object, complete with teardown"""
+    uuid_str = str(uuid.uuid4())
+    new_dataset_name = "test_dataset_" + uuid_str
+    result = run_cli_command(f"darwin dataset create {new_dataset_name}")
+    assert_cli(result, 0)
+    id_raw = re.findall(r"datasets[/\\+](\d+)", result.stdout)
+    assert id_raw is not None and len(id_raw) == 1
+    id = int(id_raw[0])
+    teardown_dataset = E2EDataset(id, new_dataset_name, None)
+    pytest.datasets.append(teardown_dataset)  # type: ignore
+    return teardown_dataset
 
 
 def run_cli_command(
@@ -57,6 +71,9 @@ def run_cli_command(
 
     if yes:
         command = f"yes Y | {command}"
+
+    # Prefix the command with 'poetry run' to ensure it runs in the Poetry shell
+    command = f"poetry run {command}"
 
     if working_directory:
         result = run(
@@ -175,200 +192,63 @@ def wait_until_items_processed(
         )
 
 
-def normalize_expected_annotation(
-    annotation: Dict[str, Any]
-) -> Tuple[Dict[str, Any], Dict[str, Any], List[Dict[str, Any]]]:
+def export_and_download_annotations(
+    tmp_dir: Path, local_dataset: E2EDataset, config_values: ConfigValues
+) -> None:
     """
-    Returns a single read-in Darwin JSON 2.0 annotation into a structure for comparison
-    with other annotations, rounding coordinates to the 3rd decimal place where applicable.
-
-    This is necessary because the `/annotations` endpoint only records coordinates to the
-    3rd decimal place. If we don't round to 3dp, assertions comparing annotations will fail
-
-    If sub-annotations or properties are present, these are also returned
+    Creates an export of all items in the given dataset.
+    Waits for the export to finish, then downloads and the annotation files to `tmp_dir`
     """
-
-    def round_coordinates(data: Any) -> Any:
-        if isinstance(data, dict):
-            for key, value in data.items():
-                data[key] = round_coordinates(value)
-        elif isinstance(data, list):
-            for i in range(len(data)):
-                data[i] = round_coordinates(data[i])
-        elif isinstance(data, (int, float)):
-            data = round(data, 3)
-        return data
-
-    # Check for subtypes
-    subtypes = {}
-    if "instance_id" in annotation:
-        subtypes["instance_id"] = annotation["instance_id"]
-    if "text" in annotation:
-        subtypes["text"] = annotation["text"]
-    if "attributes" in annotation:
-        subtypes["attributes"] = annotation["attributes"]
-    if "directional_vector" in annotation:
-        subtypes["directional_vector"] = round_coordinates(
-            annotation["directional_vector"]
-        )
-
-    # Check for properties
-    annotation_properties = []
-    if "properties" in annotation:
-        annotation_properties = sorted(
-            annotation["properties"], key=lambda x: (x["name"], x["value"])
-        )
-
-    # Check for main type
-    if "polygon" in annotation:
-        annotation = {
-            "polygon": {"paths": round_coordinates(annotation["polygon"]["paths"])}
-        }
-    if "bounding_box" in annotation:
-        annotation = {"bounding_box": round_coordinates(annotation["bounding_box"])}
-    if "ellipse" in annotation:
-        annotation = {"ellipse": round_coordinates(annotation["ellipse"])}
-    if "keypoint" in annotation:
-        annotation = {"keypoint": round_coordinates(annotation["keypoint"])}
-    if "skeleton" in annotation:
-        annotation = {"skeleton": round_coordinates(annotation["skeleton"])}
-    if "line" in annotation:
-        annotation = {"line": round_coordinates(annotation["line"])}
-    if "tag" in annotation:
-        annotation = {"tag": annotation["tag"]}
-    if "mask" in annotation:
-        annotation = {"mask": annotation["mask"]}
-    if "raster_layer" in annotation:
-        annotation = {
-            "dense_rle": annotation["raster_layer"]["dense_rle"],
-            "total_pixels": annotation["raster_layer"]["total_pixels"],
-        }
-    return annotation, subtypes, annotation_properties
-
-
-def normalize_actual_annotation(
-    annotation: Dict[str, Any], properties: Dict[str, List]
-) -> Tuple[Dict[str, Any], Dict[str, Any], List[Dict[str, Any]]]:
-    """
-    Converts a single annotation into a structure for comparison with other annotations,
-    rounding coordinates to the 3rd decimal place where applicable.
-
-    This is necessary because the `/annotations` endpoint only records coordinates to the
-    3rd decimal place. If we don't round to 3dp, assertions comparing annotations will fail
-
-    If sub-annotations or properties are present, these are also returned
-    """
-
-    def round_coordinates(data: Any) -> Any:
-        if isinstance(data, dict):
-            for key, value in data.items():
-                data[key] = round_coordinates(value)
-        elif isinstance(data, list):
-            for i in range(len(data)):
-                data[i] = round_coordinates(data[i])
-        elif isinstance(data, (int, float)):
-            data = round(data, 3)
-        return data
-
-    annotation_data = annotation["data"]
-
-    # Check for subtypes
-    subtypes = {}
-    if "instance_id" in annotation_data:
-        subtypes["instance_id"] = annotation_data["instance_id"]
-    if "text" in annotation_data:
-        subtypes["text"] = annotation_data["text"]
-    if "attributes" in annotation_data:
-        subtypes["attributes"] = annotation_data["attributes"]
-    if "directional_vector" in annotation_data:
-        subtypes["directional_vector"] = round_coordinates(
-            annotation_data["directional_vector"]
-        )
-
-    # Check for properties
-    annotation_properties = []
-    if "properties" in annotation:
-        for frame_index, props in annotation["properties"].items():
-            for property_id, property_value_ids in props.items():
-                team_prop = next(
-                    (
-                        prop
-                        for prop in properties["properties"]
-                        if property_id == prop["id"]
-                    )
-                )
-                property_name = team_prop["name"]
-                for property_value_id in property_value_ids:
-                    property_value = next(
-                        prop_val["value"]
-                        for prop_val in team_prop["property_values"]
-                        if property_value_id == prop_val["id"]
-                    )
-                    annotation_properties.append(
-                        {
-                            "frame_index": int(frame_index),
-                            "name": property_name,
-                            "value": property_value,
-                        }
-                    )
-
-    if "polygon" in annotation_data:
-        # The `/annotations` endpoint reports polygon paths in `path`
-        # This must be converted to `paths` for consistency with exports
-        if "path" in annotation_data["polygon"]:
-            annotation_data = {
-                "polygon": {
-                    "paths": round_coordinates([annotation_data["polygon"]["path"]])
-                }
-            }
-        annotation_data = {
-            "polygon": {"paths": round_coordinates(annotation_data["polygon"]["paths"])}
-        }
-    if "bounding_box" in annotation_data:
-        annotation_data = {
-            "bounding_box": round_coordinates(annotation_data["bounding_box"])
-        }
-    if "ellipse" in annotation_data:
-        annotation_data = {"ellipse": round_coordinates(annotation_data["ellipse"])}
-    if "keypoint" in annotation_data:
-        annotation_data = {"keypoint": round_coordinates(annotation_data["keypoint"])}
-    if "skeleton" in annotation_data:
-        annotation_data = {"skeleton": round_coordinates(annotation_data["skeleton"])}
-    if "line" in annotation_data:
-        annotation_data = {"line": round_coordinates(annotation_data["line"])}
-    if "tag" in annotation_data:
-        annotation_data = {"tag": annotation_data["tag"]}
-    if "mask" in annotation_data:
-        annotation_data = {"mask": annotation_data["mask"]}
-    if "raster_layer" in annotation_data:
-        annotation_data = {
-            "dense_rle": annotation_data["raster_layer"]["dense_rle"],
-            "total_pixels": annotation_data["raster_layer"]["total_pixels"],
-        }
-    return (
-        annotation_data,
-        subtypes,
-        sorted(annotation_properties, key=lambda x: (x["name"], x["value"])),
+    dataset_slug = local_dataset.slug
+    team_slug = config_values.team_slug
+    api_key = config_values.api_key
+    base_url = config_values.server
+    export_name = "all-files"
+    create_export_url = (
+        f"{base_url}/api/v2/teams/{team_slug}/datasets/{dataset_slug}/exports"
     )
 
+    payload = {
+        "filters": {"statuses": ["new", "annotate", "review", "complete"]},
+        "include_authorship": False,
+        "include_export_token": False,
+        "name": f"{export_name}",
+    }
+    headers = {
+        "accept": "application/json",
+        "content-type": "application/json",
+        "Authorization": f"ApiKey {api_key}",
+    }
+    response = requests.post(create_export_url, json=payload, headers=headers)
+    list_export_url = (
+        f"{base_url}/api/v2/teams/{team_slug}/datasets/{dataset_slug}/exports"
+    )
+    ready = False
+    while not ready:
+        sleep(5)
+        print("Trying to get release...")
+        response = requests.get(list_export_url, headers=headers)
+        exports = response.json()
+        for export in exports:
+            if export["name"] == export_name and export["status"] == "complete":
+                print("Ready!")
+                export_data = export
+                ready = True
 
-@pytest.fixture
-def new_dataset() -> E2EDataset:
-    """Create a new dataset via darwin cli and return the dataset object, complete with teardown"""
-    uuid_str = str(uuid.uuid4())
-    new_dataset_name = "test_dataset_" + uuid_str
-    result = run_cli_command(f"darwin dataset create {new_dataset_name}")
-    assert_cli(result, 0)
-    id_raw = re.findall(r"datasets[/\\+](\d+)", result.stdout)
-    assert id_raw is not None and len(id_raw) == 1
-    id = int(id_raw[0])
-    teardown_dataset = E2EDataset(id, new_dataset_name, None)
-    pytest.datasets.append(teardown_dataset)  # type: ignore
-    return teardown_dataset
-
-
-@pytest.fixture
-def local_dataset(new_dataset: E2EDataset) -> Generator[E2EDataset, None, None]:
-    with tempfile.TemporaryDirectory() as temp_directory:
-        new_dataset.directory = temp_directory
-        yield new_dataset
+    release = Release(
+        dataset_slug=dataset_slug,
+        team_slug=team_slug,
+        version=export_data["version"],
+        name=export_data["name"],
+        status=ReleaseStatus.COMPLETE,
+        url=export_data["download_url"],
+        export_date=datetime.datetime.strptime(
+            export_data["inserted_at"], "%Y-%m-%dT%H:%M:%SZ"
+        ),
+        image_count=export_data["metadata"]["num_images"],
+        class_count=len(export_data["metadata"]["annotation_classes"]),
+        available=True,
+        latest=export_data["latest"],
+        format=export_data.get("format", "json"),
+    )
+    release.download_zip(tmp_dir / "dataset.zip")

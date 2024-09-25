@@ -28,7 +28,7 @@ def test_passes_working_directory_to_run_cli_command(
     run_cli_command("darwin --help", "/usr/bin", server_wait=0)
 
     mock_subprocess_run.assert_called_once()
-    assert mock_subprocess_run.call_args[0][0] == "darwin --help"
+    assert mock_subprocess_run.call_args[0][0] == "poetry run darwin --help"
     assert mock_subprocess_run.call_args[1]["cwd"] == "/usr/bin"
 
 
@@ -60,7 +60,7 @@ def test_does_not_pass_working_directory_to_run_cli_command(
     run_cli_command("darwin --help", server_wait=0)
 
     mock_subprocess_run.assert_called_once()
-    assert mock_subprocess_run.call_args[0][0] == "darwin --help"
+    assert mock_subprocess_run.call_args[0][0] == "poetry run darwin --help"
     assert "cwd" not in mock_subprocess_run.call_args[1]
 
 
