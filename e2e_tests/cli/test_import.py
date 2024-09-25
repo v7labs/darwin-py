@@ -9,6 +9,8 @@ from e2e_tests.objects import E2EDataset, ConfigValues
 from darwin.utils.utils import parse_darwin_json
 import tempfile
 import zipfile
+import darwin.datatypes as dt
+from typing import List
 
 
 def validate_downloaded_annotations(
@@ -36,10 +38,10 @@ def validate_downloaded_annotations(
         }
         for file in expected_annotation_files:
             assert file in actual_annotation_files
-            expected_annotations = parse_darwin_json(
+            expected_annotations: List[dt.Annotation] = parse_darwin_json(
                 Path(expected_annotation_files[file])
             ).annotations  # type: ignore
-            actual_annotations = parse_darwin_json(
+            actual_annotations: List[dt.Annotation] = parse_darwin_json(
                 Path(actual_annotation_files[file])
             ).annotations  # type: ignore
 
@@ -58,8 +60,37 @@ def validate_downloaded_annotations(
                 assert len(actual_annotations) > len(expected_annotations)
             else:
                 assert len(expected_annotations) == len(actual_annotations)
-            for annotation in expected_annotations:
-                assert annotation in actual_annotations
+
+            for expected_annotation in expected_annotations:
+                expected_annotation_data = expected_annotation.data
+                expected_annotation_type = (
+                    expected_annotation.annotation_class.annotation_type
+                )
+                actual_annotation = next(
+                    (
+                        annotation
+                        for annotation in actual_annotations
+                        if annotation.data == expected_annotation_data
+                        and annotation.annotation_class.annotation_type
+                        == expected_annotation_type
+                    ),
+                    None,
+                )
+                assert (
+                    actual_annotation is not None
+                ), "Annotation not found in actual annotations"
+
+                # Properties must be compared separately because the order of properties
+                # is a list with variable order. Differences in order will cause assertion failure
+                if expected_annotation.properties:
+                    assert actual_annotation.properties is not None
+                    expected_properties = expected_annotation.properties
+                    del expected_annotation.properties
+                    actual_properties = actual_annotation.properties
+                    del actual_annotation.properties
+                    for expected_property in expected_properties:
+                        assert expected_property in actual_properties
+                assert expected_annotation == actual_annotation
 
 
 def test_import_basic_annotations_to_images(
