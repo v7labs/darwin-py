@@ -1,6 +1,6 @@
 from subprocess import run
 from time import sleep
-from typing import Optional
+from typing import Optional, List
 
 from attr import dataclass
 from pathlib import Path
@@ -14,6 +14,7 @@ import requests
 import time
 from e2e_tests.objects import E2EDataset, ConfigValues
 from darwin.dataset.release import Release, ReleaseStatus
+import darwin.datatypes as dt
 
 
 @dataclass
@@ -193,11 +194,14 @@ def wait_until_items_processed(
 
 
 def export_and_download_annotations(
-    tmp_dir: Path, local_dataset: E2EDataset, config_values: ConfigValues
+    actual_annotations_dir: Path,
+    local_dataset: E2EDataset,
+    config_values: ConfigValues,
 ) -> None:
     """
     Creates an export of all items in the given dataset.
-    Waits for the export to finish, then downloads and the annotation files to `tmp_dir`
+    Waits for the export to finish, then downloads and the annotation files to
+    `actual_annotations_dir`
     """
     dataset_slug = local_dataset.slug
     team_slug = config_values.team_slug
@@ -231,7 +235,6 @@ def export_and_download_annotations(
         exports = response.json()
         for export in exports:
             if export["name"] == export_name and export["status"] == "complete":
-                print("Ready!")
                 export_data = export
                 ready = True
 
@@ -251,4 +254,16 @@ def export_and_download_annotations(
         latest=export_data["latest"],
         format=export_data.get("format", "json"),
     )
-    release.download_zip(tmp_dir / "dataset.zip")
+    release.download_zip(actual_annotations_dir / "dataset.zip")
+
+
+def delete_annotation_uuids(annotations: List[dt.Annotation]):
+    """
+    Removes all UUIDs in the `data` field of an `Annotation` object.
+
+    This allows for equality to be asserted with other annotations.
+    """
+    for annotation in annotations:
+        del annotation.id
+        if annotation.annotation_class.annotation_type == "raster_layer":
+            del annotation.data["mask_annotation_ids_mapping"]
