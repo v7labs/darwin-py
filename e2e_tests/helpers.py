@@ -1,10 +1,20 @@
 from subprocess import run
 from time import sleep
-from typing import Optional
+from typing import Optional, List
 
 from attr import dataclass
-
+from pathlib import Path
 from darwin.exceptions import DarwinException
+import datetime
+import json
+import re
+import uuid
+import pytest
+import requests
+import time
+from e2e_tests.objects import E2EDataset, ConfigValues
+from darwin.dataset.release import Release, ReleaseStatus
+import darwin.datatypes as dt
 
 
 @dataclass
@@ -17,6 +27,21 @@ class CLIResult:
 
 
 SERVER_WAIT_TIME = 10
+
+
+@pytest.fixture
+def new_dataset() -> E2EDataset:
+    """Create a new dataset via darwin cli and return the dataset object, complete with teardown"""
+    uuid_str = str(uuid.uuid4())
+    new_dataset_name = "test_dataset_" + uuid_str
+    result = run_cli_command(f"darwin dataset create {new_dataset_name}")
+    assert_cli(result, 0)
+    id_raw = re.findall(r"datasets[/\\+](\d+)", result.stdout)
+    assert id_raw is not None and len(id_raw) == 1
+    id = int(id_raw[0])
+    teardown_dataset = E2EDataset(id, new_dataset_name, None)
+    pytest.datasets.append(teardown_dataset)  # type: ignore
+    return teardown_dataset
 
 
 def run_cli_command(
@@ -47,6 +72,9 @@ def run_cli_command(
 
     if yes:
         command = f"yes Y | {command}"
+
+    # Prefix the command with 'poetry run' to ensure it runs in the Poetry shell
+    command = f"poetry run {command}"
 
     if working_directory:
         result = run(
@@ -108,3 +136,134 @@ def assert_cli(
             assert result.stdout != expected_stdout, format_cli_output(result)
         if expected_stderr:
             assert result.stderr != expected_stderr, format_cli_output(result)
+
+
+def list_items(api_key, dataset_id, team_slug, base_url):
+    """
+    List items in Darwin dataset, handling pagination.
+    """
+    url = f"{base_url}/api/v2/teams/{team_slug}/items?dataset_ids={dataset_id}"
+    headers = {"accept": "application/json", "Authorization": f"ApiKey {api_key}"}
+    items = []
+
+    while url:
+        response = requests.get(url, headers=headers)
+        if response.ok:
+            data = json.loads(response.text)
+            items.extend(data["items"])
+            next_page = data.get("page", {}).get("next")
+            if next_page:
+                url = f"{base_url}/{team_slug}/items?dataset_ids={dataset_id}&page[from]={next_page}"
+            else:
+                url = None
+        else:
+            raise requests.exceptions.HTTPError(
+                f"GET request failed with status code {response.status_code}."
+            )
+
+    return items
+
+
+def wait_until_items_processed(
+    config_values: ConfigValues, dataset_id: int, timeout: int = 600
+):
+    """
+    Waits until all items in a dataset have finished processing before attempting to upload annotations.
+    Raises a `TimeoutError` if the process takes longer than the specified timeout.
+    """
+    sleep_duration = 10
+    api_key = config_values.api_key
+    team_slug = config_values.team_slug
+    base_url = config_values.server
+    elapsed_time = 0
+
+    while elapsed_time < timeout:
+        items = list_items(api_key, dataset_id, team_slug, base_url)
+        if not items:
+            return
+        if all(item["processing_status"] != "processing" for item in items):
+            break
+        print(f"Waiting {sleep_duration} seconds for items to finish processing...")
+        time.sleep(sleep_duration)
+        elapsed_time += sleep_duration
+
+    if elapsed_time >= timeout:
+        raise TimeoutError(
+            f"Processing items took longer than the specified timeout of {timeout} seconds."
+        )
+
+
+def export_and_download_annotations(
+    actual_annotations_dir: Path,
+    local_dataset: E2EDataset,
+    config_values: ConfigValues,
+) -> None:
+    """
+    Creates an export of all items in the given dataset.
+    Waits for the export to finish, then downloads and the annotation files to
+    `actual_annotations_dir`
+    """
+    dataset_slug = local_dataset.slug
+    team_slug = config_values.team_slug
+    api_key = config_values.api_key
+    base_url = config_values.server
+    export_name = "all-files"
+    create_export_url = (
+        f"{base_url}/api/v2/teams/{team_slug}/datasets/{dataset_slug}/exports"
+    )
+
+    payload = {
+        "filters": {"statuses": ["new", "annotate", "review", "complete"]},
+        "include_authorship": False,
+        "include_export_token": False,
+        "name": f"{export_name}",
+    }
+    headers = {
+        "accept": "application/json",
+        "content-type": "application/json",
+        "Authorization": f"ApiKey {api_key}",
+    }
+    response = requests.post(create_export_url, json=payload, headers=headers)
+    list_export_url = (
+        f"{base_url}/api/v2/teams/{team_slug}/datasets/{dataset_slug}/exports"
+    )
+    ready = False
+    while not ready:
+        sleep(5)
+        print("Trying to get release...")
+        response = requests.get(list_export_url, headers=headers)
+        exports = response.json()
+        for export in exports:
+            if export["name"] == export_name and export["status"] == "complete":
+                export_data = export
+                ready = True
+
+    release = Release(
+        dataset_slug=dataset_slug,
+        team_slug=team_slug,
+        version=export_data["version"],
+        name=export_data["name"],
+        status=ReleaseStatus.COMPLETE,
+        url=export_data["download_url"],
+        export_date=datetime.datetime.strptime(
+            export_data["inserted_at"], "%Y-%m-%dT%H:%M:%SZ"
+        ),
+        image_count=export_data["metadata"]["num_images"],
+        class_count=len(export_data["metadata"]["annotation_classes"]),
+        available=True,
+        latest=export_data["latest"],
+        format=export_data.get("format", "json"),
+    )
+    release.download_zip(actual_annotations_dir / "dataset.zip")
+
+
+def delete_annotation_uuids(annotations: List[dt.Annotation]):
+    """
+    Removes all UUIDs in the `data` field of an `Annotation` object.
+
+    This allows for equality to be asserted with other annotations.
+    """
+    for annotation in annotations:
+        del annotation.id
+        if annotation.annotation_class.annotation_type == "raster_layer":
+            del annotation.data["mask_annotation_ids_mapping"]

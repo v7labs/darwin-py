@@ -1,0 +1,328 @@
+{
+  "version": "2.0",
+  "schema_ref": "https://darwin-public.s3.eu-west-1.amazonaws.com/darwin_json/2.0/schema.json",
+  "item": {
+    "name": "image_3",
+    "path": "/dir1",
+    "source_info": {
+      "item_id": "01922dc5-646b-8c77-0a6f-6c06085e0352",
+      "dataset": {
+        "name": "test_dataset_854fe60f-7f49-43a7-9419-1b1986d42376",
+        "slug": "test_dataset_854fe60f-7f49-43a7-9419-1b1986d42376",
+        "dataset_management_url": "https://staging.v7labs.com/datasets/357048/dataset-management"
+      },
+      "team": {
+        "name": "E2E Testing",
+        "slug": "e2e-testing"
+      },
+      "workview_url": "https://staging.v7labs.com/workview?dataset=357048&item=01922dc5-646b-8c77-0a6f-6c06085e0352"
+    },
+    "slots": [
+      {
+        "type": "image",
+        "slot_name": "0",
+        "width": 1920,
+        "height": 1080,
+        "thumbnail_url": "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/a8205e6b-e940-4bb1-b29d-846e78a89086/thumbnail",
+        "source_files": [
+          {
+            "file_name": "image_3",
+            "storage_key": "darwin-py/images/image_3.jpg",
+            "url": "https://staging.v7labs.com/api/v2/teams/e2e-testing/uploads/07d711e4-cb84-4848-a188-9b9330ea1038"
+          }
+        ]
+      }
+    ]
+  },
+  "annotations": [
+    {
+      "id": "9df469c0-4bc4-41bc-9c7d-3ec38f1cbcdd",
+      "line": {
+        "path": [
+          {
+            "x": 136.565,
+            "y": 353.6437
+          },
+          {
+            "x": 107.0947,
+            "y": 402.183
+          },
+          {
+            "x": 169.5024,
+            "y": 407.3836
+          }
+        ]
+      },
+      "name": "test_line_basic",
+      "properties": [],
+      "slot_names": [
+        "0"
+      ]
+    },
+    {
+      "id": "a6caf48a-0279-4772-afba-6ab2c9a55f35",
+      "name": "test_skeleton_basic",
+      "properties": [],
+      "skeleton": {
+        "nodes": [
+          {
+            "name": "node",
+            "occluded": false,
+            "x": 55.0883,
+            "y": 303.3708
+          },
+          {
+            "name": "2",
+            "occluded": false,
+            "x": 70.3435,
+            "y": 275.634
+          }
+        ]
+      },
+      "slot_names": [
+        "0"
+      ]
+    },
+    {
+      "id": "c5fb2e1b-34e8-4354-b5ae-9f76806b89c0",
+      "mask": {},
+      "name": "test_mask_basic",
+      "properties": [],
+      "slot_names": [
+        "0"
+      ]
+    },
+    {
+      "id": "a300c6d4-3aa9-4356-b65c-a6177c223276",
+      "name": "test_tag_basic",
+      "properties": [],
+      "slot_names": [
+        "0"
+      ],
+      "tag": {}
+    },
+    {
+      "id": "e9a438b5-446f-4ba5-bfa4-5c3db337891b",
+      "name": "__raster_layer__",
+      "properties": [],
+      "raster_layer": {
+        "dense_rle": [
+          0,
+          301775,
+          1,
+          4,
+          0,
+          1914,
+          1,
+          8,
+          0,
+          1912,
+          1,
+          8,
+          0,
+          1911,
+          1,
+          10,
+          0,
+          1910,
+          1,
+          10,
+          0,
+          1910,
+          1,
+          10,
+          0,
+          1910,
+          1,
+          10,
+          0,
+          1910,
+          1,
+          10,
+          0,
+          1910,
+          1,
+          10,
+          0,
+          1910,
+          1,
+          10,
+          0,
+          1910,
+          1,
+          10,
+          0,
+          1910,
+          1,
+          10,
+          0,
+          1910,
+          1,
+          10,
+          0,
+          1910,
+          1,
+          10,
+          0,
+          1910,
+          1,
+          10,
+          0,
+          1910,
+          1,
+          10,
+          0,
+          1910,
+          1,
+          10,
+          0,
+          1910,
+          1,
+          10,
+          0,
+          1910,
+          1,
+          10,
+          0,
+          1910,
+          1,
+          10,
+          0,
+          1910,
+          1,
+          10,
+          0,
+          1910,
+          1,
+          11,
+          0,
+          1910,
+          1,
+          10,
+          0,
+          1910,
+          1,
+          11,
+          0,
+          10,
+          1,
+          4,
+          0,
+          1895,
+          1,
+          13,
+          0,
+          6,
+          1,
+          8,
+          0,
+          1893,
+          1,
+          13,
+          0,
+          1,
+          1,
+          4,
+          0,
+          1,
+          1,
+          8,
+          0,
+          1894,
+          1,
+          29,
+          0,
+          1892,
+          1,
+          30,
+          0,
+          1890,
+          1,
+          30,
+          0,
+          1891,
+          1,
+          30,
+          0,
+          1891,
+          1,
+          29,
+          0,
+          1892,
+          1,
+          29,
+          0,
+          1892,
+          1,
+          28,
+          0,
+          1892,
+          1,
+          30,
+          0,
+          1891,
+          1,
+          31,
+          0,
+          1889,
+          1,
+          31,
+          0,
+          1890,
+          1,
+          31,
+          0,
+          1890,
+          1,
+          30,
+          0,
+          1890,
+          1,
+          30,
+          0,
+          1891,
+          1,
+          29,
+          0,
+          1892,
+          1,
+          28,
+          0,
+          1894,
+          1,
+          26,
+          0,
+          1897,
+          1,
+          23,
+          0,
+          1899,
+          1,
+          21,
+          0,
+          1902,
+          1,
+          17,
+          0,
+          1905,
+          1,
+          15,
+          0,
+          1908,
+          1,
+          10,
+          0,
+          1683471
+        ],
+        "mask_annotation_ids_mapping": {
+          "c5fb2e1b-34e8-4354-b5ae-9f76806b89c0": 1
+        },
+        "total_pixels": 2073600
+      },
+      "slot_names": [
+        "0"
+      ]
+    }
+  ],
+  "properties": []
+}

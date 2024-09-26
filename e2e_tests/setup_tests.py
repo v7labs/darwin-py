@@ -3,7 +3,7 @@ import random
 import string
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import List, Literal, Optional
+from typing import List, Literal, Optional, Dict
 
 import numpy as np
 import pytest
@@ -47,6 +47,62 @@ def api_call(
     else:
         response = action(url, headers=headers)
     return response
+
+
+def get_available_annotation_subtypes(annotation_type: str) -> List[str]:
+    """
+    Returns a list of possible subtypes including the main type for a given annotation class type
+    """
+    annotation_class_subtypes = {
+        "bounding_box": [
+            "bounding_box",
+            "text",
+            "attributes",
+            "instance_id",
+            "directional_vector",
+        ],
+        "ellipse": ["ellipse", "text", "attributes", "instance_id"],
+        "keypoint": ["keypoint", "text", "attributes", "instance_id"],
+        "line": ["line", "text", "attributes", "instance_id"],
+        "mask": ["mask", "text", "attributes"],
+        "polygon": [
+            "polygon",
+            "text",
+            "attributes",
+            "instance_id",
+            "directional_vector",
+        ],
+        "skeleton": ["skeleton", "text", "attributes", "instance_id"],
+        "tag": ["tag", "text", "attributes"],
+    }
+    return annotation_class_subtypes[annotation_type]
+
+
+def add_properties_to_class(
+    annotation_class_info: Dict[str, str], config: ConfigValues
+) -> None:
+    """
+    Adds a single-select & a mulit-select property to the given class, each with two values
+    """
+    url = f"{config.server}/api/v2/teams/{config.team_slug}/properties"
+
+    headers = {
+        "accept": "application/json",
+        "content-type": "application/json",
+        "Authorization": f"ApiKey {config.api_key}",
+    }
+    for property_type in ["single_select", "multi_select"]:
+        payload = {
+            "required": False,
+            "type": property_type,
+            "name": f"{property_type}-1",
+            "property_values": [
+                {"type": "string", "value": "1", "color": "auto"},
+                {"type": "string", "value": "2", "color": "auto"},
+            ],
+            "annotation_class_id": annotation_class_info["id"],
+        }
+        requests.post(url, json=payload, headers=headers)
 
 
 def generate_random_string(
@@ -119,6 +175,8 @@ def create_annotation_class(
     annotation_type: str,
     config: ConfigValues,
     fixed_name: bool = False,
+    subtypes: bool = False,
+    properties: bool = False,
 ) -> E2EAnnotationClass:
     """
     Create a randomised new annotation class, and return its minimal info for reference
@@ -129,7 +187,12 @@ def create_annotation_class(
         The name of the annotation class
     annotation_type : str
         The type of the annotation class
-
+    fixed_name : bool
+        Whether or not to include a random string in the class name
+    subtypes : bool
+        Whether or not to enable all possible sub-annotation types for the class
+    properties : bool
+        Whether ot not to add single & multi-select properties to the class with some values
     Returns
     -------
     E2EAnnotationClass
@@ -141,19 +204,35 @@ def create_annotation_class(
         name = f"{name}_{generate_random_string(4)}_annotation_class"
     host, api_key = config.server, config.api_key
     url = f"{host}/api/teams/{team_slug}/annotation_classes"
+    annotation_types = (
+        get_available_annotation_subtypes(annotation_type)
+        if subtypes
+        else [annotation_type]
+    )
+    metadata = {"_color": "auto"}
+    if annotation_type == "skeleton":
+        metadata["skeleton"] = {  # type: ignore
+            "edges": [{"from": "2", "to": "node"}],
+            "nodes": [
+                {"name": "node", "x": 0.5, "y": 0.5},
+                {"name": "2", "x": 0.1, "y": 0.1},
+            ],
+        }
     response = api_call(
         "post",
         url,
         {
             "name": name,
-            "annotation_types": [annotation_type],
-            "metadata": {"_color": "auto"},
+            "annotation_types": annotation_types,
+            "metadata": metadata,
         },
         api_key,
     )
 
     if response.ok:
         annotation_class_info = response.json()
+        if properties:
+            add_properties_to_class(annotation_class_info, config)
         return E2EAnnotationClass(
             id=annotation_class_info["id"],
             name=annotation_class_info["name"],
@@ -376,17 +455,38 @@ def setup_annotation_classes(config: ConfigValues) -> List[E2EAnnotationClass]:
     annotation_classes: List[E2EAnnotationClass] = []
 
     print("Setting up annotation classes")
-    set_types = [("bb", "bounding_box"), ("poly", "polygon"), ("ellipse", "ellipse")]
+    annotation_class_types = [
+        "bounding_box",
+        "polygon",
+        "ellipse",
+        "keypoint",
+        "line",
+        "mask",
+        "skeleton",
+        "tag",
+    ]
     try:
-        for annotation_type, annotation_type_name in set_types:
+        for annotation_class_type in annotation_class_types:
             try:
-                annotation_class = create_annotation_class(
-                    f"test_{annotation_type}",
-                    annotation_type_name,
+                basic_annotation_class = create_annotation_class(
+                    f"test_{annotation_class_type}_basic",
+                    annotation_class_type,
                     config,
                     fixed_name=True,
                 )
-                annotation_classes.append(annotation_class)
+                annotation_classes.append(basic_annotation_class)
+            except DataAlreadyExists:
+                pass
+            try:
+                annotation_class_with_subtypes_and_properties = create_annotation_class(
+                    f"test_{annotation_class_type}_with_subtypes_and_properties",
+                    annotation_class_type,
+                    config,
+                    fixed_name=True,
+                    subtypes=True,
+                    properties=True,
+                )
+                annotation_classes.append(annotation_class_with_subtypes_and_properties)
             except DataAlreadyExists:
                 pass
     except E2EException as e:
@@ -530,5 +630,7 @@ def teardown_annotation_classes(
     )
     all_annotations = response.json()["annotation_classes"]
     for annotation_class in all_annotations:
-        if annotation_class["name"].startswith("test_"):
+        if annotation_class["name"].startswith("test_") or annotation_class[
+            "name"
+        ].startswith("new_"):
             delete_annotation_class(annotation_class["id"], config)

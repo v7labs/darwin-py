@@ -1,0 +1,216 @@
+{
+  "version": "2.0",
+  "schema_ref": "https://darwin-public.s3.eu-west-1.amazonaws.com/darwin_json/2.0/schema.json",
+  "item": {
+    "name": "image_2",
+    "path": "/",
+    "source_info": {
+      "item_id": "01922dc5-646b-f0b7-9d92-ecc504bba55e",
+      "dataset": {
+        "name": "test_dataset_854fe60f-7f49-43a7-9419-1b1986d42376",
+        "slug": "test_dataset_854fe60f-7f49-43a7-9419-1b1986d42376",
+        "dataset_management_url": "https://staging.v7labs.com/datasets/357048/dataset-management"
+      },
+      "team": {
+        "name": "E2E Testing",
+        "slug": "e2e-testing"
+      },
+      "workview_url": "https://staging.v7labs.com/workview?dataset=357048&item=01922dc5-646b-f0b7-9d92-ecc504bba55e"
+    },
+    "slots": [
+      {
+        "type": "image",
+        "slot_name": "0",
+        "width": 1920,
+        "height": 1080,
+        "thumbnail_url": "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/7ac2488d-df4e-42b1-bde2-86cbe22d526c/thumbnail",
+        "source_files": [
+          {
+            "file_name": "image_2",
+            "storage_key": "darwin-py/images/image_2.jpg",
+            "url": "https://staging.v7labs.com/api/v2/teams/e2e-testing/uploads/3138e283-a72f-4232-be35-0826fcf2ab01"
+          }
+        ]
+      }
+    ]
+  },
+  "annotations": [
+    {
+      "id": "c6b5d839-6fcc-4415-8191-a6a4a702af66",
+      "line": {
+        "path": [
+          {
+            "x": 136.565,
+            "y": 353.6437
+          },
+          {
+            "x": 107.0947,
+            "y": 402.183
+          },
+          {
+            "x": 169.5024,
+            "y": 407.3836
+          }
+        ]
+      },
+      "name": "test_line_basic",
+      "properties": [],
+      "slot_names": [
+        "0"
+      ]
+    },
+    {
+      "id": "7cf4be26-60a3-466f-8a1f-7029a341b506",
+      "name": "test_skeleton_basic",
+      "properties": [],
+      "skeleton": {
+        "nodes": [
+          {
+            "name": "node",
+            "occluded": false,
+            "x": 55.0883,
+            "y": 303.3708
+          },
+          {
+            "name": "2",
+            "occluded": false,
+            "x": 70.3435,
+            "y": 275.634
+          }
+        ]
+      },
+      "slot_names": [
+        "0"
+      ]
+    },
+    {
+      "id": "b479c29b-dbe1-4a86-bd18-ed7011f1cc0a",
+      "mask": {},
+      "name": "test_mask_basic",
+      "properties": [],
+      "slot_names": [
+        "0"
+      ]
+    },
+    {
+      "id": "271d85a9-2c7f-436a-b33c-6698a830a518",
+      "name": "test_tag_basic",
+      "properties": [],
+      "slot_names": [
+        "0"
+      ],
+      "tag": {}
+    },
+    {
+      "id": "5f67127e-aa76-4550-b1fc-0cf6b6049ca0",
+      "name": "__raster_layer__",
+      "properties": [],
+      "raster_layer": {
+        "dense_rle": [
+          0,
+          278739,
+          1,
+          7,
+          0,
+          1911,
+          1,
+          11,
+          0,
+          1909,
+          1,
+          11,
+          0,
+          1908,
+          1,
+          13,
+          0,
+          1907,
+          1,
+          13,
+          0,
+          1906,
+          1,
+          16,
+          0,
+          1898,
+          1,
+          25,
+          0,
+          1893,
+          1,
+          29,
+          0,
+          1891,
+          1,
+          29,
+          0,
+          1890,
+          1,
+          31,
+          0,
+          1889,
+          1,
+          31,
+          0,
+          1889,
+          1,
+          31,
+          0,
+          1889,
+          1,
+          31,
+          0,
+          1889,
+          1,
+          31,
+          0,
+          1890,
+          1,
+          29,
+          0,
+          1891,
+          1,
+          29,
+          0,
+          1892,
+          1,
+          26,
+          0,
+          1895,
+          1,
+          19,
+          0,
+          1902,
+          1,
+          18,
+          0,
+          1903,
+          1,
+          16,
+          0,
+          1906,
+          1,
+          14,
+          0,
+          1908,
+          1,
+          10,
+          0,
+          1912,
+          1,
+          4,
+          0,
+          1752619
+        ],
+        "mask_annotation_ids_mapping": {
+          "b479c29b-dbe1-4a86-bd18-ed7011f1cc0a": 1
+        },
+        "total_pixels": 2073600
+      },
+      "slot_names": [
+        "0"
+      ]
+    }
+  ],
+  "properties": []
+}
