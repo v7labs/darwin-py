@@ -1,17 +1,19 @@
 from pathlib import Path
 
+
 from e2e_tests.helpers import (
     assert_cli,
     run_cli_command,
     export_and_download_annotations,
     delete_annotation_uuids,
+    list_items,
 )
 from e2e_tests.objects import E2EDataset, ConfigValues
 from darwin.utils.utils import parse_darwin_json
 import tempfile
 import zipfile
 import darwin.datatypes as dt
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 
 def get_actual_annotation_filename(
@@ -57,7 +59,7 @@ def find_matching_actual_annotation(
 
 def assert_same_annotation_data(
     expected_annotation: dt.Annotation, actual_annotation: dt.Annotation
-):
+) -> None:
     """
     Ensures that `expected_annotation.data` is equivalent to `actual_annotation.data`
     """
@@ -66,7 +68,7 @@ def assert_same_annotation_data(
 
 def assert_same_annotation_properties(
     expected_annotation: dt.Annotation, actual_annotation: dt.Annotation
-):
+) -> None:
     """
     Ensures that `expected_annotation.properties` is equivalent to `actual_annotation.properties`
     """
@@ -78,15 +80,55 @@ def assert_same_annotation_properties(
             assert expected_property in actual_properties  # type : ignore
 
 
+def get_base_slot_of_item(
+    config_values: ConfigValues, dataset_id: int, item_idx: int
+) -> str:
+    """
+    Returns the base slot for the nth item in a specific `E2EDataset`. The base slot is
+    always the first listed slot
+    """
+    items = list_items(
+        config_values.api_key,
+        dataset_id,
+        config_values.team_slug,
+        config_values.server,
+    )
+    return items[item_idx]["slots"][0]["slot_name"]
+
+
+def assert_annotation_slot_alignment(
+    expected_annotation: dt.Annotation,
+    actual_annotation: dt.Annotation,
+    item_type: str,
+    base_slot: Optional[str],
+) -> None:
+    """
+    Ensures that the slot tied to an `actual_annotation` is aligned depending on the
+    value of `item_type`:
+    - `single_slotted`: Perform no checks
+    - `multi_slotted`: Ensures `actual_annotation.slot_names` is equivalent to
+      `expected_annotation.slot_names`
+    - `multi_channel`: Ensures the `actual_annotation` is tied to the base slot
+    """
+    if item_type == "multi_slotted":
+        if expected_annotation.slot_names:
+            assert expected_annotation.slot_names == actual_annotation.slot_names
+        else:
+            assert actual_annotation.slot_names == [base_slot]
+    elif item_type == "multi_channel":
+        assert actual_annotation.slot_names == [base_slot]
+
+
 def compare_annotations_export(
     actual_annotations_dir: Path,
     expected_annotations_dir: Path,
+    item_type: str,
+    base_slot: Optional[str] = "0",
 ):
     """
     Compares a set of downloaded annotation files with the imported files that resulted
     in those annotations. Ensures equality
     """
-
     with zipfile.ZipFile(actual_annotations_dir / "dataset.zip") as z:
         z.extractall(actual_annotations_dir)
 
@@ -121,8 +163,11 @@ def compare_annotations_export(
             actual_annotation = find_matching_actual_annotation(
                 expected_annotation, actual_annotations
             )
-            assert_same_annotation_data(actual_annotation, expected_annotation)
+            assert_same_annotation_data(expected_annotation, actual_annotation)
             assert_same_annotation_properties(expected_annotation, actual_annotation)
+            assert_annotation_slot_alignment(
+                expected_annotation, actual_annotation, item_type, base_slot
+            )
 
 
 def test_import_annotations_without_subtypes_to_images(
@@ -132,6 +177,7 @@ def test_import_annotations_without_subtypes_to_images(
     Test importing a set of basic annotations (no sub-types or properties) to a set of
     pre-registered files in a dataset.
     """
+    item_type = "single_slotted"
     local_dataset.register_read_only_items(config_values)
     expected_annotations_dir = (
         Path(__file__).parents[1]
@@ -148,7 +194,9 @@ def test_import_annotations_without_subtypes_to_images(
         export_and_download_annotations(
             actual_annotations_dir, local_dataset, config_values
         )
-        compare_annotations_export(actual_annotations_dir, expected_annotations_dir)
+        compare_annotations_export(
+            actual_annotations_dir, expected_annotations_dir, item_type
+        )
 
 
 def test_import_annotations_with_subtypes_to_images(
@@ -158,6 +206,7 @@ def test_import_annotations_with_subtypes_to_images(
     Test importing a set of annotations that includes subtypes & properties to a set of
     pre-registered files in a dataset.
     """
+    item_type = "single_slotted"
     local_dataset.register_read_only_items(config_values)
     expected_annotations_dir = (
         Path(__file__).parents[1]
@@ -174,7 +223,9 @@ def test_import_annotations_with_subtypes_to_images(
         export_and_download_annotations(
             actual_annotations_dir, local_dataset, config_values
         )
-        compare_annotations_export(actual_annotations_dir, expected_annotations_dir)
+        compare_annotations_export(
+            actual_annotations_dir, expected_annotations_dir, item_type
+        )
 
 
 def test_annotation_classes_are_created_on_import(
@@ -184,6 +235,7 @@ def test_annotation_classes_are_created_on_import(
     Test that importing non-existent annotation classes creates those classes in the
     target Darwin team
     """
+    item_type = "single_slotted"
     local_dataset.register_read_only_items(config_values)
     expected_annotations_dir = (
         Path(__file__).parents[1]
@@ -200,7 +252,9 @@ def test_annotation_classes_are_created_on_import(
         export_and_download_annotations(
             actual_annotations_dir, local_dataset, config_values
         )
-        compare_annotations_export(actual_annotations_dir, expected_annotations_dir)
+        compare_annotations_export(
+            actual_annotations_dir, expected_annotations_dir, item_type
+        )
 
 
 def test_annotation_classes_are_created_with_properties_on_import(
@@ -210,6 +264,7 @@ def test_annotation_classes_are_created_with_properties_on_import(
     Test that importing non-existent annotation classes with properties creates those
     classes and properties in the target Darwin team
     """
+    item_type = "single_slotted"
     local_dataset.register_read_only_items(config_values)
     expected_annotations_dir = (
         Path(__file__).parents[1]
@@ -226,7 +281,9 @@ def test_annotation_classes_are_created_with_properties_on_import(
         export_and_download_annotations(
             actual_annotations_dir, local_dataset, config_values
         )
-        compare_annotations_export(actual_annotations_dir, expected_annotations_dir)
+        compare_annotations_export(
+            actual_annotations_dir, expected_annotations_dir, item_type
+        )
 
 
 def test_appending_annotations(
@@ -236,6 +293,7 @@ def test_appending_annotations(
     Test that appending annotations to an item with already existing annotations does
     not overwrite the original annotations
     """
+    item_type = "single_slotted"
     local_dataset.register_read_only_items(config_values)
     expected_annotations_dir = (
         Path(__file__).parents[1]
@@ -252,7 +310,9 @@ def test_appending_annotations(
         export_and_download_annotations(
             actual_annotations_dir, local_dataset, config_values
         )
-        compare_annotations_export(actual_annotations_dir, expected_annotations_dir)
+        compare_annotations_export(
+            actual_annotations_dir, expected_annotations_dir, item_type
+        )
 
 
 def test_overwriting_annotations(
@@ -262,6 +322,7 @@ def test_overwriting_annotations(
     Test that the `--overwrite` flag allows bypassing of the overwrite warning when
     importing to items with already existing annotations
     """
+    item_type = "single_slotted"
     local_dataset.register_read_only_items(config_values)
     expected_annotations_dir = (
         Path(__file__).parents[1]
@@ -284,7 +345,9 @@ def test_overwriting_annotations(
         export_and_download_annotations(
             actual_annotations_dir, local_dataset, config_values
         )
-        compare_annotations_export(actual_annotations_dir, expected_annotations_dir)
+        compare_annotations_export(
+            actual_annotations_dir, expected_annotations_dir, item_type
+        )
 
 
 def test_annotation_overwrite_warning(
@@ -311,3 +374,148 @@ def test_annotation_overwrite_warning(
         f"darwin dataset import {local_dataset.name} darwin {expected_annotations_dir}"
     )
     assert "will be overwritten" in result.stdout
+
+
+def test_import_annotations_to_multi_slotted_item_without_slots_defined(
+    local_dataset: E2EDataset, config_values: ConfigValues
+) -> None:
+    """
+    Upload annotations to a multi-slotted item without aligning each annotation to a
+    slot. All annotations should end up in the item's first slot
+    """
+    item_type = "multi_slotted"
+    local_dataset.register_read_only_items(config_values, item_type)
+    expected_annotations_dir = (
+        Path(__file__).parents[1]
+        / "data"
+        / "import"
+        / "multi_slotted_annotations_without_slots_defined"
+    )
+    result = run_cli_command(
+        f"darwin dataset import {local_dataset.name} darwin {expected_annotations_dir}"
+    )
+    assert_cli(result, 0)
+    base_slot = get_base_slot_of_item(config_values, local_dataset.id, item_idx=0)
+    with tempfile.TemporaryDirectory() as tmp_dir_str:
+        actual_annotations_dir = Path(tmp_dir_str)
+        export_and_download_annotations(
+            actual_annotations_dir, local_dataset, config_values
+        )
+        compare_annotations_export(
+            actual_annotations_dir, expected_annotations_dir, item_type, base_slot
+        )
+
+
+def test_import_annotations_to_multi_slotted_item_with_slots_defined(
+    local_dataset: E2EDataset, config_values: ConfigValues
+) -> None:
+    """
+    Upload annotations to a multi-slotted item where each annotation is aligned with a
+    particular slot. Each annotation should end up in the correct slot
+    """
+    item_type = "multi_slotted"
+    local_dataset.register_read_only_items(config_values, item_type)
+    expected_annotations_dir = (
+        Path(__file__).parents[1]
+        / "data"
+        / "import"
+        / "multi_slotted_annotations_with_slots_defined"
+    )
+    result = run_cli_command(
+        f"darwin dataset import {local_dataset.name} darwin {expected_annotations_dir}"
+    )
+    assert_cli(result, 0)
+    base_slot = get_base_slot_of_item(config_values, local_dataset.id, item_idx=0)
+    with tempfile.TemporaryDirectory() as tmp_dir_str:
+        actual_annotations_dir = Path(tmp_dir_str)
+        export_and_download_annotations(
+            actual_annotations_dir, local_dataset, config_values
+        )
+        compare_annotations_export(
+            actual_annotations_dir, expected_annotations_dir, item_type, base_slot
+        )
+
+
+def test_import_annotations_to_multi_channel_item_without_slots_defined(
+    local_dataset: E2EDataset, config_values: ConfigValues
+) -> None:
+    """
+    Upload annotations to a multi-channel item without aligning each annotation to a
+    slot. All annotations should end up the base slot
+    """
+    item_type = "multi_channel"
+    local_dataset.register_read_only_items(config_values, item_type)
+    expected_annotations_dir = (
+        Path(__file__).parents[1]
+        / "data"
+        / "import"
+        / "multi_channel_annotations_without_slots_defined"
+    )
+    result = run_cli_command(
+        f"darwin dataset import {local_dataset.name} darwin {expected_annotations_dir}"
+    )
+    assert_cli(result, 0)
+    base_slot = get_base_slot_of_item(config_values, local_dataset.id, item_idx=0)
+    with tempfile.TemporaryDirectory() as tmp_dir_str:
+        actual_annotations_dir = Path(tmp_dir_str)
+        export_and_download_annotations(
+            actual_annotations_dir, local_dataset, config_values
+        )
+        compare_annotations_export(
+            actual_annotations_dir, expected_annotations_dir, item_type, base_slot
+        )
+
+
+def test_import_annotations_to_multi_channel_item_with_slots_defined(
+    local_dataset: E2EDataset, config_values: ConfigValues
+) -> None:
+    """
+    Upload annotations to a multi-channel item where each annotation is aligned with
+    the base slot. Each annotation should end up in the base slot
+    """
+    item_type = "multi_channel"
+    local_dataset.register_read_only_items(config_values, item_type="multi_channel")
+    expected_annotations_dir = (
+        Path(__file__).parents[1]
+        / "data"
+        / "import"
+        / "multi_channel_annotations_with_slots_defined"
+    )
+    result = run_cli_command(
+        f"darwin dataset import {local_dataset.name} darwin {expected_annotations_dir}"
+    )
+    assert_cli(result, 0)
+    base_slot = get_base_slot_of_item(config_values, local_dataset.id, item_idx=0)
+    with tempfile.TemporaryDirectory() as tmp_dir_str:
+        actual_annotations_dir = Path(tmp_dir_str)
+        export_and_download_annotations(
+            actual_annotations_dir, local_dataset, config_values
+        )
+        compare_annotations_export(
+            actual_annotations_dir, expected_annotations_dir, item_type, base_slot
+        )
+
+
+def test_import_annotations_to_multi_channel_item_non_base_slot(
+    local_dataset: E2EDataset, config_values: ConfigValues
+) -> None:
+    """
+    Upload annotations to a multi-channel item where each annotation is aligned with a
+    non-base slot. The importer should throw an error
+    """
+    item_type = "multi_channel"
+    local_dataset.register_read_only_items(config_values, item_type)
+    expected_annotations_dir = (
+        Path(__file__).parents[1]
+        / "data"
+        / "import"
+        / "multi_channel_annotations_aligned_with_non_base_slot"
+    )
+    result = run_cli_command(
+        f"darwin dataset import {local_dataset.name} darwin {expected_annotations_dir}"
+    )
+    assert_cli(result, 0)
+    assert (
+        "WARNING: 1 file(s) have the following blocking issues and will not be imported"
+        in result.stdout
+    )
