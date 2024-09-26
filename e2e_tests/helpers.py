@@ -181,7 +181,7 @@ def wait_until_items_processed(
         items = list_items(api_key, dataset_id, team_slug, base_url)
         if not items:
             return
-        if all(item["processing_status"] != "processing" for item in items):
+        if all(item["processing_status"] == "complete" for item in items):
             break
         print(f"Waiting {sleep_duration} seconds for items to finish processing...")
         time.sleep(sleep_duration)
