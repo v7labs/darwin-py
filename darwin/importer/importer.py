@@ -1778,7 +1778,7 @@ def _overwrite_warning(
     files_with_item_properties_to_overwrite = []
 
     for local_file in local_files:
-        item_id = remote_files.get(local_file.full_path)[0]  # type: ignore
+        item_id = remote_files.get(local_file.full_path)["item_id"]  # type: ignore
 
         # Check if the item has annotations that will be overwritten
         if not append:
