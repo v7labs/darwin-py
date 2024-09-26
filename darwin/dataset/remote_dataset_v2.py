@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -18,7 +19,9 @@ from darwin.dataset import RemoteDataset
 from darwin.dataset.release import Release
 from darwin.dataset.upload_manager import (
     FileUploadCallback,
+    ItemMergeMode,
     LocalFile,
+    MultiFileItem,
     ProgressCallback,
     UploadHandler,
     UploadHandlerV2,
@@ -42,7 +45,14 @@ from darwin.exceptions import NotFound, UnknownExportVersion
 from darwin.exporter.formats.darwin import build_image_annotation
 from darwin.item import DatasetItem
 from darwin.item_sorter import ItemSorter
-from darwin.utils import SUPPORTED_EXTENSIONS, find_files, urljoin
+from darwin.utils import (
+    SUPPORTED_EXTENSIONS,
+    PRESERVE_FOLDERS_KEY,
+    AS_FRAMES_KEY,
+    EXTRACT_VIEWS_KEY,
+    find_files,
+    urljoin,
+)
 
 if TYPE_CHECKING:
     from darwin.client import Client
@@ -166,6 +176,7 @@ class RemoteDatasetV2(RemoteDataset):
         preserve_folders: bool = False,
         progress_callback: Optional[ProgressCallback] = None,
         file_upload_callback: Optional[FileUploadCallback] = None,
+        item_merge_mode: Optional[str] = None,
     ) -> UploadHandler:
         """
         Uploads a local dataset (images ONLY) in the datasets directory.
@@ -173,7 +184,8 @@ class RemoteDatasetV2(RemoteDataset):
         Parameters
         ----------
         files_to_upload : Optional[List[Union[PathLike, LocalFile]]]
-            List of files to upload. Those can be folders.
+            List of files to upload. These can be folders.
+            If `item_merge_mode` is set, these paths must be folders.
         blocking : bool, default: True
             If False, the dataset is not uploaded and a generator function is returned instead.
         multi_threaded : bool, default: True
@@ -188,7 +200,7 @@ class RemoteDatasetV2(RemoteDataset):
         extract_views: bool, default: False
             When the uploading file is a volume, specify whether it's going to be split into orthogonal views.
         files_to_exclude : Optional[PathLike]], default: None
-            Optional list of files to exclude from the file scan. Those can be folders.
+            Optional list of files to exclude from the file scan. These can be folders.
         path: Optional[str], default: None
             Optional path to store the files in.
         preserve_folders : bool, default: False
@@ -197,11 +209,18 @@ class RemoteDatasetV2(RemoteDataset):
             Optional callback, called every time the progress of an uploading files is reported.
         file_upload_callback: Optional[FileUploadCallback], default: None
             Optional callback, called every time a file chunk is uploaded.
-
+        item_merge_mode : Optional[str]
+            If set, each file path passed to `files_to_upload` behaves as follows:
+            - Paths pointing directly to individual files are ignored
+            - Paths pointing to folders of files will be uploaded according to the following mode rules.
+            Note that folders will not be recursively searched, so only files in the first level of the folder will be uploaded:
+                - "slots": Each file in the folder will be uploaded to a different slot of the same item.
+                - "series": All `.dcm` files in the folder will be concatenated into a single slot. All other files are ignored.
+                - "channels": Each file in the folder will be uploaded to a different channel of the same item.
         Returns
         -------
         handler : UploadHandler
-           Class for handling uploads, progress and error messages.
+            Class for handling uploads, progress and error messages.
 
         Raises
         ------
@@ -210,53 +229,57 @@ class RemoteDatasetV2(RemoteDataset):
             - If a path is specified when uploading a LocalFile object.
             - If there are no files to upload (because path is wrong or the exclude filter excludes everything).
         """
+        merge_incompatible_args = {
+            PRESERVE_FOLDERS_KEY: preserve_folders,
+            AS_FRAMES_KEY: as_frames,
+            EXTRACT_VIEWS_KEY: extract_views,
+        }
+
         if files_to_exclude is None:
             files_to_exclude = []
 
         if files_to_upload is None:
             raise ValueError("No files or directory specified.")
 
-        uploading_files = [
-            item for item in files_to_upload if isinstance(item, LocalFile)
-        ]
+        if item_merge_mode:
+            try:
+                ItemMergeMode(item_merge_mode)
+            except ValueError:
+                raise ValueError(
+                    f"Invalid item merge mode: {item_merge_mode}. Valid options are: 'slots', 'series', 'channels'"
+                )
+            incompatible_args = [
+                arg for arg, value in merge_incompatible_args.items() if value
+            ]
+
+            if incompatible_args:
+                incompatible_args_str = ", ".join(incompatible_args)
+                raise TypeError(
+                    f"`item_merge_mode` does not support the following incompatible arguments: {incompatible_args_str}."
+                )
+
+        # Folder paths
         search_files = [
             item for item in files_to_upload if not isinstance(item, LocalFile)
         ]
 
-        generic_parameters_specified = (
-            path is not None or fps != 0 or as_frames is not False
-        )
-        if uploading_files and generic_parameters_specified:
-            raise ValueError("Cannot specify a path when uploading a LocalFile object.")
-
-        for found_file in find_files(search_files, files_to_exclude=files_to_exclude):
-            local_path = path
-            if preserve_folders:
-                source_files = [
-                    source_file
-                    for source_file in search_files
-                    if is_relative_to(found_file, source_file)
-                ]
-                if source_files:
-                    local_path = str(
-                        found_file.relative_to(source_files[0]).parent.as_posix()
-                    )
-            uploading_files.append(
-                LocalFile(
-                    found_file,
-                    fps=fps,
-                    as_frames=as_frames,
-                    extract_views=extract_views,
-                    path=local_path,
-                )
+        if item_merge_mode:
+            local_files, multi_file_items = _find_files_to_upload_as_multi_file_items(
+                search_files, files_to_exclude, fps, item_merge_mode
             )
-
-        if not uploading_files:
-            raise ValueError(
-                "No files to upload, check your path, exclusion filters and resume flag"
+            handler = UploadHandlerV2(self, local_files, multi_file_items)
+        else:
+            local_files = _find_files_to_upload_as_single_file_items(
+                search_files,
+                files_to_upload,
+                files_to_exclude,
+                path,
+                fps,
+                as_frames,
+                extract_views,
+                preserve_folders,
             )
-
-        handler = UploadHandlerV2(self, uploading_files)
+            handler = UploadHandlerV2(self, local_files)
         if blocking:
             handler.upload(
                 max_workers=max_workers,
@@ -842,3 +865,140 @@ class RemoteDatasetV2(RemoteDataset):
                 print(f"  - {item}")
         print(f"Reistration complete. Check your items in the dataset: {self.slug}")
         return results
+
+
+def _find_files_to_upload_as_multi_file_items(
+    search_files: List[PathLike],
+    files_to_exclude: List[PathLike],
+    fps: int,
+    item_merge_mode: str,
+) -> Tuple[List[LocalFile], List[MultiFileItem]]:
+    """
+    Finds files to upload according to the `item_merge_mode`.
+    Does not search each directory recursively, only considers files in the first level of each directory.
+
+    Parameters
+    ----------
+    search_files : List[PathLike]
+        List of directories to search for files.
+    files_to_exclude : List[PathLike]
+        List of files to exclude from the file scan.
+    item_merge_mode : str
+        Mode to merge the files in the folders. Valid options are: 'slots', 'series', 'channels'.
+    fps : int
+        When uploading video files, specify the framerate
+
+    Returns
+    -------
+    List[LocalFile]
+        List of `LocalFile` objects contained within each `MultiFileItem`
+    List[MultiFileItem]
+        List of `MultiFileItem` objects to be uploaded
+    """
+    multi_file_items, local_files = [], []
+    for directory in search_files:
+        files_in_directory = list(
+            find_files(
+                [directory],
+                files_to_exclude=files_to_exclude,
+                recursive=False,
+                sort=True,
+            )
+        )
+        if not files_in_directory:
+            print(
+                f"Warning: There are no files in the first level of {directory}, skipping directory"
+            )
+            continue
+        multi_file_item = MultiFileItem(
+            Path(directory), files_in_directory, ItemMergeMode(item_merge_mode), fps
+        )
+        multi_file_items.append(multi_file_item)
+        local_files.extend(multi_file_item.files)
+
+    if not multi_file_items:
+        raise ValueError(
+            "No valid folders to upload after searching the passed directories for files"
+        )
+    return local_files, multi_file_items
+
+
+def _find_files_to_upload_as_single_file_items(
+    search_files: List[PathLike],
+    files_to_upload: Optional[Sequence[Union[PathLike, LocalFile]]],
+    files_to_exclude: List[PathLike],
+    path: Optional[str],
+    fps: int,
+    as_frames: bool,
+    extract_views: bool,
+    preserve_folders: bool,
+) -> List[LocalFile]:
+    """
+    Finds files to upload as single-slotted dataset items. Recursively searches the passed directories for files.
+
+    Parameters
+    ----------
+    search_files : List[PathLike]
+        List of directories to search for files.
+
+    files_to_exclude : Optional[List[PathLike]]
+        List of files to exclude from the file scan.
+    files_to_upload : Optional[List[Union[PathLike, LocalFile]]]
+        List of files to upload. These can be folders.
+    path : Optional[str]
+        Path to store the files in.
+    fps: int
+        When uploading video files, specify the framerate.
+    as_frames: bool
+        When uploading video files, specify whether to upload as a list of frames.
+    extract_views: bool
+        When uploading volume files, specify whether to split into orthogonal views.
+    preserve_folders: bool
+        Specify whether or not to preserve folder paths when uploading.
+
+    Returns
+    -------
+    List[LocalFile]
+        List of files to upload.
+    """
+    # Direct file paths
+    uploading_files = [item for item in files_to_upload if isinstance(item, LocalFile)]
+
+    generic_parameters_specified = (
+        path is not None or fps != 0 or as_frames is not False
+    )
+
+    if (
+        any(isinstance(item, LocalFile) for item in uploading_files)
+        and generic_parameters_specified
+    ):
+        raise ValueError("Cannot specify a path when uploading a LocalFile object.")
+
+    for found_file in find_files(search_files, files_to_exclude=files_to_exclude):
+        local_path = path
+        if preserve_folders:
+            source_files = [
+                source_file
+                for source_file in search_files
+                if is_relative_to(found_file, source_file)
+            ]
+            if source_files:
+                local_path = str(
+                    found_file.relative_to(source_files[0]).parent.as_posix()
+                )
+        uploading_files.append(
+            LocalFile(
+                found_file,
+                fps=fps,
+                as_frames=as_frames,
+                extract_views=extract_views,
+                path=local_path,
+            )
+        )
+
+    if not uploading_files:
+        raise ValueError(
+            "No files to upload, check your path, exclusion filters and resume flag"
+        )
+
+    return uploading_files

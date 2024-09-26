@@ -672,7 +672,7 @@ def _get_planned_image_paths(
         for slot in annotation.slots:
             slot_name = Path(slot.name)
             for source_file in slot.source_files:
-                file_name = source_file["file_name"]
+                file_name = source_file.file_name
                 if use_folders and annotation.remote_path != "/":
                     file_paths.append(
                         images_path

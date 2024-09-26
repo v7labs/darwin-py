@@ -12,7 +12,6 @@ from rich.progress import ProgressBar, track
 
 import darwin.datatypes as dt
 
-# from darwin.dataset.remote_dataset_v2 import RemoteDatasetV2
 from darwin.datatypes import PathLike
 from darwin.exceptions import NotFound
 from darwin.importer.formats.darwin import parse_path

@@ -16,6 +16,7 @@ from darwin.dataset.upload_manager import (
     _upload_chunk_size,
 )
 from tests.fixtures import *
+from darwin.utils import BLOCKED_UPLOAD_ERROR_ALREADY_EXISTS
 
 
 @pytest.fixture
@@ -107,7 +108,7 @@ def test_pending_count_is_correct(dataset: RemoteDataset, request_upload_endpoin
     assert pending_item.dataset_item_id == "3b241101-e2bb-4255-8caf-4136c566a964"
     assert pending_item.filename == "test.jpg"
     assert pending_item.path == "/"
-    assert pending_item.reason is None
+    assert pending_item.slots[0].reason is None
 
 
 @pytest.mark.usefixtures("file_read_write_test")
@@ -123,7 +124,7 @@ def test_blocked_count_is_correct(dataset: RemoteDataset, request_upload_endpoin
                     {
                         "type": "image",
                         "file_name": "test.jpg",
-                        "reason": "ALREADY_EXISTS",
+                        "reason": BLOCKED_UPLOAD_ERROR_ALREADY_EXISTS,
                         "slot_name": "0",
                         "upload_id": "123e4567-e89b-12d3-a456-426614174000",
                         "as_frames": False,
@@ -149,7 +150,7 @@ def test_blocked_count_is_correct(dataset: RemoteDataset, request_upload_endpoin
     assert blocked_item.dataset_item_id == "3b241101-e2bb-4255-8caf-4136c566a964"
     assert blocked_item.filename == "test.jpg"
     assert blocked_item.path == "/"
-    assert blocked_item.reason == "ALREADY_EXISTS"
+    assert blocked_item.slots[0].reason == BLOCKED_UPLOAD_ERROR_ALREADY_EXISTS
 
 
 @pytest.mark.usefixtures("file_read_write_test")

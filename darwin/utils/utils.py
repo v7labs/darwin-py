@@ -25,6 +25,7 @@ import orjson as json
 import requests
 from json_stream.base import PersistentStreamingJSONList, PersistentStreamingJSONObject
 from jsonschema import validators
+from natsort import natsorted
 from requests import Response
 from rich.progress import ProgressType, track
 from upolygon import draw_polygon
@@ -72,6 +73,68 @@ SUPPORTED_VIDEO_EXTENSIONS = [
     ".rvg",
 ]
 SUPPORTED_EXTENSIONS = SUPPORTED_IMAGE_EXTENSIONS + SUPPORTED_VIDEO_EXTENSIONS
+
+# Define incompatible `item_merge_mode` arguments
+PRESERVE_FOLDERS_KEY = "preserve_folders"
+AS_FRAMES_KEY = "as_frames"
+EXTRACT_VIEWS_KEY = "extract_views"
+
+# Define reasons for blocking slot uploads
+BLOCKED_UPLOAD_ERROR_ALREADY_EXISTS = "ALREADY_EXISTS"
+BLOCKED_UPLOAD_ERROR_FILE_UPLOAD_TIMEOUT = "FILE_UPLOAD_TIMEOUT"
+BLOCKED_UPLOAD_ERROR_FILE_UPLOAD_FAILED = "FILE_UPLOAD_FAILED"
+BLOCKED_UPLOAD_ERROR_UNEXPECTED_ERROR = "UNEXPECTED_ERROR"
+BLOCKED_UPLOAD_ERROR_ITEM_COUNT_LIMIT_EXCEEDED = "ITEM_COUNT_LIMIT_EXCEEDED"
+
+SLOTS_GRID_MAP = {
+    1: [[["0"]]],
+    2: [[["0"]], [["1"]]],
+    3: [[["0"]], [["1"]], [["2"]]],
+    4: [[["0"], ["2"]], [["1"], ["3"]]],
+    5: [[["0"], ["3"]], [["1"], ["4"]], [["2"]]],
+    6: [[["0"], ["3"]], [["1"], ["4"]], [["2"], ["5"]]],
+    7: [[["0"], ["3"], ["6"]], [["1"], ["4"]], [["2"], ["5"]]],
+    8: [[["0"], ["3"], ["6"]], [["1"], ["4"], ["7"]], [["2"], ["5"]]],
+    9: [[["0"], ["3"], ["6"]], [["1"], ["4"], ["7"]], [["2"], ["5"], ["8"]]],
+    10: [[["0"], ["4"], ["8"]], [["1"], ["5"], ["9"]], [["2"], ["6"]], [["3"], ["7"]]],
+    11: [
+        [["0"], ["4"], ["8"]],
+        [["1"], ["5"], ["9"]],
+        [["2"], ["6"], ["10"]],
+        [["3"], ["7"]],
+    ],
+    12: [
+        [["0"], ["4"], ["8"]],
+        [["1"], ["5"], ["9"]],
+        [["2"], ["6"], ["10"]],
+        [["3"], ["7"], ["11"]],
+    ],
+    13: [
+        [["0"], ["4"], ["8"], ["12"]],
+        [["1"], ["5"], ["9"]],
+        [["2"], ["6"], ["10"]],
+        [["3"], ["7"], ["11"]],
+    ],
+    14: [
+        [["0"], ["4"], ["8"], ["12"]],
+        [["1"], ["5"], ["9"], ["13"]],
+        [["2"], ["6"], ["10"]],
+        [["3"], ["7"], ["11"]],
+    ],
+    15: [
+        [["0"], ["4"], ["8"], ["12"]],
+        [["1"], ["5"], ["9"], ["13"]],
+        [["2"], ["6"], ["10"], ["14"]],
+        [["3"], ["7"], ["11"]],
+    ],
+    16: [
+        [["0"], ["4"], ["8"], ["12"]],
+        [["1"], ["5"], ["9"], ["13"]],
+        [["2"], ["6"], ["10"], ["14"]],
+        [["3"], ["7"], ["11"], ["15"]],
+    ],
+}
+
 
 _darwin_schema_cache = {}
 
@@ -216,6 +279,7 @@ def find_files(
     *,
     files_to_exclude: List[dt.PathLike] = [],
     recursive: bool = True,
+    sort: bool = False,
 ) -> List[Path]:
     """
     Retrieve a list of all files belonging to supported extensions. The exploration can be made
@@ -229,7 +293,8 @@ def find_files(
         List of files to exclude from the search.
     recursive : bool
         Flag for recursive search.
-
+    sort : bool
+        Flag for sorting the files naturally, i.e. file2.txt will come before file10.txt.
     Returns
     -------
     List[Path]
@@ -255,8 +320,12 @@ def find_files(
             raise UnsupportedFileType(path)
 
     files_to_exclude_full_paths = [str(Path(f)) for f in files_to_exclude]
-
-    return [f for f in found_files if str(f) not in files_to_exclude_full_paths]
+    filtered_files = [
+        f for f in found_files if str(f) not in files_to_exclude_full_paths
+    ]
+    if sort:
+        return natsorted(filtered_files)
+    return filtered_files
 
 
 def secure_continue_request() -> bool:
@@ -589,10 +658,10 @@ def _parse_darwin_image(
         name=None,
         type="image",
         source_files=[
-            {
-                "url": data["image"].get("url"),
-                "file_name": _get_local_filename(data["image"]),
-            }
+            dt.SourceFile(
+                file_name=_get_local_filename(data["image"]),
+                url=data["image"].get("url"),
+            )
         ],
         thumbnail_url=data["image"].get("thumbnail_url"),
         width=data["image"].get("width"),
@@ -639,10 +708,10 @@ def _parse_darwin_video(
         name=None,
         type="video",
         source_files=[
-            {
-                "url": data["image"].get("url"),
-                "file_name": _get_local_filename(data["image"]),
-            }
+            dt.SourceFile(
+                file_name=_get_local_filename(data["image"]),
+                url=data["image"].get("url"),
+            )
         ],
         thumbnail_url=data["image"].get("thumbnail_url"),
         width=data["image"].get("width"),

@@ -6,7 +6,7 @@ import pytest
 import responses
 
 from darwin.dataset import download_manager as dm
-from darwin.datatypes import AnnotationClass, AnnotationFile, Slot
+from darwin.datatypes import AnnotationClass, AnnotationFile, Slot, SourceFile
 from tests.fixtures import *
 
 
@@ -89,7 +89,7 @@ def test_single_slot_without_folders_planned_image_paths():
             Slot(
                 name="slot1",
                 type="image",
-                source_files=[{"file_name": "source_name.jpg"}],
+                source_files=[SourceFile(file_name="source_name.jpg")],
             )
         ],
         remote_path="/",
@@ -112,7 +112,7 @@ def test_single_slot_with_folders_planned_image_paths():
             Slot(
                 name="slot1",
                 type="image",
-                source_files=[{"file_name": "source_name.jpg"}],
+                source_files=[SourceFile(file_name="source_name.jpg")],
             )
         ],
         remote_path="/remote/path",
@@ -135,12 +135,12 @@ def test_multi_slot_without_folders_planned_image_paths():
             Slot(
                 name="slot1",
                 type="image",
-                source_files=[{"file_name": "source_name_1.jpg"}],
+                source_files=[SourceFile(file_name="source_name_1.jpg")],
             ),
             Slot(
                 name="slot2",
                 type="image",
-                source_files=[{"file_name": "source_name_2.jpg"}],
+                source_files=[SourceFile(file_name="source_name_2.jpg")],
             ),
         ],
         remote_path="/",
@@ -166,12 +166,12 @@ def test_multi_slot_with_folders_planned_image_path():
             Slot(
                 name="slot1",
                 type="image",
-                source_files=[{"file_name": "source_name_1.jpg"}],
+                source_files=[SourceFile(file_name="source_name_1.jpg")],
             ),
             Slot(
                 name="slot2",
                 type="image",
-                source_files=[{"file_name": "source_name_2.jpg"}],
+                source_files=[SourceFile(file_name="source_name_2.jpg")],
             ),
         ],
         remote_path="/remote/path",
@@ -197,7 +197,7 @@ def test_single_slot_root_path_with_folders_planned_image_paths():
             Slot(
                 name="slot1",
                 type="image",
-                source_files=[{"file_name": "source_name.jpg"}],
+                source_files=[SourceFile(file_name="source_name.jpg")],
             )
         ],
         remote_path="/",
@@ -221,8 +221,8 @@ def test_multiple_source_files_planned_image_paths():
                 name="slot1",
                 type="image",
                 source_files=[
-                    {"file_name": "source_name_1.jpg"},
-                    {"file_name": "source_name_2.jpg"},
+                    SourceFile(file_name="source_name_1.jpg"),
+                    SourceFile(file_name="source_name_2.jpg"),
                 ],
             )
         ],
