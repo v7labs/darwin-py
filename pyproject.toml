@@ -176,4 +176,4 @@ version = ">=0.4.7,<0.7.0"
 
 [tool.poetry.dependencies.validate-pyproject]
 optional = true
-version = ">=0.15,<0.20"
+version = ">=0.15,<0.21"
