@@ -1,0 +1,430 @@
+{
+  "version": "1.0",
+  "schema_ref": "https://darwin-public.s3.eu-west-1.amazonaws.com/darwin_json/metadata/1.0/schema.json",
+  "classes": [
+    {
+      "name": "__raster_layer__",
+      "type": "raster_layer",
+      "description": "System class for all team's annotations with raster_layer type",
+      "color": "rgba(0,0,0,1.0)",
+      "sub_types": [],
+      "properties": [],
+      "sub_types_settings": {}
+    },
+    {
+      "name": "new_test_bounding_box_with_properties",
+      "type": "bounding_box",
+      "description": null,
+      "color": "rgba(255,255,0,1.0)",
+      "sub_types": [
+        "directional_vector",
+        "attributes",
+        "text",
+        "instance_id",
+        "inference"
+      ],
+      "properties": [
+        {
+          "name": "multi_select-1",
+          "type": "multi_select",
+          "description": "",
+          "required": false,
+          "property_values": [
+            {
+              "value": "2",
+              "color": "rgba(0,170,255,1.0)"
+            },
+            {
+              "value": "1",
+              "color": "rgba(255,255,0,1.0)"
+            }
+          ]
+        },
+        {
+          "name": "single_select-1",
+          "type": "single_select",
+          "description": "",
+          "required": false,
+          "property_values": [
+            {
+              "value": "2",
+              "color": "rgba(255,0,170,1.0)"
+            },
+            {
+              "value": "1",
+              "color": "rgba(170,0,255,1.0)"
+            }
+          ]
+        }
+      ],
+      "sub_types_settings": {
+        "attributes": {},
+        "directional_vector": {},
+        "inference": {},
+        "instance_id": {},
+        "text": {}
+      }
+    },
+    {
+      "name": "new_test_polygon_with_properties",
+      "type": "polygon",
+      "description": null,
+      "color": "rgba(85,255,0,1.0)",
+      "sub_types": [
+        "directional_vector",
+        "attributes",
+        "text",
+        "instance_id",
+        "inference"
+      ],
+      "properties": [
+        {
+          "name": "multi_select-1",
+          "type": "multi_select",
+          "description": "",
+          "required": false,
+          "property_values": [
+            {
+              "value": "1",
+              "color": "rgba(0,0,255,1.0)"
+            },
+            {
+              "value": "2",
+              "color": "rgba(0,255,170,1.0)"
+            }
+          ]
+        },
+        {
+          "name": "single_select-1",
+          "type": "single_select",
+          "description": "",
+          "required": false,
+          "property_values": [
+            {
+              "value": "2",
+              "color": "rgba(255,0,85,1.0)"
+            },
+            {
+              "value": "1",
+              "color": "rgba(0,255,85,1.0)"
+            }
+          ]
+        }
+      ],
+      "sub_types_settings": {
+        "attributes": {},
+        "directional_vector": {},
+        "inference": {},
+        "instance_id": {},
+        "text": {}
+      }
+    },
+    {
+      "name": "new_test_ellipse_with_properties",
+      "type": "ellipse",
+      "description": null,
+      "color": "rgba(0,255,170,1.0)",
+      "sub_types": [
+        "attributes",
+        "text",
+        "instance_id",
+        "inference"
+      ],
+      "properties": [
+        {
+          "name": "single_select-1",
+          "type": "single_select",
+          "description": "",
+          "required": false,
+          "property_values": [
+            {
+              "value": "1",
+              "color": "rgba(255,0,0,1.0)"
+            },
+            {
+              "value": "2",
+              "color": "rgba(170,255,0,1.0)"
+            }
+          ]
+        },
+        {
+          "name": "multi_select-1",
+          "type": "multi_select",
+          "description": "",
+          "required": false,
+          "property_values": [
+            {
+              "value": "2",
+              "color": "rgba(255,0,170,1.0)"
+            },
+            {
+              "value": "1",
+              "color": "rgba(0,255,0,1.0)"
+            }
+          ]
+        }
+      ],
+      "sub_types_settings": {
+        "attributes": {},
+        "inference": {},
+        "instance_id": {},
+        "text": {}
+      }
+    },
+    {
+      "name": "new_test_keypoint_with_properties",
+      "type": "keypoint",
+      "description": null,
+      "color": "rgba(0,255,0,1.0)",
+      "sub_types": [
+        "attributes",
+        "text",
+        "instance_id",
+        "inference"
+      ],
+      "properties": [
+        {
+          "name": "single_select-1",
+          "type": "single_select",
+          "description": "",
+          "required": false,
+          "property_values": [
+            {
+              "value": "1",
+              "color": "rgba(170,0,255,1.0)"
+            },
+            {
+              "value": "2",
+              "color": "rgba(255,85,0,1.0)"
+            }
+          ]
+        },
+        {
+          "name": "multi_select-1",
+          "type": "multi_select",
+          "description": "",
+          "required": false,
+          "property_values": [
+            {
+              "value": "2",
+              "color": "rgba(255,255,0,1.0)"
+            },
+            {
+              "value": "1",
+              "color": "rgba(255,85,0,1.0)"
+            }
+          ]
+        }
+      ],
+      "sub_types_settings": {
+        "attributes": {},
+        "inference": {},
+        "instance_id": {},
+        "text": {}
+      }
+    },
+    {
+      "name": "new_test_line_with_properties",
+      "type": "line",
+      "description": null,
+      "color": "rgba(0,0,255,1.0)",
+      "sub_types": [
+        "attributes",
+        "text",
+        "instance_id",
+        "inference"
+      ],
+      "properties": [
+        {
+          "name": "single_select-1",
+          "type": "single_select",
+          "description": "",
+          "required": false,
+          "property_values": [
+            {
+              "value": "2",
+              "color": "rgba(0,170,255,1.0)"
+            },
+            {
+              "value": "1",
+              "color": "rgba(85,255,0,1.0)"
+            }
+          ]
+        },
+        {
+          "name": "multi_select-1",
+          "type": "multi_select",
+          "description": "",
+          "required": false,
+          "property_values": [
+            {
+              "value": "1",
+              "color": "rgba(255,85,0,1.0)"
+            },
+            {
+              "value": "2",
+              "color": "rgba(0,255,255,1.0)"
+            }
+          ]
+        }
+      ],
+      "sub_types_settings": {
+        "attributes": {},
+        "inference": {},
+        "instance_id": {},
+        "text": {}
+      }
+    },
+    {
+      "name": "new_test_mask_with_properties",
+      "type": "mask",
+      "description": null,
+      "color": "rgba(0,255,85,1.0)",
+      "sub_types": [
+        "attributes",
+        "text"
+      ],
+      "properties": [
+        {
+          "name": "multi_select-1",
+          "type": "multi_select",
+          "description": "",
+          "required": false,
+          "property_values": [
+            {
+              "value": "2",
+              "color": "rgba(0,255,85,1.0)"
+            },
+            {
+              "value": "1",
+              "color": "rgba(0,85,255,1.0)"
+            }
+          ]
+        },
+        {
+          "name": "single_select-1",
+          "type": "single_select",
+          "description": "",
+          "required": false,
+          "property_values": [
+            {
+              "value": "2",
+              "color": "rgba(255,170,0,1.0)"
+            },
+            {
+              "value": "1",
+              "color": "rgba(255,0,170,1.0)"
+            }
+          ]
+        }
+      ],
+      "sub_types_settings": {
+        "attributes": {},
+        "text": {}
+      }
+    },
+    {
+      "name": "new_test_skeleton_with_properties",
+      "type": "skeleton",
+      "description": null,
+      "color": "rgba(255,85,0,1.0)",
+      "sub_types": [
+        "attributes",
+        "text",
+        "instance_id",
+        "inference"
+      ],
+      "properties": [
+        {
+          "name": "multi_select-1",
+          "type": "multi_select",
+          "description": "",
+          "required": false,
+          "property_values": [
+            {
+              "value": "2",
+              "color": "rgba(0,0,255,1.0)"
+            },
+            {
+              "value": "1",
+              "color": "rgba(255,0,85,1.0)"
+            }
+          ]
+        },
+        {
+          "name": "single_select-1",
+          "type": "single_select",
+          "description": "",
+          "required": false,
+          "property_values": [
+            {
+              "value": "1",
+              "color": "rgba(170,0,255,1.0)"
+            },
+            {
+              "value": "2",
+              "color": "rgba(0,0,255,1.0)"
+            }
+          ]
+        }
+      ],
+      "sub_types_settings": {
+        "attributes": {},
+        "inference": {},
+        "instance_id": {},
+        "text": {}
+      }
+    },
+    {
+      "name": "new_test_tag_with_properties",
+      "type": "tag",
+      "description": null,
+      "color": "rgba(255,0,0,1.0)",
+      "sub_types": [
+        "attributes",
+        "text",
+        "inference"
+      ],
+      "properties": [
+        {
+          "name": "multi_select-1",
+          "type": "multi_select",
+          "description": "",
+          "required": false,
+          "property_values": [
+            {
+              "value": "2",
+              "color": "rgba(255,0,85,1.0)"
+            },
+            {
+              "value": "1",
+              "color": "rgba(255,170,0,1.0)"
+            }
+          ]
+        },
+        {
+          "name": "single_select-1",
+          "type": "single_select",
+          "description": "",
+          "required": false,
+          "property_values": [
+            {
+              "value": "2",
+              "color": "rgba(0,85,255,1.0)"
+            },
+            {
+              "value": "1",
+              "color": "rgba(0,255,85,1.0)"
+            }
+          ]
+        }
+      ],
+      "sub_types_settings": {
+        "attributes": {},
+        "inference": {},
+        "text": {}
+      }
+    }
+  ],
+  "properties": []
+}

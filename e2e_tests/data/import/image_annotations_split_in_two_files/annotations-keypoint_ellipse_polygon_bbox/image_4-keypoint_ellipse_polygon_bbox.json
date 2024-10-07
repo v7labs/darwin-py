@@ -1,0 +1,121 @@
+{
+  "version": "2.0",
+  "schema_ref": "https://darwin-public.s3.eu-west-1.amazonaws.com/darwin_json/2.0/schema.json",
+  "item": {
+    "name": "image_4",
+    "path": "/dir1",
+    "source_info": {
+      "item_id": "01922dc5-646b-299c-e0c2-cb73dccf6d4f",
+      "dataset": {
+        "name": "test_dataset_854fe60f-7f49-43a7-9419-1b1986d42376",
+        "slug": "test_dataset_854fe60f-7f49-43a7-9419-1b1986d42376",
+        "dataset_management_url": "https://staging.v7labs.com/datasets/357048/dataset-management"
+      },
+      "team": {
+        "name": "E2E Testing",
+        "slug": "e2e-testing"
+      },
+      "workview_url": "https://staging.v7labs.com/workview?dataset=357048&item=01922dc5-646b-299c-e0c2-cb73dccf6d4f"
+    },
+    "slots": [
+      {
+        "type": "image",
+        "slot_name": "0",
+        "width": 1920,
+        "height": 1080,
+        "thumbnail_url": "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/8f48ba52-eee7-457b-829c-01f4af25f20f/thumbnail",
+        "source_files": [
+          {
+            "file_name": "image_4",
+            "storage_key": "darwin-py/images/image_4.jpg",
+            "url": "https://staging.v7labs.com/api/v2/teams/e2e-testing/uploads/d127dc20-a63f-492a-912a-f7d875c65251"
+          }
+        ]
+      }
+    ]
+  },
+  "annotations": [
+    {
+      "bounding_box": {
+        "h": 72.809,
+        "w": 91.878,
+        "x": 18.6838,
+        "y": 135.2167
+      },
+      "id": "03f7c08e-f80b-409e-a150-f8aa31bb7778",
+      "name": "test_polygon_basic",
+      "polygon": {
+        "paths": [
+          [
+            {
+              "x": 86.2921,
+              "y": 135.2167
+            },
+            {
+              "x": 18.6838,
+              "y": 208.0257
+            },
+            {
+              "x": 110.5618,
+              "y": 208.0257
+            },
+            {
+              "x": 23.8844,
+              "y": 135.2167
+            }
+          ]
+        ]
+      },
+      "properties": [],
+      "slot_names": [
+        "0"
+      ]
+    },
+    {
+      "id": "38426629-668e-4414-9b18-cd9df589ab82",
+      "keypoint": {
+        "x": 483.2745,
+        "y": 199.3579
+      },
+      "name": "test_keypoint_basic",
+      "properties": [],
+      "slot_names": [
+        "0"
+      ]
+    },
+    {
+      "ellipse": {
+        "angle": 0.2004,
+        "center": {
+          "x": 214.5746,
+          "y": 259.1653
+        },
+        "radius": {
+          "x": 169.8191,
+          "y": 169.8191
+        }
+      },
+      "id": "4d40d102-ba16-4e2a-bf3b-0ca1b6dede5b",
+      "name": "test_ellipse_basic",
+      "properties": [],
+      "slot_names": [
+        "0"
+      ]
+    },
+    {
+      "bounding_box": {
+        "h": 38.138,
+        "w": 67.608,
+        "x": 36.019,
+        "y": 50.273
+      },
+      "id": "3415fb30-7350-4298-8dbe-98ce3d7cccc9",
+      "name": "test_bounding_box_basic",
+      "properties": [],
+      "slot_names": [
+        "0"
+      ]
+    }
+  ],
+  "properties": []
+}

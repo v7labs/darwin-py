@@ -70,6 +70,7 @@ from darwin.utils import (
     prompt,
     secure_continue_request,
     validate_file_against_schema,
+    BLOCKED_UPLOAD_ERROR_ALREADY_EXISTS,
 )
 
 
@@ -656,6 +657,7 @@ def upload_data(
     extract_views: bool = False,
     preserve_folders: bool = False,
     verbose: bool = False,
+    item_merge_mode: Optional[str] = None,
 ) -> None:
     """
     Uploads the provided files to the remote dataset.
@@ -684,6 +686,14 @@ def upload_data(
         Specify whether or not to preserve folder paths when uploading.
     verbose : bool
         Specify whether to have full traces print when uploading files or not.
+    item_merge_mode : Optional[str]
+        If set, each file path passed to `files_to_upload` behaves as follows:
+        - Paths pointing directly to individual files are ignored
+        - Paths pointing to folders of files will be uploaded according to the following mode rules.
+          Note that folders will not be recursively searched, so only files in the first level of the folder will be uploaded:
+            - "slots": Each file in the folder will be uploaded to a different slot of the same item.
+            - "series": All `.dcm` files in the folder will be concatenated into a single slot. All other files are ignored.
+            - "channels": Each file in the folder will be uploaded to a different channel of the same item.
     """
     client: Client = _load_client()
     try:
@@ -773,6 +783,7 @@ def upload_data(
                 preserve_folders=preserve_folders,
                 progress_callback=progress_callback,
                 file_upload_callback=file_upload_callback,
+                item_merge_mode=item_merge_mode,
             )
         console = Console(theme=_console_theme())
 
@@ -788,10 +799,13 @@ def upload_data(
         already_existing_items = []
         other_skipped_items = []
         for item in upload_manager.blocked_items:
-            if (item.reason is not None) and (item.reason.upper() == "ALREADY_EXISTS"):
-                already_existing_items.append(item)
-            else:
-                other_skipped_items.append(item)
+            for slot in item.slots:
+                if (slot.reason is not None) and (
+                    slot.reason.upper() == BLOCKED_UPLOAD_ERROR_ALREADY_EXISTS
+                ):
+                    already_existing_items.append(item)
+                else:
+                    other_skipped_items.append(item)
 
         if already_existing_items:
             console.print(
@@ -819,17 +833,18 @@ def upload_data(
             show_header=True,
             header_style="bold cyan",
         )
-
         for item in upload_manager.blocked_items:
-            if item.reason != "ALREADY_EXISTS":
-                error_table.add_row(
-                    str(item.dataset_item_id),
-                    item.filename,
-                    item.path,
-                    "UPLOAD_REQUEST",
-                    item.reason,
-                )
-
+            for slot in item.slots:
+                if (slot.reason is not None) and (
+                    slot.reason.upper() != BLOCKED_UPLOAD_ERROR_ALREADY_EXISTS
+                ):
+                    error_table.add_row(
+                        str(item.dataset_item_id),
+                        item.filename,
+                        item.path,
+                        "UPLOAD_REQUEST",
+                        slot.reason,
+                    )
         for error in upload_manager.errors:
             for local_file in upload_manager.local_files:
                 if local_file.local_path != error.file_path:
@@ -855,8 +870,8 @@ def upload_data(
         _error(f"No dataset with name '{e.name}'")
     except UnsupportedFileType as e:
         _error(f"Unsupported file type {e.path.suffix} ({e.path.name})")
-    except ValueError:
-        _error("No files found")
+    except ValueError as e:
+        _error(f"{e}")
 
 
 def dataset_import(

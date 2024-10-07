@@ -1,6 +1,5 @@
 import json
 import os
-import re
 import tempfile
 import uuid
 from pathlib import Path
@@ -8,30 +7,15 @@ from typing import Generator
 
 import pytest
 
-from e2e_tests.helpers import assert_cli, run_cli_command
+from e2e_tests.helpers import assert_cli, run_cli_command, new_dataset  # noqa: F401
 from e2e_tests.objects import ConfigValues, E2EDataset, E2EItem
 from e2e_tests.setup_tests import api_call, create_random_image
 
 
 @pytest.fixture
-def new_dataset() -> E2EDataset:
-    """Create a new dataset via darwin cli and return the dataset object, complete with teardown"""
-    uuid_str = str(uuid.uuid4())
-    new_dataset_name = "test_dataset_" + uuid_str
-    result = run_cli_command(f"darwin dataset create {new_dataset_name}")
-    assert_cli(result, 0)
-    id_raw = re.findall(r"datasets[/\\+](\d+)", result.stdout)
-    assert id_raw is not None and len(id_raw) == 1
-    id = int(id_raw[0])
-    teardown_dataset = E2EDataset(id, new_dataset_name, None)
-
-    # Add the teardown dataset to the pytest object to ensure it gets deleted when pytest is done
-    pytest.datasets.append(teardown_dataset)  # type: ignore
-    return teardown_dataset
-
-
-@pytest.fixture
-def local_dataset(new_dataset: E2EDataset) -> Generator[E2EDataset, None, None]:
+def local_dataset(
+    new_dataset: E2EDataset,  # noqa: F811
+) -> Generator[E2EDataset, None, None]:
     with tempfile.TemporaryDirectory() as temp_directory:
         new_dataset.directory = temp_directory
         yield new_dataset

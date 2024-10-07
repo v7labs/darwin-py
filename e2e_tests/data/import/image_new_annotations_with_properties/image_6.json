@@ -1,0 +1,376 @@
+{
+  "version": "2.0",
+  "schema_ref": "https://darwin-public.s3.eu-west-1.amazonaws.com/darwin_json/2.0/schema.json",
+  "item": {
+    "name": "image_6",
+    "path": "/dir2",
+    "source_info": {
+      "item_id": "01920b92-1d5d-1832-3a09-1f38557c57b4",
+      "dataset": {
+        "name": "test_dataset_2edf4430-1a35-45a2-8c45-b0325968bee2",
+        "slug": "test_dataset_2edf4430-1a35-45a2-8c45-b0325968bee2",
+        "dataset_management_url": "https://staging.v7labs.com/datasets/339501/dataset-management"
+      },
+      "team": {
+        "name": "E2E Testing",
+        "slug": "e2e-testing"
+      },
+      "workview_url": "https://staging.v7labs.com/workview?dataset=339501&item=01920b92-1d5d-1832-3a09-1f38557c57b4"
+    },
+    "slots": [
+      {
+        "type": "image",
+        "slot_name": "0",
+        "width": 1920,
+        "height": 1080,
+        "thumbnail_url": "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/4950b608-00a1-4e73-b746-bfe1ea0a1ab6/thumbnail",
+        "source_files": [
+          {
+            "file_name": "image_6",
+            "storage_key": "darwin-py/images/image_6.jpg",
+            "url": "https://staging.v7labs.com/api/v2/teams/e2e-testing/uploads/9e070e8c-03b3-40b7-a3cb-6da6bcc8d4ed"
+          }
+        ]
+      }
+    ]
+  },
+  "annotations": [
+    {
+      "bounding_box": {
+        "h": 58.941,
+        "w": 216.693,
+        "x": 280.449,
+        "y": 173.355
+      },
+      "id": "8a9dcdc5-e584-45f2-bf71-2f143d11632b",
+      "name": "new_test_bounding_box_with_properties",
+      "properties": [
+        {
+          "frame_index": 0,
+          "name": "multi_select-1",
+          "value": "1"
+        },
+        {
+          "frame_index": 0,
+          "name": "multi_select-1",
+          "value": "2"
+        },
+        {
+          "frame_index": 0,
+          "name": "single_select-1",
+          "value": "1"
+        }
+      ],
+      "slot_names": [
+        "0"
+      ]
+    },
+    {
+      "ellipse": {
+        "angle": 0.3985,
+        "center": {
+          "x": 133.4425,
+          "y": 69.1719
+        },
+        "radius": {
+          "x": 18.3176,
+          "y": 18.3176
+        }
+      },
+      "id": "cda6055b-cddc-49bb-a322-7a687855518f",
+      "name": "new_test_ellipse_with_properties",
+      "properties": [
+        {
+          "frame_index": 0,
+          "name": "single_select-1",
+          "value": "1"
+        }
+      ],
+      "slot_names": [
+        "0"
+      ]
+    },
+    {
+      "id": "6f090adc-ecc7-4d01-98c7-89ca688b57f9",
+      "keypoint": {
+        "x": 49.6239,
+        "y": 173.4268
+      },
+      "name": "new_test_keypoint_with_properties",
+      "properties": [
+        {
+          "frame_index": 0,
+          "name": "multi_select-1",
+          "value": "1"
+        },
+        {
+          "frame_index": 0,
+          "name": "multi_select-1",
+          "value": "2"
+        }
+      ],
+      "slot_names": [
+        "0"
+      ]
+    },
+    {
+      "id": "8f37515b-6cad-4c3e-895b-951431348986",
+      "line": {
+        "path": [
+          {
+            "x": 142.624,
+            "y": -0.1339
+          },
+          {
+            "x": 171.0572,
+            "y": -45.1531
+          },
+          {
+            "x": 199.4903,
+            "y": 0.4584
+          }
+        ]
+      },
+      "name": "new_test_line_with_properties",
+      "properties": [
+        {
+          "frame_index": 0,
+          "name": "single_select-1",
+          "value": "2"
+        }
+      ],
+      "slot_names": [
+        "0"
+      ]
+    },
+    {
+      "bounding_box": {
+        "h": 35.85509999999999,
+        "w": 108.1345,
+        "x": 275.1268,
+        "y": 30.7501
+      },
+      "id": "4fd320f4-745b-479f-9641-b091f983c393",
+      "name": "new_test_polygon_with_properties",
+      "polygon": {
+        "paths": [
+          [
+            {
+              "x": 336.0236,
+              "y": 30.7501
+            },
+            {
+              "x": 304.7215,
+              "y": 64.8979
+            },
+            {
+              "x": 383.2613,
+              "y": 66.6052
+            },
+            {
+              "x": 275.1268,
+              "y": 34.734
+            }
+          ]
+        ]
+      },
+      "properties": [
+        {
+          "frame_index": 0,
+          "name": "multi_select-1",
+          "value": "1"
+        },
+        {
+          "frame_index": 0,
+          "name": "multi_select-1",
+          "value": "2"
+        },
+        {
+          "frame_index": 0,
+          "name": "single_select-1",
+          "value": "2"
+        }
+      ],
+      "slot_names": [
+        "0"
+      ]
+    },
+    {
+      "id": "2f398d01-4099-4b6a-887d-3ac850fd33d9",
+      "name": "new_test_tag_with_properties",
+      "properties": [
+        {
+          "frame_index": 0,
+          "name": "multi_select-1",
+          "value": "1"
+        },
+        {
+          "frame_index": 0,
+          "name": "multi_select-1",
+          "value": "2"
+        },
+        {
+          "frame_index": 0,
+          "name": "single_select-1",
+          "value": "1"
+        }
+      ],
+      "slot_names": [
+        "0"
+      ],
+      "tag": {}
+    },
+    {
+      "id": "108f0fd2-f6ea-4659-9aa4-1038a8c473ec",
+      "mask": {},
+      "name": "new_test_mask_with_properties",
+      "properties": [],
+      "slot_names": [
+        "0"
+      ]
+    },
+    {
+      "id": "3334b185-2c1a-4af2-a3eb-619a542c17fe",
+      "name": "__raster_layer__",
+      "properties": [],
+      "raster_layer": {
+        "dense_rle": [
+          0,
+          462946,
+          1,
+          8,
+          0,
+          1910,
+          1,
+          12,
+          0,
+          1906,
+          1,
+          16,
+          0,
+          1903,
+          1,
+          18,
+          0,
+          1898,
+          1,
+          27,
+          0,
+          1891,
+          1,
+          31,
+          0,
+          1887,
+          1,
+          35,
+          0,
+          1884,
+          1,
+          37,
+          0,
+          1882,
+          1,
+          39,
+          0,
+          1880,
+          1,
+          41,
+          0,
+          1879,
+          1,
+          41,
+          0,
+          1878,
+          1,
+          43,
+          0,
+          1877,
+          1,
+          43,
+          0,
+          1876,
+          1,
+          45,
+          0,
+          1875,
+          1,
+          45,
+          0,
+          1875,
+          1,
+          45,
+          0,
+          1875,
+          1,
+          45,
+          0,
+          1875,
+          1,
+          45,
+          0,
+          1875,
+          1,
+          45,
+          0,
+          1875,
+          1,
+          45,
+          0,
+          1875,
+          1,
+          45,
+          0,
+          1876,
+          1,
+          43,
+          0,
+          1877,
+          1,
+          43,
+          0,
+          1878,
+          1,
+          41,
+          0,
+          1879,
+          1,
+          41,
+          0,
+          1880,
+          1,
+          39,
+          0,
+          1882,
+          1,
+          37,
+          0,
+          1884,
+          1,
+          35,
+          0,
+          1887,
+          1,
+          31,
+          0,
+          1891,
+          1,
+          17,
+          0,
+          2,
+          1,
+          8,
+          0,
+          1554956
+        ],
+        "mask_annotation_ids_mapping": {
+          "108f0fd2-f6ea-4659-9aa4-1038a8c473ec": 1
+        },
+        "total_pixels": 2073600
+      },
+      "slot_names": [
+        "0"
+      ]
+    }
+  ],
+  "properties": []
+}

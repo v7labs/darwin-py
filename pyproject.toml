@@ -83,6 +83,7 @@ types-requests = "^2.28.11.8"
 upolygon = "0.1.11"
 tenacity = "8.5.0"
 
+natsort = "^8.4.0"
 [tool.poetry.extras]
 dev = ["black", "isort", "flake8", "mypy", "debugpy", "responses", "pytest", "flake8-pyproject", "pytest-rerunfailures", "ruff", "validate-pyproject"]
 medical = ["nibabel", "connected-components-3d", "scipy"]
@@ -175,4 +176,4 @@ version = ">=0.4.7,<0.7.0"
 
 [tool.poetry.dependencies.validate-pyproject]
 optional = true
-version = ">=0.15,<0.20"
+version = ">=0.15,<0.21"
