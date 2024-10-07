@@ -296,7 +296,7 @@ class BackendV2:
 
     def _get_properties_state_for_item(
         self, item_id: str, team_slug
-    ) -> Dict[str, Dict[str, Any]]:
+    ) -> Dict[str, List[Dict[str, str]]]:
         """
         Returns the state of property values for the specified item.
 

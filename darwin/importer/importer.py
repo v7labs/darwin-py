@@ -543,7 +543,12 @@ def _import_properties(
                     # if it doesn't exist, create it
                     for prop in create_properties:
                         if prop.name == a_prop.name:
-                            prop.property_values.extend(property_values)
+                            current_prop_values = [
+                                value.value for value in prop.property_values
+                            ]
+                            for value in property_values:
+                                if value.value not in current_prop_values:
+                                    prop.property_values.append(value)
                             break
                     else:
                         full_property = FullProperty(
@@ -682,7 +687,6 @@ def _import_properties(
         client,
     )
 
-    created_properties = []
     if create_properties:
         console.print(f"Creating {len(create_properties)} properties:", style="info")
         for full_property in create_properties:
@@ -698,7 +702,6 @@ def _import_properties(
             )
             created_properties.append(prop)
 
-    updated_properties = []
     if update_properties:
         console.print(
             f"Performing {len(update_properties)} property update(s):", style="info"
@@ -894,11 +897,14 @@ def _create_update_item_properties(
             # If we've already planned to create this property, simply extend the property values
             for prop in create_properties:
                 if prop.name == item_prop_name:
+                    current_prop_values = [
+                        value.value for value in prop.property_values
+                    ]
                     if prop.property_values is None:
                         prop.property_values = []
-                    prop.property_values.extend(
-                        [PropertyValue(value=val) for val in m_prop_values]
-                    )
+                    for val in m_prop_values:
+                        if val.value not in current_prop_values:
+                            prop.property_values.append(PropertyValue(value=val))
                     break
             else:
                 full_property = FullProperty(
@@ -1232,9 +1238,9 @@ def import_annotations(  # noqa: C901
             style="info",
         )
 
-    if not overwrite:
+    if not append and not overwrite:
         continue_to_overwrite = _overwrite_warning(
-            dataset.client, append, dataset, local_files, remote_files, console
+            dataset.client, dataset, local_files, remote_files, console
         )
         if not continue_to_overwrite:
             return
@@ -1744,7 +1750,6 @@ def _console_theme() -> Theme:
 
 def _overwrite_warning(
     client: "Client",
-    append: bool,
     dataset: "RemoteDataset",
     local_files: List[dt.AnnotationFile],
     remote_files: Dict[str, Dict[str, Any]],
@@ -1758,8 +1763,6 @@ def _overwrite_warning(
     ----------
     client : Client
         The Darwin Client object.
-    append: bool
-        If True, appends imported annotations to the dataset. If False, overwrites them.
     dataset : RemoteDataset
         The dataset where the annotations will be imported.
     files : List[dt.AnnotationFile]
@@ -1781,34 +1784,27 @@ def _overwrite_warning(
         item_id = remote_files.get(local_file.full_path)["item_id"]  # type: ignore
 
         # Check if the item has annotations that will be overwritten
-        if not append:
-            remote_annotations = client.api_v2._get_remote_annotations(
-                item_id,
-                dataset.team,
-            )
-            if (
-                remote_annotations
-                and local_file.full_path not in files_with_annotations_to_overwrite
-            ):
-                files_with_annotations_to_overwrite.append(local_file.full_path)
+        remote_annotations = client.api_v2._get_remote_annotations(
+            item_id,
+            dataset.team,
+        )
+        if (
+            remote_annotations
+            and local_file.full_path not in files_with_annotations_to_overwrite
+        ):
+            files_with_annotations_to_overwrite.append(local_file.full_path)
 
         # Check if the item has item-level properties that will be overwritten
         if local_file.item_properties:
-            response: Dict[str, Dict[str, Any]] = (
+            response: Dict[str, List[Dict[str, str]]] = (
                 client.api_v2._get_properties_state_for_item(item_id, dataset.team)
             )
             item_property_ids_with_populated_values = [
-                property_id
-                for property_id in response["properties"]
-                if response["properties"][property_id]
+                property_data["id"]
+                for property_data in response["properties"]
+                if property_data["values"]
             ]
-            if (
-                any(
-                    property_id in item_property_ids_with_populated_values
-                    for property_id in response["properties"]
-                )
-                and local_file.full_path not in files_with_item_properties_to_overwrite
-            ):
+            if item_property_ids_with_populated_values:
                 files_with_item_properties_to_overwrite.append(local_file.full_path)
 
     if files_with_annotations_to_overwrite or files_with_item_properties_to_overwrite:
