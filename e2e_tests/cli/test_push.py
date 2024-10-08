@@ -13,6 +13,26 @@ import tempfile
 import zipfile
 
 
+def extract_and_push(
+    push_dir, local_dataset, config_values, expected_push_dir, extra_args=""
+):
+    with tempfile.TemporaryDirectory() as tmp_dir_str:
+        tmp_dir = Path(tmp_dir_str)
+        with zipfile.ZipFile(push_dir) as z:
+            z.extractall(tmp_dir)
+            result = run_cli_command(
+                f"darwin dataset push {local_dataset.name} {tmp_dir}/{expected_push_dir} {extra_args}"
+            )
+            assert_cli(result, 0)
+            wait_until_items_processed(config_values, local_dataset.id)
+            return list_items(
+                config_values.api_key,
+                local_dataset.id,
+                config_values.team_slug,
+                config_values.server,
+            )
+
+
 def test_push_mixed_filetypes(
     local_dataset: E2EDataset, config_values: ConfigValues
 ) -> None:
@@ -24,23 +44,10 @@ def test_push_mixed_filetypes(
     - .dcm
     - .pdf
     """
-    push_dir = Path(__file__).parents[1] / "data" / "push" / "mixed_filetypes.zip"
-    with tempfile.TemporaryDirectory() as tmp_dir_str:
-        tmp_dir = Path(tmp_dir_str)
-        with zipfile.ZipFile(push_dir) as z:
-            z.extractall(tmp_dir)
-            result = run_cli_command(
-                f"darwin dataset push {local_dataset.name} {tmp_dir}/mixed_filetypes"
-            )
-            assert_cli(result, 0)
-            wait_until_items_processed(config_values, local_dataset.id)
-            items = list_items(
-                config_values.api_key,
-                local_dataset.id,
-                config_values.team_slug,
-                config_values.server,
-            )
-            assert len(items) == 5
+    expected_push_dir = "mixed_filetypes"
+    push_dir = Path(__file__).parents[1] / "data" / "push" / f"{expected_push_dir}.zip"
+    items = extract_and_push(push_dir, local_dataset, config_values, expected_push_dir)
+    assert len(items) == 5
 
 
 def test_push_nested_directory_of_images(
@@ -49,6 +56,7 @@ def test_push_nested_directory_of_images(
     """
     Test pushing a nested directory structure of some images with the `preserve_folders` flag.
     """
+    expected_push_dir = "nested_directory_of_images"
     expected_paths = {
         "image_1.jpg": "/dir1",
         "image_2.jpg": "/dir1",
@@ -57,27 +65,13 @@ def test_push_nested_directory_of_images(
         "image_5.jpg": "/dir1/dir3",
         "image_6.jpg": "/dir1/dir3",
     }
-    push_dir = (
-        Path(__file__).parents[1] / "data" / "push" / "nested_directory_of_images.zip"
+    push_dir = Path(__file__).parents[1] / "data" / "push" / f"{expected_push_dir}.zip"
+    items = extract_and_push(
+        push_dir, local_dataset, config_values, expected_push_dir, "--preserve-folders"
     )
-    with tempfile.TemporaryDirectory() as tmp_dir_str:
-        tmp_dir = Path(tmp_dir_str)
-        with zipfile.ZipFile(push_dir) as z:
-            z.extractall(tmp_dir)
-            result = run_cli_command(
-                f"darwin dataset push {local_dataset.name} {tmp_dir}/nested_directory_of_images --preserve-folders"
-            )
-            assert_cli(result, 0)
-            wait_until_items_processed(config_values, local_dataset.id)
-            items = list_items(
-                config_values.api_key,
-                local_dataset.id,
-                config_values.team_slug,
-                config_values.server,
-            )
-            assert len(items) == 6
-            for item in items:
-                assert expected_paths[item["name"]] == item["path"]
+    assert len(items) == 6
+    for item in items:
+        assert expected_paths[item["name"]] == item["path"]
 
 
 def test_push_videos_with_non_native_fps(
@@ -86,30 +80,18 @@ def test_push_videos_with_non_native_fps(
     """
     Test that if FPS is set, that the value is respected in the resulting dataset items
     """
-    push_dir = Path(__file__).parents[1] / "data" / "push" / "25_frame_video.zip"
+    expected_push_dir = "25_frame_video"
+    push_dir = Path(__file__).parents[1] / "data" / "push" / f"{expected_push_dir}.zip"
     fps = 5
-    with tempfile.TemporaryDirectory() as tmp_dir_str:
-        tmp_dir = Path(tmp_dir_str)
-        with zipfile.ZipFile(push_dir) as z:
-            z.extractall(tmp_dir)
-            result = run_cli_command(
-                f"darwin dataset push {local_dataset.name} {tmp_dir}/25_frame_video --fps {fps}"
-            )
-            assert_cli(result, 0)
-            wait_until_items_processed(config_values, local_dataset.id)
-            items = list_items(
-                config_values.api_key,
-                local_dataset.id,
-                config_values.team_slug,
-                config_values.server,
-            )
-            video_metadata = items[0]["slots"][0]["metadata"]
-            assert len(items) == 1
-            assert 1 == 1
-            assert items[0]["slots"][0]["fps"] == fps
-            assert video_metadata["native_fps"] == 10
-            assert video_metadata["frames_manifests"][0]["total_frames"] == 25
-            assert video_metadata["frames_manifests"][0]["visible_frames"] == 13
+    items = extract_and_push(
+        push_dir, local_dataset, config_values, expected_push_dir, f"--fps {fps}"
+    )
+    video_metadata = items[0]["slots"][0]["metadata"]
+    assert len(items) == 1
+    assert items[0]["slots"][0]["fps"] == fps
+    assert video_metadata["native_fps"] == 10
+    assert video_metadata["frames_manifests"][0]["total_frames"] == 25
+    assert video_metadata["frames_manifests"][0]["visible_frames"] == 13
 
 
 def test_push_multi_slotted_item(
@@ -119,6 +101,7 @@ def test_push_multi_slotted_item(
     Test pushing a multi-slotted item with the CLI. Check the resulting item is
     structured as expected
     """
+    expected_push_dir = "flat_directory_of_6_images"
     expected_name = "flat_directory_of_6_images"
     expected_slot_types = ["image", "image", "image", "image", "image", "image"]
     expected_layout = {
@@ -133,33 +116,22 @@ def test_push_multi_slotted_item(
         "image_5.jpg",
         "image_6.jpg",
     ]
-    push_dir = (
-        Path(__file__).parents[1] / "data" / "push" / "flat_directory_of_6_images.zip"
+    push_dir = Path(__file__).parents[1] / "data" / "push" / f"{expected_push_dir}.zip"
+    items = extract_and_push(
+        push_dir,
+        local_dataset,
+        config_values,
+        expected_push_dir,
+        "--item-merge-mode slots",
     )
-    merge_mode = "slots"
-    with tempfile.TemporaryDirectory() as tmp_dir_str:
-        tmp_dir = Path(tmp_dir_str)
-        with zipfile.ZipFile(push_dir) as z:
-            z.extractall(tmp_dir)
-            result = run_cli_command(
-                f"darwin dataset push {local_dataset.name} {tmp_dir}/flat_directory_of_6_images --item-merge-mode {merge_mode}"
-            )
-            assert_cli(result, 0)
-            wait_until_items_processed(config_values, local_dataset.id)
-            items = list_items(
-                config_values.api_key,
-                local_dataset.id,
-                config_values.team_slug,
-                config_values.server,
-            )
-            assert len(items) == 1
-            multi_slotted_item = items[0]
-            assert multi_slotted_item["name"] == expected_name
-            assert multi_slotted_item["slot_types"] == expected_slot_types
-            assert multi_slotted_item["layout"] == expected_layout
-            for num, slot in enumerate(multi_slotted_item["slots"]):
-                assert slot["slot_name"] == str(num)
-                assert slot["file_name"] == expected_file_names[num]
+    assert len(items) == 1
+    multi_slotted_item = items[0]
+    assert multi_slotted_item["name"] == expected_name
+    assert multi_slotted_item["slot_types"] == expected_slot_types
+    assert multi_slotted_item["layout"] == expected_layout
+    for num, slot in enumerate(multi_slotted_item["slots"]):
+        assert slot["slot_name"] == str(num)
+        assert slot["file_name"] == expected_file_names[num]
 
 
 def test_push_multi_channel_item(
@@ -169,6 +141,7 @@ def test_push_multi_channel_item(
     Test pushing a multi-channel item with the CLI. Check the resulting item is
     structured as expected
     """
+    expected_push_dir = "flat_directory_of_6_images"
     expected_name = "flat_directory_of_6_images"
     expected_slot_types = ["image", "image", "image", "image", "image", "image"]
     expected_layout = {
@@ -194,33 +167,22 @@ def test_push_multi_channel_item(
         "image_5.jpg",
         "image_6.jpg",
     ]
-    push_dir = (
-        Path(__file__).parents[1] / "data" / "push" / "flat_directory_of_6_images.zip"
+    push_dir = Path(__file__).parents[1] / "data" / "push" / f"{expected_push_dir}.zip"
+    items = extract_and_push(
+        push_dir,
+        local_dataset,
+        config_values,
+        expected_push_dir,
+        "--item-merge-mode channels",
     )
-    merge_mode = "channels"
-    with tempfile.TemporaryDirectory() as tmp_dir_str:
-        tmp_dir = Path(tmp_dir_str)
-        with zipfile.ZipFile(push_dir) as z:
-            z.extractall(tmp_dir)
-            result = run_cli_command(
-                f"darwin dataset push {local_dataset.name} {tmp_dir}/flat_directory_of_6_images --item-merge-mode {merge_mode}"
-            )
-            assert_cli(result, 0)
-            wait_until_items_processed(config_values, local_dataset.id)
-            items = list_items(
-                config_values.api_key,
-                local_dataset.id,
-                config_values.team_slug,
-                config_values.server,
-            )
-            assert len(items) == 1
-            multi_channel_item = items[0]
-            assert multi_channel_item["name"] == expected_name
-            assert multi_channel_item["slot_types"] == expected_slot_types
-            assert multi_channel_item["layout"] == expected_layout
-            for num, slot in enumerate(multi_channel_item["slots"]):
-                assert slot["slot_name"] == expected_file_names[num]
-                assert slot["file_name"] == expected_file_names[num]
+    assert len(items) == 1
+    multi_channel_item = items[0]
+    assert multi_channel_item["name"] == expected_name
+    assert multi_channel_item["slot_types"] == expected_slot_types
+    assert multi_channel_item["layout"] == expected_layout
+    for num, slot in enumerate(multi_channel_item["slots"]):
+        assert slot["slot_name"] == expected_file_names[num]
+        assert slot["file_name"] == expected_file_names[num]
 
 
 def test_push_dicom_series(
@@ -230,11 +192,9 @@ def test_push_dicom_series(
     Test pushing a multi-file DICOM item with the CLI. Check the resulting item is
     structured as expected
     """
+    expected_push_dir = "flat_directory_of_2_dicom_files"
     expected_name = "flat_directory_of_2_dicom_files"
-    expected_slot_types = [
-        "dicom",
-        "dicom",
-    ]
+    expected_slot_types = ["dicom", "dicom"]
     expected_layout = {
         "slots_grid": [
             [
@@ -245,35 +205,19 @@ def test_push_dicom_series(
         ],
         "version": 3,
     }
-    expected_file_names = [
-        "flat_directory_of_2_dicom_files",
-    ]
-    push_dir = (
-        Path(__file__).parents[1]
-        / "data"
-        / "push"
-        / "flat_directory_of_2_dicom_files.zip"
+    expected_file_names = ["flat_directory_of_2_dicom_files"]
+    push_dir = Path(__file__).parents[1] / "data" / "push" / f"{expected_push_dir}.zip"
+    items = extract_and_push(
+        push_dir,
+        local_dataset,
+        config_values,
+        expected_push_dir,
+        "--item-merge-mode series",
     )
-    merge_mode = "series"
-    with tempfile.TemporaryDirectory() as tmp_dir_str:
-        tmp_dir = Path(tmp_dir_str)
-        with zipfile.ZipFile(push_dir) as z:
-            z.extractall(tmp_dir)
-            result = run_cli_command(
-                f"darwin dataset push {local_dataset.name} {tmp_dir}/flat_directory_of_2_dicom_files --item-merge-mode {merge_mode}"
-            )
-            assert_cli(result, 0)
-            wait_until_items_processed(config_values, local_dataset.id)
-            items = list_items(
-                config_values.api_key,
-                local_dataset.id,
-                config_values.team_slug,
-                config_values.server,
-            )
-            assert len(items) == 1
-            dicom_series_item = items[0]
-            assert dicom_series_item["name"] == expected_name
-            assert dicom_series_item["slot_types"] == expected_slot_types
-            assert dicom_series_item["layout"] == expected_layout
-            for num, slot in enumerate(dicom_series_item["slots"]):
-                assert slot["slot_name"] == expected_file_names[num]
+    assert len(items) == 1
+    dicom_series_item = items[0]
+    assert dicom_series_item["name"] == expected_name
+    assert dicom_series_item["slot_types"] == expected_slot_types
+    assert dicom_series_item["layout"] == expected_layout
+    for num, slot in enumerate(dicom_series_item["slots"]):
+        assert slot["slot_name"] == expected_file_names[num]
