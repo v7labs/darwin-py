@@ -1,17 +1,19 @@
 from pathlib import Path
 
+
 from e2e_tests.helpers import (
     assert_cli,
     run_cli_command,
     export_and_download_annotations,
     delete_annotation_uuids,
+    list_items,
 )
 from e2e_tests.objects import E2EDataset, ConfigValues
 from darwin.utils.utils import parse_darwin_json
 import tempfile
 import zipfile
 import darwin.datatypes as dt
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 
 def get_actual_annotation_filename(
@@ -57,7 +59,7 @@ def find_matching_actual_annotation(
 
 def assert_same_annotation_data(
     expected_annotation: dt.Annotation, actual_annotation: dt.Annotation
-):
+) -> None:
     """
     Ensures that `expected_annotation.data` is equivalent to `actual_annotation.data`
     """
@@ -66,7 +68,7 @@ def assert_same_annotation_data(
 
 def assert_same_annotation_properties(
     expected_annotation: dt.Annotation, actual_annotation: dt.Annotation
-):
+) -> None:
     """
     Ensures that `expected_annotation.properties` is equivalent to `actual_annotation.properties`
     """
@@ -78,15 +80,57 @@ def assert_same_annotation_properties(
             assert expected_property in actual_properties  # type : ignore
 
 
+def get_base_slot_name_of_item(
+    config_values: ConfigValues, dataset_id: int, item_name: str
+) -> str:
+    """
+    Returns the base slot name for the item with the given name in a specific `E2EDataset`.
+    The base slot is always the first listed slot
+    """
+    items = list_items(
+        config_values.api_key,
+        dataset_id,
+        config_values.team_slug,
+        config_values.server,
+    )
+    for item in items:
+        if item["name"] == item_name:
+            return item["slots"][0]["slot_name"]
+
+
+def assert_same_annotation_slot_name(
+    expected_annotation: dt.Annotation,
+    actual_annotation: dt.Annotation,
+    item_type: str,
+    base_slot: Optional[str],
+) -> None:
+    """
+    Ensures that the slot tied to an `actual_annotation` is aligned depending on the
+    value of `item_type`:
+    - `single_slotted`: Perform no checks
+    - `multi_slotted`: Ensures `actual_annotation.slot_names` is equivalent to
+      `expected_annotation.slot_names`
+    - `multi_channel`: Ensures the `actual_annotation` is tied to the base slot
+    """
+    if item_type == "multi_slotted":
+        if expected_annotation.slot_names:
+            assert expected_annotation.slot_names == actual_annotation.slot_names
+        else:
+            assert actual_annotation.slot_names == [base_slot]
+    elif item_type == "multi_channel":
+        assert actual_annotation.slot_names == [base_slot]
+
+
 def compare_annotations_export(
     actual_annotations_dir: Path,
     expected_annotations_dir: Path,
+    item_type: str,
+    base_slot: Optional[str] = "0",
 ):
     """
     Compares a set of downloaded annotation files with the imported files that resulted
     in those annotations. Ensures equality
     """
-
     with zipfile.ZipFile(actual_annotations_dir / "dataset.zip") as z:
         z.extractall(actual_annotations_dir)
 
@@ -121,193 +165,214 @@ def compare_annotations_export(
             actual_annotation = find_matching_actual_annotation(
                 expected_annotation, actual_annotations
             )
-            assert_same_annotation_data(actual_annotation, expected_annotation)
+            assert_same_annotation_data(expected_annotation, actual_annotation)
             assert_same_annotation_properties(expected_annotation, actual_annotation)
+            assert_same_annotation_slot_name(
+                expected_annotation, actual_annotation, item_type, base_slot
+            )
+
+
+def run_import_test(
+    local_dataset: E2EDataset,
+    config_values: ConfigValues,
+    item_type: str,
+    annotations_subdir: str,
+    item_name: Optional[str] = None,
+    additional_flags: str = "",
+    exit_code: int = 0,
+    expect_warning: Optional[str] = None,
+    expect_error: Optional[str] = None,
+) -> None:
+    """
+    Helper function to run import tests for different item types and annotation configurations.
+    """
+    local_dataset.register_read_only_items(config_values, item_type)
+    expected_annotations_dir = (
+        Path(__file__).parents[1] / "data" / "import" / annotations_subdir
+    )
+    result = run_cli_command(
+        f"darwin dataset import {local_dataset.name} darwin {expected_annotations_dir} {additional_flags}"
+    )
+    assert_cli(result, exit_code)
+
+    if expect_warning:
+        assert expect_warning in result.stdout
+
+    if expect_error:
+        assert expect_error in result.stdout
+        return
+
+    base_slot = (
+        get_base_slot_name_of_item(config_values, local_dataset.id, item_name)
+        if item_name
+        else None
+    )
+    with tempfile.TemporaryDirectory() as tmp_dir_str:
+        actual_annotations_dir = Path(tmp_dir_str)
+        export_and_download_annotations(
+            actual_annotations_dir, local_dataset, config_values
+        )
+        compare_annotations_export(
+            actual_annotations_dir, expected_annotations_dir, item_type, base_slot
+        )
 
 
 def test_import_annotations_without_subtypes_to_images(
     local_dataset: E2EDataset, config_values: ConfigValues
 ) -> None:
-    """
-    Test importing a set of basic annotations (no sub-types or properties) to a set of
-    pre-registered files in a dataset.
-    """
-    local_dataset.register_read_only_items(config_values)
-    expected_annotations_dir = (
-        Path(__file__).parents[1]
-        / "data"
-        / "import"
-        / "image_annotations_without_subtypes"
+    run_import_test(
+        local_dataset,
+        config_values,
+        item_type="single_slotted",
+        annotations_subdir="image_annotations_without_subtypes",
     )
-    result = run_cli_command(
-        f"darwin dataset import {local_dataset.name} darwin {expected_annotations_dir}"
-    )
-    assert_cli(result, 0)
-    with tempfile.TemporaryDirectory() as tmp_dir_str:
-        actual_annotations_dir = Path(tmp_dir_str)
-        export_and_download_annotations(
-            actual_annotations_dir, local_dataset, config_values
-        )
-        compare_annotations_export(actual_annotations_dir, expected_annotations_dir)
 
 
 def test_import_annotations_with_subtypes_to_images(
     local_dataset: E2EDataset, config_values: ConfigValues
 ) -> None:
-    """
-    Test importing a set of annotations that includes subtypes & properties to a set of
-    pre-registered files in a dataset.
-    """
-    local_dataset.register_read_only_items(config_values)
-    expected_annotations_dir = (
-        Path(__file__).parents[1]
-        / "data"
-        / "import"
-        / "image_annotations_with_subtypes"
+    run_import_test(
+        local_dataset,
+        config_values,
+        item_type="single_slotted",
+        annotations_subdir="image_annotations_with_subtypes",
     )
-    result = run_cli_command(
-        f"darwin dataset import {local_dataset.name} darwin {expected_annotations_dir}"
-    )
-    assert_cli(result, 0)
-    with tempfile.TemporaryDirectory() as tmp_dir_str:
-        actual_annotations_dir = Path(tmp_dir_str)
-        export_and_download_annotations(
-            actual_annotations_dir, local_dataset, config_values
-        )
-        compare_annotations_export(actual_annotations_dir, expected_annotations_dir)
 
 
 def test_annotation_classes_are_created_on_import(
     local_dataset: E2EDataset, config_values: ConfigValues
 ) -> None:
-    """
-    Test that importing non-existent annotation classes creates those classes in the
-    target Darwin team
-    """
-    local_dataset.register_read_only_items(config_values)
-    expected_annotations_dir = (
-        Path(__file__).parents[1]
-        / "data"
-        / "import"
-        / "image_annotations_without_subtypes"
+    run_import_test(
+        local_dataset,
+        config_values,
+        item_type="single_slotted",
+        annotations_subdir="image_annotations_without_subtypes",
+        additional_flags="--yes",
     )
-    result = run_cli_command(
-        f"darwin dataset import {local_dataset.name} darwin {expected_annotations_dir} --yes"
-    )
-    assert_cli(result, 0)
-    with tempfile.TemporaryDirectory() as tmp_dir_str:
-        actual_annotations_dir = Path(tmp_dir_str)
-        export_and_download_annotations(
-            actual_annotations_dir, local_dataset, config_values
-        )
-        compare_annotations_export(actual_annotations_dir, expected_annotations_dir)
 
 
 def test_annotation_classes_are_created_with_properties_on_import(
     local_dataset: E2EDataset, config_values: ConfigValues
 ) -> None:
-    """
-    Test that importing non-existent annotation classes with properties creates those
-    classes and properties in the target Darwin team
-    """
-    local_dataset.register_read_only_items(config_values)
-    expected_annotations_dir = (
-        Path(__file__).parents[1]
-        / "data"
-        / "import"
-        / "image_new_annotations_with_properties"
+    run_import_test(
+        local_dataset,
+        config_values,
+        item_type="single_slotted",
+        annotations_subdir="image_new_annotations_with_properties",
+        additional_flags="--yes",
     )
-    result = run_cli_command(
-        f"darwin dataset import {local_dataset.name} darwin {expected_annotations_dir} --yes"
-    )
-    assert_cli(result, 0)
-    with tempfile.TemporaryDirectory() as tmp_dir_str:
-        actual_annotations_dir = Path(tmp_dir_str)
-        export_and_download_annotations(
-            actual_annotations_dir, local_dataset, config_values
-        )
-        compare_annotations_export(actual_annotations_dir, expected_annotations_dir)
 
 
 def test_appending_annotations(
     local_dataset: E2EDataset, config_values: ConfigValues
 ) -> None:
-    """
-    Test that appending annotations to an item with already existing annotations does
-    not overwrite the original annotations
-    """
-    local_dataset.register_read_only_items(config_values)
-    expected_annotations_dir = (
-        Path(__file__).parents[1]
-        / "data"
-        / "import"
-        / "image_annotations_split_in_two_files"
+    run_import_test(
+        local_dataset,
+        config_values,
+        item_type="single_slotted",
+        annotations_subdir="image_annotations_split_in_two_files",
+        additional_flags="--append",
     )
-    result = run_cli_command(
-        f"darwin dataset import {local_dataset.name} darwin {expected_annotations_dir} --append"
-    )
-    assert_cli(result, 0)
-    with tempfile.TemporaryDirectory() as tmp_dir_str:
-        actual_annotations_dir = Path(tmp_dir_str)
-        export_and_download_annotations(
-            actual_annotations_dir, local_dataset, config_values
-        )
-        compare_annotations_export(actual_annotations_dir, expected_annotations_dir)
 
 
 def test_overwriting_annotations(
     local_dataset: E2EDataset, config_values: ConfigValues
 ) -> None:
-    """
-    Test that the `--overwrite` flag allows bypassing of the overwrite warning when
-    importing to items with already existing annotations
-    """
-    local_dataset.register_read_only_items(config_values)
-    expected_annotations_dir = (
-        Path(__file__).parents[1]
-        / "data"
-        / "import"
-        / "image_annotations_without_subtypes"
+    run_import_test(
+        local_dataset,
+        config_values,
+        item_type="single_slotted",
+        annotations_subdir="image_annotations_without_subtypes",
     )
-    # 1st import to create annotations
-    result = run_cli_command(
-        f"darwin dataset import {local_dataset.name} darwin {expected_annotations_dir}"
+    run_import_test(
+        local_dataset,
+        config_values,
+        item_type="single_slotted",
+        annotations_subdir="image_annotations_without_subtypes",
+        additional_flags="--overwrite",
     )
-    assert_cli(result, 0)
-    # 2nd import to overwrite annotations
-    result = run_cli_command(
-        f" darwin dataset import {local_dataset.name} darwin {expected_annotations_dir} --overwrite"
-    )
-    assert_cli(result, 0)
-    with tempfile.TemporaryDirectory() as tmp_dir_str:
-        actual_annotations_dir = Path(tmp_dir_str)
-        export_and_download_annotations(
-            actual_annotations_dir, local_dataset, config_values
-        )
-        compare_annotations_export(actual_annotations_dir, expected_annotations_dir)
 
 
 def test_annotation_overwrite_warning(
     local_dataset: E2EDataset, config_values: ConfigValues
 ) -> None:
-    """
-    Test that importing annotations to an item with already existing annotations throws
-    a warning if not using the `--append` or `--overwrite` flags
-    """
-    local_dataset.register_read_only_items(config_values)
-    expected_annotations_dir = (
-        Path(__file__).parents[1]
-        / "data"
-        / "import"
-        / "image_annotations_without_subtypes"
-    )
     # 1st import to create annotations
-    result = run_cli_command(
+    local_dataset.register_read_only_items(config_values)
+    annotations_subdir = "image_annotations_without_subtypes"
+    expected_annotations_dir = (
+        Path(__file__).parents[1] / "data" / "import" / annotations_subdir
+    )
+    run_cli_command(
         f"darwin dataset import {local_dataset.name} darwin {expected_annotations_dir}"
     )
-    assert_cli(result, 0)
-    # 2nd import to trigger overwrite warning
-    result = run_cli_command(
-        f"darwin dataset import {local_dataset.name} darwin {expected_annotations_dir}"
+
+    # Run the 2nd import to trigger the overwrite warning
+    run_import_test(
+        local_dataset,
+        config_values,
+        item_type="single_slotted",
+        annotations_subdir="image_annotations_without_subtypes",
+        expect_warning="will be overwritten",
+        exit_code=255,
     )
-    assert "will be overwritten" in result.stdout
+
+
+def test_import_annotations_to_multi_slotted_item_without_slots_defined(
+    local_dataset: E2EDataset, config_values: ConfigValues
+) -> None:
+    run_import_test(
+        local_dataset,
+        config_values,
+        item_type="multi_slotted",
+        item_name="multi_slotted_item",
+        annotations_subdir="multi_slotted_annotations_without_slots_defined",
+    )
+
+
+def test_import_annotations_to_multi_slotted_item_with_slots_defined(
+    local_dataset: E2EDataset, config_values: ConfigValues
+) -> None:
+    run_import_test(
+        local_dataset,
+        config_values,
+        item_type="multi_slotted",
+        item_name="multi_slotted_item",
+        annotations_subdir="multi_slotted_annotations_with_slots_defined",
+    )
+
+
+def test_import_annotations_to_multi_channel_item_without_slots_defined(
+    local_dataset: E2EDataset, config_values: ConfigValues
+) -> None:
+    run_import_test(
+        local_dataset,
+        config_values,
+        item_type="multi_channel",
+        item_name="multi_channel_item",
+        annotations_subdir="multi_channel_annotations_without_slots_defined",
+    )
+
+
+def test_import_annotations_to_multi_channel_item_with_slots_defined(
+    local_dataset: E2EDataset, config_values: ConfigValues
+) -> None:
+    run_import_test(
+        local_dataset,
+        config_values,
+        item_type="multi_channel",
+        item_name="multi_channel_item",
+        annotations_subdir="multi_channel_annotations_with_slots_defined",
+    )
+
+
+def test_import_annotations_to_multi_channel_item_non_base_slot(
+    local_dataset: E2EDataset, config_values: ConfigValues
+) -> None:
+    run_import_test(
+        local_dataset,
+        config_values,
+        item_type="multi_channel",
+        item_name="multi_channel_item",
+        annotations_subdir="multi_channel_annotations_aligned_with_non_base_slot",
+        expect_error="WARNING: 1 file(s) have the following blocking issues and will not be imported",
+    )
