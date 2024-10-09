@@ -1,0 +1,166 @@
+{
+  "version": "2.0",
+  "schema_ref": "https://darwin-public.s3.eu-west-1.amazonaws.com/darwin_json/2.0/schema.json",
+  "item": {
+    "name": "multi_slotted_item",
+    "path": "/",
+    "source_info": {
+      "item_id": "01923065-fe73-590a-119b-59cf1cd9b0ea",
+      "dataset": {
+        "name": "test_dataset_04c8d85d-dbf4-459c-b1c6-68b3d5a4382a",
+        "slug": "test_dataset_04c8d85d-dbf4-459c-b1c6-68b3d5a4382a",
+        "dataset_management_url": "https://staging.v7labs.com/datasets/360910/dataset-management"
+      },
+      "team": {
+        "name": "E2E Testing",
+        "slug": "e2e-testing"
+      },
+      "workview_url": "https://staging.v7labs.com/workview?dataset=360910&item=01923065-fe73-590a-119b-59cf1cd9b0ea"
+    },
+    "slots": [
+      {
+        "type": "image",
+        "slot_name": "0",
+        "width": 1920,
+        "height": 1080,
+        "thumbnail_url": "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/14a7245b-40b8-4c90-aa7e-b1ce6f121b3c/thumbnail",
+        "source_files": [
+          {
+            "file_name": "image_1.jpg",
+            "storage_key": "darwin-py/images/image_1.jpg",
+            "url": "https://staging.v7labs.com/api/v2/teams/e2e-testing/uploads/9fe7ed5e-8e61-425d-9125-562fa5fd7fb6"
+          }
+        ]
+      },
+      {
+        "type": "image",
+        "slot_name": "1",
+        "width": 1920,
+        "height": 1080,
+        "thumbnail_url": "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/8a06403e-b9fb-4a4c-9ba2-09d2fcdb94ca/thumbnail",
+        "source_files": [
+          {
+            "file_name": "image_2.jpg",
+            "storage_key": "darwin-py/images/image_2.jpg",
+            "url": "https://staging.v7labs.com/api/v2/teams/e2e-testing/uploads/78939254-966b-496f-b66f-e1c2ab2236bc"
+          }
+        ]
+      },
+      {
+        "type": "image",
+        "slot_name": "2",
+        "width": 1920,
+        "height": 1080,
+        "thumbnail_url": "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/dff647fb-676c-4799-866a-604a4bb0798b/thumbnail",
+        "source_files": [
+          {
+            "file_name": "image_3.jpg",
+            "storage_key": "darwin-py/images/image_3.jpg",
+            "url": "https://staging.v7labs.com/api/v2/teams/e2e-testing/uploads/7a9608b4-0509-45f9-8fbb-7c73130cd56c"
+          }
+        ]
+      }
+    ]
+  },
+  "annotations": [
+    {
+      "bounding_box": {
+        "h": 108.5714,
+        "w": 251.4286,
+        "x": 737.1429,
+        "y": 508.5714
+      },
+      "id": "3f9c8b2e-4493-412d-8a3b-216ac91e4b92",
+      "name": "test_bounding_box_basic",
+      "properties": [],
+      "slot_names": [
+        "0"
+      ]
+    },
+    {
+      "bounding_box": {
+        "h": 102.8571,
+        "w": 177.1429,
+        "x": 742.8571,
+        "y": 920.0
+      },
+      "id": "8bdd21c4-e0a2-494d-9491-e4ef0a82d492",
+      "name": "test_bounding_box_basic",
+      "properties": [],
+      "slot_names": [
+        "0"
+      ]
+    },
+    {
+      "bounding_box": {
+        "h": 251.4286,
+        "w": 182.8571,
+        "x": 474.2857,
+        "y": 520.0
+      },
+      "id": "88c95406-e728-423d-8dd5-67046956e476",
+      "name": "test_bounding_box_basic",
+      "properties": [],
+      "slot_names": [
+        "0"
+      ]
+    },
+    {
+      "bounding_box": {
+        "h": 7.9365,
+        "w": 11.7725,
+        "x": 8.7963,
+        "y": 8.2011
+      },
+      "id": "2a4fc53e-52e2-4c29-a558-90307f7beb7a",
+      "name": "test_bounding_box_basic",
+      "properties": [],
+      "slot_names": [
+        "1"
+      ]
+    },
+    {
+      "bounding_box": {
+        "h": 3.4392,
+        "w": 3.1746,
+        "x": 9.9868,
+        "y": 13.4921
+      },
+      "id": "ed640687-b83f-4b23-a08b-dc88f4fe290e",
+      "name": "test_bounding_box_basic",
+      "properties": [],
+      "slot_names": [
+        "2"
+      ]
+    },
+    {
+      "bounding_box": {
+        "h": 3.5714,
+        "w": 8.3333,
+        "x": 9.0608,
+        "y": 3.836
+      },
+      "id": "8bd9616d-b0fc-4d04-a40a-1882f63dcc3e",
+      "name": "test_bounding_box_basic",
+      "properties": [],
+      "slot_names": [
+        "2"
+      ]
+    },
+    {
+      "bounding_box": {
+        "h": 5.291,
+        "w": 2.5132,
+        "x": 2.5794,
+        "y": 4.7619
+      },
+      "id": "3a2b9b85-c423-4509-a7fe-b7a8e5761817",
+      "name": "test_bounding_box_basic",
+      "properties": [],
+      "slot_names": [
+        "2"
+      ]
+    }
+  ],
+  "properties": []
+}
