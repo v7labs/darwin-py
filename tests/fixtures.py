@@ -7,7 +7,9 @@ from zipfile import ZipFile
 import pytest
 
 from darwin.config import Config
+from darwin.client import Client
 from darwin.dataset.release import Release, ReleaseStatus
+from darwin.dataset.remote_dataset_v2 import RemoteDatasetV2
 
 
 @pytest.fixture
@@ -167,3 +169,19 @@ def releases_api_response() -> List[dict]:
             "download_url": None,
         },
     ]
+
+
+@pytest.fixture
+def remote_dataset(
+    darwin_client: Client,
+    dataset_name: str,
+    dataset_slug: str,
+    team_slug_darwin_json_v2: str,
+):
+    return RemoteDatasetV2(
+        client=darwin_client,
+        team=team_slug_darwin_json_v2,
+        name=dataset_name,
+        slug=dataset_slug,
+        dataset_id=1,
+    )
