@@ -768,5 +768,5 @@ def teardown_item_level_properties(
     for item_level_property in all_item_level_properties:
         if item_level_property["name"].startswith("test_") or item_level_property[
             "name"
-        ].starts_with("new_"):
+        ].startswith("new_"):
             delete_item_level_property(item_level_property["id"], config)

@@ -24,6 +24,7 @@ from darwin.datatypes import (
     AnnotationFile,
     Property,
     parse_property_classes,
+    PropertyClass,
 )
 from darwin.future.data_objects.properties import (
     FullProperty,
@@ -402,6 +403,46 @@ def _update_payload_with_item_level_properties(
     return serialized_item_level_properties
 
 
+def _parse_metadata_file(
+    metadata_path: Union[Path, bool]
+) -> Tuple[List[PropertyClass], List[Dict[str, str]]]:
+    if isinstance(metadata_path, Path):
+        metadata = parse_metadata(metadata_path)
+        metadata_property_classes = parse_property_classes(metadata)
+        metadata_item_props = metadata.get("properties", [])
+        return metadata_property_classes, metadata_item_props
+    return [], []
+
+
+def _build_metadata_lookups(
+    metadata_property_classes: List[PropertyClass],
+    metadata_item_props: List[Dict[str, str]],
+) -> Tuple[
+    Set[Tuple[str, str]],
+    Dict[Tuple[str, str], Property],
+    Dict[Tuple[int, str], Property],
+    Dict[str, Property],
+]:
+    metadata_classes_lookup = set()
+    metadata_cls_prop_lookup = {}
+    metadata_cls_id_prop_lookup = {}
+    metadata_item_prop_lookup = {}
+
+    for _cls in metadata_property_classes:
+        metadata_classes_lookup.add((_cls.name, _cls.type))
+        for _prop in _cls.properties or []:
+            metadata_cls_prop_lookup[(_cls.name, _prop.name)] = _prop
+    for _item_prop in metadata_item_props:
+        metadata_item_prop_lookup[_item_prop["name"]] = _item_prop
+
+    return (
+        metadata_classes_lookup,
+        metadata_cls_prop_lookup,
+        metadata_cls_id_prop_lookup,
+        metadata_item_prop_lookup,
+    )
+
+
 def _import_properties(
     metadata_path: Union[Path, bool],
     item_properties: List[Dict[str, str]],
@@ -434,36 +475,24 @@ def _import_properties(
     """
     annotation_property_map: Dict[str, Dict[str, Dict[str, Set[str]]]] = {}
 
-    metadata_property_classes, metadata_item_props = [], []
-    if isinstance(metadata_path, Path):
-        # parse metadata.json file -> list[PropertyClass]
-        metadata = parse_metadata(metadata_path)
-        metadata_property_classes = parse_property_classes(metadata)
-        metadata_item_props = metadata.get("properties", [])
+    # Parse metadata
+    metadata_property_classes, metadata_item_props = _parse_metadata_file(metadata_path)
 
     # Get team properties
     team_properties_annotation_lookup, team_item_properties_lookup = (
         _get_team_properties_annotation_lookup(client, dataset.team)
     )
 
-    # (annotation-cls-name, annotation-cls-name): PropertyClass object
-    metadata_classes_lookup: Set[Tuple[str, str]] = set()
-    # (annotation-cls-name, property-name): Property object
-    metadata_cls_prop_lookup: Dict[Tuple[str, str], Property] = {}
-    # (annotation-cls-id, property-name): Property object
-    metadata_cls_id_prop_lookup: Dict[Tuple[int, str], Property] = {}
-    # property-name: Property object
-    metadata_item_prop_lookup: Dict[str, Property] = {}
-    for _cls in metadata_property_classes:
-        metadata_classes_lookup.add((_cls.name, _cls.type))
-        for _prop in _cls.properties or []:
-            metadata_cls_prop_lookup[(_cls.name, _prop.name)] = _prop
-    for _item_prop in metadata_item_props:
-        metadata_item_prop_lookup[_item_prop["name"]] = _item_prop
+    # Build metadata lookups
+    (
+        metadata_classes_lookup,
+        metadata_cls_prop_lookup,
+        metadata_cls_id_prop_lookup,
+        metadata_item_prop_lookup,
+    ) = _build_metadata_lookups(metadata_property_classes, metadata_item_props)
 
     # (annotation-id): dt.Annotation object
     annotation_id_map: Dict[str, dt.Annotation] = {}
-
     create_properties: List[FullProperty] = []
     update_properties: List[FullProperty] = []
     for annotation in annotations:
