@@ -2017,16 +2017,15 @@ def test__assign_item_properties_to_dataset(mock_client, mock_dataset, mock_cons
 
         assert mock_update_property.call_count == 2
 
-        updated_prop1 = mock_update_property.call_args_list[0][0][1]
-        updated_prop2 = mock_update_property.call_args_list[1][0][1]
+        updated_props = [call[0][1] for call in mock_update_property.call_args_list]
 
-        assert mock_dataset.dataset_id in updated_prop1.dataset_ids
-        assert 123 in updated_prop1.dataset_ids
-        assert 123456 in updated_prop1.dataset_ids
-
-        assert mock_dataset.dataset_id in updated_prop2.dataset_ids
-        assert 456 in updated_prop2.dataset_ids
-        assert 123456 in updated_prop2.dataset_ids
+        for updated_prop in updated_props:
+            assert mock_dataset.dataset_id in updated_prop.dataset_ids
+            assert 123456 in updated_prop.dataset_ids
+            if 123 in updated_prop.dataset_ids:
+                assert "prop1" == updated_prop.name
+            elif 456 in updated_prop.dataset_ids:
+                assert "prop2" == updated_prop.name
 
 
 def test__get_annotation_format():

@@ -1,0 +1,94 @@
+{
+  "version": "1.0",
+  "schema_ref": "https://darwin-public.s3.eu-west-1.amazonaws.com/darwin_json/metadata/1.0/schema.json",
+  "classes": [
+    {
+      "name": "bbox",
+      "type": "bounding_box",
+      "description": null,
+      "color": "rgba(255,0,255,1.0)",
+      "sub_types": [
+        "inference"
+      ],
+      "properties": [
+        {
+          "name": "ann-lvl-ms",
+          "type": "multi_select",
+          "description": "property-created-during-annotation-import",
+          "required": false,
+          "property_values": [
+            {
+              "value": "3",
+              "color": "rgba(200,255,0,1.0)"
+            },
+            {
+              "value": "1",
+              "color": "rgba(255,46,0,1.0)"
+            }
+          ],
+          "granularity": "annotation"
+        },
+        {
+          "name": "ann-lvl-ss",
+          "type": "single_select",
+          "description": "property-created-during-annotation-import",
+          "required": false,
+          "property_values": [
+            {
+              "value": "1",
+              "color": "rgba(0,102,255,1.0)"
+            }
+          ],
+          "granularity": "annotation"
+        },
+        {
+          "name": "sec-lvl-ms",
+          "type": "multi_select",
+          "description": "property-created-during-annotation-import",
+          "required": false,
+          "property_values": [
+            {
+              "value": "2",
+              "color": "rgba(255,199,0,1.0)"
+            }
+          ]
+        }
+      ],
+      "sub_types_settings": {
+        "inference": {}
+      }
+    }
+  ],
+  "properties": [
+    {
+      "name": "new_item_level_property_single_select",
+      "type": "multi_select",
+      "description": "",
+      "required": false,
+      "property_values": [
+        {
+          "value": "1",
+          "color": "rgba(255,255,0,1.0)"
+        },
+        {
+          "value": "2",
+          "color": "rgba(85,0,255,1.0)"
+        }
+      ],
+      "granularity": "item"
+    },
+    {
+      "name": "new_item_level_property_multi_select",
+      "type": "multi_select",
+      "description": "",
+      "required": false,
+      "property_values": [
+        {
+          "value": "1",
+          "color": "rgba(255,0,255,1.0)"
+        }
+      ],
+      "granularity": "item"
+    }
+  ]
+}

@@ -11,7 +11,13 @@ import requests
 from PIL import Image
 
 from e2e_tests.exceptions import DataAlreadyExists, E2EException
-from e2e_tests.objects import ConfigValues, E2EAnnotationClass, E2EDataset, E2EItem
+from e2e_tests.objects import (
+    ConfigValues,
+    E2EAnnotationClass,
+    E2EDataset,
+    E2EItem,
+    E2EItemLevelProperty,
+)
 
 
 def api_call(
@@ -247,6 +253,52 @@ def create_annotation_class(
     )
 
 
+def create_item_level_property(
+    name: str, item_level_property_type: str, config: ConfigValues
+) -> E2EItemLevelProperty:
+    """
+    Creates a single item-level property and returns a corresponding E2EItemLevelProperty
+
+    Parameters
+    ----------
+    name : str
+        The name of the item-level property to create
+    item_level_property_type: str
+        The type of item-level property to create. Must be `single_select` or `multi_select`
+    config : ConfigValues
+        The config values to use
+
+    Returns
+    -------
+    E2EItemLevelProperty
+        The minimum info about the created item-level property
+    """
+    url = f"{config.server}/api/v2/teams/{config.team_slug}/properties"
+
+    headers = {
+        "accept": "application/json",
+        "content-type": "application/json",
+        "Authorization": f"ApiKey {config.api_key}",
+    }
+    payload = {
+        "name": name,
+        "type": item_level_property_type,
+        "granularity": "item",
+        "property_values": [
+            {"color": "rgba(255,92,0,1.0)", "value": "1"},
+            {"color": "rgba(255,92,0,1.0)", "value": "2"},
+        ],
+    }
+    response = requests.post(url, json=payload, headers=headers)
+    parsed_response = response.json()
+    return E2EItemLevelProperty(
+        name=parsed_response["name"],
+        dataset_ids=parsed_response["dataset_ids"],
+        type=parsed_response["type"],
+        id=parsed_response["id"],
+    )
+
+
 def delete_annotation_class(id: str, config: ConfigValues) -> None:
     """
     Delete an annotation class on the server
@@ -273,6 +325,30 @@ def delete_annotation_class(id: str, config: ConfigValues) -> None:
             )
     except Exception as e:
         print(f"Failed to delete annotation class {id} - {e}")
+        pytest.exit("Test run failed in test setup stage")
+
+
+def delete_item_level_property(id: str, config: ConfigValues) -> None:
+    """
+    Delete an item-level property class on the server
+
+    Parameters:
+    -----------
+    id : str
+        The id of the item-level property to delete
+    config : ConfigValues
+        The config values to use
+    """
+    host, api_key, team_slug = config.server, config.api_key, config.team_slug
+    url = f"{host}/api/v2/teams/{team_slug}/properties/{id}"
+    try:
+        response = api_call("delete", url, None, api_key)
+        if not response.ok:
+            raise E2EException(
+                f"Failed to delete item-level property {id} - {response.status_code} - {response.text}"
+            )
+    except Exception as e:
+        print(f"Failed to delete item-level property with ID: {id} - {e}")
         pytest.exit("Test run failed in test setup stage")
 
 
@@ -439,7 +515,7 @@ def setup_datasets(config: ConfigValues) -> List[E2EDataset]:
 
 def setup_annotation_classes(config: ConfigValues) -> List[E2EAnnotationClass]:
     """
-    Setup data for End to end test runs
+    Setup annotation classes for end to end test runs
 
     Parameters
     ----------
@@ -449,7 +525,7 @@ def setup_annotation_classes(config: ConfigValues) -> List[E2EAnnotationClass]:
     Returns
     -------
     List[E2EAnnotationClass]
-        The minimal info about the created annotation classes
+        The minimum info about the created annotation classes
     """
 
     annotation_classes: List[E2EAnnotationClass] = []
@@ -491,13 +567,52 @@ def setup_annotation_classes(config: ConfigValues) -> List[E2EAnnotationClass]:
                 pass
     except E2EException as e:
         print(e)
-        pytest.exit("Test run failed in test setup stage")
+        pytest.exit("Test run failed while setting up annotation classes")
 
     except Exception as e:
         print(e)
         pytest.exit("Setup failed - unknown error")
 
     return annotation_classes
+
+
+def setup_item_level_properties(config: ConfigValues) -> List[E2EItemLevelProperty]:
+    """
+    Setup item-level properties for end to end test runs
+
+    Parameters
+    ----------
+    config : ConfigValues
+        The config values to use
+
+    Returns
+    -------
+    List[E2EItemLevelProperty]
+        The minimal info about the created item-level properties
+    """
+    item_level_properties: List[E2EItemLevelProperty] = []
+
+    print("Setting up item-level properties")
+    item_level_property_types = ["single_select", "multi_select"]
+    try:
+        for item_level_property_type in item_level_property_types:
+            try:
+                item_level_property = create_item_level_property(
+                    f"test_item_level_property_{item_level_property_type}",
+                    item_level_property_type=item_level_property_type,
+                    config=config,
+                )
+                item_level_properties.append(item_level_property)
+            except DataAlreadyExists:
+                pass
+    except E2EException as e:
+        print(e)
+
+    except Exception as e:
+        print(e)
+        pytest.exit("Setup failed - unknown error")
+
+    return item_level_properties
 
 
 def teardown_tests(config: ConfigValues, datasets: List[E2EDataset]) -> None:
@@ -634,3 +749,24 @@ def teardown_annotation_classes(
             "name"
         ].startswith("new_"):
             delete_annotation_class(annotation_class["id"], config)
+
+
+def teardown_item_level_properties(
+    config: ConfigValues, item_level_properties: List[E2EItemLevelProperty]
+) -> None:
+    for item_level_property in item_level_properties:
+        delete_item_level_property(str(item_level_property.id), config)
+    team_slug = config.team_slug
+    host = config.server
+    response = api_call(
+        "get", f"{host}/api/v2/teams/{team_slug}/properties", None, config.api_key
+    )
+    all_properties = response.json()["properties"]
+    all_item_level_properties = (
+        all_properties  # Code to filter response for item-level properties
+    )
+    for item_level_property in all_item_level_properties:
+        if item_level_property["name"].startswith("test_") or item_level_property[
+            "name"
+        ].starts_with("new_"):
+            delete_item_level_property(item_level_property["id"], config)

@@ -22,6 +22,14 @@ class E2EAnnotationClass:
     id: int
 
 
+class E2EItemLevelProperty:
+    def __init__(self, name: str, dataset_ids: List[int], type: str, id: str):
+        self.name = name
+        self.dataset_ids = dataset_ids
+        self.type = type
+        self.id = id
+
+
 @dataclass
 class E2EItem(Exception):
     name: str

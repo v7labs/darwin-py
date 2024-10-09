@@ -16,6 +16,8 @@ from e2e_tests.setup_tests import (
     setup_annotation_classes,
     setup_datasets,
     teardown_annotation_classes,
+    setup_item_level_properties,
+    teardown_item_level_properties,
     teardown_tests,
 )
 
@@ -54,13 +56,15 @@ def pytest_sessionstart(session: pytest.Session) -> None:
 
     config = ConfigValues(server=server, api_key=api_key, team_slug=team_slug)
     datasets = setup_datasets(config)
-    teardown_annotation_classes(
-        config, []
-    )  # Ensure that there are no annotation classes before running tests
+    # Ensure that there are no annotation classes or item-level properties before running tests
+    teardown_annotation_classes(config, [])
+    teardown_item_level_properties(config, [])
     annotation_classes = setup_annotation_classes(config)
+    item_level_properties = setup_item_level_properties(config)
     # pytest.datasets = datasets
     setattr(pytest, "datasets", datasets)
     setattr(pytest, "annotation_classes", annotation_classes)
+    setattr(pytest, "item_level_properties", item_level_properties)
     setattr(pytest, "config_values", config)
     # Set the environment variables for running CLI arguments
     environ["DARWIN_BASE_URL"] = server
@@ -83,6 +87,11 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
         raise ValueError(
             "Annotation classes were not created, so could not tear them down"
         )
+    item_level_properties = pytest.item_level_properties
+    if item_level_properties is None:
+        raise ValueError(
+            "Item-level properties were not created, so could not tear them down"
+        )
 
     server = session.config.cache.get("server", None)
     api_key = session.config.cache.get("api_key", None)
@@ -100,6 +109,7 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
     teardown_tests(config, datasets)
     assert isinstance(annotation_classes, List)
     teardown_annotation_classes(config, annotation_classes)
+    teardown_item_level_properties(config, item_level_properties)
 
 
 @pytest.fixture(
