@@ -20,7 +20,11 @@ from typing import (
     Union,
 )
 
-from darwin.datatypes import AnnotationFile, Property, parse_property_classes
+from darwin.datatypes import (
+    AnnotationFile,
+    Property,
+    parse_property_classes,
+)
 from darwin.future.data_objects.properties import (
     FullProperty,
     PropertyType,
@@ -30,6 +34,7 @@ from darwin.future.data_objects.properties import (
 )
 from darwin.item import DatasetItem
 from darwin.path_utils import is_properties_enabled, parse_metadata
+from darwin.utils.utils import _parse_annotators
 
 Unknown = Any  # type: ignore
 
@@ -322,6 +327,10 @@ def _update_payload_with_properties(
 ) -> None:
     """
     Updates the annotations with the properties that were created/updated during the import.
+
+    Args:
+        annotations (List[dt.Annotation]): List of annotations
+        annotation_id_property_map: Dict[str, Dict[str, Dict[str, Set[str]]]]: Dict of annotation.id to frame_index -> property id -> property val ids
     """
     if not annotation_id_property_map:
         return
@@ -340,6 +349,57 @@ def _update_payload_with_properties(
                     _map[_frame_index][prop_id] = prop_val_list
 
             annotation["annotation_properties"] = dict(_map)
+
+
+def _update_payload_with_item_level_properties(
+    item_property_values, client, dataset, import_annotators, import_reviewers
+) -> List:
+    """
+    Adds item-level properties to the annotation import payload if any are present
+
+    Args:
+        item_property_values
+        cliennt
+        dataset
+    """
+    if not item_property_values:
+        return []
+
+    serialized_item_level_properties: List[Any] = []
+    actors: List[dt.DictFreeForm] = []
+    # Get team properties
+    _, team_item_properties_lookup = _get_team_properties_annotation_lookup(
+        client, dataset.team
+    )
+    for item_property_value in item_property_values:
+        item_property = team_item_properties_lookup[item_property_value["name"]]
+        item_property_id = item_property.id
+        item_property_value_id = next(
+            (
+                pv.id
+                for pv in item_property.property_values
+                if pv.value == item_property_value["value"]
+            ),
+            None,
+        )
+        actors: List[dt.DictFreeForm] = []
+        actors.extend(
+            _handle_annotators(
+                import_annotators, item_property_value=item_property_value
+            )
+        )
+        actors.extend(
+            _handle_reviewers(import_reviewers, item_property_value=item_property_value)
+        )
+        serialized_item_level_properties.append(
+            {
+                "actors": actors,
+                "property_id": item_property_id,
+                "value": {"id": item_property_value_id},
+            }
+        )
+
+    return serialized_item_level_properties
 
 
 def _import_properties(
@@ -381,7 +441,7 @@ def _import_properties(
         metadata_property_classes = parse_property_classes(metadata)
         metadata_item_props = metadata.get("properties", [])
 
-    # get team properties
+    # Get team properties
     team_properties_annotation_lookup, team_item_properties_lookup = (
         _get_team_properties_annotation_lookup(client, dataset.team)
     )
@@ -542,7 +602,10 @@ def _import_properties(
                             break
                     # if it doesn't exist, create it
                     for prop in create_properties:
-                        if prop.name == a_prop.name:
+                        if (
+                            prop.name == a_prop.name
+                            and prop.annotation_class_id == annotation_class_id
+                        ):
                             current_prop_values = [
                                 value.value for value in prop.property_values
                             ]
@@ -611,6 +674,7 @@ def _import_properties(
                             color=m_prop_option.get("color"),  # type: ignore
                         )
                     ],
+                    granularity=t_prop.granularity,
                 )
                 # Don't attempt the same propery update multiple times
                 if full_property not in update_properties:
@@ -816,6 +880,7 @@ def _import_properties(
                             break
                     break
     _assign_item_properties_to_dataset(item_properties, client, dataset, console)
+
     return annotation_property_map
 
 
@@ -1449,23 +1514,37 @@ def _annotators_or_reviewers_to_payload(
 
 
 def _handle_reviewers(
-    annotation: dt.Annotation, import_reviewers: bool
+    import_reviewers: bool,
+    annotation: Optional[dt.Annotation] = None,
+    item_property_value: Optional[Dict[str, Any]] = None,
 ) -> List[dt.DictFreeForm]:
     if import_reviewers:
-        if annotation.reviewers:
+        if annotation and annotation.reviewers:
             return _annotators_or_reviewers_to_payload(
                 annotation.reviewers, dt.AnnotationAuthorRole.REVIEWER
+            )
+        elif item_property_value and "reviewers" in item_property_value:
+            return _annotators_or_reviewers_to_payload(
+                _parse_annotators(item_property_value["reviewers"]),
+                dt.AnnotationAuthorRole.REVIEWER,
             )
     return []
 
 
 def _handle_annotators(
-    annotation: dt.Annotation, import_annotators: bool
+    import_annotators: bool,
+    annotation: Optional[dt.Annotation] = None,
+    item_property_value: Optional[Dict[str, Any]] = None,
 ) -> List[dt.DictFreeForm]:
     if import_annotators:
-        if annotation.annotators:
+        if annotation and annotation.annotators:
             return _annotators_or_reviewers_to_payload(
                 annotation.annotators, dt.AnnotationAuthorRole.ANNOTATOR
+            )
+        elif item_property_value and "annotators" in item_property_value:
+            return _annotators_or_reviewers_to_payload(
+                _parse_annotators(item_property_value["annotators"]),
+                dt.AnnotationAuthorRole.ANNOTATOR,
             )
     return []
 
@@ -1689,8 +1768,8 @@ def _import_annotations(
                 )
 
         actors: List[dt.DictFreeForm] = []
-        actors.extend(_handle_annotators(annotation, import_annotators))
-        actors.extend(_handle_reviewers(annotation, import_reviewers))
+        actors.extend(_handle_annotators(import_annotators, annotation=annotation))
+        actors.extend(_handle_reviewers(import_reviewers, annotation=annotation))
 
         # Insert the default slot name if not available in the import source
         annotation = _handle_slot_names(annotation, dataset.version, default_slot_name)
@@ -1720,11 +1799,15 @@ def _import_annotations(
         annotation_class_ids_map,
         dataset,
     )
-    _update_payload_with_properties(
-        serialized_annotations, annotation_id_property_map
-    )  # We will extend this funciton to support item-level properties as soon as the API is ready
+
+    _update_payload_with_properties(serialized_annotations, annotation_id_property_map)
+    serialized_item_level_properties = _update_payload_with_item_level_properties(
+        item_properties, client, dataset, import_annotators, import_reviewers
+    )
 
     payload: dt.DictFreeForm = {"annotations": serialized_annotations}
+    if serialized_item_level_properties:
+        payload["properties"] = serialized_item_level_properties
     payload["overwrite"] = _get_overwrite_value(append)
 
     try:

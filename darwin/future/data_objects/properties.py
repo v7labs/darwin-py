@@ -106,25 +106,14 @@ class FullProperty(DefaultDarwin):
             include_fields["dataset_ids"] = True
         if self.granularity != PropertyGranularity.item:
             include_fields["annotation_class_id"] = True
-        return self.model_dump(
-            mode="json",
-            include={
-                "name": True,
-                "type": True,
-                "required": True,
-                "annotation_class_id": True,
-                "property_values": {"__all__": {"value", "color"}},
-                "description": True,
-                "granularity": True,
-            },
-        )
+        return self.model_dump(mode="json", include=include_fields)
 
     def to_update_endpoint(self) -> Tuple[str, dict]:
         if self.id is None:
             raise ValueError("id must be set")
 
         updated_base = self.to_create_endpoint()
-        del updated_base["annotation_class_id"]  # Can't update this field
+        updated_base.pop("annotation_class_id", None)  # Can't update this field
         del updated_base["granularity"]  # Can't update this field
         return self.id, updated_base
 

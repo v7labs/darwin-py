@@ -496,8 +496,8 @@ def test__handle_reviewers() -> None:
 
         m.return_value = "test"
 
-        op1 = _handle_reviewers(dt.Annotation("class", {}, [], reviewers=[1, 2, 3]), True)  # type: ignore
-        op2 = _handle_reviewers(dt.Annotation("class", {}, [], reviewers=[1, 2, 3]), False)  # type: ignore
+        op1 = _handle_reviewers(True, annotation=dt.Annotation("class", {}, [], reviewers=[1, 2, 3]))  # type: ignore
+        op2 = _handle_reviewers(False, annotation=dt.Annotation("class", {}, [], reviewers=[1, 2, 3]))  # type: ignore
 
         assert op1 == "test"
         assert op2 == []
@@ -509,8 +509,8 @@ def test__handle_annotators() -> None:
 
         m.return_value = "test"
 
-        op1 = _handle_annotators(dt.Annotation("class", {}, [], annotators=[1, 2, 3]), True)  # type: ignore
-        op2 = _handle_annotators(dt.Annotation("class", {}, [], annotators=[1, 2, 3]), False)  # type: ignore
+        op1 = _handle_annotators(True, annotation=dt.Annotation("class", {}, [], annotators=[1, 2, 3]))  # type: ignore
+        op2 = _handle_annotators(False, annotation=dt.Annotation("class", {}, [], annotators=[1, 2, 3]))  # type: ignore
 
         assert op1 == "test"
         assert op2 == []
@@ -885,8 +885,8 @@ def test__import_annotations() -> None:
         assert mock_hs.call_count == 1
 
         assert mock_gov.call_args_list[0][0][0] == "test_append_in"
-        assert mock_ha.call_args_list[0][0][1] == "test_import_annotators"
-        assert mock_hr.call_args_list[0][0][1] == "test_import_reviewers"
+        assert mock_ha.call_args_list[0][0][0] == "test_import_annotators"
+        assert mock_hr.call_args_list[0][0][0] == "test_import_reviewers"
 
         # Assert handle slot names
         assert mock_hsn.call_args_list[0][0][0] == annotation
@@ -979,9 +979,7 @@ def test_overwrite_warning_proceeds_with_import():
     console = MagicMock()
 
     with patch("builtins.input", return_value="y"):
-        result = _overwrite_warning(
-            client, False, dataset, files, remote_files, console
-        )
+        result = _overwrite_warning(client, dataset, files, remote_files, console)
         assert result is True
 
 
@@ -2584,6 +2582,7 @@ def test_does_not_raise_error_for_darwin_format_with_warnings():
 @pytest.mark.parametrize("setup_data", ["section"], indirect=True)
 def test_import_existing_section_level_property_values_without_manifest(
     mock_get_team_properties,
+    mock_dataset,
     setup_data,
 ):
     client, team_slug, annotation_class_ids_map, annotations = setup_data
@@ -2596,6 +2595,7 @@ def test_import_existing_section_level_property_values_without_manifest(
             property_values=[
                 PropertyValue(value="1", id="property_value_id_1"),
             ],
+            granularity=PropertyGranularity.section,
         ),
         ("existing_property_multi_select", 123): FullProperty(
             id="property_id_2",
@@ -2606,11 +2606,34 @@ def test_import_existing_section_level_property_values_without_manifest(
                 PropertyValue(value="1", id="property_value_id_2"),
                 PropertyValue(value="2", id="property_value_id_3"),
             ],
+            granularity=PropertyGranularity.section,
+        ),
+    }, {
+        ("existing_property_single_select", 123): FullProperty(
+            id="property_id_1",
+            name="existing_property_single_select",
+            type="single_select",
+            required=False,
+            property_values=[
+                PropertyValue(value="1", id="property_value_id_1"),
+            ],
+            granularity=PropertyGranularity.section,
+        ),
+        ("existing_property_multi_select", 123): FullProperty(
+            id="property_id_2",
+            name="existing_property_multi_select",
+            type="multi_select",
+            required=False,
+            property_values=[
+                PropertyValue(value="1", id="property_value_id_2"),
+                PropertyValue(value="2", id="property_value_id_3"),
+            ],
+            granularity=PropertyGranularity.section,
         ),
     }
     metadata_path = False
     result = _import_properties(
-        metadata_path, client, annotations, annotation_class_ids_map, team_slug
+        metadata_path, [], client, annotations, annotation_class_ids_map, mock_dataset
     )
     assert result["annotation_id_1"]["0"]["property_id_1"] == {
         "property_value_id_1",
@@ -2626,7 +2649,9 @@ def test_import_existing_section_level_property_values_without_manifest(
 @patch("darwin.importer.importer._get_team_properties_annotation_lookup")
 @pytest.mark.parametrize("setup_data", ["section"], indirect=True)
 def test_import_new_section_level_property_values_with_manifest(
-    mock_get_team_properties, setup_data, mock_dataset
+    mock_get_team_properties,
+    mock_dataset,
+    setup_data,
 ):
     client, team_slug, annotation_class_ids_map, annotations = setup_data
     mock_get_team_properties.return_value = {
@@ -2645,6 +2670,26 @@ def test_import_new_section_level_property_values_with_manifest(
             required=False,
             property_values=[
                 PropertyValue(value="1", id="property_value_id_2"),
+            ],
+            granularity=PropertyGranularity.section,
+        ),
+    }, {
+        ("existing_property_single_select", 123): FullProperty(
+            id="property_id_1",
+            name="existing_property_single_select",
+            type="single_select",
+            required=False,
+            property_values=[PropertyValue(value="1", id="property_value_id_1")],
+            granularity=PropertyGranularity.section,
+        ),
+        ("existing_property_multi_select", 123): FullProperty(
+            id="property_id_2",
+            name="existing_property_multi_select",
+            type="multi_select",
+            required=False,
+            property_values=[
+                PropertyValue(value="1", id="property_value_id_2"),
+                PropertyValue(value="2", id="property_value_id_3"),
             ],
             granularity=PropertyGranularity.section,
         ),
@@ -2697,10 +2742,10 @@ def test_import_new_section_level_property_values_with_manifest(
 @patch("darwin.importer.importer._get_team_properties_annotation_lookup")
 @pytest.mark.parametrize("setup_data", ["section"], indirect=True)
 def test_import_identical_properties_to_different_classes(
-    mock_get_team_properties, setup_data
+    mock_get_team_properties, mock_dataset, setup_data
 ):
     client, team_slug, _, _ = setup_data
-    # This test requires 2 annotations annotation
+    # This test requires 2 annotation classes
     annotation_class_ids_map = {
         ("test_class_1", "polygon"): 1,
         ("test_class_2", "polygon"): 2,
@@ -2741,7 +2786,7 @@ def test_import_identical_properties_to_different_classes(
             )
         ),
     ]
-    mock_get_team_properties.return_value = {}
+    mock_get_team_properties.return_value = {}, {}
     metadata_path = (
         Path(__file__).parents[1]
         / "data"
@@ -2781,7 +2826,12 @@ def test_import_identical_properties_to_different_classes(
             ),
         ]
         annotation_property_map = _import_properties(
-            metadata_path, client, annotations, annotation_class_ids_map, team_slug
+            metadata_path,
+            [],
+            client,
+            annotations,
+            annotation_class_ids_map,
+            mock_dataset,
         )
         assert annotation_property_map["1"]["0"]["prop_id_1"] == {"prop_val_id_1"}
         assert annotation_property_map["2"]["0"]["prop_id_2"] == {"prop_val_id_2"}
@@ -2791,10 +2841,11 @@ def test_import_identical_properties_to_different_classes(
 @pytest.mark.parametrize("setup_data", ["section"], indirect=True)
 def test_import_new_section_level_properties_with_manifest(
     mock_get_team_properties,
+    mock_dataset,
     setup_data,
 ):
     client, team_slug, annotation_class_ids_map, annotations = setup_data
-    mock_get_team_properties.return_value = {}
+    mock_get_team_properties.return_value = {}, {}
     metadata_path = (
         Path(__file__).parents[1]
         / "data"
@@ -2802,7 +2853,12 @@ def test_import_new_section_level_properties_with_manifest(
     )
     with patch.object(client, "create_property") as mock_create_property:
         _import_properties(
-            metadata_path, client, annotations, annotation_class_ids_map, team_slug
+            metadata_path,
+            [],
+            client,
+            annotations,
+            annotation_class_ids_map,
+            mock_dataset,
         )
         assert mock_create_property.call_args_list[0].kwargs["params"] == FullProperty(
             id=None,
@@ -2831,6 +2887,7 @@ def test_import_new_section_level_properties_with_manifest(
                 PropertyValue(value="1", color="rgba(173,255,0,1.0)"),
                 PropertyValue(value="2", color="rgba(255,199,0,1.0)"),
             ],
+            granularity=PropertyGranularity.section,
         )
 
 
@@ -2838,6 +2895,7 @@ def test_import_new_section_level_properties_with_manifest(
 @pytest.mark.parametrize("setup_data", ["annotation"], indirect=True)
 def test_import_existing_annotation_level_property_values_without_manifest(
     mock_get_team_properties,
+    mock_dataset,
     setup_data,
 ):
     client, team_slug, annotation_class_ids_map, annotations = setup_data
@@ -2850,6 +2908,7 @@ def test_import_existing_annotation_level_property_values_without_manifest(
             property_values=[
                 PropertyValue(value="1", id="property_value_id_1"),
             ],
+            granularity=PropertyGranularity.annotation,
         ),
         ("existing_property_multi_select", 123): FullProperty(
             id="property_id_2",
@@ -2860,11 +2919,34 @@ def test_import_existing_annotation_level_property_values_without_manifest(
                 PropertyValue(value="1", id="property_value_id_2"),
                 PropertyValue(value="2", id="property_value_id_3"),
             ],
+            granularity=PropertyGranularity.annotation,
+        ),
+    }, {
+        ("existing_property_single_select", 123): FullProperty(
+            id="property_id_1",
+            name="existing_property_single_select",
+            type="single_select",
+            required=False,
+            property_values=[
+                PropertyValue(value="1", id="property_value_id_1"),
+            ],
+            granularity=PropertyGranularity.annotation,
+        ),
+        ("existing_property_multi_select", 123): FullProperty(
+            id="property_id_2",
+            name="existing_property_multi_select",
+            type="multi_select",
+            required=False,
+            property_values=[
+                PropertyValue(value="1", id="property_value_id_2"),
+                PropertyValue(value="2", id="property_value_id_3"),
+            ],
+            granularity=PropertyGranularity.annotation,
         ),
     }
     metadata_path = False
     result = _import_properties(
-        metadata_path, client, annotations, annotation_class_ids_map, team_slug
+        metadata_path, [], client, annotations, annotation_class_ids_map, mock_dataset
     )
     assert result["annotation_id_1"]["None"]["property_id_1"] == {
         "property_value_id_1",
@@ -2881,26 +2963,49 @@ def test_import_new_annotation_level_property_values_with_manifest(
     mock_get_team_properties, setup_data, mock_dataset
 ):
     client, team_slug, annotation_class_ids_map, annotations = setup_data
-    mock_get_team_properties.return_value = {
-        ("existing_property_single_select", 123): FullProperty(
-            id="property_id_1",
-            name="existing_property_single_select",
-            type="single_select",
-            required=False,
-            property_values=[],
-            granularity=PropertyGranularity.annotation,
-        ),
-        ("existing_property_multi_select", 123): FullProperty(
-            id="property_id_2",
-            name="existing_property_multi_select",
-            type="multi_select",
-            required=False,
-            property_values=[
-                PropertyValue(value="1", id="property_value_id_2"),
-            ],
-            granularity=PropertyGranularity.annotation,
-        ),
-    }
+    mock_get_team_properties.return_value = (
+        {
+            ("existing_property_single_select", 123): FullProperty(
+                id="property_id_1",
+                name="existing_property_single_select",
+                type="single_select",
+                required=False,
+                property_values=[],
+                granularity=PropertyGranularity.annotation,
+            ),
+            ("existing_property_multi_select", 123): FullProperty(
+                id="property_id_2",
+                name="existing_property_multi_select",
+                type="multi_select",
+                required=False,
+                property_values=[
+                    PropertyValue(value="1", id="property_value_id_2"),
+                ],
+                granularity=PropertyGranularity.annotation,
+            ),
+        },
+        {
+            ("existing_property_single_select", 123): FullProperty(
+                id="property_id_1",
+                name="existing_property_single_select",
+                type="single_select",
+                required=False,
+                property_values=[PropertyValue(value="1", id="property_value_id_1")],
+                granularity=PropertyGranularity.annotation,
+            ),
+            ("existing_property_multi_select", 123): FullProperty(
+                id="property_id_2",
+                name="existing_property_multi_select",
+                type="multi_select",
+                required=False,
+                property_values=[
+                    PropertyValue(value="1", id="property_value_id_2"),
+                    PropertyValue(value="2", id="property_value_id_3"),
+                ],
+                granularity=PropertyGranularity.annotation,
+            ),
+        },
+    )
     metadata_path = (
         Path(__file__).parents[1]
         / "data"
@@ -2949,12 +3054,12 @@ def test_import_new_annotation_level_property_values_with_manifest(
 @patch("darwin.importer.importer._get_team_properties_annotation_lookup")
 @pytest.mark.parametrize("setup_data", ["annotation"], indirect=True)
 def test_import_new_annotation_level_properties_with_manifest(
-    mock_dataset,
     mock_get_team_properties,
+    mock_dataset,
     setup_data,
 ):
     client, team_slug, annotation_class_ids_map, annotations = setup_data
-    mock_get_team_properties.return_value = {}
+    mock_get_team_properties.return_value = {}, {}
     metadata_path = (
         Path(__file__).parents[1]
         / "data"
@@ -2963,10 +3068,10 @@ def test_import_new_annotation_level_properties_with_manifest(
     with patch.object(client, "create_property") as mock_create_property:
         _import_properties(
             metadata_path,
+            [],
             client,
             annotations,
             annotation_class_ids_map,
-            team_slug,
             mock_dataset,
         )
         assert mock_create_property.call_args_list[0].kwargs["params"] == FullProperty(
