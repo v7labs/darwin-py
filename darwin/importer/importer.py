@@ -287,7 +287,8 @@ def _resolve_annotation_classes(
 def _get_team_properties_annotation_lookup(
     client: "Client", team_slug: str
 ) -> Tuple[Dict[Tuple[str, Optional[int]], FullProperty], Dict[str, FullProperty]]:
-    """Returns two lookup dictionaries for team properties:
+    """
+    Returns two lookup dictionaries for team properties:
      - team_properties_annotation_lookup: (property-name, annotation_class_id): FullProperty object
      - team_item_properties_lookup: property-name: FullProperty object
 
@@ -352,21 +353,30 @@ def _update_payload_with_properties(
             annotation["annotation_properties"] = dict(_map)
 
 
-def _update_payload_with_item_level_properties(
-    item_property_values, client, dataset, import_annotators, import_reviewers
-) -> List:
+def _serialize_item_level_properties(
+    item_property_values: List[Dict[str, str]],
+    client: "Client",
+    dataset: "RemoteDataset",
+    import_annotators: bool,
+    import_reviewers: bool,
+) -> List[Dict[str, Any]]:
     """
-    Adds item-level properties to the annotation import payload if any are present
+    Returns serialized item-level properties to be added to the annotation import payload.
 
     Args:
-        item_property_values
-        cliennt
-        dataset
+        item_property_values (List[Dict[str, str]]): A list of dictionaries containing item property values.
+        client (Client): The client instance used to interact with the API.
+        dataset (RemoteDataset): The remote dataset instance.
+        import_annotators (bool): Flag indicating whether to import annotators.
+        import_reviewers (bool): Flag indicating whether to import reviewers.
+
+    Returns:
+        List[Dict[str, Any]]: A list of serialized item-level properties for the annotation import payload.
     """
     if not item_property_values:
         return []
 
-    serialized_item_level_properties: List[Any] = []
+    serialized_item_level_properties: List[Dict[str, Any]] = []
     actors: List[dt.DictFreeForm] = []
     # Get team properties
     _, team_item_properties_lookup = _get_team_properties_annotation_lookup(
@@ -378,7 +388,7 @@ def _update_payload_with_item_level_properties(
         item_property_value_id = next(
             (
                 pv.id
-                for pv in item_property.property_values
+                for pv in item_property.property_values or []
                 if pv.value == item_property_value["value"]
             ),
             None,
@@ -493,8 +503,9 @@ def _import_properties(
 
     # (annotation-id): dt.Annotation object
     annotation_id_map: Dict[str, dt.Annotation] = {}
-    create_properties: List[FullProperty] = []
-    update_properties: List[FullProperty] = []
+
+    annotation_and_section_level_properties_to_create: List[FullProperty] = []
+    annotation_and_section_level_properties_to_update: List[FullProperty] = []
     for annotation in annotations:
         annotation_name = annotation.annotation_class.name
         annotation_type = annotation_type = (
@@ -583,8 +594,8 @@ def _import_properties(
                 a_prop.name,
                 annotation_class_id,
             ) not in team_properties_annotation_lookup:
-                # check if fullproperty exists in create_properties
-                for full_property in create_properties:
+                # check if fullproperty exists in annotation_and_section_level_properties_to_create
+                for full_property in annotation_and_section_level_properties_to_create:
                     if (
                         full_property.name == a_prop.name
                         and full_property.annotation_class_id == annotation_class_id
@@ -630,7 +641,7 @@ def _import_properties(
                             )
                             break
                     # if it doesn't exist, create it
-                    for prop in create_properties:
+                    for prop in annotation_and_section_level_properties_to_create:
                         if (
                             prop.name == a_prop.name
                             and prop.annotation_class_id == annotation_class_id
@@ -655,8 +666,13 @@ def _import_properties(
                             granularity=PropertyGranularity(m_prop.granularity),
                         )
                     # Don't attempt the same propery creation multiple times
-                    if full_property not in create_properties:
-                        create_properties.append(full_property)
+                    if (
+                        full_property
+                        not in annotation_and_section_level_properties_to_create
+                    ):
+                        annotation_and_section_level_properties_to_create.append(
+                            full_property
+                        )
                 continue
 
             # check if property value is different in m_prop (.v7/metadata.json) options
@@ -706,8 +722,13 @@ def _import_properties(
                     granularity=t_prop.granularity,
                 )
                 # Don't attempt the same propery update multiple times
-                if full_property not in update_properties:
-                    update_properties.append(full_property)
+                if (
+                    full_property
+                    not in annotation_and_section_level_properties_to_update
+                ):
+                    annotation_and_section_level_properties_to_update.append(
+                        full_property
+                    )
                 continue
 
             assert t_prop.id is not None
@@ -716,21 +737,30 @@ def _import_properties(
                 t_prop.id
             ].add(t_prop_val.id)
 
-    # Create/Update team properties based on metadata
-    create_properties, update_properties = _create_update_item_properties(
-        _normalize_item_properties(metadata_item_prop_lookup),
-        team_item_properties_lookup,
-        create_properties,
-        update_properties,
-        client,
+    # Create/Update team item properties based on metadata
+    item_properties_to_create_from_metadata, item_properties_to_update_from_metadata = (
+        _create_update_item_properties(
+            _normalize_item_properties(metadata_item_prop_lookup),
+            team_item_properties_lookup,
+            client,
+        )
     )
 
     console = Console(theme=_console_theme())
 
+    properties_to_create = (
+        annotation_and_section_level_properties_to_create
+        + item_properties_to_create_from_metadata
+    )
+    properties_to_update = (
+        annotation_and_section_level_properties_to_update
+        + item_properties_to_update_from_metadata
+    )
+
     created_properties = []
-    if create_properties:
-        console.print(f"Creating {len(create_properties)} properties:", style="info")
-        for full_property in create_properties:
+    if properties_to_create:
+        console.print(f"Creating {len(properties_to_create)} properties:", style="info")
+        for full_property in properties_to_create:
             if full_property.granularity.value == "item":
                 console.print(
                     f"- Creating item-level property '{full_property.name}' of type: {full_property.type}"
@@ -745,11 +775,11 @@ def _import_properties(
             created_properties.append(prop)
 
     updated_properties = []
-    if update_properties:
+    if properties_to_update:
         console.print(
-            f"Performing {len(update_properties)} property update(s):", style="info"
+            f"Performing {len(properties_to_update)} property update(s):", style="info"
         )
-        for full_property in update_properties:
+        for full_property in properties_to_update:
             if full_property.granularity.value == "item":
                 console.print(
                     f"- Updating item-level property '{full_property.name}' with new value: {full_property.property_values[0].value}",
@@ -768,21 +798,21 @@ def _import_properties(
         _get_team_properties_annotation_lookup(client, dataset.team)
     )
 
-    create_properties = []
-    update_properties = []
-
-    # Create/Update properties from item_properties arg
-    create_properties, update_properties = _create_update_item_properties(
-        _normalize_item_properties(item_properties),
-        team_item_properties_lookup,
-        create_properties,
-        update_properties,
-        client,
+    # Create or update item-level properties from annotations
+    item_property_creations_from_metadata, item_property_updates_from_metadata = (
+        _create_update_item_properties(
+            _normalize_item_properties(item_properties),
+            team_item_properties_lookup,
+            client,
+        )
     )
 
-    if create_properties:
-        console.print(f"Creating {len(create_properties)} properties:", style="info")
-        for full_property in create_properties:
+    properties_to_create = item_property_creations_from_metadata
+    properties_to_update = item_property_updates_from_metadata
+
+    if properties_to_create:
+        console.print(f"Creating {len(properties_to_create)} properties:", style="info")
+        for full_property in properties_to_create:
             if full_property.granularity.value == "item":
                 console.print(
                     f"- Creating item-level property '{full_property.name}' of type: {full_property.type}"
@@ -795,11 +825,12 @@ def _import_properties(
             )
             created_properties.append(prop)
 
-    if update_properties:
+    if item_property_updates_from_metadata:
         console.print(
-            f"Performing {len(update_properties)} property update(s):", style="info"
+            f"Performing {len(item_property_updates_from_metadata)} property update(s):",
+            style="info",
         )
-        for full_property in update_properties:
+        for full_property in item_property_updates_from_metadata:
             if full_property.granularity.value == "item":
                 console.print(
                     f"- Updating item-level property '{full_property.name}' with new value: {full_property.property_values[0].value}"
@@ -814,8 +845,8 @@ def _import_properties(
             updated_properties.append(prop)
 
     # get latest team properties
-    team_properties_annotation_lookup = _get_team_properties_annotation_lookup(
-        client, dataset.team
+    team_properties_annotation_lookup, team_item_properties_lookup = (
+        _get_team_properties_annotation_lookup(client, dataset.team)
     )
 
     # loop over metadata_cls_id_prop_lookup, and update additional metadata property values
@@ -908,7 +939,9 @@ def _import_properties(
                             ].add(prop_val.id)
                             break
                     break
-    _assign_item_properties_to_dataset(item_properties, client, dataset, console)
+    _assign_item_properties_to_dataset(
+        item_properties, team_item_properties_lookup, client, dataset, console
+    )
 
     return annotation_property_map
 
@@ -940,8 +973,6 @@ def _normalize_item_properties(
 def _create_update_item_properties(
     item_properties: Dict[str, Dict[str, Any]],
     team_item_properties_lookup: Dict[str, FullProperty],
-    create_properties: List[FullProperty],
-    update_properties: List[FullProperty],
     client: "Client",
 ) -> Tuple[List[FullProperty], List[FullProperty]]:
     """
@@ -950,13 +981,13 @@ def _create_update_item_properties(
     Args:
         item_properties (Dict[str, Dict[str, Any]]): Dictionary of item-level properties present in the annotation file
         team_item_properties_lookup (Dict[str, FullProperty]): Lookup of team item properties
-        create_properties (List[FullProperty]): List to store properties to be created
-        update_properties (List[FullProperty]): List to store properties to be updated
         client (Client): Darwin Client object
 
     Returns:
         Tuple[List[FullProperty], List[FullProperty]]: Tuple of lists of properties to be created and updated
     """
+    create_properties = []
+    update_properties = []
     for item_prop_name, m_prop in item_properties.items():
         m_prop_values = [
             prop_val["value"] for prop_val in m_prop.get("property_values", [])
@@ -1020,6 +1051,7 @@ def _create_update_item_properties(
 
 def _assign_item_properties_to_dataset(
     item_properties: List[Dict[str, str]],
+    team_item_properties_lookup: Dict[str, FullProperty],
     client: "Client",
     dataset: "RemoteDataset",
     console: Console,
@@ -1029,15 +1061,12 @@ def _assign_item_properties_to_dataset(
 
     Args:
         item_properties (List[Dict[str, str]]): List of item-level properties present in the annotation file
+        team_item_properties_lookup (Dict[str, FullProperty]): Server- side state of item-level properties
         client (Client): Darwin Client object
         dataset (RemoteDataset): RemoteDataset object
         console (Console): Rich Console
     """
     if item_properties:
-        # Get the latest state of the team properties
-        _, team_item_properties_lookup = _get_team_properties_annotation_lookup(
-            client, dataset.team
-        )
         item_properties_set = {prop["name"] for prop in item_properties}
         for item_property in item_properties_set:
             for team_prop in team_item_properties_lookup:
@@ -1830,7 +1859,7 @@ def _import_annotations(
     )
 
     _update_payload_with_properties(serialized_annotations, annotation_id_property_map)
-    serialized_item_level_properties = _update_payload_with_item_level_properties(
+    serialized_item_level_properties = _serialize_item_level_properties(
         item_properties, client, dataset, import_annotators, import_reviewers
     )
 

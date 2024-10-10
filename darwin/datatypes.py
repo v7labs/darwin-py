@@ -551,7 +551,7 @@ class AnnotationFile:
     annotations: Sequence[Union[Annotation, VideoAnnotation]]
 
     # Item-level properties
-    item_properties: Optional[List[Dict[str, str]]] = None
+    item_properties: Optional[list[dict[str, Any]]] = None
 
     # Deprecated
     #: Whether the annotations in the ``annotations`` attribute are ``VideoAnnotation`` or not.

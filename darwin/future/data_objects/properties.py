@@ -89,11 +89,6 @@ class FullProperty(DefaultDarwin):
     def to_create_endpoint(
         self,
     ) -> dict:
-        if (
-            self.annotation_class_id is None
-            and self.granularity != PropertyGranularity.item
-        ):
-            raise ValueError("annotation_class_id must be set")
         include_fields = {
             "name": True,
             "type": True,
@@ -102,10 +97,12 @@ class FullProperty(DefaultDarwin):
             "description": True,
             "granularity": True,
         }
+        if self.granularity != PropertyGranularity.item:
+            if self.annotation_class_id is None:
+                raise ValueError("annotation_class_id must be set")
+            include_fields["annotation_class_id"] = True
         if self.dataset_ids is not None:
             include_fields["dataset_ids"] = True
-        if self.granularity != PropertyGranularity.item:
-            include_fields["annotation_class_id"] = True
         return self.model_dump(mode="json", include=include_fields)
 
     def to_update_endpoint(self) -> Tuple[str, dict]:

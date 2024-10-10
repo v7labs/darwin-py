@@ -295,7 +295,7 @@ class BackendV2:
         return self._client._get(f"v2/teams/{team_slug}/items/{item_id}/annotations")
 
     def _get_properties_state_for_item(
-        self, item_id: str, team_slug
+        self, item_id: str, team_slug: str
     ) -> Dict[str, List[Dict[str, str]]]:
         """
         Returns the state of property values for the specified item.
