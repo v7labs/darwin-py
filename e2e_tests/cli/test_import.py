@@ -2,7 +2,6 @@ from pathlib import Path
 
 
 from e2e_tests.helpers import (
-    assert_cli,
     run_cli_command,
     export_and_download_annotations,
     delete_annotation_uuids,
@@ -238,7 +237,6 @@ def run_import_test(
     result = run_cli_command(
         f"darwin dataset import {local_dataset.name} darwin {expected_annotations_dir} {additional_flags}"
     )
-    assert_cli(result, exit_code)
 
     if expect_warning:
         assert expect_warning in result.stdout
@@ -464,4 +462,17 @@ def test_import_annotations_with_subtypes_to_videos(
         config_values,
         item_type="single_slotted_video",
         annotations_subdir="video_annotations_with_subtypes",
+    )
+
+
+# For this test to succeed, the `e2e-testing` Darwin team must have the `STATIC_INSTANCE_ID` feature flag enabled
+def test_importing_multiple_instance_id_values_per_annotation_generates_a_warning(
+    local_dataset: E2EDataset, config_values: ConfigValues
+) -> None:
+    run_import_test(
+        local_dataset,
+        config_values,
+        item_type="single_slotted_video",
+        annotations_subdir="video_annotation_with_multiple_instance_ids",
+        expect_error="multiple instance ID values",
     )

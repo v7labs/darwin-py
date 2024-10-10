@@ -2170,6 +2170,7 @@ def _warn_for_annotations_with_multiple_instance_ids(
             unique_instance_ids = []
             for frame_idx in annotation.frames:  # type: ignore
                 for subannotation in annotation.frames[frame_idx].subs:  # type: ignore
+                    print(subannotation)
                     if subannotation.annotation_type == "instance_id":
                         instance_id = subannotation.data
                         if instance_id not in unique_instance_ids:
