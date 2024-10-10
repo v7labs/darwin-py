@@ -112,35 +112,38 @@ class TestUploadData:
         with patch.object(
             Client, "get_remote_dataset", return_value=remote_dataset
         ) as get_remote_dataset_mock:
-            with patch.object(Console, "print", return_value=None) as print_mock:
-                upload_data(
-                    f"{team_slug_darwin_json_v2}/{dataset_slug}",
-                    ["test_1.jpg", "test_2.jpg", "test_3.jpg"],
-                    [],
-                    0,
-                    None,
-                    False,
-                    False,
-                    False,
-                    False,
-                )
-                get_remote_dataset_mock.assert_called_once()
-
-                assert (
-                    call("Skipped 1 files already in the dataset.\n", style="warning")
-                    in print_mock.call_args_list
-                )
-                assert (
-                    call(
-                        "2 files couldn't be uploaded because an error occurred.\n",
-                        style="error",
+            with patch.object(remote_dataset, "fetch_remote_files", return_value=[]):
+                with patch.object(Console, "print", return_value=None) as print_mock:
+                    upload_data(
+                        f"{team_slug_darwin_json_v2}/{dataset_slug}",
+                        ["test_1.jpg", "test_2.jpg", "test_3.jpg"],
+                        [],
+                        0,
+                        None,
+                        False,
+                        False,
+                        False,
+                        False,
                     )
-                    in print_mock.call_args_list
-                )
-                assert (
-                    call('Re-run with "--verbose" for further details')
-                    in print_mock.call_args_list
-                )
+                    get_remote_dataset_mock.assert_called_once()
+
+                    assert (
+                        call(
+                            "Skipped 1 files already in the dataset.\n", style="warning"
+                        )
+                        in print_mock.call_args_list
+                    )
+                    assert (
+                        call(
+                            "2 files couldn't be uploaded because an error occurred.\n",
+                            style="error",
+                        )
+                        in print_mock.call_args_list
+                    )
+                    assert (
+                        call('Re-run with "--verbose" for further details')
+                        in print_mock.call_args_list
+                    )
 
     @pytest.mark.usefixtures("file_read_write_test")
     @responses.activate
@@ -215,35 +218,38 @@ class TestUploadData:
         with patch.object(
             Client, "get_remote_dataset", return_value=remote_dataset
         ) as get_remote_dataset_mock:
-            with patch.object(Console, "print", return_value=None) as print_mock:
-                upload_data(
-                    f"{team_slug_darwin_json_v2}/{dataset_slug}",
-                    ["test_1.jpg", "test_2.jpg", "test_3.jpg"],
-                    [],
-                    0,
-                    None,
-                    None,
-                    False,
-                    False,
-                    True,
-                )
-                get_remote_dataset_mock.assert_called_once()
-
-                assert (
-                    call("Skipped 1 files already in the dataset.\n", style="warning")
-                    in print_mock.call_args_list
-                )
-                assert (
-                    call(
-                        "2 files couldn't be uploaded because an error occurred.\n",
-                        style="error",
+            with patch.object(remote_dataset, "fetch_remote_files", return_value=[]):
+                with patch.object(Console, "print", return_value=None) as print_mock:
+                    upload_data(
+                        f"{team_slug_darwin_json_v2}/{dataset_slug}",
+                        ["test_1.jpg", "test_2.jpg", "test_3.jpg"],
+                        [],
+                        0,
+                        None,
+                        None,
+                        False,
+                        False,
+                        True,
                     )
-                    in print_mock.call_args_list
-                )
-                assert (
-                    call('Re-run with "--verbose" for further details')
-                    not in print_mock.call_args_list
-                )
+                    get_remote_dataset_mock.assert_called_once()
+
+                    assert (
+                        call(
+                            "Skipped 1 files already in the dataset.\n", style="warning"
+                        )
+                        in print_mock.call_args_list
+                    )
+                    assert (
+                        call(
+                            "2 files couldn't be uploaded because an error occurred.\n",
+                            style="error",
+                        )
+                        in print_mock.call_args_list
+                    )
+                    assert (
+                        call('Re-run with "--verbose" for further details')
+                        not in print_mock.call_args_list
+                    )
 
 
 class TestSetFileStatus:

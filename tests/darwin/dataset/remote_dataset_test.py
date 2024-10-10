@@ -714,15 +714,18 @@ class TestPush:
             remote_dataset.push([LocalFile("test.jpg")], as_frames=True)
 
     def test_works_with_local_files_list(self, remote_dataset: RemoteDataset):
-        assert_upload_mocks_are_correctly_called(
-            remote_dataset, [LocalFile("test.jpg")]
-        )
+        with patch.object(remote_dataset, "fetch_remote_files", return_value=[]):
+            assert_upload_mocks_are_correctly_called(
+                remote_dataset, [LocalFile("test.jpg")]
+            )
 
     def test_works_with_path_list(self, remote_dataset: RemoteDataset):
-        assert_upload_mocks_are_correctly_called(remote_dataset, [Path("test.jpg")])
+        with patch.object(remote_dataset, "fetch_remote_files", return_value=[]):
+            assert_upload_mocks_are_correctly_called(remote_dataset, [Path("test.jpg")])
 
     def test_works_with_str_list(self, remote_dataset: RemoteDataset):
-        assert_upload_mocks_are_correctly_called(remote_dataset, ["test.jpg"])
+        with patch.object(remote_dataset, "fetch_remote_files", return_value=[]):
+            assert_upload_mocks_are_correctly_called(remote_dataset, ["test.jpg"])
 
     def test_works_with_supported_files(self, remote_dataset: RemoteDataset):
         supported_extensions = [
@@ -743,7 +746,8 @@ class TestPush:
             ".ndpi",
         ]
         filenames = [f"test{extension}" for extension in supported_extensions]
-        assert_upload_mocks_are_correctly_called(remote_dataset, filenames)
+        with patch.object(remote_dataset, "fetch_remote_files", return_value=[]):
+            assert_upload_mocks_are_correctly_called(remote_dataset, filenames)
 
     def test_raises_with_unsupported_files(self, remote_dataset: RemoteDataset):
         with pytest.raises(UnsupportedFileType):

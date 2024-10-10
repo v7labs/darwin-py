@@ -12,6 +12,7 @@ from darwin.dataset.remote_dataset_v2 import RemoteDatasetV2
 from darwin.dataset.upload_manager import (
     LocalFile,
     UploadHandler,
+    UploadHandlerV2,
     UploadStage,
     _upload_chunk_size,
 )
@@ -61,7 +62,8 @@ def dataset(
 def test_request_upload_is_not_called_on_init(
     dataset: RemoteDataset, request_upload_endpoint: str
 ):
-    upload_handler = UploadHandler.build(dataset, [])
+    with patch.object(dataset, "fetch_remote_files", return_value=[]):
+        upload_handler = UploadHandler.build(dataset, [])
 
     assert upload_handler.pending_count == 0
     assert upload_handler.blocked_count == 0
@@ -97,7 +99,8 @@ def test_pending_count_is_correct(dataset: RemoteDataset, request_upload_endpoin
     responses.add(responses.POST, request_upload_endpoint, json=response, status=200)
 
     local_file = LocalFile(local_path=Path("test.jpg"))
-    upload_handler = UploadHandler.build(dataset, [local_file])
+    with patch.object(dataset, "fetch_remote_files", return_value=[]):
+        upload_handler = UploadHandler.build(dataset, [local_file])
 
     assert upload_handler.pending_count == 1
     assert upload_handler.blocked_count == 0
@@ -139,7 +142,8 @@ def test_blocked_count_is_correct(dataset: RemoteDataset, request_upload_endpoin
     responses.add(responses.POST, request_upload_endpoint, json=response, status=200)
 
     local_file = LocalFile(local_path=Path("test.jpg"))
-    upload_handler = UploadHandler.build(dataset, [local_file])
+    with patch.object(dataset, "fetch_remote_files", return_value=[]):
+        upload_handler = UploadHandler.build(dataset, [local_file])
 
     assert upload_handler.pending_count == 0
     assert upload_handler.blocked_count == 1
@@ -193,7 +197,8 @@ def test_error_count_is_correct_on_signature_request(
     responses.add(responses.GET, sign_upload_endpoint, status=500)
 
     local_file = LocalFile(local_path=Path("test.jpg"))
-    upload_handler = UploadHandler.build(dataset, [local_file])
+    with patch.object(dataset, "fetch_remote_files", return_value=[]):
+        upload_handler = UploadHandler.build(dataset, [local_file])
 
     upload_handler.upload()
     for file_to_upload in upload_handler.progress:
@@ -259,7 +264,8 @@ def test_error_count_is_correct_on_upload_to_s3(
 
     Path("test.jpg").touch()
     local_file = LocalFile(local_path=Path("test.jpg"))
-    upload_handler = UploadHandler.build(dataset, [local_file])
+    with patch.object(dataset, "fetch_remote_files", return_value=[]):
+        upload_handler = UploadHandler.build(dataset, [local_file])
 
     upload_handler.upload()
     for file_to_upload in upload_handler.progress:
@@ -326,7 +332,8 @@ def test_error_count_is_correct_on_confirm_upload(
 
     Path("test.jpg").touch()
     local_file = LocalFile(local_path=Path("test.jpg"))
-    upload_handler = UploadHandler.build(dataset, [local_file])
+    with patch.object(dataset, "fetch_remote_files", return_value=[]):
+        upload_handler = UploadHandler.build(dataset, [local_file])
 
     upload_handler.upload()
     for file_to_upload in upload_handler.progress:
@@ -391,7 +398,8 @@ def test_upload_files(dataset: RemoteDataset, request_upload_endpoint: str):
 
     Path("test.jpg").touch()
     local_file = LocalFile(local_path=Path("test.jpg"))
-    upload_handler = UploadHandler.build(dataset, [local_file])
+    with patch.object(dataset, "fetch_remote_files", return_value=[]):
+        upload_handler = UploadHandler.build(dataset, [local_file])
 
     upload_handler.upload()
     for file_to_upload in upload_handler.progress:
@@ -418,3 +426,55 @@ class TestUploadChunkSize:
     def test_value_specified_by_env_var(self, mock: MagicMock):
         assert _upload_chunk_size() == 123
         mock.assert_called_once_with("DARWIN_UPLOAD_CHUNK_SIZE")
+
+
+def test_skip_existing_full_remote_filepaths_with_local_files():
+    mock_dataset = MagicMock()
+    mock_dataset.fetch_remote_files.return_value = [
+        MagicMock(full_path="/existing_file_1.jpg"),
+        MagicMock(full_path="/existing_file_2.jpg"),
+    ]
+    mock_dataset.slug = "test-dataset"
+
+    local_file_1 = MagicMock(full_path="/existing_file_1.jpg")
+    local_file_2 = MagicMock(full_path="/new_file.jpg")
+
+    with patch("darwin.dataset.upload_manager.Console.print") as mock_print:
+        upload_handler = UploadHandlerV2(mock_dataset, [local_file_1, local_file_2], [])
+
+        assert local_file_1 not in upload_handler.local_files
+        assert local_file_2 in upload_handler.local_files
+
+        mock_print.assert_any_call(
+            "The remote filepath /existing_file_1.jpg already exists in the test-dataset dataset. Skipping upload of item.",
+            style="warning",
+        )
+
+
+def test_skip_existing_full_remote_filepaths_with_multi_file_items():
+    mock_dataset = MagicMock()
+    mock_dataset.fetch_remote_files.return_value = [
+        MagicMock(full_path="/existing_multi_file_item.jpg"),
+    ]
+    mock_dataset.slug = "test-dataset"
+
+    multi_file_item_1 = MagicMock(
+        full_path="/existing_multi_file_item.jpg", files=[MagicMock()]
+    )
+    multi_file_item_2 = MagicMock(
+        full_path="/new_multi_file_item.jpg", files=[MagicMock()]
+    )
+
+    with patch("darwin.dataset.upload_manager.Console.print") as mock_print:
+        upload_handler = UploadHandlerV2(
+            mock_dataset, [], [multi_file_item_1, multi_file_item_2]
+        )
+
+        assert multi_file_item_1 not in upload_handler.multi_file_items
+        assert multi_file_item_2 in upload_handler.multi_file_items
+
+        # Verify that the correct warning was printed
+        mock_print.assert_any_call(
+            "The remote filepath /existing_multi_file_item.jpg is already occupied by a dataset item in the test-dataset dataset. Skipping upload of item.",
+            style="warning",
+        )
