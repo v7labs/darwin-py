@@ -2591,6 +2591,49 @@ def test_does_not_raise_error_for_darwin_format_with_warnings():
     assert not slot_errors
 
 
+def test_does_not_raise_error_for_nifti_format_with_warnings():
+    bounding_box_class = dt.AnnotationClass(
+        name="class1", annotation_type="bounding_box"
+    )
+    local_files = [
+        dt.AnnotationFile(
+            path=Path("file1"),
+            remote_path="/",
+            filename="file1",
+            annotation_classes={bounding_box_class},
+            annotations=[
+                dt.Annotation(
+                    annotation_class=bounding_box_class,
+                    data={"x": 5, "y": 10, "w": 5, "h": 10},
+                    slot_names=[],
+                ),
+                dt.Annotation(
+                    annotation_class=bounding_box_class,
+                    data={"x": 15, "y": 20, "w": 15, "h": 20},
+                    slot_names=[],
+                ),
+            ],
+        ),
+    ]
+    remote_files = {
+        "/file1": {
+            "item_id": "123",
+            "slot_names": ["0", "1"],
+            "layout": {"type": "grid", "version": 1, "slots": ["0", "1"]},
+        },
+    }
+
+    local_files, slot_errors, slot_warnings = _verify_slot_annotation_alignment(
+        local_files,
+        remote_files,
+    )
+
+    console = MagicMock()
+    _display_slot_warnings_and_errors(slot_errors, slot_warnings, "nifti", console)
+
+    assert not slot_errors
+
+
 @patch("darwin.importer.importer._get_team_properties_annotation_lookup")
 @pytest.mark.parametrize("setup_data", ["section"], indirect=True)
 def test_import_existing_section_level_property_values_without_manifest(
