@@ -1,0 +1,736 @@
+{
+  "version": "2.0",
+  "schema_ref": "https://darwin-public.s3.eu-west-1.amazonaws.com/darwin_json/2.0/schema.json",
+  "item": {
+    "name": "mini_uct.mp4",
+    "path": "/",
+    "source_info": {
+      "item_id": "0192785c-3db6-f058-4c73-3a0b044b03f1",
+      "dataset": {
+        "name": "test_dataset_d3d38fef-aad5-439f-afd6-8360a25e84c8",
+        "slug": "test_dataset_d3d38fef-aad5-439f-afd6-8360a25e84c8",
+        "dataset_management_url": "https://staging.v7labs.com/datasets/386213/dataset-management"
+      },
+      "team": {
+        "name": "E2E Testing",
+        "slug": "e2e-testing"
+      },
+      "workview_url": "https://staging.v7labs.com/workview?dataset=386213&item=0192785c-3db6-f058-4c73-3a0b044b03f1"
+    },
+    "slots": [
+      {
+        "type": "video",
+        "slot_name": "0",
+        "width": 1920,
+        "height": 1080,
+        "fps": 1,
+        "thumbnail_url": "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/aa67036a-d93b-4f3d-9e23-1888331f689c/thumbnail",
+        "source_files": [
+          {
+            "file_name": "mini_uct.mp4",
+            "storage_key": "darwin-py/videos/mini_uct.mp4",
+            "url": "https://staging.v7labs.com/api/v2/teams/e2e-testing/uploads/3610aa16-6b40-492c-8a43-905839c06fde"
+          }
+        ],
+        "frame_count": 10,
+        "frame_urls": [
+          "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/aa67036a-d93b-4f3d-9e23-1888331f689c/sections/0",
+          "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/aa67036a-d93b-4f3d-9e23-1888331f689c/sections/1",
+          "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/aa67036a-d93b-4f3d-9e23-1888331f689c/sections/2",
+          "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/aa67036a-d93b-4f3d-9e23-1888331f689c/sections/3",
+          "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/aa67036a-d93b-4f3d-9e23-1888331f689c/sections/4",
+          "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/aa67036a-d93b-4f3d-9e23-1888331f689c/sections/5",
+          "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/aa67036a-d93b-4f3d-9e23-1888331f689c/sections/6",
+          "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/aa67036a-d93b-4f3d-9e23-1888331f689c/sections/7",
+          "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/aa67036a-d93b-4f3d-9e23-1888331f689c/sections/8",
+          "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/aa67036a-d93b-4f3d-9e23-1888331f689c/sections/9"
+        ]
+      }
+    ]
+  },
+  "annotations": [
+    {
+      "frames": {
+        "5": {
+          "keyframe": true,
+          "skeleton": {
+            "nodes": [
+              {
+                "name": "node",
+                "occluded": false,
+                "x": 13.1373,
+                "y": 14.3627
+              },
+              {
+                "name": "2",
+                "occluded": false,
+                "x": 10.9804,
+                "y": 12.8333
+              }
+            ]
+          }
+        },
+        "6": {
+          "keyframe": false,
+          "skeleton": {
+            "nodes": [
+              {
+                "name": "node",
+                "occluded": false,
+                "x": 13.1373,
+                "y": 14.3627
+              },
+              {
+                "name": "2",
+                "occluded": false,
+                "x": 10.9804,
+                "y": 12.8333
+              }
+            ]
+          }
+        },
+        "7": {
+          "keyframe": true,
+          "skeleton": {
+            "nodes": [
+              {
+                "name": "node",
+                "occluded": false,
+                "x": 13.1373,
+                "y": 14.3627
+              },
+              {
+                "name": "2",
+                "occluded": false,
+                "x": 10.9804,
+                "y": 12.8333
+              }
+            ]
+          }
+        }
+      },
+      "global_sub_types": {},
+      "id": "361168f4-0d86-4bd5-b6d1-0c686cdabff1",
+      "interpolate_algorithm": "linear-1.1",
+      "interpolated": true,
+      "name": "test_skeleton_basic",
+      "properties": [],
+      "ranges": [
+        [
+          5,
+          8
+        ]
+      ],
+      "slot_names": [
+        "0"
+      ]
+    },
+    {
+      "frames": {
+        "3": {
+          "bounding_box": {
+            "h": 10.0,
+            "w": 10.0,
+            "x": 3.6275,
+            "y": 6.1275
+          },
+          "keyframe": true,
+          "polygon": {
+            "paths": [
+              [
+                {
+                  "x": 12.9575,
+                  "y": 13.6275
+                },
+                {
+                  "x": 11.1275,
+                  "y": 15.4575
+                },
+                {
+                  "x": 8.6275,
+                  "y": 16.1275
+                },
+                {
+                  "x": 6.1275,
+                  "y": 15.4575
+                },
+                {
+                  "x": 4.2975,
+                  "y": 13.6275
+                },
+                {
+                  "x": 3.6275,
+                  "y": 11.1275
+                },
+                {
+                  "x": 4.2975,
+                  "y": 8.6275
+                },
+                {
+                  "x": 6.1275,
+                  "y": 6.7975
+                },
+                {
+                  "x": 8.6275,
+                  "y": 6.1275
+                },
+                {
+                  "x": 11.1275,
+                  "y": 6.7975
+                },
+                {
+                  "x": 12.9575,
+                  "y": 8.6275
+                },
+                {
+                  "x": 13.6275,
+                  "y": 11.1275
+                }
+              ]
+            ]
+          }
+        },
+        "4": {
+          "bounding_box": {
+            "h": 10.0,
+            "w": 10.0,
+            "x": 3.6275,
+            "y": 6.1275
+          },
+          "keyframe": false,
+          "polygon": {
+            "paths": [
+              [
+                {
+                  "x": 12.9575,
+                  "y": 13.6275
+                },
+                {
+                  "x": 11.1275,
+                  "y": 15.4575
+                },
+                {
+                  "x": 8.6275,
+                  "y": 16.1275
+                },
+                {
+                  "x": 6.1275,
+                  "y": 15.4575
+                },
+                {
+                  "x": 4.2975,
+                  "y": 13.6275
+                },
+                {
+                  "x": 3.6275,
+                  "y": 11.1275
+                },
+                {
+                  "x": 4.2975,
+                  "y": 8.6275
+                },
+                {
+                  "x": 6.1275,
+                  "y": 6.7975
+                },
+                {
+                  "x": 8.6275,
+                  "y": 6.1275
+                },
+                {
+                  "x": 11.1275,
+                  "y": 6.7975
+                },
+                {
+                  "x": 12.9575,
+                  "y": 8.6275
+                },
+                {
+                  "x": 13.6275,
+                  "y": 11.1275
+                }
+              ]
+            ]
+          }
+        },
+        "5": {
+          "bounding_box": {
+            "h": 10.0,
+            "w": 10.0,
+            "x": 3.6275,
+            "y": 6.1275
+          },
+          "keyframe": true,
+          "polygon": {
+            "paths": [
+              [
+                {
+                  "x": 12.9575,
+                  "y": 13.6275
+                },
+                {
+                  "x": 11.1275,
+                  "y": 15.4575
+                },
+                {
+                  "x": 8.6275,
+                  "y": 16.1275
+                },
+                {
+                  "x": 6.1275,
+                  "y": 15.4575
+                },
+                {
+                  "x": 4.2975,
+                  "y": 13.6275
+                },
+                {
+                  "x": 3.6275,
+                  "y": 11.1275
+                },
+                {
+                  "x": 4.2975,
+                  "y": 8.6275
+                },
+                {
+                  "x": 6.1275,
+                  "y": 6.7975
+                },
+                {
+                  "x": 8.6275,
+                  "y": 6.1275
+                },
+                {
+                  "x": 11.1275,
+                  "y": 6.7975
+                },
+                {
+                  "x": 12.9575,
+                  "y": 8.6275
+                },
+                {
+                  "x": 13.6275,
+                  "y": 11.1275
+                }
+              ]
+            ]
+          }
+        }
+      },
+      "global_sub_types": {},
+      "id": "8c7e0c9a-987d-453c-adf5-9fb0db10fd90",
+      "interpolate_algorithm": "linear-1.1",
+      "interpolated": true,
+      "name": "test_polygon_basic",
+      "properties": [],
+      "ranges": [
+        [
+          3,
+          6
+        ]
+      ],
+      "slot_names": [
+        "0"
+      ]
+    },
+    {
+      "frames": {
+        "0": {
+          "keyframe": true,
+          "line": {
+            "path": [
+              {
+                "x": 6.1275,
+                "y": 5.098
+              },
+              {
+                "x": 0.098,
+                "y": 14.2157
+              },
+              {
+                "x": 14.4118,
+                "y": 16.3725
+              },
+              {
+                "x": 15.3431,
+                "y": 8.5784
+              }
+            ]
+          }
+        },
+        "1": {
+          "keyframe": false,
+          "line": {
+            "path": [
+              {
+                "x": 6.1275,
+                "y": 5.098
+              },
+              {
+                "x": 0.098,
+                "y": 14.2157
+              },
+              {
+                "x": 14.4118,
+                "y": 16.3725
+              },
+              {
+                "x": 15.3431,
+                "y": 8.5784
+              }
+            ]
+          }
+        },
+        "2": {
+          "keyframe": true,
+          "line": {
+            "path": [
+              {
+                "x": 6.1275,
+                "y": 5.098
+              },
+              {
+                "x": 0.098,
+                "y": 14.2157
+              },
+              {
+                "x": 14.4118,
+                "y": 16.3725
+              },
+              {
+                "x": 15.3431,
+                "y": 8.5784
+              }
+            ]
+          }
+        }
+      },
+      "global_sub_types": {},
+      "id": "506f67d6-4cc1-44b5-af87-6b774c8f6ff2",
+      "interpolate_algorithm": "linear-1.1",
+      "interpolated": true,
+      "name": "test_line_basic",
+      "properties": [],
+      "ranges": [
+        [
+          0,
+          3
+        ]
+      ],
+      "slot_names": [
+        "0"
+      ]
+    },
+    {
+      "frames": {
+        "9": {
+          "keyframe": true,
+          "keypoint": {
+            "x": 18.4314,
+            "y": 6.2255
+          }
+        }
+      },
+      "global_sub_types": {},
+      "id": "04a2302b-d946-4595-ba3b-9c4c81c6fa10",
+      "interpolate_algorithm": "linear-1.1",
+      "interpolated": true,
+      "name": "test_keypoint_basic",
+      "properties": [],
+      "ranges": [
+        [
+          9,
+          10
+        ]
+      ],
+      "slot_names": [
+        "0"
+      ]
+    },
+    {
+      "frames": {
+        "7": {
+          "ellipse": {
+            "angle": 0.4987,
+            "center": {
+              "x": 10.9804,
+              "y": 6.6912
+            },
+            "radius": {
+              "x": 3.1258,
+              "y": 3.1258
+            }
+          },
+          "keyframe": true
+        },
+        "8": {
+          "ellipse": {
+            "angle": 0.4987,
+            "center": {
+              "x": 10.9804,
+              "y": 6.6912
+            },
+            "radius": {
+              "x": 3.1258,
+              "y": 3.1258
+            }
+          },
+          "keyframe": false
+        },
+        "9": {
+          "ellipse": {
+            "angle": 0.4987,
+            "center": {
+              "x": 10.9804,
+              "y": 6.6912
+            },
+            "radius": {
+              "x": 3.1258,
+              "y": 3.1258
+            }
+          },
+          "keyframe": true
+        }
+      },
+      "global_sub_types": {},
+      "id": "d4c95883-3d62-484b-8396-ad515472a610",
+      "interpolate_algorithm": "linear-1.1",
+      "interpolated": true,
+      "name": "test_ellipse_basic",
+      "properties": [],
+      "ranges": [
+        [
+          7,
+          10
+        ]
+      ],
+      "slot_names": [
+        "0"
+      ]
+    },
+    {
+      "frames": {
+        "7": {
+          "bounding_box": {
+            "h": 1.5196,
+            "w": 3.0882,
+            "x": 5.7353,
+            "y": 18.4314
+          },
+          "keyframe": true
+        },
+        "8": {
+          "bounding_box": {
+            "h": 1.5196,
+            "w": 3.0882,
+            "x": 5.7353,
+            "y": 18.4314
+          },
+          "keyframe": false
+        },
+        "9": {
+          "bounding_box": {
+            "h": 1.5196,
+            "w": 3.0882,
+            "x": 5.7353,
+            "y": 18.4314
+          },
+          "keyframe": true
+        }
+      },
+      "global_sub_types": {},
+      "id": "764aad3d-bfdf-434e-b39b-d1d89312d20f",
+      "interpolate_algorithm": "linear-1.1",
+      "interpolated": true,
+      "name": "test_bounding_box_basic",
+      "properties": [],
+      "ranges": [
+        [
+          7,
+          10
+        ]
+      ],
+      "slot_names": [
+        "0"
+      ]
+    },
+    {
+      "frames": {
+        "3": {
+          "keyframe": true,
+          "mask": {}
+        },
+        "4": {
+          "keyframe": true,
+          "mask": {}
+        }
+      },
+      "id": "2b7d48b1-cfeb-4d86-a460-df1b488560e7",
+      "interpolate_algorithm": "linear-1.1",
+      "name": "test_mask_basic",
+      "only_keyframes": true,
+      "properties": [],
+      "ranges": [
+        [
+          3,
+          5
+        ]
+      ],
+      "slot_names": [
+        "0"
+      ]
+    },
+    {
+      "frames": {
+        "5": {
+          "keyframe": true,
+          "tag": {}
+        },
+        "6": {
+          "keyframe": false,
+          "tag": {}
+        },
+        "7": {
+          "keyframe": true,
+          "tag": {}
+        }
+      },
+      "id": "38c36255-1807-4641-b83d-1b96a4839dba",
+      "name": "test_tag_basic",
+      "properties": [],
+      "ranges": [
+        [
+          5,
+          8
+        ]
+      ],
+      "slot_names": [
+        "0"
+      ]
+    },
+    {
+      "frames": {
+        "3": {
+          "keyframe": true,
+          "raster_layer": {
+            "dense_rle": [
+              0,
+              26897,
+              1,
+              4,
+              0,
+              1914,
+              1,
+              8,
+              0,
+              1912,
+              1,
+              8,
+              0,
+              1911,
+              1,
+              10,
+              0,
+              1910,
+              1,
+              10,
+              0,
+              1910,
+              1,
+              10,
+              0,
+              1910,
+              1,
+              10,
+              0,
+              1911,
+              1,
+              8,
+              0,
+              1912,
+              1,
+              8,
+              0,
+              1914,
+              1,
+              4,
+              0,
+              2029419
+            ],
+            "mask_annotation_ids_mapping": {
+              "2b7d48b1-cfeb-4d86-a460-df1b488560e7": 1
+            },
+            "total_pixels": 2073600
+          }
+        },
+        "4": {
+          "keyframe": true,
+          "raster_layer": {
+            "dense_rle": [
+              0,
+              1937,
+              1,
+              4,
+              0,
+              1914,
+              1,
+              8,
+              0,
+              1912,
+              1,
+              8,
+              0,
+              1911,
+              1,
+              10,
+              0,
+              1910,
+              1,
+              10,
+              0,
+              1910,
+              1,
+              10,
+              0,
+              1910,
+              1,
+              10,
+              0,
+              1911,
+              1,
+              8,
+              0,
+              1912,
+              1,
+              8,
+              0,
+              1914,
+              1,
+              4,
+              0,
+              2054379
+            ],
+            "mask_annotation_ids_mapping": {
+              "2b7d48b1-cfeb-4d86-a460-df1b488560e7": 1
+            },
+            "total_pixels": 2073600
+          }
+        }
+      },
+      "id": "4d94efc6-dbea-4ccc-b49f-58510f7a7a71",
+      "name": "__raster_layer__",
+      "only_keyframes": true,
+      "properties": [],
+      "ranges": [
+        [
+          0,
+          10
+        ]
+      ],
+      "slot_names": [
+        "0"
+      ]
+    }
+  ],
+  "properties": []
+}

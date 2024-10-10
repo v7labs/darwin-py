@@ -145,6 +145,7 @@ def get_read_only_registration_payload(
     - `single_slotted`: A series of single-slotted items
     - `multi_slotted`: A single item with 3 image slots
     - `multi_channel`: A single item with 3 image channels
+    - `single_slotted_video`: A single single-slotted video
     """
     items = {
         "single_slotted": [
@@ -306,6 +307,87 @@ def get_read_only_registration_payload(
                 ],
                 "name": "multi_channel_item",
             },
+        ],
+        "single_slotted_video": [
+            {
+                "path": "/",
+                "type": "video",
+                "storage_key": "darwin-py/videos/mini_uct.mp4",
+                "storage_thumbnail_key": "darwin-py/videos/video_thumbnail.jpg",
+                "name": "mini_uct.mp4",
+                "sections": [
+                    {
+                        "section_index": 1,
+                        "height": 1080,
+                        "width": 1920,
+                        "storage_hq_key": "darwin-py/videos/hq_frames/image_1_hq.jpg",
+                        "storage_lq_key": "darwin-py/videos/hq_frames/image_1_lq.jpg",
+                    },
+                    {
+                        "section_index": 2,
+                        "height": 1080,
+                        "width": 1920,
+                        "storage_hq_key": "darwin-py/videos/hq_frames/image_2_hq.jpg",
+                        "storage_lq_key": "darwin-py/videos/hq_frames/image_2_lq.jpg",
+                    },
+                    {
+                        "section_index": 3,
+                        "height": 1080,
+                        "width": 1920,
+                        "storage_hq_key": "darwin-py/videos/hq_frames/image_3_hq.jpg",
+                        "storage_lq_key": "darwin-py/videos/hq_frames/image_3_lq.jpg",
+                    },
+                    {
+                        "section_index": 4,
+                        "height": 1080,
+                        "width": 1920,
+                        "storage_hq_key": "darwin-py/videos/hq_frames/image_4_hq.jpg",
+                        "storage_lq_key": "darwin-py/videos/hq_frames/image_4_lq.jpg",
+                    },
+                    {
+                        "section_index": 5,
+                        "height": 1080,
+                        "width": 1920,
+                        "storage_hq_key": "darwin-py/videos/hq_frames/image_5_hq.jpg",
+                        "storage_lq_key": "darwin-py/videos/hq_frames/image_5_lq.jpg",
+                    },
+                    {
+                        "section_index": 6,
+                        "height": 1080,
+                        "width": 1920,
+                        "storage_hq_key": "darwin-py/videos/hq_frames/image_6_hq.jpg",
+                        "storage_lq_key": "darwin-py/videos/hq_frames/image_6_lq.jpg",
+                    },
+                    {
+                        "section_index": 7,
+                        "height": 1080,
+                        "width": 1920,
+                        "storage_hq_key": "darwin-py/videos/hq_frames/image_7_hq.jpg",
+                        "storage_lq_key": "darwin-py/videos/hq_frames/image_7_lq.jpg",
+                    },
+                    {
+                        "section_index": 8,
+                        "height": 1080,
+                        "width": 1920,
+                        "storage_hq_key": "darwin-py/videos/hq_frames/image_8_hq.jpg",
+                        "storage_lq_key": "darwin-py/videos/hq_frames/image_8_lq.jpg",
+                    },
+                    {
+                        "section_index": 9,
+                        "height": 1080,
+                        "width": 1920,
+                        "storage_hq_key": "darwin-py/videos/hq_frames/image_9_hq.jpg",
+                        "storage_lq_key": "darwin-py/videos/hq_frames/image_9_lq.jpg",
+                    },
+                    {
+                        "section_index": 10,
+                        "height": 1080,
+                        "width": 1920,
+                        "storage_hq_key": "darwin-py/videos/hq_frames/image_10_hq.jpg",
+                        "storage_lq_key": "darwin-py/videos/hq_frames/image_10_lq.jpg",
+                    },
+                ],
+            }
         ],
     }
     return {
