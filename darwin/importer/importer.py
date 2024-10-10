@@ -962,10 +962,11 @@ def _normalize_item_properties(
         return item_properties
 
     normalized_properties = defaultdict(lambda: {"property_values": []})
-    for item_prop in item_properties:
-        name = item_prop["name"]
-        value = item_prop["value"]
-        normalized_properties[name]["property_values"].append({"value": value})
+    if item_properties:
+        for item_prop in item_properties:
+            name = item_prop["name"]
+            value = item_prop["value"]
+            normalized_properties[name]["property_values"].append({"value": value})
 
     return normalized_properties
 
