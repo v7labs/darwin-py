@@ -53,6 +53,7 @@
                             "type": "string"
                         }
                     ],
+                    "granularity": "section",
                     "required": true
                 }
             ]

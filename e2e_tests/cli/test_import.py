@@ -121,6 +121,17 @@ def assert_same_annotation_slot_name(
         assert actual_annotation.slot_names == [base_slot]
 
 
+def assert_same_item_level_properties(
+    expected_item_level_properties: List[Dict[str, str]],
+    actual_item_level_properties: List[Dict[str, str]],
+) -> None:
+    """
+    Ensures that all expected item-level properties are present in exported item-level properties
+    """
+    for expected_item_level_property in expected_item_level_properties:
+        assert expected_item_level_property in actual_item_level_properties
+
+
 def compare_annotations_export(
     actual_annotations_dir: Path,
     expected_annotations_dir: Path,
@@ -151,16 +162,28 @@ def compare_annotations_export(
         actual_filename = get_actual_annotation_filename(
             expected_filename, actual_annotation_files
         )
-        expected_annotations: List[dt.Annotation] = parse_darwin_json(
-            Path(expected_annotation_files[expected_filename])
-        ).annotations  # type: ignore
-        actual_annotations: List[dt.Annotation] = parse_darwin_json(
-            Path(actual_annotation_files[actual_filename])
-        ).annotations  # type: ignore
+        expected_annotation_data: List[dt.Annotation] = parse_darwin_json(
+            Path(expected_annotation_files[expected_filename])  # type: ignore
+        )
+        expected_annotations = expected_annotation_data.annotations  # type: ignore
+        expected_item_level_properties = (
+            expected_annotation_data.item_properties  # type: ignore
+        )
+
+        actual_annotation_data: List[dt.Annotation] = parse_darwin_json(
+            Path(actual_annotation_files[actual_filename])  # type: ignore
+        )
+        actual_annotations = actual_annotation_data.annotations  # type: ignore
+        actual_item_level_properties = (
+            actual_annotation_data.item_properties  # type: ignore
+        )
 
         delete_annotation_uuids(expected_annotations)
         delete_annotation_uuids(actual_annotations)
 
+        assert_same_item_level_properties(
+            expected_item_level_properties, actual_item_level_properties
+        )
         for expected_annotation in expected_annotations:
             actual_annotation = find_matching_actual_annotation(
                 expected_annotation, actual_annotations
@@ -260,6 +283,28 @@ def test_annotation_classes_are_created_with_properties_on_import(
         item_type="single_slotted",
         annotations_subdir="image_new_annotations_with_properties",
         additional_flags="--yes",
+    )
+
+
+def test_import_existing_item_level_properties(
+    local_dataset: E2EDataset, config_values: ConfigValues
+) -> None:
+    run_import_test(
+        local_dataset,
+        config_values,
+        item_type="single_slotted",
+        annotations_subdir="image_annotations_with_item_level_properties",
+    )
+
+
+def test_item_level_property_classes_are_created_on_import(
+    local_dataset: E2EDataset, config_values: ConfigValues
+) -> None:
+    run_import_test(
+        local_dataset,
+        config_values,
+        item_type="single_slotted",
+        annotations_subdir="image_new_annotations_with_item_level_properties",
     )
 
 

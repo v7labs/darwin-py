@@ -1,0 +1,595 @@
+{
+  "version": "2.0",
+  "schema_ref": "https://darwin-public.s3.eu-west-1.amazonaws.com/darwin_json/2.0/schema.json",
+  "item": {
+    "name": "image_1",
+    "path": "/",
+    "source_info": {
+      "item_id": "01920b92-1d5d-94a4-6fbe-8a4d7f9fa15d",
+      "dataset": {
+        "name": "test_dataset_2edf4430-1a35-45a2-8c45-b0325968bee2",
+        "slug": "test_dataset_2edf4430-1a35-45a2-8c45-b0325968bee2",
+        "dataset_management_url": "https://staging.v7labs.com/datasets/339501/dataset-management"
+      },
+      "team": {
+        "name": "E2E Testing",
+        "slug": "e2e-testing"
+      },
+      "workview_url": "https://staging.v7labs.com/workview?dataset=339501&item=01920b92-1d5d-94a4-6fbe-8a4d7f9fa15d"
+    },
+    "slots": [
+      {
+        "type": "image",
+        "slot_name": "0",
+        "width": 1920,
+        "height": 1080,
+        "thumbnail_url": "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/2ec69e41-91b2-4155-9b05-6ed995677b1e/thumbnail",
+        "source_files": [
+          {
+            "file_name": "image_1",
+            "storage_key": "darwin-py/images/image_1.jpg",
+            "url": "https://staging.v7labs.com/api/v2/teams/e2e-testing/uploads/9dfc5eac-bf16-4380-a148-9fff6e63b9f0"
+          }
+        ]
+      }
+    ]
+  },
+  "annotations": [
+    {
+      "bounding_box": {
+        "h": 58.941,
+        "w": 216.693,
+        "x": 280.449,
+        "y": 173.355
+      },
+      "id": "b92626e7-a1fd-4ecb-a418-31aa37069bc1",
+      "instance_id": {
+        "value": 2
+      },
+      "name": "test_bounding_box_with_subtypes_and_properties",
+      "properties": [
+        {
+          "frame_index": 0,
+          "name": "multi_select-1",
+          "value": "1"
+        },
+        {
+          "frame_index": 0,
+          "name": "multi_select-1",
+          "value": "2"
+        },
+        {
+          "frame_index": 0,
+          "name": "single_select-1",
+          "value": "1"
+        }
+      ],
+      "slot_names": [
+        "0"
+      ],
+      "text": {
+        "text": "test_text"
+      }
+    },
+    {
+      "ellipse": {
+        "angle": 0.3985,
+        "center": {
+          "x": 133.4425,
+          "y": 69.1719
+        },
+        "radius": {
+          "x": 18.3176,
+          "y": 18.3176
+        }
+      },
+      "id": "40288025-5eea-406c-95fb-fd335df117fe",
+      "instance_id": {
+        "value": 3
+      },
+      "name": "test_ellipse_with_subtypes_and_properties",
+      "properties": [
+        {
+          "frame_index": 0,
+          "name": "single_select-1",
+          "value": "1"
+        }
+      ],
+      "slot_names": [
+        "0"
+      ],
+      "text": {
+        "text": "test_text"
+      }
+    },
+    {
+      "id": "de3a1fd0-bff9-4b4a-bffb-b6b92bff18a3",
+      "instance_id": {
+        "value": 4
+      },
+      "keypoint": {
+        "x": 49.6239,
+        "y": 173.4268
+      },
+      "name": "test_keypoint_with_subtypes_and_properties",
+      "properties": [
+        {
+          "frame_index": 0,
+          "name": "multi_select-1",
+          "value": "1"
+        },
+        {
+          "frame_index": 0,
+          "name": "multi_select-1",
+          "value": "2"
+        }
+      ],
+      "slot_names": [
+        "0"
+      ],
+      "text": {
+        "text": "test_text"
+      }
+    },
+    {
+      "id": "d078cdd0-7ff3-4835-9d5d-f4e0c6a31fa6",
+      "instance_id": {
+        "value": 5
+      },
+      "line": {
+        "path": [
+          {
+            "x": 142.624,
+            "y": -0.1339
+          },
+          {
+            "x": 171.0572,
+            "y": -45.1531
+          },
+          {
+            "x": 199.4903,
+            "y": 0.4584
+          }
+        ]
+      },
+      "name": "test_line_with_subtypes_and_properties",
+      "properties": [
+        {
+          "frame_index": 0,
+          "name": "single_select-1",
+          "value": "2"
+        }
+      ],
+      "slot_names": [
+        "0"
+      ],
+      "text": {
+        "text": "test_text"
+      }
+    },
+    {
+      "bounding_box": {
+        "h": 35.85509999999999,
+        "w": 108.1345,
+        "x": 275.1268,
+        "y": 30.7501
+      },
+      "directional_vector": {
+        "angle": -1.6494,
+        "length": 118.3181
+      },
+      "id": "063cd083-e25a-4f0d-82d9-45d0b3c9dedd",
+      "instance_id": {
+        "value": 6
+      },
+      "name": "test_polygon_with_subtypes_and_properties",
+      "polygon": {
+        "paths": [
+          [
+            {
+              "x": 336.0236,
+              "y": 30.7501
+            },
+            {
+              "x": 304.7215,
+              "y": 64.8979
+            },
+            {
+              "x": 383.2613,
+              "y": 66.6052
+            },
+            {
+              "x": 275.1268,
+              "y": 34.734
+            }
+          ]
+        ]
+      },
+      "properties": [
+        {
+          "frame_index": 0,
+          "name": "multi_select-1",
+          "value": "1"
+        },
+        {
+          "frame_index": 0,
+          "name": "multi_select-1",
+          "value": "2"
+        },
+        {
+          "frame_index": 0,
+          "name": "single_select-1",
+          "value": "2"
+        }
+      ],
+      "slot_names": [
+        "0"
+      ],
+      "text": {
+        "text": "test_text"
+      }
+    },
+    {
+      "id": "a446a6dc-6427-413f-8f5d-5af0121f0923",
+      "instance_id": {
+        "value": 7
+      },
+      "name": "test_skeleton_with_subtypes_and_properties",
+      "properties": [
+        {
+          "frame_index": 0,
+          "name": "multi_select-1",
+          "value": "2"
+        },
+        {
+          "frame_index": 0,
+          "name": "multi_select-1",
+          "value": "1"
+        }
+      ],
+      "skeleton": {
+        "nodes": [
+          {
+            "name": "node",
+            "occluded": false,
+            "x": 301.369,
+            "y": 175.5217
+          },
+          {
+            "name": "2",
+            "occluded": false,
+            "x": 341.4465,
+            "y": 161.2866
+          }
+        ]
+      },
+      "slot_names": [
+        "0"
+      ],
+      "text": {
+        "text": "test_text"
+      }
+    },
+    {
+      "id": "e59b6d18-88dc-417a-a619-513c634e1402",
+      "name": "test_tag_with_subtypes_and_properties",
+      "properties": [
+        {
+          "frame_index": 0,
+          "name": "multi_select-1",
+          "value": "1"
+        },
+        {
+          "frame_index": 0,
+          "name": "multi_select-1",
+          "value": "2"
+        },
+        {
+          "frame_index": 0,
+          "name": "single_select-1",
+          "value": "1"
+        }
+      ],
+      "slot_names": [
+        "0"
+      ],
+      "tag": {},
+      "text": {
+        "text": "test_text"
+      }
+    },
+    {
+      "id": "4f58cca2-e174-4564-b242-1d17042f1b01",
+      "mask": {},
+      "name": "test_mask_with_subtypes_and_properties",
+      "properties": [],
+      "slot_names": [
+        "0"
+      ]
+    },
+    {
+      "id": "8596d3bd-d9f1-4663-8cc7-d444e97abb74",
+      "name": "__raster_layer__",
+      "properties": [],
+      "raster_layer": {
+        "dense_rle": [
+          0,
+          503228,
+          1,
+          8,
+          0,
+          21,
+          1,
+          10,
+          0,
+          1879,
+          1,
+          12,
+          0,
+          17,
+          1,
+          14,
+          0,
+          1875,
+          1,
+          16,
+          0,
+          13,
+          1,
+          18,
+          0,
+          1872,
+          1,
+          18,
+          0,
+          11,
+          1,
+          20,
+          0,
+          1870,
+          1,
+          20,
+          0,
+          9,
+          1,
+          22,
+          0,
+          7,
+          1,
+          11,
+          0,
+          1850,
+          1,
+          22,
+          0,
+          7,
+          1,
+          27,
+          0,
+          1,
+          1,
+          18,
+          0,
+          1845,
+          1,
+          22,
+          0,
+          7,
+          1,
+          48,
+          0,
+          1842,
+          1,
+          24,
+          0,
+          5,
+          1,
+          51,
+          0,
+          1840,
+          1,
+          24,
+          0,
+          5,
+          1,
+          52,
+          0,
+          1838,
+          1,
+          26,
+          0,
+          3,
+          1,
+          54,
+          0,
+          1837,
+          1,
+          26,
+          0,
+          3,
+          1,
+          55,
+          0,
+          1836,
+          1,
+          26,
+          0,
+          3,
+          1,
+          55,
+          0,
+          1836,
+          1,
+          26,
+          0,
+          3,
+          1,
+          56,
+          0,
+          1835,
+          1,
+          26,
+          0,
+          3,
+          1,
+          56,
+          0,
+          1835,
+          1,
+          26,
+          0,
+          3,
+          1,
+          57,
+          0,
+          1834,
+          1,
+          26,
+          0,
+          3,
+          1,
+          57,
+          0,
+          1834,
+          1,
+          26,
+          0,
+          3,
+          1,
+          57,
+          0,
+          1834,
+          1,
+          26,
+          0,
+          4,
+          1,
+          56,
+          0,
+          1834,
+          1,
+          26,
+          0,
+          4,
+          1,
+          56,
+          0,
+          1835,
+          1,
+          24,
+          0,
+          6,
+          1,
+          55,
+          0,
+          1835,
+          1,
+          24,
+          0,
+          6,
+          1,
+          55,
+          0,
+          1836,
+          1,
+          22,
+          0,
+          8,
+          1,
+          54,
+          0,
+          1836,
+          1,
+          22,
+          0,
+          9,
+          1,
+          52,
+          0,
+          1838,
+          1,
+          20,
+          0,
+          11,
+          1,
+          51,
+          0,
+          1839,
+          1,
+          18,
+          0,
+          14,
+          1,
+          48,
+          0,
+          1841,
+          1,
+          16,
+          0,
+          17,
+          1,
+          46,
+          0,
+          1843,
+          1,
+          12,
+          0,
+          23,
+          1,
+          41,
+          0,
+          1846,
+          1,
+          8,
+          0,
+          26,
+          1,
+          39,
+          0,
+          1882,
+          1,
+          37,
+          0,
+          1885,
+          1,
+          14,
+          0,
+          1,
+          1,
+          18,
+          0,
+          1889,
+          1,
+          10,
+          0,
+          8,
+          1,
+          11,
+          0,
+          1512704
+        ],
+        "mask_annotation_ids_mapping": {
+          "4f58cca2-e174-4564-b242-1d17042f1b01": 1
+        },
+        "total_pixels": 2073600
+      },
+      "slot_names": [
+        "0"
+      ]
+    }
+  ],
+  "properties": [
+    {
+      "name": "new_item_level_property_multi_select",
+      "value": "1"
+    },
+    {
+      "name": "new_item_level_property_multi_select",
+      "value": "2"
+    },
+    {
+      "name": "new_item_level_property_single_select",
+      "value": "1"
+    }
+  ]
+}

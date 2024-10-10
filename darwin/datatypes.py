@@ -438,6 +438,9 @@ class Property:
     # Property options
     property_values: list[dict[str, Any]]
 
+    # Granularity of the property
+    granularity: PropertyGranularity
+
     # Description of the property
     description: Optional[str] = None
 
@@ -546,6 +549,9 @@ class AnnotationFile:
 
     #: List of ``VideoAnnotation``\s or ``Annotation``\s.
     annotations: Sequence[Union[Annotation, VideoAnnotation]]
+
+    # Item-level properties
+    item_properties: Optional[list[dict[str, Any]]] = None
 
     # Deprecated
     #: Whether the annotations in the ``annotations`` attribute are ``VideoAnnotation`` or not.

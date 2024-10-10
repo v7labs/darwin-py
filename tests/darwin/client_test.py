@@ -375,10 +375,10 @@ class TestGetTeamProperties:
                             },
                         ],
                         "required": False,
+                        "granularity": "section",
                         "slug": "property-question",
                         "team_id": 128,
                         "type": "multi_select",
-                        "granularity": "section",
                     },
                 ]
             },
@@ -397,7 +397,7 @@ class TestCreateProperty:
         responses.add(
             responses.POST,
             "http://localhost/apiv2/teams/v7-darwin-json-v2/properties",
-            json=base_property_object.dict(),
+            json=base_property_object.model_dump(mode="json"),
             status=200,
         )
         _property = darwin_client.create_property(
@@ -413,11 +413,12 @@ class TestCreateProperty:
         responses.add(
             responses.POST,
             "http://localhost/apiv2/teams/v7-darwin-json-v2/properties",
-            json=base_property_object.dict(),
+            json=base_property_object.model_dump(mode="json"),
             status=200,
         )
         _property = darwin_client.create_property(
-            team_slug="v7-darwin-json-v2", params=base_property_object.dict()
+            team_slug="v7-darwin-json-v2",
+            params=base_property_object.model_dump(mode="json"),
         )
         assert isinstance(_property, FullProperty)
         assert _property == base_property_object
@@ -433,7 +434,7 @@ class TestUpdateProperty:
         responses.add(
             responses.PUT,
             f"http://localhost/apiv2/teams/v7-darwin-json-v2/properties/{property_id}",
-            json=base_property_object.dict(),
+            json=base_property_object.model_dump(mode="json"),
             status=200,
         )
         _property = darwin_client.update_property(
@@ -450,11 +451,12 @@ class TestUpdateProperty:
         responses.add(
             responses.PUT,
             f"http://localhost/apiv2/teams/v7-darwin-json-v2/properties/{property_id}",
-            json=base_property_object.dict(),
+            json=base_property_object.model_dump(mode="json"),
             status=200,
         )
         _property = darwin_client.update_property(
-            team_slug="v7-darwin-json-v2", params=base_property_object.dict()
+            team_slug="v7-darwin-json-v2",
+            params=base_property_object.model_dump(mode="json"),
         )
         assert isinstance(_property, FullProperty)
         assert _property == base_property_object

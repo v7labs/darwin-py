@@ -1,0 +1,531 @@
+{
+  "version": "2.0",
+  "schema_ref": "https://darwin-public.s3.eu-west-1.amazonaws.com/darwin_json/2.0/schema.json",
+  "item": {
+    "name": "image_3",
+    "path": "/dir1",
+    "source_info": {
+      "item_id": "01920b92-1d5d-e8ad-986f-ad4942f1bbfc",
+      "dataset": {
+        "name": "test_dataset_2edf4430-1a35-45a2-8c45-b0325968bee2",
+        "slug": "test_dataset_2edf4430-1a35-45a2-8c45-b0325968bee2",
+        "dataset_management_url": "https://staging.v7labs.com/datasets/339501/dataset-management"
+      },
+      "team": {
+        "name": "E2E Testing",
+        "slug": "e2e-testing"
+      },
+      "workview_url": "https://staging.v7labs.com/workview?dataset=339501&item=01920b92-1d5d-e8ad-986f-ad4942f1bbfc"
+    },
+    "slots": [
+      {
+        "type": "image",
+        "slot_name": "0",
+        "width": 1920,
+        "height": 1080,
+        "thumbnail_url": "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/ddd13905-9bbb-4fab-9642-bf4604686fda/thumbnail",
+        "source_files": [
+          {
+            "file_name": "image_3",
+            "storage_key": "darwin-py/images/image_3.jpg",
+            "url": "https://staging.v7labs.com/api/v2/teams/e2e-testing/uploads/30ec0f13-caaa-4374-be5a-e90b3493fb73"
+          }
+        ]
+      }
+    ]
+  },
+  "annotations": [
+    {
+      "bounding_box": {
+        "h": 58.941,
+        "w": 216.693,
+        "x": 280.449,
+        "y": 173.355
+      },
+      "id": "6485cc18-0fc6-4a64-9794-474fd7040767",
+      "instance_id": {
+        "value": 2
+      },
+      "name": "test_bounding_box_with_subtypes_and_properties",
+      "properties": [
+        {
+          "frame_index": 0,
+          "name": "multi_select-1",
+          "value": "1"
+        },
+        {
+          "frame_index": 0,
+          "name": "multi_select-1",
+          "value": "2"
+        },
+        {
+          "frame_index": 0,
+          "name": "single_select-1",
+          "value": "1"
+        }
+      ],
+      "slot_names": [
+        "0"
+      ],
+      "text": {
+        "text": "test_text"
+      }
+    },
+    {
+      "ellipse": {
+        "angle": 0.3985,
+        "center": {
+          "x": 133.4425,
+          "y": 69.1719
+        },
+        "radius": {
+          "x": 18.3176,
+          "y": 18.3176
+        }
+      },
+      "id": "f133a6c1-8de2-47f8-a295-e1978e9fda05",
+      "instance_id": {
+        "value": 3
+      },
+      "name": "test_ellipse_with_subtypes_and_properties",
+      "properties": [
+        {
+          "frame_index": 0,
+          "name": "single_select-1",
+          "value": "1"
+        }
+      ],
+      "slot_names": [
+        "0"
+      ],
+      "text": {
+        "text": "test_text"
+      }
+    },
+    {
+      "id": "3088bafc-a6b8-46e1-864a-ea49ce6d46c9",
+      "instance_id": {
+        "value": 4
+      },
+      "keypoint": {
+        "x": 49.6239,
+        "y": 173.4268
+      },
+      "name": "test_keypoint_with_subtypes_and_properties",
+      "properties": [
+        {
+          "frame_index": 0,
+          "name": "multi_select-1",
+          "value": "1"
+        },
+        {
+          "frame_index": 0,
+          "name": "multi_select-1",
+          "value": "2"
+        }
+      ],
+      "slot_names": [
+        "0"
+      ],
+      "text": {
+        "text": "test_text"
+      }
+    },
+    {
+      "id": "a6786798-3d81-4c72-adcb-34a4615c33ce",
+      "instance_id": {
+        "value": 5
+      },
+      "line": {
+        "path": [
+          {
+            "x": 142.624,
+            "y": -0.1339
+          },
+          {
+            "x": 171.0572,
+            "y": -45.1531
+          },
+          {
+            "x": 199.4903,
+            "y": 0.4584
+          }
+        ]
+      },
+      "name": "test_line_with_subtypes_and_properties",
+      "properties": [
+        {
+          "frame_index": 0,
+          "name": "single_select-1",
+          "value": "2"
+        }
+      ],
+      "slot_names": [
+        "0"
+      ],
+      "text": {
+        "text": "test_text"
+      }
+    },
+    {
+      "bounding_box": {
+        "h": 35.85509999999999,
+        "w": 108.1345,
+        "x": 275.1268,
+        "y": 30.7501
+      },
+      "directional_vector": {
+        "angle": -1.6494,
+        "length": 118.3181
+      },
+      "id": "67eb19f3-66cb-4910-8314-8cfdd6bbf34e",
+      "instance_id": {
+        "value": 6
+      },
+      "name": "test_polygon_with_subtypes_and_properties",
+      "polygon": {
+        "paths": [
+          [
+            {
+              "x": 336.0236,
+              "y": 30.7501
+            },
+            {
+              "x": 304.7215,
+              "y": 64.8979
+            },
+            {
+              "x": 383.2613,
+              "y": 66.6052
+            },
+            {
+              "x": 275.1268,
+              "y": 34.734
+            }
+          ]
+        ]
+      },
+      "properties": [
+        {
+          "frame_index": 0,
+          "name": "multi_select-1",
+          "value": "1"
+        },
+        {
+          "frame_index": 0,
+          "name": "multi_select-1",
+          "value": "2"
+        },
+        {
+          "frame_index": 0,
+          "name": "single_select-1",
+          "value": "2"
+        }
+      ],
+      "slot_names": [
+        "0"
+      ],
+      "text": {
+        "text": "test_text"
+      }
+    },
+    {
+      "id": "77cb2ca5-c010-48c9-a68d-d3e08ed78eae",
+      "instance_id": {
+        "value": 7
+      },
+      "name": "test_skeleton_with_subtypes_and_properties",
+      "properties": [
+        {
+          "frame_index": 0,
+          "name": "multi_select-1",
+          "value": "2"
+        },
+        {
+          "frame_index": 0,
+          "name": "multi_select-1",
+          "value": "1"
+        }
+      ],
+      "skeleton": {
+        "nodes": [
+          {
+            "name": "node",
+            "occluded": false,
+            "x": 301.369,
+            "y": 175.5217
+          },
+          {
+            "name": "2",
+            "occluded": false,
+            "x": 341.4465,
+            "y": 161.2866
+          }
+        ]
+      },
+      "slot_names": [
+        "0"
+      ],
+      "text": {
+        "text": "test_text"
+      }
+    },
+    {
+      "id": "318737ce-0f94-40d8-96aa-a616c1e5999c",
+      "name": "test_tag_with_subtypes_and_properties",
+      "properties": [
+        {
+          "frame_index": 0,
+          "name": "multi_select-1",
+          "value": "1"
+        },
+        {
+          "frame_index": 0,
+          "name": "multi_select-1",
+          "value": "2"
+        },
+        {
+          "frame_index": 0,
+          "name": "single_select-1",
+          "value": "1"
+        }
+      ],
+      "slot_names": [
+        "0"
+      ],
+      "tag": {},
+      "text": {
+        "text": "test_text"
+      }
+    },
+    {
+      "id": "b92d8bad-ace9-4f73-b428-9505eb960016",
+      "mask": {},
+      "name": "test_mask_with_subtypes_and_properties",
+      "properties": [],
+      "slot_names": [
+        "0"
+      ]
+    },
+    {
+      "id": "2234893b-eea8-4b90-a2d1-c0ddf32b2918",
+      "name": "__raster_layer__",
+      "properties": [],
+      "raster_layer": {
+        "dense_rle": [
+          0,
+          543631,
+          1,
+          8,
+          0,
+          1910,
+          1,
+          12,
+          0,
+          1906,
+          1,
+          16,
+          0,
+          1903,
+          1,
+          18,
+          0,
+          1901,
+          1,
+          20,
+          0,
+          1899,
+          1,
+          22,
+          0,
+          1898,
+          1,
+          22,
+          0,
+          1897,
+          1,
+          24,
+          0,
+          1896,
+          1,
+          24,
+          0,
+          1895,
+          1,
+          26,
+          0,
+          1894,
+          1,
+          26,
+          0,
+          1894,
+          1,
+          26,
+          0,
+          1894,
+          1,
+          26,
+          0,
+          1894,
+          1,
+          26,
+          0,
+          1894,
+          1,
+          26,
+          0,
+          1894,
+          1,
+          26,
+          0,
+          1894,
+          1,
+          26,
+          0,
+          1894,
+          1,
+          26,
+          0,
+          1894,
+          1,
+          26,
+          0,
+          1895,
+          1,
+          24,
+          0,
+          1896,
+          1,
+          24,
+          0,
+          1897,
+          1,
+          22,
+          0,
+          1898,
+          1,
+          22,
+          0,
+          1897,
+          1,
+          22,
+          0,
+          1897,
+          1,
+          22,
+          0,
+          1897,
+          1,
+          22,
+          0,
+          1897,
+          1,
+          22,
+          0,
+          1898,
+          1,
+          22,
+          0,
+          1897,
+          1,
+          24,
+          0,
+          1896,
+          1,
+          24,
+          0,
+          1895,
+          1,
+          26,
+          0,
+          1894,
+          1,
+          26,
+          0,
+          1894,
+          1,
+          26,
+          0,
+          1894,
+          1,
+          26,
+          0,
+          1894,
+          1,
+          26,
+          0,
+          1894,
+          1,
+          26,
+          0,
+          1894,
+          1,
+          26,
+          0,
+          1894,
+          1,
+          26,
+          0,
+          1895,
+          1,
+          24,
+          0,
+          1896,
+          1,
+          24,
+          0,
+          1897,
+          1,
+          22,
+          0,
+          1898,
+          1,
+          22,
+          0,
+          1899,
+          1,
+          20,
+          0,
+          1901,
+          1,
+          18,
+          0,
+          1903,
+          1,
+          16,
+          0,
+          1906,
+          1,
+          12,
+          0,
+          1910,
+          1,
+          8,
+          0,
+          1441645
+        ],
+        "mask_annotation_ids_mapping": {
+          "b92d8bad-ace9-4f73-b428-9505eb960016": 1
+        },
+        "total_pixels": 2073600
+      },
+      "slot_names": [
+        "0"
+      ]
+    }
+  ],
+  "properties": [
+    {
+      "name": "new_item_level_property_multi_select",
+      "value": "1"
+    },
+    {
+      "name": "new_item_level_property_multi_select",
+      "value": "2"
+    },
+    {
+      "name": "new_item_level_property_single_select",
+      "value": "1"
+    }
+  ]
+}

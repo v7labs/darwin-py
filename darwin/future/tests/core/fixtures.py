@@ -41,8 +41,8 @@ def base_property_object(base_property_value: PropertyValue) -> FullProperty:
         team_id=0,
         annotation_class_id=0,
         property_values=[base_property_value],
+        granularity=PropertyGranularity.section,
         options=[base_property_value],
-        granularity=PropertyGranularity("section"),
     )
 
 

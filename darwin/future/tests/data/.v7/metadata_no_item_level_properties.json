@@ -8,7 +8,44 @@
             "sub_types": [
                 "inference"
             ],
-            "properties": []
+            "properties": [
+                {
+                    "name": "Property 1",
+                    "type": "multi_select",
+                    "property_values": [
+                        {
+                            "type": "string",
+                            "value": "first value",
+                            "color": "rgba(255,92,0,1.0)"
+                        },
+                        {
+                            "type": "string",
+                            "value": "second value",
+                            "color": "rgba(0,0,0,1.0)"
+                        }
+                    ],
+                    "granularity": "section",
+                    "required": false
+                },
+                {
+                    "name": "Property 2",
+                    "type": "single_select",
+                    "property_values": [
+                        {
+                            "type": "string",
+                            "value": "first value",
+                            "color": "rgba(0,194,255,1.0)"
+                        },
+                        {
+                            "type": "string",
+                            "value": "second value",
+                            "color": "rgba(255,255,255,1.0)"
+                        }
+                    ],
+                    "granularity": "section",
+                    "required": false
+                }
+            ]
         },
         {
             "name": "Test Polygon",

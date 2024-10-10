@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import json
 import os
+from enum import Enum
 from pathlib import Path
 from typing import List, Literal, Optional, Tuple, Union
-from enum import Enum
 
 from pydantic import field_validator
 
@@ -81,31 +81,36 @@ class FullProperty(DefaultDarwin):
     team_id: Optional[int] = None
     annotation_class_id: Optional[int] = None
     property_values: Optional[List[PropertyValue]] = None
+    granularity: PropertyGranularity
+    dataset_ids: Optional[List[int]] = None
     options: Optional[List[PropertyValue]] = None
     granularity: PropertyGranularity = PropertyGranularity("section")
 
     def to_create_endpoint(
         self,
     ) -> dict:
-        if self.annotation_class_id is None:
-            raise ValueError("annotation_class_id must be set")
-        return self.model_dump(
-            include={
-                "name": True,
-                "type": True,
-                "required": True,
-                "annotation_class_id": True,
-                "property_values": {"__all__": {"value", "color"}},
-                "description": True,
-                "granularity": True,
-            }
-        )
+        include_fields = {
+            "name": True,
+            "type": True,
+            "required": True,
+            "property_values": {"__all__": {"value", "color", "type"}},
+            "description": True,
+            "granularity": True,
+        }
+        if self.granularity != PropertyGranularity.item:
+            if self.annotation_class_id is None:
+                raise ValueError("annotation_class_id must be set")
+            include_fields["annotation_class_id"] = True
+        if self.dataset_ids is not None:
+            include_fields["dataset_ids"] = True
+        return self.model_dump(mode="json", include=include_fields)
 
     def to_update_endpoint(self) -> Tuple[str, dict]:
         if self.id is None:
             raise ValueError("id must be set")
+
         updated_base = self.to_create_endpoint()
-        del updated_base["annotation_class_id"]  # Can't update this field
+        updated_base.pop("annotation_class_id", None)  # Can't update this field
         del updated_base["granularity"]  # Can't update this field
         return self.id, updated_base
 

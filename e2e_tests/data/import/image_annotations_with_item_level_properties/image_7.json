@@ -1,0 +1,507 @@
+{
+  "version": "2.0",
+  "schema_ref": "https://darwin-public.s3.eu-west-1.amazonaws.com/darwin_json/2.0/schema.json",
+  "item": {
+    "name": "image_7",
+    "path": "/dir1/dir3",
+    "source_info": {
+      "item_id": "01920b92-1d5d-46ee-5117-53ba0d29d1b0",
+      "dataset": {
+        "name": "test_dataset_2edf4430-1a35-45a2-8c45-b0325968bee2",
+        "slug": "test_dataset_2edf4430-1a35-45a2-8c45-b0325968bee2",
+        "dataset_management_url": "https://staging.v7labs.com/datasets/339501/dataset-management"
+      },
+      "team": {
+        "name": "E2E Testing",
+        "slug": "e2e-testing"
+      },
+      "workview_url": "https://staging.v7labs.com/workview?dataset=339501&item=01920b92-1d5d-46ee-5117-53ba0d29d1b0"
+    },
+    "slots": [
+      {
+        "type": "image",
+        "slot_name": "0",
+        "width": 1920,
+        "height": 1080,
+        "thumbnail_url": "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/1e2f63eb-b7fc-482f-91f3-8caa242e63cb/thumbnail",
+        "source_files": [
+          {
+            "file_name": "image_7",
+            "storage_key": "darwin-py/images/image_7.jpg",
+            "url": "https://staging.v7labs.com/api/v2/teams/e2e-testing/uploads/20de7c08-20dc-4f16-b559-bbcce2f7b319"
+          }
+        ]
+      }
+    ]
+  },
+  "annotations": [
+    {
+      "bounding_box": {
+        "h": 58.941,
+        "w": 216.693,
+        "x": 280.449,
+        "y": 173.355
+      },
+      "id": "0a662491-8524-460c-b0a1-463e3def1ce2",
+      "instance_id": {
+        "value": 2
+      },
+      "name": "test_bounding_box_with_subtypes_and_properties",
+      "properties": [
+        {
+          "frame_index": 0,
+          "name": "multi_select-1",
+          "value": "1"
+        },
+        {
+          "frame_index": 0,
+          "name": "multi_select-1",
+          "value": "2"
+        },
+        {
+          "frame_index": 0,
+          "name": "single_select-1",
+          "value": "1"
+        }
+      ],
+      "slot_names": [
+        "0"
+      ],
+      "text": {
+        "text": "test_text"
+      }
+    },
+    {
+      "ellipse": {
+        "angle": 0.3985,
+        "center": {
+          "x": 133.4425,
+          "y": 69.1719
+        },
+        "radius": {
+          "x": 18.3176,
+          "y": 18.3176
+        }
+      },
+      "id": "45b1762d-261b-4af4-a7b3-9250354fbb44",
+      "instance_id": {
+        "value": 3
+      },
+      "name": "test_ellipse_with_subtypes_and_properties",
+      "properties": [
+        {
+          "frame_index": 0,
+          "name": "single_select-1",
+          "value": "1"
+        }
+      ],
+      "slot_names": [
+        "0"
+      ],
+      "text": {
+        "text": "test_text"
+      }
+    },
+    {
+      "id": "5a7b975a-64a6-4eba-89c7-4be161477807",
+      "instance_id": {
+        "value": 4
+      },
+      "keypoint": {
+        "x": 49.6239,
+        "y": 173.4268
+      },
+      "name": "test_keypoint_with_subtypes_and_properties",
+      "properties": [
+        {
+          "frame_index": 0,
+          "name": "multi_select-1",
+          "value": "1"
+        },
+        {
+          "frame_index": 0,
+          "name": "multi_select-1",
+          "value": "2"
+        }
+      ],
+      "slot_names": [
+        "0"
+      ],
+      "text": {
+        "text": "test_text"
+      }
+    },
+    {
+      "id": "0cbe2fe4-989d-420d-a96a-00586ee930dc",
+      "instance_id": {
+        "value": 5
+      },
+      "line": {
+        "path": [
+          {
+            "x": 142.624,
+            "y": -0.1339
+          },
+          {
+            "x": 171.0572,
+            "y": -45.1531
+          },
+          {
+            "x": 199.4903,
+            "y": 0.4584
+          }
+        ]
+      },
+      "name": "test_line_with_subtypes_and_properties",
+      "properties": [
+        {
+          "frame_index": 0,
+          "name": "single_select-1",
+          "value": "2"
+        }
+      ],
+      "slot_names": [
+        "0"
+      ],
+      "text": {
+        "text": "test_text"
+      }
+    },
+    {
+      "bounding_box": {
+        "h": 35.85509999999999,
+        "w": 108.1345,
+        "x": 275.1268,
+        "y": 30.7501
+      },
+      "directional_vector": {
+        "angle": -1.6494,
+        "length": 118.3181
+      },
+      "id": "4024a7ec-a372-48d7-a9ee-604be710548c",
+      "instance_id": {
+        "value": 6
+      },
+      "name": "test_polygon_with_subtypes_and_properties",
+      "polygon": {
+        "paths": [
+          [
+            {
+              "x": 336.0236,
+              "y": 30.7501
+            },
+            {
+              "x": 304.7215,
+              "y": 64.8979
+            },
+            {
+              "x": 383.2613,
+              "y": 66.6052
+            },
+            {
+              "x": 275.1268,
+              "y": 34.734
+            }
+          ]
+        ]
+      },
+      "properties": [
+        {
+          "frame_index": 0,
+          "name": "multi_select-1",
+          "value": "1"
+        },
+        {
+          "frame_index": 0,
+          "name": "multi_select-1",
+          "value": "2"
+        },
+        {
+          "frame_index": 0,
+          "name": "single_select-1",
+          "value": "2"
+        }
+      ],
+      "slot_names": [
+        "0"
+      ],
+      "text": {
+        "text": "test_text"
+      }
+    },
+    {
+      "id": "b76613e5-72ba-4f2b-8bb7-4cfbd8a1b816",
+      "instance_id": {
+        "value": 7
+      },
+      "name": "test_skeleton_with_subtypes_and_properties",
+      "properties": [
+        {
+          "frame_index": 0,
+          "name": "multi_select-1",
+          "value": "2"
+        },
+        {
+          "frame_index": 0,
+          "name": "multi_select-1",
+          "value": "1"
+        }
+      ],
+      "skeleton": {
+        "nodes": [
+          {
+            "name": "node",
+            "occluded": false,
+            "x": 301.369,
+            "y": 175.5217
+          },
+          {
+            "name": "2",
+            "occluded": false,
+            "x": 341.4465,
+            "y": 161.2866
+          }
+        ]
+      },
+      "slot_names": [
+        "0"
+      ],
+      "text": {
+        "text": "test_text"
+      }
+    },
+    {
+      "id": "3b4dc955-bd5e-43d9-bd73-bfcb16e8d5dc",
+      "name": "test_tag_with_subtypes_and_properties",
+      "properties": [
+        {
+          "frame_index": 0,
+          "name": "multi_select-1",
+          "value": "1"
+        },
+        {
+          "frame_index": 0,
+          "name": "multi_select-1",
+          "value": "2"
+        },
+        {
+          "frame_index": 0,
+          "name": "single_select-1",
+          "value": "1"
+        }
+      ],
+      "slot_names": [
+        "0"
+      ],
+      "tag": {},
+      "text": {
+        "text": "test_text"
+      }
+    },
+    {
+      "id": "d830153a-94e4-434f-8cd1-cbd6c4a717da",
+      "mask": {},
+      "name": "test_mask_with_subtypes_and_properties",
+      "properties": [],
+      "slot_names": [
+        "0"
+      ]
+    },
+    {
+      "id": "ccde37ee-00af-4a85-a4ff-0fe8bde1b89b",
+      "name": "__raster_layer__",
+      "properties": [],
+      "raster_layer": {
+        "dense_rle": [
+          0,
+          447629,
+          1,
+          8,
+          0,
+          1905,
+          1,
+          17,
+          0,
+          1901,
+          1,
+          21,
+          0,
+          1897,
+          1,
+          24,
+          0,
+          1895,
+          1,
+          26,
+          0,
+          1893,
+          1,
+          28,
+          0,
+          1891,
+          1,
+          29,
+          0,
+          1891,
+          1,
+          30,
+          0,
+          1889,
+          1,
+          31,
+          0,
+          1889,
+          1,
+          32,
+          0,
+          1879,
+          1,
+          41,
+          0,
+          1877,
+          1,
+          43,
+          0,
+          1875,
+          1,
+          45,
+          0,
+          1874,
+          1,
+          46,
+          0,
+          1873,
+          1,
+          47,
+          0,
+          1872,
+          1,
+          48,
+          0,
+          1872,
+          1,
+          48,
+          0,
+          1871,
+          1,
+          49,
+          0,
+          1871,
+          1,
+          48,
+          0,
+          1871,
+          1,
+          49,
+          0,
+          1871,
+          1,
+          48,
+          0,
+          1872,
+          1,
+          48,
+          0,
+          1872,
+          1,
+          47,
+          0,
+          1873,
+          1,
+          46,
+          0,
+          1874,
+          1,
+          45,
+          0,
+          1875,
+          1,
+          43,
+          0,
+          1877,
+          1,
+          41,
+          0,
+          1880,
+          1,
+          35,
+          0,
+          1885,
+          1,
+          33,
+          0,
+          1887,
+          1,
+          26,
+          0,
+          1894,
+          1,
+          26,
+          0,
+          1894,
+          1,
+          26,
+          0,
+          1895,
+          1,
+          24,
+          0,
+          1896,
+          1,
+          24,
+          0,
+          1897,
+          1,
+          22,
+          0,
+          1898,
+          1,
+          22,
+          0,
+          1899,
+          1,
+          20,
+          0,
+          1901,
+          1,
+          18,
+          0,
+          1903,
+          1,
+          16,
+          0,
+          1906,
+          1,
+          12,
+          0,
+          1910,
+          1,
+          8,
+          0,
+          1549186
+        ],
+        "mask_annotation_ids_mapping": {
+          "d830153a-94e4-434f-8cd1-cbd6c4a717da": 1
+        },
+        "total_pixels": 2073600
+      },
+      "slot_names": [
+        "0"
+      ]
+    }
+  ],
+  "properties": [
+    {
+      "name": "test_item_level_property_multi_select",
+      "value": "1"
+    },
+    {
+      "name": "test_item_level_property_multi_select",
+      "value": "2"
+    },
+    {
+      "name": "test_item_level_property_single_select",
+      "value": "1"
+    }
+  ]
+}
