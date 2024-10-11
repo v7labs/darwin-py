@@ -1,6 +1,6 @@
 from subprocess import run
 from time import sleep
-from typing import Optional, List
+from typing import Optional, List, Union
 
 from attr import dataclass
 from pathlib import Path
@@ -257,13 +257,22 @@ def export_and_download_annotations(
     release.download_zip(actual_annotations_dir / "dataset.zip")
 
 
-def delete_annotation_uuids(annotations: List[dt.Annotation]):
+def delete_annotation_uuids(
+    annotations: List[Union[dt.Annotation, dt.VideoAnnotation]]
+):
     """
-    Removes all UUIDs in the `data` field of an `Annotation` object.
+    Removes all UUIDs present in instances of `dt.Annotation` and `dt.VideoAnnotation` objects.
 
     This allows for equality to be asserted with other annotations.
     """
     for annotation in annotations:
-        del annotation.id
-        if annotation.annotation_class.annotation_type == "raster_layer":
-            del annotation.data["mask_annotation_ids_mapping"]
+        if isinstance(annotation, dt.Annotation):
+            del annotation.id
+            if annotation.annotation_class.annotation_type == "raster_layer":
+                del annotation.data["mask_annotation_ids_mapping"]
+        elif isinstance(annotation, dt.VideoAnnotation):
+            del annotation.id
+            for frame in annotation.frames.keys():
+                del annotation.frames[frame].id
+                if annotation.annotation_class.annotation_type == "raster_layer":
+                    del annotation.frames[frame].data["mask_annotation_ids_mapping"]

@@ -13,7 +13,7 @@ from darwin.utils.utils import parse_darwin_json
 import tempfile
 import zipfile
 import darwin.datatypes as dt
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Union
 
 
 def get_actual_annotation_filename(
@@ -36,34 +36,56 @@ def get_actual_annotation_filename(
 
 
 def find_matching_actual_annotation(
-    expected_annotation: dt.Annotation, actual_annotations: List[dt.Annotation]
-):
+    expected_annotation: dt.Annotation,
+    actual_annotations: List[Union[dt.Annotation, dt.VideoAnnotation]],
+) -> Union[dt.Annotation, dt.VideoAnnotation]:
     """
-    For a given expected annotation, finds the corresponding actual annotation based on
-    the `data` field & the annotation class type
+    For a given expected annotation, finds the corresponding actual annotation
     """
-    expected_annotation_data = expected_annotation.data
-    expected_annotation_type = expected_annotation.annotation_class.annotation_type
-    actual_annotation = next(
-        (
-            annotation
-            for annotation in actual_annotations
-            if annotation.data == expected_annotation_data
-            and annotation.annotation_class.annotation_type == expected_annotation_type
-        ),
-        None,
-    )
+    if isinstance(expected_annotation, dt.Annotation):
+        expected_annotation_data = expected_annotation.data
+        expected_annotation_type = expected_annotation.annotation_class.annotation_type
+        actual_annotation = next(
+            (
+                annotation
+                for annotation in actual_annotations
+                if annotation.data == expected_annotation_data
+                and annotation.annotation_class.annotation_type
+                == expected_annotation_type
+            ),
+            None,
+        )
+    elif isinstance(expected_annotation, dt.VideoAnnotation):
+        expected_annotation_frame_data = expected_annotation.frames
+        expected_annotation_type = expected_annotation.annotation_class.annotation_type
+        actual_annotation = next(
+            (
+                annotation
+                for annotation in actual_annotations
+                if annotation.frames == expected_annotation_frame_data
+                and annotation.annotation_class.annotation_type
+                == expected_annotation_type
+            )
+        )
     assert actual_annotation is not None, "Annotation not found in actual annotations"
     return actual_annotation
 
 
 def assert_same_annotation_data(
-    expected_annotation: dt.Annotation, actual_annotation: dt.Annotation
+    expected_annotation: Union[dt.Annotation, dt.VideoAnnotation],
+    actual_annotation: Union[dt.Annotation, dt.VideoAnnotation],
 ) -> None:
     """
-    Ensures that `expected_annotation.data` is equivalent to `actual_annotation.data`
+    For `dt.Annotation` objects:
+        Ensures that `expected_annotation.data` is equivalent to `actual_annotation.data`
+
+    For `dt.VideoAnnotation` objects:
+        Ensures that `expected_annotation.frames` is equivalent to `actual_annotation.frames`
     """
-    assert expected_annotation.data == actual_annotation.data
+    if isinstance(expected_annotation, dt.Annotation):
+        assert expected_annotation.data == actual_annotation.data
+    elif isinstance(expected_annotation, dt.VideoAnnotation):
+        assert expected_annotation.frames == actual_annotation.frames
 
 
 def assert_same_annotation_properties(
@@ -420,4 +442,26 @@ def test_import_annotations_to_multi_channel_item_non_base_slot(
         item_name="multi_channel_item",
         annotations_subdir="multi_channel_annotations_aligned_with_non_base_slot",
         expect_error="WARNING: 1 file(s) have the following blocking issues and will not be imported",
+    )
+
+
+def test_import_basic_annotations_to_videos(
+    local_dataset: E2EDataset, config_values: ConfigValues
+) -> None:
+    run_import_test(
+        local_dataset,
+        config_values,
+        item_type="single_slotted_video",
+        annotations_subdir="video_annotations_without_subtypes",
+    )
+
+
+def test_import_annotations_with_subtypes_to_videos(
+    local_dataset: E2EDataset, config_values: ConfigValues
+) -> None:
+    run_import_test(
+        local_dataset,
+        config_values,
+        item_type="single_slotted_video",
+        annotations_subdir="video_annotations_with_subtypes",
     )
