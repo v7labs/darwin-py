@@ -98,7 +98,7 @@ class DatasetItem(BaseModel):
                 "current_workflow_id": raw.get("workflow_data", {}).get("workflow_id"),
                 "current_workflow": raw.get("workflow_data"),
                 "slots": raw["slots"],
-                "layout": raw["layout"],
+                "layout": raw.get("layout"),
             }
         else:
             data = {
