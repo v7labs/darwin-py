@@ -1,0 +1,133 @@
+{
+  "version": "2.0",
+  "schema_ref": "https://darwin-public.s3.eu-west-1.amazonaws.com/darwin_json/2.0/schema.json",
+  "item": {
+    "name": "mini_uct.mp4",
+    "path": "/",
+    "source_info": {
+      "item_id": "0192788d-f84c-3e47-3ed9-5801e3073ae1",
+      "dataset": {
+        "name": "test_dataset_50ea2a66-d526-4212-928a-eac3745da30a",
+        "slug": "test_dataset_50ea2a66-d526-4212-928a-eac3745da30a",
+        "dataset_management_url": "https://staging.v7labs.com/datasets/386274/dataset-management"
+      },
+      "team": {
+        "name": "E2E Testing",
+        "slug": "e2e-testing"
+      },
+      "workview_url": "https://staging.v7labs.com/workview?dataset=386274&item=0192788d-f84c-3e47-3ed9-5801e3073ae1"
+    },
+    "slots": [
+      {
+        "type": "video",
+        "slot_name": "0",
+        "width": 1920,
+        "height": 1080,
+        "fps": 1,
+        "thumbnail_url": "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/65750b55-ccfc-4a01-b9a5-ab3f1d6a0a64/thumbnail",
+        "source_files": [
+          {
+            "file_name": "mini_uct.mp4",
+            "storage_key": "darwin-py/videos/mini_uct.mp4",
+            "url": "https://staging.v7labs.com/api/v2/teams/e2e-testing/uploads/78f2a1ac-210d-43f9-bb48-d0d0c9ca17b8"
+          }
+        ],
+        "frame_count": 10,
+        "frame_urls": [
+          "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/65750b55-ccfc-4a01-b9a5-ab3f1d6a0a64/sections/0",
+          "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/65750b55-ccfc-4a01-b9a5-ab3f1d6a0a64/sections/1",
+          "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/65750b55-ccfc-4a01-b9a5-ab3f1d6a0a64/sections/2",
+          "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/65750b55-ccfc-4a01-b9a5-ab3f1d6a0a64/sections/3",
+          "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/65750b55-ccfc-4a01-b9a5-ab3f1d6a0a64/sections/4",
+          "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/65750b55-ccfc-4a01-b9a5-ab3f1d6a0a64/sections/5",
+          "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/65750b55-ccfc-4a01-b9a5-ab3f1d6a0a64/sections/6",
+          "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/65750b55-ccfc-4a01-b9a5-ab3f1d6a0a64/sections/7",
+          "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/65750b55-ccfc-4a01-b9a5-ab3f1d6a0a64/sections/8",
+          "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/65750b55-ccfc-4a01-b9a5-ab3f1d6a0a64/sections/9"
+        ]
+      }
+    ]
+  },
+  "annotations": [
+    {
+      "frames": {
+        "0": {
+          "bounding_box": {
+            "h": 3.8235,
+            "w": 6.1275,
+            "x": 7.9412,
+            "y": 8.6765
+          },
+          "instance_id": {
+            "value": 20
+          },
+          "keyframe": true
+        },
+        "1": {
+          "bounding_box": {
+            "h": 3.8235,
+            "w": 6.1275,
+            "x": 7.9412,
+            "y": 8.6765
+          },
+          "instance_id": {
+            "value": 21
+          },
+          "keyframe": false
+        },
+        "2": {
+          "bounding_box": {
+            "h": 3.8235,
+            "w": 6.1275,
+            "x": 7.9412,
+            "y": 8.6765
+          },
+          "instance_id": {
+            "value": 22
+          },
+          "keyframe": false
+        },
+        "3": {
+          "bounding_box": {
+            "h": 3.8235,
+            "w": 6.1275,
+            "x": 7.9412,
+            "y": 8.6765
+          },
+          "instance_id": {
+            "value": 23
+          },
+          "keyframe": false
+        },
+        "4": {
+          "bounding_box": {
+            "h": 3.8235,
+            "w": 6.1275,
+            "x": 7.9412,
+            "y": 8.6765
+          },
+          "instance_id": {
+            "value": 24
+          },
+          "keyframe": true
+        }
+      },
+      "global_sub_types": {},
+      "id": "c92972c6-41a5-48b6-8c4a-9e8062d06d61",
+      "interpolate_algorithm": "linear-1.1",
+      "interpolated": true,
+      "name": "test_bounding_box_with_subtypes_and_properties",
+      "properties": [],
+      "ranges": [
+        [
+          0,
+          5
+        ]
+      ],
+      "slot_names": [
+        "0"
+      ]
+    }
+  ],
+  "properties": []
+}
