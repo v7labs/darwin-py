@@ -63,7 +63,10 @@ def test_request_upload_is_not_called_on_init(
     dataset: RemoteDataset, request_upload_endpoint: str
 ):
     with patch.object(dataset, "fetch_remote_files", return_value=[]):
-        upload_handler = UploadHandler.build(dataset, [])
+        with patch.object(
+            UploadHandler, "skip_existing_full_remote_filepaths", return_value=[]
+        ):
+            upload_handler = UploadHandler.build(dataset, [])
 
     assert upload_handler.pending_count == 0
     assert upload_handler.blocked_count == 0
@@ -446,7 +449,7 @@ def test_skip_existing_full_remote_filepaths_with_local_files():
         assert local_file_2 in upload_handler.local_files
 
         mock_print.assert_any_call(
-            "The remote filepath /existing_file_1.jpg already exists in the test-dataset dataset. Skipping upload of item.",
+            "The remote filepath /existing_file_1.jpg already exists in the `test-dataset` dataset. Skipping upload of item.",
             style="warning",
         )
 
@@ -475,6 +478,28 @@ def test_skip_existing_full_remote_filepaths_with_multi_file_items():
 
         # Verify that the correct warning was printed
         mock_print.assert_any_call(
-            "The remote filepath /existing_multi_file_item.jpg is already occupied by a dataset item in the test-dataset dataset. Skipping upload of item.",
+            "The remote filepath /existing_multi_file_item.jpg is already occupied by a dataset item in the `test-dataset` dataset. Skipping upload of item.",
             style="warning",
         )
+
+
+def test_skip_existing_full_remote_filepaths_raises_if_no_files_left():
+    mock_dataset = MagicMock()
+    mock_dataset.fetch_remote_files.return_value = [
+        MagicMock(full_path="/existing_multi_file_item_1.jpg"),
+        MagicMock(full_path="/existing_multi_file_item_2.jpg"),
+    ]
+    mock_dataset.slug = "test-dataset"
+
+    multi_file_item_1 = MagicMock(
+        full_path="/existing_multi_file_item_1.jpg", files=[MagicMock()]
+    )
+    multi_file_item_2 = MagicMock(
+        full_path="/existing_multi_file_item_2.jpg", files=[MagicMock()]
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="All items to be uploaded have paths that already exist in the remote dataset. No items to upload.",
+    ):
+        UploadHandlerV2(mock_dataset, [], [multi_file_item_1, multi_file_item_2])
