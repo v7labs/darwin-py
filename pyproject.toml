@@ -13,7 +13,7 @@ license = "MIT"
 name = "darwin-py"
 readme = "README.md"
 repository = "https://github.com/v7labs/darwin-py"
-version = "1.0.9"
+version = "1.0.10"
 [[tool.poetry.packages]]
 include = "darwin"
 
