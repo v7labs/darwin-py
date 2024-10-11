@@ -1,0 +1,157 @@
+{
+  "info": {
+    "description": "Exported from Darwin",
+    "url": "n/a",
+    "version": "n/a",
+    "year": 2024,
+    "contributor": "n/a",
+    "date_created": "2024/10/11"
+  },
+  "licenses": [
+    {
+      "url": "n/a",
+      "id": 0,
+      "name": "placeholder license"
+    }
+  ],
+  "images": [
+    {
+      "license": 0,
+      "file_name": "image_1",
+      "coco_url": "n/a",
+      "height": 1080,
+      "width": 1920,
+      "date_captured": "",
+      "flickr_url": "n/a",
+      "darwin_url": "https://staging.v7labs.com/api/v2/teams/e2e-testing/uploads/1d012d3b-c330-4485-a2a1-14c55d4747ef",
+      "darwin_workview_url": "https://staging.v7labs.com/workview?dataset=387354&item=01927b33-5a68-74a7-9a46-9fa29a8bffcc",
+      "id": 3480380172,
+      "tag_ids": []
+    },
+    {
+      "license": 0,
+      "file_name": "image_2",
+      "coco_url": "n/a",
+      "height": 1080,
+      "width": 1920,
+      "date_captured": "",
+      "flickr_url": "n/a",
+      "darwin_url": "https://staging.v7labs.com/api/v2/teams/e2e-testing/uploads/404a1db2-3dd1-4266-8cf3-6c8fcb0af015",
+      "darwin_workview_url": "https://staging.v7labs.com/workview?dataset=387354&item=01927b33-5a68-cc62-7ec4-45692d9f06ea",
+      "id": 1450914486,
+      "tag_ids": []
+    }
+  ],
+  "annotations": [
+    {
+      "id": 1,
+      "image_id": 3480380172,
+      "category_id": 3638723632,
+      "segmentation": [
+        [
+          6.8628,
+          6.4715,
+          5.6848,
+          11.012,
+          5.3166,
+          11.5274,
+          9.4153,
+          12.3128,
+          9.5626,
+          11.7728
+        ]
+      ],
+      "area": 11.555552699999993,
+      "bbox": [
+        5.3166,
+        6.4715,
+        4.2459999999999996,
+        5.8412999999999995
+      ],
+      "iscrowd": 0,
+      "extra": {}
+    },
+    {
+      "id": 2,
+      "image_id": 3480380172,
+      "category_id": 3638723632,
+      "segmentation": [
+        [
+          17.4164,
+          13.0491,
+          9.0963,
+          19.553,
+          21.2697,
+          21.6882,
+          19.9198,
+          12.6073
+        ]
+      ],
+      "area": 60.13458233000006,
+      "bbox": [
+        9.0963,
+        12.6073,
+        12.1734,
+        9.080899999999998
+      ],
+      "iscrowd": 0,
+      "extra": {}
+    },
+    {
+      "id": 3,
+      "image_id": 1450914486,
+      "category_id": 3638723632,
+      "segmentation": [
+        [
+          6.1866,
+          5.8174,
+          3.858,
+          16.2317,
+          15.1131,
+          16.6845
+        ]
+      ],
+      "area": 59.134189004999996,
+      "bbox": [
+        3.858,
+        5.8174,
+        11.255099999999999,
+        10.8671
+      ],
+      "iscrowd": 0,
+      "extra": {}
+    },
+    {
+      "id": 4,
+      "image_id": 1450914486,
+      "category_id": 3638723632,
+      "segmentation": [
+        [
+          18.6061,
+          5.6234,
+          16.9243,
+          9.3751,
+          21.3229,
+          8.7282
+        ]
+      ],
+      "area": 7.707135599999987,
+      "bbox": [
+        16.9243,
+        5.6234,
+        4.398600000000002,
+        3.7516999999999996
+      ],
+      "iscrowd": 0,
+      "extra": {}
+    }
+  ],
+  "categories": [
+    {
+      "id": 3638723632,
+      "name": "test_polygon_basic",
+      "supercategory": "root"
+    }
+  ],
+  "tag_categories": []
+}

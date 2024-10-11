@@ -16,6 +16,21 @@ import darwin.datatypes as dt
 from typing import List, Dict, Optional, Union
 
 
+def compare_local_annotations_with_uploaded_annotations(
+    annotations_subdir: str,
+    annotation_format: str,
+    local_dataset: E2EDataset,
+    config_values: ConfigValues,
+) -> None:
+    # This will need to:
+    #   Parse local annotations
+    #   Get the state of remote annotations from `/annotations`
+    #   Assert that everything we're expecting is there
+    # I think this can be done most straightforwardly by parsing each location annotation
+    # file into a common format (dt.Annotation / dt.VideoAnnotation) and making baseic asserts against the API
+    pass
+
+
 def get_actual_annotation_filename(
     expected_filename: str, actual_annotation_files: Dict[str, str]
 ) -> str:
@@ -181,6 +196,14 @@ def compare_annotations_export(
         and not any(file.name.startswith(prefix) for prefix in file_prefixes_to_ignore)
     }
     for expected_filename in expected_annotation_files:
+        # This part need to change to handle multiple formats, perhaps another function which takes the annotation format?
+        # Need to test with some sample data (Probably COCO as it's the simplest case)
+        # Or, does it need to change? After parsing the COCO annotations, maybe they're in a unified format?
+        # If so, I think we only need to change the code responsible for removing UUIDs
+
+        # Yes, I think it will have to change. We'll should put this into a new function
+        # This will take the format & import the relevant importer, then parse failes with `parse_path`
+        # After parsing, we should have List[AnnotationFile] which should mean very little else has to change, save the UUID removal!
         actual_filename = get_actual_annotation_filename(
             expected_filename, actual_annotation_files
         )
@@ -222,6 +245,8 @@ def run_import_test(
     config_values: ConfigValues,
     item_type: str,
     annotations_subdir: str,
+    annotation_format: Optional[str] = "darwin",
+    export_only: Optional[bool] = False,
     item_name: Optional[str] = None,
     additional_flags: str = "",
     exit_code: int = 0,
@@ -236,7 +261,7 @@ def run_import_test(
         Path(__file__).parents[1] / "data" / "import" / annotations_subdir
     )
     result = run_cli_command(
-        f"darwin dataset import {local_dataset.name} darwin {expected_annotations_dir} {additional_flags}"
+        f"darwin dataset import {local_dataset.name} {annotation_format} {expected_annotations_dir} {additional_flags}"
     )
     assert_cli(result, exit_code)
 
@@ -247,6 +272,12 @@ def run_import_test(
         assert expect_error in result.stdout
         return
 
+    if export_only:
+        compare_local_annotations_with_uploaded_annotations(
+            annotations_subdir, annotation_format, local_dataset, config_values  # type: ignore
+        )
+        return
+
     base_slot = (
         get_base_slot_name_of_item(config_values, local_dataset.id, item_name)
         if item_name
@@ -255,7 +286,10 @@ def run_import_test(
     with tempfile.TemporaryDirectory() as tmp_dir_str:
         actual_annotations_dir = Path(tmp_dir_str)
         export_and_download_annotations(
-            actual_annotations_dir, local_dataset, config_values
+            actual_annotations_dir,
+            annotation_format,  # type: ignore
+            local_dataset,
+            config_values,
         )
         compare_annotations_export(
             actual_annotations_dir, expected_annotations_dir, item_type, base_slot
@@ -464,4 +498,77 @@ def test_import_annotations_with_subtypes_to_videos(
         config_values,
         item_type="single_slotted_video",
         annotations_subdir="video_annotations_with_subtypes",
+    )
+
+
+def test_importing_coco_annotations(
+    local_dataset: E2EDataset, config_values: ConfigValues
+) -> None:
+    annotation_format = "coco"
+    run_import_test(
+        local_dataset,
+        config_values,
+        item_type="single_slotted",
+        annotations_subdir="coco_annotations",
+        annotation_format=annotation_format,
+    )
+
+
+def test_importing_csv_tags_annotations(
+    local_dataset: E2EDataset, config_values: ConfigValues
+) -> None:
+    annotation_format = "csv_tags"
+    run_import_test(
+        local_dataset,
+        config_values,
+        item_type="single_slotted",
+        annotations_subdir="csv_tag_annotations",
+        annotation_format=annotation_format,
+        export_only=True,
+    )
+
+
+def test_importing_csv_tags_video_annotations(
+    local_dataset: E2EDataset, config_values: ConfigValues
+) -> None:
+    annotation_format = "csv_tags_video"
+    run_import_test(
+        local_dataset,
+        config_values,
+        item_type="single_slotted_video",
+        annotations_subdir="csv_tag_video_annotations",
+        annotation_format=annotation_format,
+        export_only=True,
+    )
+
+
+def test_importing_nifti_annotations(
+    local_dataset: E2EDataset, config_values: ConfigValues
+) -> None:
+    # This test is tricky to write. We ideally want to test importing NifTI annotations to a NifTI file, but:
+    # I'm fairly sure we can't regsiter a NifTI file in read-only from external store, so:
+    # Can we just import to a file that we can register from external storage? Or:
+    # Can we upload a NifTI file just for this test?
+    # More investigation needed to finish
+    annotation_format = "nifti"
+    run_import_test(
+        local_dataset,
+        config_values,
+        item_type="nifti",
+        annotations_subdir="nifti_annotations",
+        annotation_format=annotation_format,
+        export_only=True,
+    )
+
+
+def test_importing_pascal_voc_annotations(
+    local_dataset: E2EDataset, config_values: ConfigValues
+) -> None:
+    annotation_format = "pascal_voc"
+    run_import_test(
+        local_dataset,
+        config_values,
+        item_type="single_slotted",
+        annotations_subdir="pascal_voc_annotations",
+        annotation_format=annotation_format,
     )
