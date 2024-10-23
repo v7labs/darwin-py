@@ -336,6 +336,47 @@ def files_content() -> Dict[str, Any]:
     }
 
 
+@pytest.fixture()
+def unprocessed_file_content() -> Dict[str, Any]:
+    return {
+        "items": [
+            {
+                "id": "018c6826-766c-d596-44b3-46159c7c23bc",
+                "name": "segment_1.mp4",
+                "priority": 0,
+                "status": "processing",
+                "path": "/",
+                "tags": [],
+                "cursor": "018c6826-766c-d596-44b3-46159c7c23bc",
+                "uploads": [
+                    {
+                        "type": "video",
+                        "file_name": "segment_1.mp4",
+                        "processing_status": "processing",
+                        "slot_name": "0",
+                        "fps": 25,
+                        "upload_id": "5404aafe-6434-44cb-8bc2-4b3758466bbf",
+                        "as_frames": False,
+                    }
+                ],
+                "slots": [],
+                "inserted_at": "2023-12-14T11:46:40Z",
+                "updated_at": "2023-12-14T11:46:40Z",
+                "dataset_id": 611387,
+                "archived": False,
+                "processing_status": "processing",
+                "workflow_status": "new",
+                "slot_types": ["video"],
+            }
+        ],
+        "page": {
+            "count": 2,
+            "next": None,
+            "previous": "018c6826-766c-d596-44b3-46159c7c23bc",
+        },
+    }
+
+
 # This test was never actually running
 # TODO: Fix this test
 # class TestDatasetCreation:
@@ -590,6 +631,38 @@ class TestFetchRemoteFiles:
             status=200,
         )
 
+        filters = {"item_names": ["example,with, comma.mp4"]}
+
+        list(remote_dataset.fetch_remote_files(filters))
+
+        assert (
+            responses.calls[0].request.params["item_names[]"]
+            == "example,with, comma.mp4"
+        )
+
+    @responses.activate
+    def test_returns_unprocessed_files(
+        self,
+        darwin_client: Client,
+        dataset_name: str,
+        dataset_slug: str,
+        team_slug_darwin_json_v2: str,
+        unprocessed_file_content: dict,
+    ):
+        remote_dataset = RemoteDatasetV2(
+            client=darwin_client,
+            team=team_slug_darwin_json_v2,
+            name=dataset_name,
+            slug=dataset_slug,
+            dataset_id=1,
+        )
+        url = "http://localhost/api/v2/teams/v7-darwin-json-v2/items?item_names%5B%5D=example%2Cwith%2C+comma.mp4&page%5Bsize%5D=500&include_workflow_data=true&dataset_ids%5B%5D=1"
+        responses.add(
+            responses.GET,
+            url,
+            json=unprocessed_file_content,
+            status=200,
+        )
         filters = {"item_names": ["example,with, comma.mp4"]}
 
         list(remote_dataset.fetch_remote_files(filters))
