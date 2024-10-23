@@ -452,18 +452,20 @@ class UploadHandler(ABC):
                     local_files_to_remove.extend(multi_file_item.files)
                     multi_file_items_to_remove.append(multi_file_item)
                     console.print(
-                        f"The remote filepath {multi_file_item.full_path} is already occupied by a dataset item in the {self.dataset.slug} dataset. Skipping upload of item.",
+                        f"The remote filepath {multi_file_item.full_path} is already occupied by a dataset item in the `{self.dataset.slug}` dataset. Skipping upload of item.",
                         style="warning",
                     )
         if self.local_files:
             for local_file in self.local_files:
-                if Path(local_file.full_path) in full_remote_filepaths:
+                if (
+                    Path(local_file.full_path) in full_remote_filepaths
+                    and local_file not in local_files_to_remove
+                ):
                     local_files_to_remove.append(local_file)
                     console.print(
-                        f"The remote filepath {local_file.full_path} already exists in the {self.dataset.slug} dataset. Skipping upload of item.",
+                        f"The remote filepath {local_file.full_path} already exists in the `{self.dataset.slug}` dataset. Skipping upload of item.",
                         style="warning",
                     )
-
         self.local_files = [
             local_file
             for local_file in self.local_files
@@ -475,6 +477,11 @@ class UploadHandler(ABC):
                 for multi_file_item in self.multi_file_items
                 if multi_file_item not in multi_file_items_to_remove
             ]
+
+        if not self.local_files and not self.multi_file_items:
+            raise ValueError(
+                "All items to be uploaded have paths that already exist in the remote dataset. No items to upload."
+            )
 
     def prepare_upload(
         self,
