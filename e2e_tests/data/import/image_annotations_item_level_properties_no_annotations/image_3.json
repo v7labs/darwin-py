@@ -1,0 +1,52 @@
+{
+  "version": "2.0",
+  "schema_ref": "https://darwin-public.s3.eu-west-1.amazonaws.com/darwin_json/2.0/schema.json",
+  "item": {
+    "name": "image_3",
+    "path": "/dir1",
+    "source_info": {
+      "item_id": "01920b92-1d5d-e8ad-986f-ad4942f1bbfc",
+      "dataset": {
+        "name": "test_dataset_2edf4430-1a35-45a2-8c45-b0325968bee2",
+        "slug": "test_dataset_2edf4430-1a35-45a2-8c45-b0325968bee2",
+        "dataset_management_url": "https://staging.v7labs.com/datasets/339501/dataset-management"
+      },
+      "team": {
+        "name": "E2E Testing",
+        "slug": "e2e-testing"
+      },
+      "workview_url": "https://staging.v7labs.com/workview?dataset=339501&item=01920b92-1d5d-e8ad-986f-ad4942f1bbfc"
+    },
+    "slots": [
+      {
+        "type": "image",
+        "slot_name": "0",
+        "width": 1920,
+        "height": 1080,
+        "thumbnail_url": "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/ddd13905-9bbb-4fab-9642-bf4604686fda/thumbnail",
+        "source_files": [
+          {
+            "file_name": "image_3",
+            "storage_key": "darwin-py/images/image_3.jpg",
+            "url": "https://staging.v7labs.com/api/v2/teams/e2e-testing/uploads/30ec0f13-caaa-4374-be5a-e90b3493fb73"
+          }
+        ]
+      }
+    ]
+  },
+  "annotations": [],
+  "properties": [
+    {
+      "name": "test_item_level_property_multi_select",
+      "value": "1"
+    },
+    {
+      "name": "test_item_level_property_multi_select",
+      "value": "2"
+    },
+    {
+      "name": "test_item_level_property_single_select",
+      "value": "1"
+    }
+  ]
+}
