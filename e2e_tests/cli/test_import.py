@@ -9,11 +9,44 @@ from e2e_tests.helpers import (
     list_items,
 )
 from e2e_tests.objects import E2EDataset, ConfigValues
-from darwin.utils.utils import parse_darwin_json
 import tempfile
 import zipfile
 import darwin.datatypes as dt
-from typing import List, Dict, Optional, Union
+import importlib
+from typing import List, Dict, Optional, Union, Tuple, Any, Sequence
+
+
+def compare_local_annotations_with_uploaded_annotations(
+    annotation_format: str,
+    local_dataset: E2EDataset,
+    config_values: ConfigValues,
+) -> None:
+    """
+    Checks that every annotation uploaded to every item of the given `local_dataset` is
+    of the expected type given the annotation format
+
+    This is necessary to verify that imports of formats that cannot be exported are successful
+    """
+    expected_annotation_types = {
+        "csv_tags": "tag",
+        "csv_tags_video": "tag",
+    }
+    video_formats = ["csv_tags_video"]
+    expected_annotation_type = expected_annotation_types[annotation_format]
+    all_item_annotations, _, _ = local_dataset.get_annotation_data(config_values)
+    for item in local_dataset.items:
+        item_name = item.name
+        item_annotations = all_item_annotations[item_name]
+        for item_annotation in item_annotations:
+            if annotation_format in video_formats:
+                frame_indices = item_annotation["data"]["frames"].keys()
+                for frame_index in frame_indices:
+                    assert (
+                        expected_annotation_type
+                        in item_annotation["data"]["frames"][frame_index]
+                    )
+            else:
+                assert expected_annotation_type in item_annotation["data"]
 
 
 def get_actual_annotation_filename(
@@ -36,8 +69,8 @@ def get_actual_annotation_filename(
 
 
 def find_matching_actual_annotation(
-    expected_annotation: dt.Annotation,
-    actual_annotations: List[Union[dt.Annotation, dt.VideoAnnotation]],
+    expected_annotation: Union[dt.Annotation, dt.VideoAnnotation],
+    actual_annotations: Sequence[Union[dt.Annotation, dt.VideoAnnotation]],
 ) -> Union[dt.Annotation, dt.VideoAnnotation]:
     """
     For a given expected annotation, finds the corresponding actual annotation
@@ -82,14 +115,19 @@ def assert_same_annotation_data(
     For `dt.VideoAnnotation` objects:
         Ensures that `expected_annotation.frames` is equivalent to `actual_annotation.frames`
     """
-    if isinstance(expected_annotation, dt.Annotation):
+    if isinstance(expected_annotation, dt.Annotation) and isinstance(
+        actual_annotation, dt.Annotation
+    ):
         assert expected_annotation.data == actual_annotation.data
-    elif isinstance(expected_annotation, dt.VideoAnnotation):
+    elif isinstance(expected_annotation, dt.VideoAnnotation) and isinstance(
+        actual_annotation, dt.VideoAnnotation
+    ):
         assert expected_annotation.frames == actual_annotation.frames
 
 
 def assert_same_annotation_properties(
-    expected_annotation: dt.Annotation, actual_annotation: dt.Annotation
+    expected_annotation: Union[dt.Annotation, dt.VideoAnnotation],
+    actual_annotation: Union[dt.Annotation, dt.VideoAnnotation],
 ) -> None:
     """
     Ensures that `expected_annotation.properties` is equivalent to `actual_annotation.properties`
@@ -99,7 +137,7 @@ def assert_same_annotation_properties(
         actual_properties = actual_annotation.properties
         assert actual_properties is not None
         for expected_property in expected_properties:
-            assert expected_property in actual_properties  # type : ignore
+            assert expected_property in actual_properties
 
 
 def get_base_slot_name_of_item(
@@ -120,9 +158,37 @@ def get_base_slot_name_of_item(
             return item["slots"][0]["slot_name"]
 
 
+def parse_expected_and_actual_annotations(
+    expected_annotation_files,
+    actual_annotation_files,
+    expected_filename: str = "",
+    actual_filename: str = "",
+    annotation_format: str = "",
+) -> Tuple[List[dt.AnnotationFile], List[dt.AnnotationFile]]:
+    """
+    Parses and returns exported & actual annotation files in a given format.
+    """
+    importer_module = importlib.import_module(
+        f"darwin.importer.formats.{annotation_format}"
+    )
+    expected_annotation_data = importer_module.parse_path(
+        Path(expected_annotation_files[expected_filename])
+    )
+    actual_annotation_data = importer_module.parse_path(
+        Path(actual_annotation_files[actual_filename])
+    )
+
+    if not isinstance(expected_annotation_data, list):
+        expected_annotation_data = [expected_annotation_data]
+    if not isinstance(actual_annotation_data, list):
+        actual_annotation_data = [actual_annotation_data]
+
+    return expected_annotation_data, actual_annotation_data
+
+
 def assert_same_annotation_slot_name(
-    expected_annotation: dt.Annotation,
-    actual_annotation: dt.Annotation,
+    expected_annotation: Union[dt.Annotation, dt.VideoAnnotation],
+    actual_annotation: Union[dt.Annotation, dt.VideoAnnotation],
     item_type: str,
     base_slot: Optional[str],
 ) -> None:
@@ -144,8 +210,8 @@ def assert_same_annotation_slot_name(
 
 
 def assert_same_item_level_properties(
-    expected_item_level_properties: List[Dict[str, str]],
-    actual_item_level_properties: List[Dict[str, str]],
+    expected_item_level_properties: List[Dict[str, Any]],
+    actual_item_level_properties: List[Dict[str, Any]],
 ) -> None:
     """
     Ensures that all expected item-level properties are present in exported item-level properties
@@ -159,6 +225,7 @@ def compare_annotations_export(
     expected_annotations_dir: Path,
     item_type: str,
     base_slot: Optional[str] = "0",
+    annotation_format: str = "darwin",
 ):
     """
     Compares a set of downloaded annotation files with the imported files that resulted
@@ -184,37 +251,41 @@ def compare_annotations_export(
         actual_filename = get_actual_annotation_filename(
             expected_filename, actual_annotation_files
         )
-        expected_annotation_data: List[dt.Annotation] = parse_darwin_json(
-            Path(expected_annotation_files[expected_filename])  # type: ignore
-        )
-        expected_annotations = expected_annotation_data.annotations  # type: ignore
-        expected_item_level_properties = (
-            expected_annotation_data.item_properties  # type: ignore
-        )
-
-        actual_annotation_data: List[dt.Annotation] = parse_darwin_json(
-            Path(actual_annotation_files[actual_filename])  # type: ignore
-        )
-        actual_annotations = actual_annotation_data.annotations  # type: ignore
-        actual_item_level_properties = (
-            actual_annotation_data.item_properties  # type: ignore
-        )
-
-        delete_annotation_uuids(expected_annotations)
-        delete_annotation_uuids(actual_annotations)
-
-        assert_same_item_level_properties(
-            expected_item_level_properties, actual_item_level_properties
-        )
-        for expected_annotation in expected_annotations:
-            actual_annotation = find_matching_actual_annotation(
-                expected_annotation, actual_annotations
+        expected_annotation_data, actual_annotation_data = (
+            parse_expected_and_actual_annotations(
+                expected_annotation_files,
+                actual_annotation_files,
+                expected_filename,
+                actual_filename,
+                annotation_format,
             )
-            assert_same_annotation_data(expected_annotation, actual_annotation)
-            assert_same_annotation_properties(expected_annotation, actual_annotation)
-            assert_same_annotation_slot_name(
-                expected_annotation, actual_annotation, item_type, base_slot
+        )
+        for idx, expected_annotation_file in enumerate(expected_annotation_data):
+            actual_annotation_file = actual_annotation_data[idx]
+            expected_annotations = expected_annotation_file.annotations
+            actual_annotations = actual_annotation_file.annotations
+            expected_item_level_properties = (
+                expected_annotation_file.item_properties or []
             )
+            actual_item_level_properties = actual_annotation_file.item_properties or []
+
+            delete_annotation_uuids(expected_annotations)
+            delete_annotation_uuids(actual_annotations)
+
+            assert_same_item_level_properties(
+                expected_item_level_properties, actual_item_level_properties
+            )
+            for expected_annotation in expected_annotations:
+                actual_annotation = find_matching_actual_annotation(
+                    expected_annotation, actual_annotations
+                )
+                assert_same_annotation_data(expected_annotation, actual_annotation)
+                assert_same_annotation_properties(
+                    expected_annotation, actual_annotation
+                )
+                assert_same_annotation_slot_name(
+                    expected_annotation, actual_annotation, item_type, base_slot
+                )
 
 
 def run_import_test(
@@ -222,6 +293,9 @@ def run_import_test(
     config_values: ConfigValues,
     item_type: str,
     annotations_subdir: str,
+    annotation_format: Optional[str] = "darwin",
+    files_in_flat_structure: bool = False,
+    export_only: Optional[bool] = False,
     item_name: Optional[str] = None,
     additional_flags: str = "",
     exit_code: int = 0,
@@ -231,12 +305,14 @@ def run_import_test(
     """
     Helper function to run import tests for different item types and annotation configurations.
     """
-    local_dataset.register_read_only_items(config_values, item_type)
+    local_dataset.register_read_only_items(
+        config_values, item_type, files_in_flat_structure
+    )
     expected_annotations_dir = (
         Path(__file__).parents[1] / "data" / "import" / annotations_subdir
     )
     result = run_cli_command(
-        f"darwin dataset import {local_dataset.name} darwin {expected_annotations_dir} {additional_flags}"
+        f"darwin dataset import {local_dataset.name} {annotation_format} {expected_annotations_dir} {additional_flags}"
     )
     assert_cli(result, exit_code)
 
@@ -247,6 +323,12 @@ def run_import_test(
         assert expect_error in result.stdout
         return
 
+    if export_only:
+        compare_local_annotations_with_uploaded_annotations(
+            annotation_format, local_dataset, config_values  # type: ignore
+        )
+        return
+
     base_slot = (
         get_base_slot_name_of_item(config_values, local_dataset.id, item_name)
         if item_name
@@ -255,10 +337,17 @@ def run_import_test(
     with tempfile.TemporaryDirectory() as tmp_dir_str:
         actual_annotations_dir = Path(tmp_dir_str)
         export_and_download_annotations(
-            actual_annotations_dir, local_dataset, config_values
+            actual_annotations_dir,
+            annotation_format,  # type: ignore
+            local_dataset,
+            config_values,
         )
         compare_annotations_export(
-            actual_annotations_dir, expected_annotations_dir, item_type, base_slot
+            actual_annotations_dir,
+            expected_annotations_dir,
+            item_type,
+            base_slot,
+            annotation_format,  # type: ignore
         )
 
 
@@ -464,4 +553,59 @@ def test_import_annotations_with_subtypes_to_videos(
         config_values,
         item_type="single_slotted_video",
         annotations_subdir="video_annotations_with_subtypes",
+    )
+
+
+def test_importing_coco_annotations(
+    local_dataset: E2EDataset, config_values: ConfigValues
+) -> None:
+    annotation_format = "coco"
+    run_import_test(
+        local_dataset,
+        config_values,
+        item_type="single_slotted",
+        annotations_subdir="coco_annotations",
+        annotation_format=annotation_format,
+        files_in_flat_structure=True,
+    )
+
+
+def test_importing_csv_tags_annotations(
+    local_dataset: E2EDataset, config_values: ConfigValues
+) -> None:
+    annotation_format = "csv_tags"
+    run_import_test(
+        local_dataset,
+        config_values,
+        item_type="single_slotted",
+        annotations_subdir="csv_tag_annotations",
+        annotation_format=annotation_format,
+        export_only=True,
+    )
+
+
+def test_importing_csv_tags_video_annotations(
+    local_dataset: E2EDataset, config_values: ConfigValues
+) -> None:
+    annotation_format = "csv_tags_video"
+    run_import_test(
+        local_dataset,
+        config_values,
+        item_type="single_slotted_video",
+        annotations_subdir="csv_tag_video_annotations",
+        annotation_format=annotation_format,
+        export_only=True,
+    )
+
+
+def test_importing_pascal_voc_annotations(
+    local_dataset: E2EDataset, config_values: ConfigValues
+) -> None:
+    annotation_format = "pascal_voc"
+    run_import_test(
+        local_dataset,
+        config_values,
+        item_type="single_slotted",
+        annotations_subdir="pascal_voc_annotations",
+        annotation_format=annotation_format,
     )

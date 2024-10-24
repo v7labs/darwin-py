@@ -1,6 +1,6 @@
 from subprocess import run
 from time import sleep
-from typing import Optional, List, Union
+from typing import Optional, Union, Sequence
 
 from attr import dataclass
 from pathlib import Path
@@ -195,6 +195,7 @@ def wait_until_items_processed(
 
 def export_and_download_annotations(
     actual_annotations_dir: Path,
+    annotation_format: str,
     local_dataset: E2EDataset,
     config_values: ConfigValues,
 ) -> None:
@@ -212,10 +213,16 @@ def export_and_download_annotations(
         f"{base_url}/api/v2/teams/{team_slug}/datasets/{dataset_slug}/exports"
     )
 
+    # Necessary because these are the only formats where `annotation_format` does not match the required payload value
+    if annotation_format == "darwin":
+        annotation_format = "darwin_json_2"
+    elif annotation_format == "pascal_voc":
+        annotation_format = "pascalvoc"
     payload = {
         "filters": {"statuses": ["new", "annotate", "review", "complete"]},
         "include_authorship": False,
         "include_export_token": False,
+        "format": f"{annotation_format}",
         "name": f"{export_name}",
     }
     headers = {
@@ -258,7 +265,7 @@ def export_and_download_annotations(
 
 
 def delete_annotation_uuids(
-    annotations: List[Union[dt.Annotation, dt.VideoAnnotation]]
+    annotations: Sequence[Union[dt.Annotation, dt.VideoAnnotation]]
 ):
     """
     Removes all UUIDs present in instances of `dt.Annotation` and `dt.VideoAnnotation` objects.

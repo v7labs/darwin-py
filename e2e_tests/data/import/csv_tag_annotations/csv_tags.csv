@@ -1,0 +1,8 @@
+image_1, test_tag_basic
+image_2, test_tag_basic
+dir1/image_3, test_tag_basic
+dir1/image_4, test_tag_basic
+dir2/image_5, test_tag_basic
+dir2/image_6, test_tag_basic
+dir1/dir3/image_7, test_tag_basic
+dir1/dir3/image_8, test_tag_basic
