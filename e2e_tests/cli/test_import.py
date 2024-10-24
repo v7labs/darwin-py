@@ -408,6 +408,17 @@ def test_import_existing_item_level_properties(
     )
 
 
+def test_item_level_properties_can_be_imported_without_annotations(
+    local_dataset: E2EDataset, config_values: ConfigValues
+) -> None:
+    run_import_test(
+        local_dataset,
+        config_values,
+        item_type="single_slotted",
+        annotations_subdir="image_annotations_item_level_properties_no_annotations",
+    )
+
+
 def test_item_level_property_classes_are_created_on_import(
     local_dataset: E2EDataset, config_values: ConfigValues
 ) -> None:

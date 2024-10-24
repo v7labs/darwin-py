@@ -1419,7 +1419,8 @@ def import_annotations(  # noqa: C901
         files_to_not_track = [
             file_to_track
             for file_to_track in parsed_files
-            if not file_to_track.annotations and (not delete_for_empty)
+            if not (file_to_track.annotations or file_to_track.item_properties)
+            and (not delete_for_empty)
         ]
 
         for file in files_to_not_track:
