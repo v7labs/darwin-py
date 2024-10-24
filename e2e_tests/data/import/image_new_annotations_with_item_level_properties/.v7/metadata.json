@@ -89,6 +89,14 @@
         }
       ],
       "granularity": "item"
+    },
+    {
+      "name": "new_item_level_property_text",
+      "type": "text",
+      "description": "",
+      "required": false,
+      "property_values": [],
+      "granularity": "item"
     }
   ]
 }

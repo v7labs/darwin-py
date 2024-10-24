@@ -122,7 +122,10 @@ def is_properties_enabled(
         if _cls.get("properties"):
             return metadata_path
     for _item_level_property in metadata_item_level_properties:
-        if _item_level_property.get("property_values"):
+        if (
+            _item_level_property.get("property_values")
+            or _item_level_property["type"] == "text"
+        ):
             return metadata_path
 
     return False

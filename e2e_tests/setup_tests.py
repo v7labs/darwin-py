@@ -284,11 +284,12 @@ def create_item_level_property(
         "name": name,
         "type": item_level_property_type,
         "granularity": "item",
-        "property_values": [
+    }
+    if item_level_property_type in ["single_select", "multi_select"]:
+        payload["property_values"] = [
             {"color": "rgba(255,92,0,1.0)", "value": "1"},
             {"color": "rgba(255,92,0,1.0)", "value": "2"},
-        ],
-    }
+        ]
     response = requests.post(url, json=payload, headers=headers)
     parsed_response = response.json()
     return E2EItemLevelProperty(
@@ -593,7 +594,7 @@ def setup_item_level_properties(config: ConfigValues) -> List[E2EItemLevelProper
     item_level_properties: List[E2EItemLevelProperty] = []
 
     print("Setting up item-level properties")
-    item_level_property_types = ["single_select", "multi_select"]
+    item_level_property_types = ["single_select", "multi_select", "text"]
     try:
         for item_level_property_type in item_level_property_types:
             try:
