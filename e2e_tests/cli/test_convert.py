@@ -4,13 +4,14 @@ from pathlib import Path
 
 import orjson as json
 import pytest
+import xml.etree.ElementTree as ET
 
 from e2e_tests.helpers import assert_cli, run_cli_command
 
 
 class TestExportCli:
     this_file_path = Path(dirname(__file__)).absolute()
-    data_path = (this_file_path / ".." / ".." / "data").resolve()
+    data_path = (this_file_path / ".." / "data" / "convert").resolve()
 
     @pytest.fixture(autouse=True)
     def config(self) -> None:
@@ -33,10 +34,10 @@ class TestExportCli:
                     continue
 
                 # Compare files
-                with file.open("r") as f:
+                with file.open("rb") as f:
                     content = f.read()
 
-                with Path(expected_path / file.name).open() as f:
+                with Path(expected_path / file.name).open("rb") as f:
                     expected_content = f.read()
 
                 if content != expected_content:
@@ -52,6 +53,14 @@ class TestExportCli:
         [
             ("yolo_segmented", data_path / "yolov8/from", data_path / "yolov8/to"),
             ("yolo", data_path / "yolo/from", data_path / "yolo/to"),
+            ("cvat", data_path / "cvat/from", data_path / "cvat/to"),
+            ("pascalvoc", data_path / "pascalvoc/from", data_path / "pascalvoc/to"),
+            ("nifti", data_path / "nifti/from", data_path / "nifti/to"),
+            (
+                "instance_mask",
+                data_path / "instance_mask/from",
+                data_path / "instance_mask/to",
+            ),
             pytest.param(
                 "coco",
                 data_path / "coco/from",
@@ -87,10 +96,21 @@ class TestExportCli:
         result = run_cli_command(
             f"darwin convert {format} {str(input_path)} {str(tmp_path)}"
         )
-        if format == "coco":
-            self.patch_coco(tmp_path / "output.json")
+        self.patch_format(format, tmp_path)
         assert_cli(result, 0)
         self.compare_directories(expectation_path, tmp_path)
+
+    def patch_format(self, format: str, path: Path) -> None:
+        """
+        Patch files based on format to match the expected output.
+        """
+        patch_methods = {
+            "coco": self.patch_coco,
+            "cvat": self.patch_cvat,
+        }
+        patch_method = patch_methods.get(format)
+        if patch_method:
+            patch_method(path)
 
     def patch_coco(self, path: Path) -> None:
         """
@@ -98,18 +118,41 @@ class TestExportCli:
         wrapped in try except so that format errors are still caught later with correct error messages
         """
         try:
-            with open(path, "r") as f:
+            with open(path / "output.json", "r") as f:
                 contents = f.read()
                 temp = json.loads(contents)
                 temp["info"]["year"] = 2023
                 temp["info"]["date_created"] = "2023/12/05"
-            with open(path, "w") as f:
+            with open(path / "output.json", "w") as f:
                 op = json.dumps(
                     temp, option=json.OPT_INDENT_2 | json.OPT_SERIALIZE_NUMPY
                 ).decode("utf-8")
                 f.write(op)
         except Exception:
             print(f"Error patching {path}")
+
+    def patch_cvat(self, path: Path) -> None:
+        """
+        Patch cvat file to match the expected output.
+        """
+        try:
+            tree = ET.parse(path / "output.xml")
+            root = tree.getroot()
+            # Adjust the required fields
+            dumped_elem = root.find(".//meta/dumped")
+            if dumped_elem is not None:
+                dumped_elem.text = "2024-10-25 10:33:01.789498+00:00"
+            created_elem = root.find(".//meta/task/created")
+            if created_elem is not None:
+                created_elem.text = "2024-10-25 10:33:01.789603+00:00"
+            updated_elem = root.find(".//meta/task/updated")
+            if updated_elem is not None:
+                updated_elem.text = "2024-10-25 10:33:01.789608+00:00"
+            tree.write(path / "output.xml")
+        except ET.ParseError:
+            print(f"Error parsing XML in {path}")
+        except Exception as e:
+            print(f"Error patching {path}: {e}")
 
 
 if __name__ == "__main__":
