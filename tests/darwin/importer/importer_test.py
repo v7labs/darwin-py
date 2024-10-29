@@ -33,6 +33,7 @@ from darwin.importer.importer import (
     _verify_slot_annotation_alignment,
     _import_properties,
     _warn_for_annotations_with_multiple_instance_ids,
+    _serialize_item_level_properties,
 )
 
 
@@ -3278,3 +3279,197 @@ def test_warning_with_multiple_files_with_multi_instance_id_annotations():
     assert (
         console.print.call_count == 3
     )  # One for the warning message, two for the file details
+
+
+def test_serialize_item_level_properties_empty_input():
+    """Test that empty input returns empty list"""
+    result = _serialize_item_level_properties([], Mock(), Mock(), False, False)
+    assert result == []
+
+
+def test_serialize_item_level_properties_single_select():
+    """Test serialization of single select property"""
+    # Setup
+    client = Mock()
+    dataset = Mock(team="test_team")
+
+    property_value_id = "123"
+    property_id = "456"
+
+    # Mock property value
+    property_value = PropertyValue(id=property_value_id, value="option1")
+
+    # Mock full property
+    full_property = FullProperty(
+        id=property_id,
+        name="test_property",
+        type="single_select",
+        property_values=[property_value],
+        required=False,
+        granularity=PropertyGranularity("item"),
+    )
+
+    # Mock team properties lookup
+    mock_lookup_response = ({}, {"test_property": full_property})
+
+    with patch(
+        "darwin.importer.importer._get_team_properties_annotation_lookup",
+        return_value=mock_lookup_response,
+    ):
+        result = _serialize_item_level_properties(
+            [{"name": "test_property", "value": "option1"}],
+            client,
+            dataset,
+            False,
+            False,
+        )
+
+    expected = [
+        {"actors": [], "property_id": property_id, "value": {"id": property_value_id}}
+    ]
+
+    assert result == expected
+
+
+def test_serialize_item_level_properties_text():
+    """Test serialization of text property"""
+    # Setup
+    client = Mock()
+    dataset = Mock(team="test_team")
+
+    property_id = "789"
+
+    # Mock full property
+    full_property = FullProperty(
+        id=property_id,
+        name="text_property",
+        type="text",
+        required=False,
+        granularity=PropertyGranularity("item"),
+    )
+
+    # Mock team properties lookup
+    mock_lookup_response = ({}, {"text_property": full_property})
+
+    with patch(
+        "darwin.importer.importer._get_team_properties_annotation_lookup",
+        return_value=mock_lookup_response,
+    ):
+        result = _serialize_item_level_properties(
+            [{"name": "text_property", "value": "some text"}],
+            client,
+            dataset,
+            False,
+            False,
+        )
+
+    expected = [
+        {"actors": [], "property_id": property_id, "value": {"text": "some text"}}
+    ]
+
+    assert result == expected
+
+
+def test_serialize_item_level_properties_with_actors():
+    """Test serialization with annotators and reviewers"""
+    # Setup
+    client = Mock()
+    dataset = Mock(team="test_team")
+
+    property_id = "789"
+
+    # Mock full property
+    full_property = FullProperty(
+        id=property_id,
+        name="text_property",
+        type="text",
+        required=False,
+        granularity=PropertyGranularity("item"),
+    )
+
+    # Mock team properties lookup
+    mock_lookup_response = ({}, {"text_property": full_property})
+
+    # Mock annotator and reviewer handlers
+    mock_annotator = {"email": "annotator@test.com", "role": "annotator"}
+    mock_reviewer = {"email": "reviewer@test.com", "role": "reviewer"}
+
+    with patch(
+        "darwin.importer.importer._get_team_properties_annotation_lookup",
+        return_value=mock_lookup_response,
+    ), patch(
+        "darwin.importer.importer._handle_annotators", return_value=[mock_annotator]
+    ), patch(
+        "darwin.importer.importer._handle_reviewers", return_value=[mock_reviewer]
+    ):
+        result = _serialize_item_level_properties(
+            [{"name": "text_property", "value": "some text"}],
+            client,
+            dataset,
+            True,
+            True,
+        )
+
+    expected = [
+        {
+            "actors": [mock_annotator, mock_reviewer],
+            "property_id": property_id,
+            "value": {"text": "some text"},
+        }
+    ]
+
+    assert result == expected
+
+
+def test_serialize_item_level_properties_multiple_properties():
+    """Test serialization of multiple properties"""
+    # Setup
+    client = Mock()
+    dataset = Mock(team="test_team")
+
+    # Mock properties
+    text_property = FullProperty(
+        id="123",
+        name="text_property",
+        type="text",
+        required=False,
+        granularity=PropertyGranularity("item"),
+    )
+
+    select_property_value = PropertyValue(id="456", value="option1")
+    select_property = FullProperty(
+        id="789",
+        name="select_property",
+        type="single_select",
+        property_values=[select_property_value],
+        required=False,
+        granularity=PropertyGranularity("item"),
+    )
+
+    # Mock team properties lookup
+    mock_lookup_response = (
+        {},
+        {"text_property": text_property, "select_property": select_property},
+    )
+
+    with patch(
+        "darwin.importer.importer._get_team_properties_annotation_lookup",
+        return_value=mock_lookup_response,
+    ):
+        result = _serialize_item_level_properties(
+            [
+                {"name": "text_property", "value": "some text"},
+                {"name": "select_property", "value": "option1"},
+            ],
+            client,
+            dataset,
+            False,
+            False,
+        )
+
+    expected = [
+        {"actors": [], "property_id": "123", "value": {"text": "some text"}},
+        {"actors": [], "property_id": "789", "value": {"id": "456"}},
+    ]
+
+    assert result == expected

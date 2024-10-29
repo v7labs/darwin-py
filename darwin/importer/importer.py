@@ -948,7 +948,6 @@ def _normalize_item_properties(
     if isinstance(item_properties, dict):
         return item_properties
 
-    # How does this work for item-level properties created from annotations? We need to block text properties from annotations
     normalized_properties = defaultdict(lambda: {"property_values": []})
     if item_properties:
         for item_prop in item_properties:
