@@ -590,6 +590,10 @@
     {
       "name": "test_item_level_property_single_select",
       "value": "1"
+    },
+    {
+      "name": "test_item_level_property_text",
+      "value": "sample text"
     }
   ]
 }

@@ -93,10 +93,11 @@ class FullProperty(DefaultDarwin):
             "name": True,
             "type": True,
             "required": True,
-            "property_values": {"__all__": {"value", "color", "type"}},
             "description": True,
             "granularity": True,
         }
+        if self.type != "text":
+            include_fields["property_values"] = {"__all__": {"value", "color", "type"}}
         if self.granularity != PropertyGranularity.item:
             if self.annotation_class_id is None:
                 raise ValueError("annotation_class_id must be set")

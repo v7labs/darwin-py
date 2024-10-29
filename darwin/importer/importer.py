@@ -385,14 +385,21 @@ def _serialize_item_level_properties(
     for item_property_value in item_property_values:
         item_property = team_item_properties_lookup[item_property_value["name"]]
         item_property_id = item_property.id
-        item_property_value_id = next(
-            (
-                pv.id
-                for pv in item_property.property_values or []
-                if pv.value == item_property_value["value"]
-            ),
-            None,
-        )
+        if (
+            item_property.type == "single_select"
+            or item_property.type == "multi_select"
+        ):
+            item_property_value_id = next(
+                (
+                    pv.id
+                    for pv in item_property.property_values or []
+                    if pv.value == item_property_value["value"]
+                ),
+                None,
+            )
+            value = {"id": item_property_value_id}
+        elif item_property.type == "text":
+            value = {"text": item_property_value["value"]}
         actors: List[dt.DictFreeForm] = []
         actors.extend(
             _handle_annotators(
@@ -406,7 +413,7 @@ def _serialize_item_level_properties(
             {
                 "actors": actors,
                 "property_id": item_property_id,
-                "value": {"id": item_property_value_id},
+                "value": value,
             }
         )
 
@@ -798,39 +805,19 @@ def _import_properties(
         _get_team_properties_annotation_lookup(client, dataset.team)
     )
 
-    # Create or update item-level properties from annotations
-    item_property_creations_from_metadata, item_property_updates_from_metadata = (
-        _create_update_item_properties(
-            _normalize_item_properties(item_properties),
-            team_item_properties_lookup,
-            client,
-        )
+    # Update item-level properties from annotations
+    _, item_properties_to_update_from_annotations = _create_update_item_properties(
+        _normalize_item_properties(item_properties),
+        team_item_properties_lookup,
+        client,
     )
 
-    properties_to_create = item_property_creations_from_metadata
-    properties_to_update = item_property_updates_from_metadata
-
-    if properties_to_create:
-        console.print(f"Creating {len(properties_to_create)} properties:", style="info")
-        for full_property in properties_to_create:
-            if full_property.granularity.value == "item":
-                console.print(
-                    f"- Creating item-level property '{full_property.name}' of type: {full_property.type}"
-                )
-            console.print(
-                f"- Creating property '{full_property.name}' of type {full_property.type}",
-            )
-            prop = client.create_property(
-                team_slug=full_property.slug, params=full_property
-            )
-            created_properties.append(prop)
-
-    if item_property_updates_from_metadata:
+    if item_properties_to_update_from_annotations:
         console.print(
-            f"Performing {len(item_property_updates_from_metadata)} property update(s):",
+            f"Performing {len(item_properties_to_update_from_annotations)} property update(s):",
             style="info",
         )
-        for full_property in item_property_updates_from_metadata:
+        for full_property in item_properties_to_update_from_annotations:
             if full_property.granularity.value == "item":
                 console.print(
                     f"- Updating item-level property '{full_property.name}' with new value: {full_property.property_values[0].value}"
@@ -966,7 +953,8 @@ def _normalize_item_properties(
         for item_prop in item_properties:
             name = item_prop["name"]
             value = item_prop["value"]
-            normalized_properties[name]["property_values"].append({"value": value})
+            if value:
+                normalized_properties[name]["property_values"].append({"value": value})
 
     return normalized_properties
 
@@ -996,7 +984,11 @@ def _create_update_item_properties(
 
         # If the property exists in the team, check that all values are present
         if item_prop_name in team_item_properties_lookup:
+
             t_prop = team_item_properties_lookup[item_prop_name]
+            # If the property is a text property it won't have predefined values, so continue
+            if t_prop.type == "text":
+                continue
             t_prop_values = [
                 prop_val.value for prop_val in t_prop.property_values or []
             ]
