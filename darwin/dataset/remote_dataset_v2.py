@@ -986,6 +986,8 @@ def _find_files_to_upload_as_single_file_items(
                 local_path = str(
                     found_file.relative_to(source_files[0]).parent.as_posix()
                 )
+                if local_path == ".":
+                    local_path = "/"
         uploading_files.append(
             LocalFile(
                 found_file,
