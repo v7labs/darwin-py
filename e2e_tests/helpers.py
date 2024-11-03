@@ -3,7 +3,6 @@ from time import sleep
 from typing import Optional, Union, Sequence
 
 from attr import dataclass
-from pathlib import Path
 from darwin.exceptions import DarwinException
 import datetime
 import json
@@ -193,12 +192,11 @@ def wait_until_items_processed(
         )
 
 
-def export_and_download_annotations(
-    actual_annotations_dir: Path,
+def export_release(
     annotation_format: str,
     local_dataset: E2EDataset,
     config_values: ConfigValues,
-) -> None:
+) -> Release:
     """
     Creates an export of all items in the given dataset.
     Waits for the export to finish, then downloads and the annotation files to
@@ -261,7 +259,7 @@ def export_and_download_annotations(
         latest=export_data["latest"],
         format=export_data.get("format", "json"),
     )
-    release.download_zip(actual_annotations_dir / "dataset.zip")
+    return release
 
 
 def delete_annotation_uuids(
