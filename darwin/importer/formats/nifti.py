@@ -517,7 +517,7 @@ def process_nifti(
 ) -> Tuple[np.ndarray, Tuple[float]]:
     """
     Function that converts a nifti object to RAS orientation (if legacy), then converts to the passed ornt orientation.
-    The default ornt is for LPI.
+    The default ornt is LPI.
 
     Args:
         input_data: nibabel nifti object.
@@ -532,7 +532,18 @@ def process_nifti(
     img = correct_nifti_header_if_necessary(input_data)
     if legacy:
         img = nib.funcs.as_closest_canonical(img)
-    data_array = nib.orientations.apply_orientation(img.get_fdata(), ornt)
+        data_array = nib.orientations.apply_orientation(img.get_fdata(), ornt)
+    else:
+        current_ornt = nib.orientations.io_orientation(img.affine)
+        adjusted_ornt = []
+        for idx, (target_axis, target_direction) in enumerate(ornt):
+            _, current_direction = current_ornt[idx]
+            if current_direction == target_direction:
+                adjusted_ornt.append([target_axis, 1])
+            else:
+                adjusted_ornt.append([target_axis, -1])
+        data_array = nib.orientations.apply_orientation(img.get_fdata(), adjusted_ornt)
+
     pixdims = img.header.get_zooms()
     return data_array, pixdims
 
