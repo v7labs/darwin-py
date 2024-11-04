@@ -2,7 +2,7 @@
   "version": "2.0",
   "schema_ref": "https://darwin-public.s3.eu-west-1.amazonaws.com/darwin_json/2.0/schema.json",
   "item": {
-    "name": "image_4",
+    "name": "image_4.jpg",
     "path": "/dir1",
     "source_info": {
       "item_id": "01922dc5-646b-299c-e0c2-cb73dccf6d4f",
@@ -26,7 +26,7 @@
         "thumbnail_url": "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/8f48ba52-eee7-457b-829c-01f4af25f20f/thumbnail",
         "source_files": [
           {
-            "file_name": "image_4",
+            "file_name": "image_4.jpg",
             "storage_key": "darwin-py/images/image_4.jpg",
             "url": "https://staging.v7labs.com/api/v2/teams/e2e-testing/uploads/d127dc20-a63f-492a-912a-f7d875c65251"
           }

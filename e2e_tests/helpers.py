@@ -196,6 +196,7 @@ def export_release(
     annotation_format: str,
     local_dataset: E2EDataset,
     config_values: ConfigValues,
+    release_name: Optional[str] = "all-files",
 ) -> Release:
     """
     Creates an export of all items in the given dataset.
@@ -206,7 +207,6 @@ def export_release(
     team_slug = config_values.team_slug
     api_key = config_values.api_key
     base_url = config_values.server
-    export_name = "all-files"
     create_export_url = (
         f"{base_url}/api/v2/teams/{team_slug}/datasets/{dataset_slug}/exports"
     )
@@ -221,7 +221,7 @@ def export_release(
         "include_authorship": False,
         "include_export_token": False,
         "format": f"{annotation_format}",
-        "name": f"{export_name}",
+        "name": f"{release_name}",
     }
     headers = {
         "accept": "application/json",
@@ -239,7 +239,7 @@ def export_release(
         response = requests.get(list_export_url, headers=headers)
         exports = response.json()
         for export in exports:
-            if export["name"] == export_name and export["status"] == "complete":
+            if export["name"] == release_name and export["status"] == "complete":
                 export_data = export
                 ready = True
 
