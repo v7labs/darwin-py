@@ -1,0 +1,67 @@
+{
+  "version": "2.0",
+  "schema_ref": "https://darwin-public.s3.eu-west-1.amazonaws.com/darwin_json/2.0/schema.json",
+  "item": {
+    "name": "000000021295.jpg",
+    "path": "/",
+    "source_info": {
+      "item_id": "0192c338-2dc8-bb9f-8dde-9c4a8714c957",
+      "dataset": {
+        "name": "tmp",
+        "slug": "tmp",
+        "dataset_management_url": "https://staging.v7labs.com/datasets/426200/dataset-management"
+      },
+      "team": {
+        "name": "E2E Testing",
+        "slug": "e2e-testing"
+      },
+      "workview_url": "https://staging.v7labs.com/workview?dataset=426200&item=0192c338-2dc8-bb9f-8dde-9c4a8714c957"
+    },
+    "slots": [
+      {
+        "type": "image",
+        "slot_name": "0",
+        "width": 640,
+        "height": 427,
+        "thumbnail_url": "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/6c554c31-8bf6-4fc7-9f31-394fd775b2a6/thumbnail",
+        "source_files": [
+          {
+            "file_name": "000000021295.jpg",
+            "url": "https://staging.v7labs.com/api/v2/teams/e2e-testing/uploads/ade5f1e3-a165-4a07-989f-86ee342499c9"
+          }
+        ]
+      }
+    ]
+  },
+  "annotations": [
+    {
+      "bounding_box": {
+        "h": 43.7181,
+        "w": 71.2665,
+        "x": 166.0884,
+        "y": 113.1879
+      },
+      "id": "46b33c9c-7453-4722-8b43-91bbb3fc247f",
+      "name": "test_bounding_box_basic",
+      "properties": [],
+      "slot_names": [
+        "0"
+      ]
+    },
+    {
+      "bounding_box": {
+        "h": 31.7405,
+        "w": 58.0912,
+        "x": 360.1248,
+        "y": 259.913
+      },
+      "id": "2b7c85ed-74b3-4111-a5d6-073da56d0072",
+      "name": "test_bounding_box_basic",
+      "properties": [],
+      "slot_names": [
+        "0"
+      ]
+    }
+  ],
+  "properties": []
+}

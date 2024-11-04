@@ -1,0 +1,155 @@
+{
+  "version": "2.0",
+  "schema_ref": "https://darwin-public.s3.eu-west-1.amazonaws.com/darwin_json/2.0/schema.json",
+  "item": {
+    "name": "000000021295.jpg",
+    "path": "/",
+    "source_info": {
+      "item_id": "0192c338-2dc8-bb9f-8dde-9c4a8714c957",
+      "team": {
+        "name": "E2E Testing",
+        "slug": "e2e-testing"
+      },
+      "dataset": {
+        "name": "tmp",
+        "slug": "tmp",
+        "dataset_management_url": "https://staging.v7labs.com/datasets/426200/dataset-management"
+      },
+      "workview_url": "https://staging.v7labs.com/workview?dataset=426200&item=0192c338-2dc8-bb9f-8dde-9c4a8714c957"
+    },
+    "slots": [
+      {
+        "type": "image",
+        "slot_name": "0",
+        "width": 640,
+        "height": 427,
+        "thumbnail_url": "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/6c554c31-8bf6-4fc7-9f31-394fd775b2a6/thumbnail",
+        "source_files": [
+          {
+            "file_name": "000000021295.jpg",
+            "url": "https://staging.v7labs.com/api/v2/teams/e2e-testing/uploads/ade5f1e3-a165-4a07-989f-86ee342499c9"
+          }
+        ]
+      }
+    ]
+  },
+  "annotations": [
+    {
+      "bounding_box": {
+        "h": 123.8166,
+        "w": 147.2414,
+        "x": 105.8307,
+        "y": 63.5815
+      },
+      "id": "4f23f7d2-2f83-45bc-927a-d03b9f642619",
+      "name": "test_polygon_basic",
+      "polygon": {
+        "paths": [
+          [
+            {
+              "x": 189.4906,
+              "y": 63.5815
+            },
+            {
+              "x": 105.8307,
+              "y": 182.0439
+            },
+            {
+              "x": 249.0564,
+              "y": 187.3981
+            },
+            {
+              "x": 196.1834,
+              "y": 105.0768
+            },
+            {
+              "x": 253.0721,
+              "y": 99.7226
+            }
+          ]
+        ]
+      },
+      "properties": [],
+      "slot_names": [
+        "0"
+      ]
+    },
+    {
+      "bounding_box": {
+        "h": 99.05329999999998,
+        "w": 155.2727,
+        "x": 201.5376,
+        "y": 287.1207
+      },
+      "id": "b4248df6-5390-488a-9190-edfa397458a6",
+      "name": "test_polygon_basic",
+      "polygon": {
+        "paths": [
+          [
+            {
+              "x": 247.0486,
+              "y": 287.1207
+            },
+            {
+              "x": 201.5376,
+              "y": 386.174
+            },
+            {
+              "x": 293.8981,
+              "y": 386.174
+            },
+            {
+              "x": 356.8103,
+              "y": 384.1661
+            },
+            {
+              "x": 356.8103,
+              "y": 329.9545
+            },
+            {
+              "x": 319.3307,
+              "y": 316.569
+            }
+          ]
+        ]
+      },
+      "properties": [],
+      "slot_names": [
+        "0"
+      ]
+    },
+    {
+      "bounding_box": {
+        "h": 163.3041,
+        "w": 171.33550000000002,
+        "x": 338.0705,
+        "y": 50.1959
+      },
+      "id": "5092f929-ec75-4eb9-8b56-e6bbc472e272",
+      "name": "test_polygon_basic",
+      "polygon": {
+        "paths": [
+          [
+            {
+              "x": 429.7618,
+              "y": 50.1959
+            },
+            {
+              "x": 338.0705,
+              "y": 212.8307
+            },
+            {
+              "x": 509.406,
+              "y": 213.5
+            }
+          ]
+        ]
+      },
+      "properties": [],
+      "slot_names": [
+        "0"
+      ]
+    }
+  ],
+  "properties": []
+}

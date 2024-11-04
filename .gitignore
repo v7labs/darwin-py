@@ -9,7 +9,6 @@ data/
 !tests/darwin/data
 darwin_py.egg-info/PKG-INFO
 
-*.png
 *.jpeg
 *.jpg
 *.bpm

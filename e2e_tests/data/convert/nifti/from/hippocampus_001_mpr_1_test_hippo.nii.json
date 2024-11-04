@@ -1,0 +1,945 @@
+{
+  "version": "2.0",
+  "schema_ref": "https://darwin-public.s3.eu-west-1.amazonaws.com/darwin_json/2.0/schema.json",
+  "item": {
+    "name": "hippocampus_001_mpr_1_test_hippo.nii.gz",
+    "path": "/",
+    "source_info": {
+      "item_id": "0192c3d1-a8e2-cac4-0227-1198aebe5193",
+      "dataset": {
+        "name": "tmp",
+        "slug": "tmp",
+        "dataset_management_url": "https://staging.v7labs.com/datasets/426200/dataset-management"
+      },
+      "team": {
+        "name": "E2E Testing",
+        "slug": "e2e-testing"
+      },
+      "workview_url": "https://staging.v7labs.com/workview?dataset=426200&item=0192c3d1-a8e2-cac4-0227-1198aebe5193"
+    },
+    "slots": [
+      {
+        "type": "dicom",
+        "slot_name": "0",
+        "width": 35,
+        "height": 51,
+        "fps": null,
+        "thumbnail_url": "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/503816e2-99e7-4f63-bd1f-0c034d686ffb/thumbnail",
+        "source_files": [
+          {
+            "file_name": "hippocampus_001_mpr_1_test_hippo.nii.gz",
+            "url": "https://staging.v7labs.com/api/v2/teams/e2e-testing/uploads/1f943f7e-59c5-4a0f-aee4-e8b6da32c868"
+          }
+        ],
+        "frame_count": 35,
+        "frame_urls": [
+          "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/503816e2-99e7-4f63-bd1f-0c034d686ffb/sections/0",
+          "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/503816e2-99e7-4f63-bd1f-0c034d686ffb/sections/1",
+          "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/503816e2-99e7-4f63-bd1f-0c034d686ffb/sections/2",
+          "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/503816e2-99e7-4f63-bd1f-0c034d686ffb/sections/3",
+          "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/503816e2-99e7-4f63-bd1f-0c034d686ffb/sections/4",
+          "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/503816e2-99e7-4f63-bd1f-0c034d686ffb/sections/5",
+          "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/503816e2-99e7-4f63-bd1f-0c034d686ffb/sections/6",
+          "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/503816e2-99e7-4f63-bd1f-0c034d686ffb/sections/7",
+          "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/503816e2-99e7-4f63-bd1f-0c034d686ffb/sections/8",
+          "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/503816e2-99e7-4f63-bd1f-0c034d686ffb/sections/9",
+          "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/503816e2-99e7-4f63-bd1f-0c034d686ffb/sections/10",
+          "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/503816e2-99e7-4f63-bd1f-0c034d686ffb/sections/11",
+          "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/503816e2-99e7-4f63-bd1f-0c034d686ffb/sections/12",
+          "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/503816e2-99e7-4f63-bd1f-0c034d686ffb/sections/13",
+          "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/503816e2-99e7-4f63-bd1f-0c034d686ffb/sections/14",
+          "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/503816e2-99e7-4f63-bd1f-0c034d686ffb/sections/15",
+          "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/503816e2-99e7-4f63-bd1f-0c034d686ffb/sections/16",
+          "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/503816e2-99e7-4f63-bd1f-0c034d686ffb/sections/17",
+          "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/503816e2-99e7-4f63-bd1f-0c034d686ffb/sections/18",
+          "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/503816e2-99e7-4f63-bd1f-0c034d686ffb/sections/19",
+          "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/503816e2-99e7-4f63-bd1f-0c034d686ffb/sections/20",
+          "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/503816e2-99e7-4f63-bd1f-0c034d686ffb/sections/21",
+          "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/503816e2-99e7-4f63-bd1f-0c034d686ffb/sections/22",
+          "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/503816e2-99e7-4f63-bd1f-0c034d686ffb/sections/23",
+          "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/503816e2-99e7-4f63-bd1f-0c034d686ffb/sections/24",
+          "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/503816e2-99e7-4f63-bd1f-0c034d686ffb/sections/25",
+          "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/503816e2-99e7-4f63-bd1f-0c034d686ffb/sections/26",
+          "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/503816e2-99e7-4f63-bd1f-0c034d686ffb/sections/27",
+          "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/503816e2-99e7-4f63-bd1f-0c034d686ffb/sections/28",
+          "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/503816e2-99e7-4f63-bd1f-0c034d686ffb/sections/29",
+          "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/503816e2-99e7-4f63-bd1f-0c034d686ffb/sections/30",
+          "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/503816e2-99e7-4f63-bd1f-0c034d686ffb/sections/31",
+          "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/503816e2-99e7-4f63-bd1f-0c034d686ffb/sections/32",
+          "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/503816e2-99e7-4f63-bd1f-0c034d686ffb/sections/33",
+          "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/503816e2-99e7-4f63-bd1f-0c034d686ffb/sections/34"
+        ],
+        "metadata": {
+          "shape": [
+            1,
+            35,
+            51,
+            35
+          ],
+          "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.11241382944719946500563049675416203017",
+          "affine": "[[-1.0, 0.0, 0.0, 35.0], [0.0, -1.0, 0.0, 51.0], [0.0, 0.0, -1.0, 35.0], [0.0, 0.0, 0.0, 1.0]]",
+          "colorspace": "RG16",
+          "original_affine": [
+            [
+              "1.0",
+              "0.0",
+              "0.0",
+              "1.0"
+            ],
+            [
+              "0.0",
+              "1.0",
+              "0.0",
+              "1.0"
+            ],
+            [
+              "0.0",
+              "0.0",
+              "1.0",
+              "1.0"
+            ],
+            [
+              "0.0",
+              "0.0",
+              "0.0",
+              "1.0"
+            ]
+          ],
+          "pixdim": "(1.0, 1.0, 1.0)"
+        }
+      }
+    ]
+  },
+  "annotations": [
+    {
+      "frames": {
+        "0": {
+          "bounding_box": {
+            "h": 20.7,
+            "w": 20.699999999999996,
+            "x": -35.8,
+            "y": 14.2
+          },
+          "keyframe": true,
+          "polygon": {
+            "paths": [
+              [
+                {
+                  "x": -24.5,
+                  "y": 14.2
+                },
+                {
+                  "x": -15.7,
+                  "y": 25.1
+                },
+                {
+                  "x": -15.1,
+                  "y": 25.4
+                },
+                {
+                  "x": -35.8,
+                  "y": 34.9
+                }
+              ]
+            ]
+          }
+        },
+        "1": {
+          "bounding_box": {
+            "h": 20.7,
+            "w": 20.699999999999996,
+            "x": -35.8,
+            "y": 14.2
+          },
+          "keyframe": false,
+          "polygon": {
+            "paths": [
+              [
+                {
+                  "x": -24.5,
+                  "y": 14.2
+                },
+                {
+                  "x": -15.7,
+                  "y": 25.1
+                },
+                {
+                  "x": -15.1,
+                  "y": 25.4
+                },
+                {
+                  "x": -35.8,
+                  "y": 34.9
+                }
+              ]
+            ]
+          }
+        },
+        "2": {
+          "bounding_box": {
+            "h": 20.7,
+            "w": 20.699999999999996,
+            "x": -35.8,
+            "y": 14.2
+          },
+          "keyframe": true,
+          "polygon": {
+            "paths": [
+              [
+                {
+                  "x": -24.5,
+                  "y": 14.2
+                },
+                {
+                  "x": -15.7,
+                  "y": 25.1
+                },
+                {
+                  "x": -15.1,
+                  "y": 25.4
+                },
+                {
+                  "x": -35.8,
+                  "y": 34.9
+                }
+              ]
+            ]
+          }
+        }
+      },
+      "global_sub_types": {},
+      "id": "0093f632-ae50-410d-866b-65f6d936f1e2",
+      "interpolate_algorithm": "linear-1.1",
+      "interpolated": true,
+      "name": "test_polygon_basic",
+      "properties": [],
+      "ranges": [
+        [
+          0,
+          3
+        ]
+      ],
+      "slot_names": [
+        "0"
+      ]
+    },
+    {
+      "frames": {
+        "5": {
+          "bounding_box": {
+            "h": 8.199999999999996,
+            "w": 16.3,
+            "x": -6.7,
+            "y": 29.1
+          },
+          "keyframe": true,
+          "polygon": {
+            "paths": [
+              [
+                {
+                  "x": -0.1,
+                  "y": 29.1
+                },
+                {
+                  "x": -6.7,
+                  "y": 36.1
+                },
+                {
+                  "x": -2.1,
+                  "y": 36.7
+                },
+                {
+                  "x": 8.7,
+                  "y": 37.1
+                },
+                {
+                  "x": 9.6,
+                  "y": 37.3
+                }
+              ]
+            ]
+          }
+        },
+        "6": {
+          "bounding_box": {
+            "h": 8.199999999999996,
+            "w": 16.3,
+            "x": -6.7,
+            "y": 29.1
+          },
+          "keyframe": false,
+          "polygon": {
+            "paths": [
+              [
+                {
+                  "x": -0.1,
+                  "y": 29.1
+                },
+                {
+                  "x": -6.7,
+                  "y": 36.1
+                },
+                {
+                  "x": -2.1,
+                  "y": 36.7
+                },
+                {
+                  "x": 8.7,
+                  "y": 37.1
+                },
+                {
+                  "x": 9.6,
+                  "y": 37.3
+                }
+              ]
+            ]
+          }
+        },
+        "7": {
+          "bounding_box": {
+            "h": 8.199999999999996,
+            "w": 16.3,
+            "x": -6.7,
+            "y": 29.1
+          },
+          "keyframe": true,
+          "polygon": {
+            "paths": [
+              [
+                {
+                  "x": -0.1,
+                  "y": 29.1
+                },
+                {
+                  "x": -6.7,
+                  "y": 36.1
+                },
+                {
+                  "x": -2.1,
+                  "y": 36.7
+                },
+                {
+                  "x": 8.7,
+                  "y": 37.1
+                },
+                {
+                  "x": 9.6,
+                  "y": 37.3
+                }
+              ]
+            ]
+          }
+        }
+      },
+      "global_sub_types": {},
+      "id": "25bd342c-530c-40bb-bf14-a0e58cfe243c",
+      "interpolate_algorithm": "linear-1.1",
+      "interpolated": true,
+      "name": "test_polygon_basic",
+      "properties": [],
+      "ranges": [
+        [
+          5,
+          8
+        ]
+      ],
+      "slot_names": [
+        "0"
+      ]
+    },
+    {
+      "frames": {
+        "2": {
+          "bounding_box": {
+            "h": 7.499999999999998,
+            "w": 12.500000000000002,
+            "x": 6.1,
+            "y": 11.9
+          },
+          "keyframe": true,
+          "polygon": {
+            "paths": [
+              [
+                {
+                  "x": 13.2,
+                  "y": 11.9
+                },
+                {
+                  "x": 6.1,
+                  "y": 18.8
+                },
+                {
+                  "x": 18.6,
+                  "y": 19.4
+                }
+              ]
+            ]
+          }
+        },
+        "3": {
+          "bounding_box": {
+            "h": 7.499999999999998,
+            "w": 12.500000000000002,
+            "x": 6.1,
+            "y": 11.9
+          },
+          "keyframe": false,
+          "polygon": {
+            "paths": [
+              [
+                {
+                  "x": 13.2,
+                  "y": 11.9
+                },
+                {
+                  "x": 6.1,
+                  "y": 18.8
+                },
+                {
+                  "x": 18.6,
+                  "y": 19.4
+                }
+              ]
+            ]
+          }
+        },
+        "4": {
+          "bounding_box": {
+            "h": 7.499999999999998,
+            "w": 12.500000000000002,
+            "x": 6.1,
+            "y": 11.9
+          },
+          "keyframe": true,
+          "polygon": {
+            "paths": [
+              [
+                {
+                  "x": 13.2,
+                  "y": 11.9
+                },
+                {
+                  "x": 6.1,
+                  "y": 18.8
+                },
+                {
+                  "x": 18.6,
+                  "y": 19.4
+                }
+              ]
+            ]
+          }
+        }
+      },
+      "global_sub_types": {},
+      "id": "d79bc280-3077-4754-bcdf-b9bff87396ef",
+      "interpolate_algorithm": "linear-1.1",
+      "interpolated": true,
+      "name": "test_polygon_basic",
+      "properties": [],
+      "ranges": [
+        [
+          2,
+          5
+        ]
+      ],
+      "slot_names": [
+        "0"
+      ]
+    },
+    {
+      "frames": {
+        "0": {
+          "keyframe": true,
+          "mask": {}
+        },
+        "1": {
+          "keyframe": true,
+          "mask": {}
+        },
+        "2": {
+          "keyframe": true,
+          "mask": {}
+        },
+        "9": {
+          "keyframe": true,
+          "mask": {}
+        },
+        "10": {
+          "keyframe": true,
+          "mask": {}
+        },
+        "13": {
+          "keyframe": true,
+          "mask": {}
+        }
+      },
+      "id": "9e26fc7a-75af-4a51-978e-55f95625176d",
+      "interpolate_algorithm": "linear-1.1",
+      "name": "test_mask_basic",
+      "only_keyframes": true,
+      "properties": [],
+      "ranges": [
+        [
+          0,
+          14
+        ]
+      ],
+      "slot_names": [
+        "0"
+      ]
+    },
+    {
+      "frames": {
+        "0": {
+          "keyframe": true,
+          "raster_layer": {
+            "dense_rle": [
+              0,
+              478,
+              1,
+              6,
+              0,
+              27,
+              1,
+              10,
+              0,
+              25,
+              1,
+              11,
+              0,
+              23,
+              1,
+              13,
+              0,
+              22,
+              1,
+              13,
+              0,
+              22,
+              1,
+              14,
+              0,
+              21,
+              1,
+              14,
+              0,
+              21,
+              1,
+              14,
+              0,
+              21,
+              1,
+              14,
+              0,
+              21,
+              1,
+              14,
+              0,
+              21,
+              1,
+              14,
+              0,
+              21,
+              1,
+              14,
+              0,
+              21,
+              1,
+              14,
+              0,
+              21,
+              1,
+              14,
+              0,
+              21,
+              1,
+              13,
+              0,
+              22,
+              1,
+              13,
+              0,
+              22,
+              1,
+              12,
+              0,
+              24,
+              1,
+              11,
+              0,
+              24,
+              1,
+              10,
+              0,
+              26,
+              1,
+              8,
+              0,
+              29,
+              1,
+              4,
+              0,
+              602
+            ],
+            "mask_annotation_ids_mapping": {
+              "9e26fc7a-75af-4a51-978e-55f95625176d": 1
+            },
+            "total_pixels": 1785
+          }
+        },
+        "1": {
+          "keyframe": true,
+          "raster_layer": {
+            "dense_rle": [
+              0,
+              618,
+              1,
+              8,
+              0,
+              25,
+              1,
+              12,
+              0,
+              23,
+              1,
+              13,
+              0,
+              21,
+              1,
+              14,
+              0,
+              21,
+              1,
+              15,
+              0,
+              20,
+              1,
+              15,
+              0,
+              20,
+              1,
+              15,
+              0,
+              20,
+              1,
+              15,
+              0,
+              19,
+              1,
+              15,
+              0,
+              20,
+              1,
+              15,
+              0,
+              20,
+              1,
+              14,
+              0,
+              21,
+              1,
+              14,
+              0,
+              22,
+              1,
+              12,
+              0,
+              23,
+              1,
+              12,
+              0,
+              24,
+              1,
+              10,
+              0,
+              27,
+              1,
+              6,
+              0,
+              636
+            ],
+            "mask_annotation_ids_mapping": {
+              "9e26fc7a-75af-4a51-978e-55f95625176d": 1
+            },
+            "total_pixels": 1785
+          }
+        },
+        "2": {
+          "keyframe": true,
+          "raster_layer": {
+            "dense_rle": [
+              0,
+              763,
+              1,
+              6,
+              0,
+              27,
+              1,
+              9,
+              0,
+              24,
+              1,
+              11,
+              0,
+              24,
+              1,
+              11,
+              0,
+              23,
+              1,
+              12,
+              0,
+              23,
+              1,
+              12,
+              0,
+              23,
+              1,
+              12,
+              0,
+              23,
+              1,
+              12,
+              0,
+              23,
+              1,
+              12,
+              0,
+              23,
+              1,
+              12,
+              0,
+              24,
+              1,
+              11,
+              0,
+              24,
+              1,
+              11,
+              0,
+              25,
+              1,
+              10,
+              0,
+              27,
+              1,
+              8,
+              0,
+              560
+            ],
+            "mask_annotation_ids_mapping": {
+              "9e26fc7a-75af-4a51-978e-55f95625176d": 1
+            },
+            "total_pixels": 1785
+          }
+        },
+        "9": {
+          "keyframe": true,
+          "raster_layer": {
+            "dense_rle": [
+              0,
+              733,
+              1,
+              2,
+              0,
+              31,
+              1,
+              4,
+              0,
+              31,
+              1,
+              4,
+              0,
+              30,
+              1,
+              5,
+              0,
+              30,
+              1,
+              5,
+              0,
+              30,
+              1,
+              5,
+              0,
+              30,
+              1,
+              5,
+              0,
+              30,
+              1,
+              5,
+              0,
+              30,
+              1,
+              5,
+              0,
+              30,
+              1,
+              5,
+              0,
+              30,
+              1,
+              5,
+              0,
+              31,
+              1,
+              4,
+              0,
+              31,
+              1,
+              4,
+              0,
+              32,
+              1,
+              3,
+              0,
+              32,
+              1,
+              3,
+              0,
+              32,
+              1,
+              3,
+              0,
+              33,
+              1,
+              2,
+              0,
+              33,
+              1,
+              2,
+              0,
+              455
+            ],
+            "mask_annotation_ids_mapping": {
+              "9e26fc7a-75af-4a51-978e-55f95625176d": 1
+            },
+            "total_pixels": 1785
+          }
+        },
+        "10": {
+          "keyframe": true,
+          "raster_layer": {
+            "dense_rle": [
+              0,
+              755,
+              1,
+              5,
+              0,
+              28,
+              1,
+              9,
+              0,
+              26,
+              1,
+              9,
+              0,
+              25,
+              1,
+              11,
+              0,
+              24,
+              1,
+              11,
+              0,
+              24,
+              1,
+              11,
+              0,
+              24,
+              1,
+              11,
+              0,
+              25,
+              1,
+              9,
+              0,
+              26,
+              1,
+              9,
+              0,
+              28,
+              1,
+              5,
+              0,
+              710
+            ],
+            "mask_annotation_ids_mapping": {
+              "9e26fc7a-75af-4a51-978e-55f95625176d": 1
+            },
+            "total_pixels": 1785
+          }
+        },
+        "13": {
+          "keyframe": true,
+          "raster_layer": {
+            "dense_rle": [
+              0,
+              790,
+              1,
+              4,
+              0,
+              29,
+              1,
+              8,
+              0,
+              27,
+              1,
+              8,
+              0,
+              26,
+              1,
+              10,
+              0,
+              25,
+              1,
+              10,
+              0,
+              25,
+              1,
+              10,
+              0,
+              25,
+              1,
+              10,
+              0,
+              26,
+              1,
+              8,
+              0,
+              27,
+              1,
+              8,
+              0,
+              29,
+              1,
+              4,
+              0,
+              676
+            ],
+            "mask_annotation_ids_mapping": {
+              "9e26fc7a-75af-4a51-978e-55f95625176d": 1
+            },
+            "total_pixels": 1785
+          }
+        }
+      },
+      "id": "312acef2-734e-437d-b0ca-71722ef4a38f",
+      "name": "__raster_layer__",
+      "only_keyframes": true,
+      "properties": [],
+      "ranges": [
+        [
+          0,
+          35
+        ]
+      ],
+      "slot_names": [
+        "0"
+      ]
+    }
+  ],
+  "properties": []
+}

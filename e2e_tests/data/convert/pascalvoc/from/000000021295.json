@@ -1,0 +1,81 @@
+{
+  "version": "2.0",
+  "schema_ref": "https://darwin-public.s3.eu-west-1.amazonaws.com/darwin_json/2.0/schema.json",
+  "item": {
+    "name": "000000021295.jpg",
+    "path": "/",
+    "source_info": {
+      "item_id": "0192c338-2dc8-bb9f-8dde-9c4a8714c957",
+      "dataset": {
+        "name": "tmp",
+        "slug": "tmp",
+        "dataset_management_url": "https://staging.v7labs.com/datasets/426200/dataset-management"
+      },
+      "team": {
+        "name": "E2E Testing",
+        "slug": "e2e-testing"
+      },
+      "workview_url": "https://staging.v7labs.com/workview?dataset=426200&item=0192c338-2dc8-bb9f-8dde-9c4a8714c957"
+    },
+    "slots": [
+      {
+        "type": "image",
+        "slot_name": "0",
+        "width": 640,
+        "height": 427,
+        "thumbnail_url": "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/6c554c31-8bf6-4fc7-9f31-394fd775b2a6/thumbnail",
+        "source_files": [
+          {
+            "file_name": "000000021295.jpg",
+            "url": "https://staging.v7labs.com/api/v2/teams/e2e-testing/uploads/ade5f1e3-a165-4a07-989f-86ee342499c9"
+          }
+        ]
+      }
+    ]
+  },
+  "annotations": [
+    {
+      "bounding_box": {
+        "h": 23.3562,
+        "w": 87.4362,
+        "x": 103.2062,
+        "y": 55.6957
+      },
+      "id": "754f5f2c-71aa-433c-99dd-e7aae940651c",
+      "name": "test_bounding_box_basic",
+      "properties": [],
+      "slot_names": [
+        "0"
+      ]
+    },
+    {
+      "bounding_box": {
+        "h": 76.6564,
+        "w": 72.4642,
+        "x": 401.4474,
+        "y": 128.7588
+      },
+      "id": "fbcdffcc-d053-46db-b336-4c7e2179cf15",
+      "name": "test_bounding_box_basic",
+      "properties": [],
+      "slot_names": [
+        "0"
+      ]
+    },
+    {
+      "bounding_box": {
+        "h": 21.5596,
+        "w": 117.979,
+        "x": 187.0491,
+        "y": 262.9074
+      },
+      "id": "3325b3b5-add0-47ed-9d71-ccc655e3f3e2",
+      "name": "test_bounding_box_basic",
+      "properties": [],
+      "slot_names": [
+        "0"
+      ]
+    }
+  ],
+  "properties": []
+}
