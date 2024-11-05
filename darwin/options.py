@@ -61,10 +61,10 @@ class Options:
             help="Annotation files (or folders) to convert.",
         )
         parser_convert.add_argument(
-            "--no-legacy",
-            action="store_false",
-            dest="legacy",
-            help="Do not convert annotation using legacy process (isotropic transformation).",
+            "--legacy",
+            action="store_true",
+            default=False,
+            help="Import annotation files using legacy process (isotropic transformation).",
         )
         parser_convert.add_argument(
             "output_dir", type=str, help="Where to store output files."
@@ -375,10 +375,10 @@ class Options:
             help="Bypass warnings about overwiting existing annotations.",
         )
         parser_import.add_argument(
-            "--no-legacy",
-            action="store_false",
-            dest="legacy",
-            help="Do not importing annotation files using legacy process (isotropic transformation).",
+            "--legacy",
+            action="store_true",
+            default=False,
+            help="Import annotation files using legacy process (isotropic transformation).",
         )
 
         # Cpu limit for multiprocessing tasks
@@ -410,9 +410,10 @@ class Options:
             "format", type=str, help="Annotation format to convert to."
         )
         parser_convert.add_argument(
-            "legacy",
+            "--legacy",
             action="store_true",
-            help="Convert annotation using legacy process (isotropic transformation).",
+            default=False,
+            help="Import annotation files using legacy process (isotropic transformation).",
         )
         parser_convert.add_argument(
             "-o", "--output_dir", type=str, help="Where to store output files."
