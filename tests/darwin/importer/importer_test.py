@@ -1,5 +1,6 @@
 import json
 import tempfile
+import inspect
 from functools import partial
 from pathlib import Path
 from typing import List, Tuple
@@ -34,6 +35,7 @@ from darwin.importer.importer import (
     _import_properties,
     _warn_for_annotations_with_multiple_instance_ids,
     _serialize_item_level_properties,
+    import_annotations,
 )
 
 
@@ -3473,3 +3475,9 @@ def test_serialize_item_level_properties_multiple_properties():
     ]
 
     assert result == expected
+
+
+def test_default_legacy_value():
+    signature = inspect.signature(import_annotations)
+    legacy_default_value = signature.parameters["legacy"].default
+    assert legacy_default_value is False

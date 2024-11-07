@@ -1,0 +1,44 @@
+{
+  "version": "1.0",
+  "schema_ref": "https://darwin-public.s3.eu-west-1.amazonaws.com/darwin_json/metadata/1.0/schema.json",
+  "classes": [
+    {
+      "name": "Reference_sBAT",
+      "type": "polygon",
+      "description": null,
+      "color": "rgba(0,255,170,1.0)",
+      "sub_types": [
+        "text",
+        "inference"
+      ],
+      "properties": [],
+      "sub_types_settings": {
+        "inference": {},
+        "text": {}
+      }
+    }
+  ],
+  "properties": [
+    {
+      "name": "item-level-ss",
+      "type": "single_select",
+      "description": "What is this?",
+      "required": false,
+      "property_values": [
+        {
+          "value": "1",
+          "color": "rgba(238,240,241,1.0)"
+        },
+        {
+          "value": "2",
+          "color": "rgba(255,0,214,1.0)"
+        },
+        {
+          "value": "3",
+          "color": "rgba(173,255,0,1.0)"
+        }
+      ],
+      "granularity": "item"
+    }
+  ]
+}
