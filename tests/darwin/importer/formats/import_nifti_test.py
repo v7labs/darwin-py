@@ -239,7 +239,15 @@ def test_get_new_axial_size_with_isotropic():
     assert new_size == (20, 10)
 
 
-def test_process_nifti_orinetation(team_slug_darwin_json_v2):
+def test_process_nifti_orientation_ras_to_lpi(team_slug_darwin_json_v2):
+    """
+    Test that an input NifTI annotation file in the RAS orientation is correctly
+    transformed to the LPI orientation.
+
+    Do this by emulating the `process_nifti` function, which:
+    - 1: Transforms the input file into the RAS orientation
+    - 2: Transforms the transformed RAS file into the LPI orientation
+    """
     with tempfile.TemporaryDirectory() as tmpdir:
         with ZipFile("tests/data.zip") as zfile:
             zfile.extractall(tmpdir)
@@ -254,11 +262,44 @@ def test_process_nifti_orinetation(team_slug_darwin_json_v2):
             )
             lpi_ornt = [[0.0, -1.0], [1.0, -1.0], [2.0, -1.0]]
             ras_file = nib.load(filepath)
+            ras_transformed_file = nib.funcs.as_closest_canonical(ras_file)
             lpi_transformed_file = nib.orientations.apply_orientation(
-                ras_file.get_fdata(), lpi_ornt
+                ras_transformed_file.get_fdata(), lpi_ornt
             )
             processed_file, _ = process_nifti(input_data=ras_file)
             assert not np.array_equal(processed_file, ras_file._dataobj)
+            assert np.array_equal(processed_file, lpi_transformed_file)
+
+
+def test_process_nifti_orientation_las_to_lpi(team_slug_darwin_json_v2):
+    """
+    Test that an input NifTI annotation file in the LAS orientation is correctly
+    transformed to the LPI orientation.
+
+    Do this by emulating the `process_nifti` function, which:
+    - 1: Transforms the input file into the RAS orientation
+    - 2: Transforms the transformed RAS file into the LPI orientation
+    """
+    with tempfile.TemporaryDirectory() as tmpdir:
+        with ZipFile("tests/data.zip") as zfile:
+            zfile.extractall(tmpdir)
+            filepath = (
+                Path(tmpdir)
+                / team_slug_darwin_json_v2
+                / "nifti"
+                / "releases"
+                / "latest"
+                / "annotations"
+                / "BRAINIX_NIFTI_ROI.nii.gz"
+            )
+            lpi_ornt = [[0.0, -1.0], [1.0, -1.0], [2.0, -1.0]]
+            las_file = nib.load(filepath)
+            ras_transformed_file = nib.funcs.as_closest_canonical(las_file)
+            lpi_transformed_file = nib.orientations.apply_orientation(
+                ras_transformed_file.get_fdata(), lpi_ornt
+            )
+            processed_file, _ = process_nifti(input_data=las_file)
+            assert not np.array_equal(processed_file, las_file._dataobj)
             assert np.array_equal(processed_file, lpi_transformed_file)
 
 
