@@ -103,7 +103,7 @@ def _parse_nifti(
     is_mpr: bool,
     legacy: bool = False,
 ) -> dt.AnnotationFile:
-    img, pixdims = process_nifti(nib.load(nifti_path), legacy=legacy)
+    img, pixdims = process_nifti(nib.load(nifti_path))
 
     processed_class_map = process_class_map(class_map)
     video_annotations = []
@@ -513,11 +513,10 @@ def correct_nifti_header_if_necessary(img_nii):
 def process_nifti(
     input_data: nib.nifti1.Nifti1Image,
     ornt: Optional[List[List[float]]] = [[0.0, -1.0], [1.0, -1.0], [2.0, -1.0]],
-    legacy: bool = False,
 ) -> Tuple[np.ndarray, Tuple[float]]:
     """
-    Function that converts a nifti object to RAS orientation (if legacy), then converts to the passed ornt orientation.
-    The default ornt is for LPI.
+    Function that converts a nifti object to the RAS orientation, then converts to the passed ornt orientation.
+    The default ornt is LPI.
 
     Args:
         input_data: nibabel nifti object.
@@ -530,8 +529,7 @@ def process_nifti(
         pixdims: tuple of nifti header zoom values.
     """
     img = correct_nifti_header_if_necessary(input_data)
-    if legacy:
-        img = nib.funcs.as_closest_canonical(img)
+    img = nib.funcs.as_closest_canonical(img)
     data_array = nib.orientations.apply_orientation(img.get_fdata(), ornt)
     pixdims = img.header.get_zooms()
     return data_array, pixdims
