@@ -239,12 +239,7 @@ def test_get_new_axial_size_with_isotropic():
     assert new_size == (20, 10)
 
 
-def test_process_nifti_orientation_legacy(team_slug_darwin_json_v2):
-    pass
-    # It's not yet clear how to write this as the desired behaviour isn't known
-
-
-def test_process_nifti_orinetation_no_legacy(team_slug_darwin_json_v2):
+def test_process_nifti_orinetation(team_slug_darwin_json_v2):
     with tempfile.TemporaryDirectory() as tmpdir:
         with ZipFile("tests/data.zip") as zfile:
             zfile.extractall(tmpdir)
@@ -259,12 +254,12 @@ def test_process_nifti_orinetation_no_legacy(team_slug_darwin_json_v2):
             )
             lpi_ornt = [[0.0, -1.0], [1.0, -1.0], [2.0, -1.0]]
             ras_file = nib.load(filepath)
-            las_transformed_file = nib.orientations.apply_orientation(
+            lpi_transformed_file = nib.orientations.apply_orientation(
                 ras_file.get_fdata(), lpi_ornt
             )
-            processed_file, _ = process_nifti(input_data=ras_file, legacy=False)
+            processed_file, _ = process_nifti(input_data=ras_file)
             assert not np.array_equal(processed_file, ras_file._dataobj)
-            assert np.array_equal(processed_file, las_transformed_file)
+            assert np.array_equal(processed_file, lpi_transformed_file)
 
 
 def serialise_annotation_file(
