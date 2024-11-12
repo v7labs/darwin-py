@@ -226,13 +226,15 @@ def compare_annotations_export(
     item_type: str,
     base_slot: Optional[str] = "0",
     annotation_format: str = "darwin",
+    unzip: Optional[bool] = True,
 ):
     """
     Compares a set of downloaded annotation files with the imported files that resulted
     in those annotations. Ensures equality
     """
-    with zipfile.ZipFile(actual_annotations_dir / "dataset.zip") as z:
-        z.extractall(actual_annotations_dir)
+    if unzip:
+        with zipfile.ZipFile(actual_annotations_dir / "dataset.zip") as z:
+            z.extractall(actual_annotations_dir)
 
     file_prefixes_to_ignore = [".", "metadata.json"]
     expected_annotation_files = {

@@ -2,7 +2,7 @@
   "version": "2.0",
   "schema_ref": "https://darwin-public.s3.eu-west-1.amazonaws.com/darwin_json/2.0/schema.json",
   "item": {
-    "name": "image_1",
+    "name": "image_1.jpg",
     "path": "/",
     "source_info": {
       "item_id": "01920b92-1d5d-94a4-6fbe-8a4d7f9fa15d",
@@ -19,7 +19,7 @@
     },
     "slots": [
       {
-        "type": "image",
+        "type": "image.jpg",
         "slot_name": "0",
         "width": 1920,
         "height": 1080,

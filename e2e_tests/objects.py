@@ -142,6 +142,28 @@ class E2EDataset:
 
         return item_annotations, annotation_classes, properties
 
+    def delete_items(self, config_values: ConfigValues) -> None:
+        """
+        Permanently deletes all items in the dataset
+        """
+        headers = {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "Authorization": f"ApiKey {config_values.api_key}",
+        }
+        payload = {
+            "filters": {
+                "dataset_ids": [self.id],
+                "item_ids": [str(item.id) for item in self.items],
+            }
+        }
+        response = requests.delete(
+            f"{config_values.server}/api/v2/teams/{config_values.team_slug}/items",
+            headers=headers,
+            json=payload,
+        )
+        response.raise_for_status()
+
 
 def get_read_only_registration_payload(
     item_type: str,
@@ -166,7 +188,7 @@ def get_read_only_registration_payload(
                 "storage_thumbnail_key": "darwin-py/images/image_1_thumbnail.jpg",
                 "height": 1080,
                 "width": 1920,
-                "name": "image_1",
+                "name": "image_1.jpg",
             },
             {
                 "path": path or "/",
@@ -175,7 +197,7 @@ def get_read_only_registration_payload(
                 "storage_thumbnail_key": "darwin-py/images/image_2_thumbnail.jpg",
                 "height": 1080,
                 "width": 1920,
-                "name": "image_2",
+                "name": "image_2.jpg",
             },
             {
                 "path": path or "dir1",
@@ -184,7 +206,7 @@ def get_read_only_registration_payload(
                 "storage_thumbnail_key": "darwin-py/images/image_3_thumbnail.jpg",
                 "height": 1080,
                 "width": 1920,
-                "name": "image_3",
+                "name": "image_3.jpg",
             },
             {
                 "path": path or "dir1",
@@ -193,7 +215,7 @@ def get_read_only_registration_payload(
                 "storage_thumbnail_key": "darwin-py/images/image_4_thumbnail.jpg",
                 "height": 1080,
                 "width": 1920,
-                "name": "image_4",
+                "name": "image_4.jpg",
             },
             {
                 "path": path or "dir2",
@@ -202,7 +224,7 @@ def get_read_only_registration_payload(
                 "storage_thumbnail_key": "darwin-py/images/image_5_thumbnail.jpg",
                 "height": 1080,
                 "width": 1920,
-                "name": "image_5",
+                "name": "image_5.jpg",
             },
             {
                 "path": path or "dir2",
@@ -211,7 +233,7 @@ def get_read_only_registration_payload(
                 "storage_thumbnail_key": "darwin-py/images/image_6_thumbnail.jpg",
                 "height": 1080,
                 "width": 1920,
-                "name": "image_6",
+                "name": "image_6.jpg",
             },
             {
                 "path": path or "dir1/dir3",
@@ -220,7 +242,7 @@ def get_read_only_registration_payload(
                 "storage_thumbnail_key": "darwin-py/images/image_7_thumbnail.jpg",
                 "height": 1080,
                 "width": 1920,
-                "name": "image_7",
+                "name": "image_7.jpg",
             },
             {
                 "path": path or "dir1/dir3",
@@ -229,7 +251,7 @@ def get_read_only_registration_payload(
                 "storage_thumbnail_key": "darwin-py/images/image_8_thumbnail.jpg",
                 "height": 1080,
                 "width": 1920,
-                "name": "image_8",
+                "name": "image_8.jpg",
             },
         ],
         "multi_slotted": [
