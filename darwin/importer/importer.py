@@ -1,5 +1,7 @@
 import concurrent.futures
 import uuid
+import json
+import copy
 from collections import defaultdict
 from functools import partial
 from logging import getLogger
@@ -19,6 +21,7 @@ from typing import (
     Tuple,
     Union,
 )
+
 
 from darwin.datatypes import (
     AnnotationFile,
@@ -1864,6 +1867,17 @@ def _import_annotations(
 
     try:
         dataset.import_annotation(id, payload=payload)
+    except RequestEntitySizeExceeded:
+        logger.warning(
+            "Annotation payload exceeds request entity size. Splitting payload into smaller chunks for import."
+        )
+        payloads = _split_payloads(payload)
+        for chunked_payload in payloads:
+            try:
+                dataset.import_annotation(id, payload=chunked_payload)
+            except Exception as e:
+                errors.append(e)
+                success = dt.Success.FAILURE
     except Exception as e:
         errors.append(e)
         success = dt.Success.FAILURE
@@ -2185,3 +2199,56 @@ def _warn_for_annotations_with_multiple_instance_ids(
             console.print(
                 f"- File: {file} has {files_with_multi_instance_id_annotations[file]} annotation(s) with multiple instance IDs"
             )
+
+
+def _split_payloads(
+    payload: Dict[str, Any], max_payload_size: int = 32_000_000
+) -> List[Dict[str, Any]]:
+    """
+    This function takes an input payload and splits it into smaller payloads, ensuring each chunk does not exceed the specified maximum size.
+    This is useful when importing annotations, as it prevents HTTP 413 errors (`RequestEntitySizeExceeded`) from occurring due to large request entity sizes.
+
+    Parameters
+    ----------
+    payload : Dict[str, Any]
+        The input payload to be split.
+    max_payload_size : int, optional
+        The maximum size of each split payload. Defaults to 32,000,000 bytes.
+
+    Returns
+    -------
+    List[Dict[str, Any]]
+        A list of split payloads, each not exceeding the specified maximum size.
+
+    Raises
+    ------
+    ValueError
+        If any single annotation exceeds the `max_payload_size` limit
+    """
+    payloads = []
+    base_payload = {"annotations": [], "overwrite": payload["overwrite"]}
+    current_payload = copy.deepcopy(base_payload)
+    current_payload_size = 0
+
+    for annotation in payload["annotations"]:
+        annotation_size = len(json.dumps({"annotations": [annotation]}).encode("utf-8"))
+        if current_payload_size + annotation_size < max_payload_size:
+            current_payload["annotations"].append(annotation)
+            current_payload_size += annotation_size
+        else:
+            if annotation_size > max_payload_size:
+                raise ValueError(
+                    f"One or more annotations exceed the maximum allowed size of 32 MiB ({max_payload_size})"
+                )
+            payloads.append(current_payload)
+            current_payload = copy.deepcopy(base_payload)
+            current_payload["overwrite"] = (
+                False  # Required to make sure subsequent payloads don't overwrite previous ones
+            )
+            current_payload["annotations"].append(annotation)
+            current_payload_size = annotation_size
+
+    if current_payload["annotations"]:
+        payloads.append(current_payload)
+
+    return payloads

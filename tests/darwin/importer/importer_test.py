@@ -35,6 +35,7 @@ from darwin.importer.importer import (
     _import_properties,
     _warn_for_annotations_with_multiple_instance_ids,
     _serialize_item_level_properties,
+    _split_payloads,
     import_annotations,
 )
 
@@ -3475,6 +3476,65 @@ def test_serialize_item_level_properties_multiple_properties():
     ]
 
     assert result == expected
+
+
+def test__split_payloads_returns_multiple_payloads():
+    payload = {
+        "annotations": [
+            {"id": "annotation_1", "data": "data1"},
+            {"id": "annotation_2", "data": "data2"},
+            {"id": "annotation_3", "data": "data3"},
+        ],
+        "overwrite": True,
+    }
+    max_payload_size = 100
+
+    result = _split_payloads(payload, max_payload_size)
+
+    assert len(result) == 3
+    assert result[0]["annotations"] == [payload["annotations"][0]]
+    assert result[1]["annotations"] == [payload["annotations"][1]]
+    assert result[2]["annotations"] == [payload["annotations"][2]]
+
+
+def test__split_payloads_with_annotation_exceeding_size_limit():
+    payload = {
+        "annotations": [
+            {"id": "annotation_1", "data": "a" * 1000},  # Large annotation
+            {"id": "annotation_2", "data": "data2"},
+        ],
+        "overwrite": True,
+    }
+    max_payload_size = 100
+
+    with pytest.raises(
+        ValueError,
+        match="One or more annotations exceed the maximum allowed size",
+    ):
+        _split_payloads(payload, max_payload_size)
+
+
+def test__split_payloads_overwrites_on_first_payload_and_appends_on_the_rest():
+    """
+    When importing annotations, we need to respect the overwrite behaviour defined by the user.
+    However, if we need to split payloads, all payloads after the first will have to be appended
+    """
+    payload = {
+        "annotations": [
+            {"id": "annotation_1", "data": "data1"},
+            {"id": "annotation_2", "data": "data2"},
+            {"id": "annotation_3", "data": "data3"},
+        ],
+        "overwrite": True,
+    }
+    max_payload_size = 100
+
+    result = _split_payloads(payload, max_payload_size)
+
+    assert len(result) == 3
+    assert result[0]["overwrite"]
+    assert not result[1]["overwrite"]
+    assert not result[2]["overwrite"]
 
 
 def test_default_legacy_value():
