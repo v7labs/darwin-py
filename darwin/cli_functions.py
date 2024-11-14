@@ -919,8 +919,8 @@ def dataset_import(
         If ``True`` it will bypass a warning that the import will overwrite the current annotations if any are present.
         If ``False`` this warning will be skipped and the import will overwrite the current annotations without warning.
     legacy : bool, default: False
-        If ``True`` it will not resize the annotations to be isotropic.
-        If ``False`` it will resize the annotations to be isotropic.
+        If ``True`` it will resize the annotations to be isotropic.
+        If ``False`` it will not resize the annotations to be isotropic.
     use_multi_cpu : bool, default: False
         If ``True`` it will use all multiple CPUs to speed up the import process.
     cpu_limit : Optional[int], default: Core count - 2
@@ -931,7 +931,6 @@ def dataset_import(
 
     try:
         importer: ImportParser = get_importer(format)
-
         if format == "nifti" and legacy:
             importer = partial(importer, legacy=True)
 
@@ -954,7 +953,7 @@ def dataset_import(
             overwrite,
             use_multi_cpu,
             cpu_limit,
-            no_legacy=False if legacy else True,
+            legacy,
         )
 
     except ImporterNotFoundError:
@@ -1228,8 +1227,8 @@ def dataset_convert(
         annotations folder of the dataset under 'other_formats/{format}'.
     legacy : bool, default: False
         This flag is only for the nifti format.
-        If True, it will not export the annotations using legacy calculations.
-        If False, it will resize the annotations using the new calculation by dividing with pixdims.
+        If True, it will resize the annotations by dividing by pixdims.
+        If False, it will not export the annotations using legacy calculations
     """
     identifier: DatasetIdentifier = DatasetIdentifier.parse(dataset_identifier)
     client: Client = _load_client(team_slug=identifier.team_slug)
@@ -1286,8 +1285,8 @@ def convert(
         Folder where the exported annotations will be placed.
     legacy: bool, default: False
         This flag is only for the nifti format.
-        If True, it will not export the annotations using legacy calculations.
-        If False, it will resize the annotations using the new calculation by dividing with pixdims.
+        If True, it will resize the annotations by dividing by pixdims
+        If False, it will not export the annotations using legacy calculations.
     """
     try:
         parser: ExportParser = get_exporter(format)

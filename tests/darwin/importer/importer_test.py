@@ -1,5 +1,6 @@
 import json
 import tempfile
+import inspect
 from functools import partial
 from pathlib import Path
 from typing import List, Tuple
@@ -35,6 +36,7 @@ from darwin.importer.importer import (
     _warn_for_annotations_with_multiple_instance_ids,
     _serialize_item_level_properties,
     _split_payloads,
+    import_annotations,
 )
 
 
@@ -3533,3 +3535,9 @@ def test__split_payloads_overwrites_on_first_payload_and_appends_on_the_rest():
     assert result[0]["overwrite"]
     assert not result[1]["overwrite"]
     assert not result[2]["overwrite"]
+
+
+def test_default_legacy_value():
+    signature = inspect.signature(import_annotations)
+    legacy_default_value = signature.parameters["legacy"].default
+    assert legacy_default_value is False

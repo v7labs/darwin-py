@@ -3,7 +3,6 @@ from time import sleep
 from typing import Optional, Union, Sequence
 
 from attr import dataclass
-from pathlib import Path
 from darwin.exceptions import DarwinException
 import datetime
 import json
@@ -193,12 +192,12 @@ def wait_until_items_processed(
         )
 
 
-def export_and_download_annotations(
-    actual_annotations_dir: Path,
+def export_release(
     annotation_format: str,
     local_dataset: E2EDataset,
     config_values: ConfigValues,
-) -> None:
+    release_name: Optional[str] = "all-files",
+) -> Release:
     """
     Creates an export of all items in the given dataset.
     Waits for the export to finish, then downloads and the annotation files to
@@ -208,7 +207,6 @@ def export_and_download_annotations(
     team_slug = config_values.team_slug
     api_key = config_values.api_key
     base_url = config_values.server
-    export_name = "all-files"
     create_export_url = (
         f"{base_url}/api/v2/teams/{team_slug}/datasets/{dataset_slug}/exports"
     )
@@ -223,7 +221,7 @@ def export_and_download_annotations(
         "include_authorship": False,
         "include_export_token": False,
         "format": f"{annotation_format}",
-        "name": f"{export_name}",
+        "name": f"{release_name}",
     }
     headers = {
         "accept": "application/json",
@@ -241,7 +239,7 @@ def export_and_download_annotations(
         response = requests.get(list_export_url, headers=headers)
         exports = response.json()
         for export in exports:
-            if export["name"] == export_name and export["status"] == "complete":
+            if export["name"] == release_name and export["status"] == "complete":
                 export_data = export
                 ready = True
 
@@ -261,7 +259,7 @@ def export_and_download_annotations(
         latest=export_data["latest"],
         format=export_data.get("format", "json"),
     )
-    release.download_zip(actual_annotations_dir / "dataset.zip")
+    return release
 
 
 def delete_annotation_uuids(

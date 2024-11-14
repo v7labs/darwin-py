@@ -4,7 +4,7 @@ from pathlib import Path
 from e2e_tests.helpers import (
     assert_cli,
     run_cli_command,
-    export_and_download_annotations,
+    export_release,
     delete_annotation_uuids,
     list_items,
 )
@@ -226,13 +226,15 @@ def compare_annotations_export(
     item_type: str,
     base_slot: Optional[str] = "0",
     annotation_format: str = "darwin",
+    unzip: Optional[bool] = True,
 ):
     """
     Compares a set of downloaded annotation files with the imported files that resulted
     in those annotations. Ensures equality
     """
-    with zipfile.ZipFile(actual_annotations_dir / "dataset.zip") as z:
-        z.extractall(actual_annotations_dir)
+    if unzip:
+        with zipfile.ZipFile(actual_annotations_dir / "dataset.zip") as z:
+            z.extractall(actual_annotations_dir)
 
     file_prefixes_to_ignore = [".", "metadata.json"]
     expected_annotation_files = {
@@ -336,12 +338,12 @@ def run_import_test(
     )
     with tempfile.TemporaryDirectory() as tmp_dir_str:
         actual_annotations_dir = Path(tmp_dir_str)
-        export_and_download_annotations(
-            actual_annotations_dir,
+        release = export_release(
             annotation_format,  # type: ignore
             local_dataset,
             config_values,
         )
+        release.download_zip(actual_annotations_dir / "dataset.zip")
         compare_annotations_export(
             actual_annotations_dir,
             expected_annotations_dir,

@@ -9,6 +9,7 @@ from zipfile import ZipFile
 import numpy as np
 import pytest
 from scipy import ndimage
+import nibabel as nib
 
 from darwin.datatypes import (
     Annotation,
@@ -17,8 +18,9 @@ from darwin.datatypes import (
     SubAnnotation,
     VideoAnnotation,
 )
-from darwin.importer.formats.nifti import get_new_axial_size, parse_path
+from darwin.importer.formats.nifti import get_new_axial_size, parse_path, process_nifti
 from tests.fixtures import *
+from darwin.utils.utils import parse_darwin_json
 
 
 def test_image_annotation_nifti_import_single_slot(team_slug_darwin_json_v2: str):
@@ -238,6 +240,70 @@ def test_get_new_axial_size_with_isotropic():
     assert new_size == (20, 10)
 
 
+def test_process_nifti_orientation_ras_to_lpi(team_slug_darwin_json_v2):
+    """
+    Test that an input NifTI annotation file in the RAS orientation is correctly
+    transformed to the LPI orientation.
+
+    Do this by emulating the `process_nifti` function, which:
+    - 1: Transforms the input file into the RAS orientation
+    - 2: Transforms the transformed RAS file into the LPI orientation
+    """
+    with tempfile.TemporaryDirectory() as tmpdir:
+        with ZipFile("tests/data.zip") as zfile:
+            zfile.extractall(tmpdir)
+            filepath = (
+                Path(tmpdir)
+                / team_slug_darwin_json_v2
+                / "nifti"
+                / "releases"
+                / "latest"
+                / "annotations"
+                / "vol0_brain.nii.gz"
+            )
+            lpi_ornt = [[0.0, -1.0], [1.0, -1.0], [2.0, -1.0]]
+            ras_file = nib.load(filepath)
+            ras_transformed_file = nib.funcs.as_closest_canonical(ras_file)
+            lpi_transformed_file = nib.orientations.apply_orientation(
+                ras_transformed_file.get_fdata(), lpi_ornt
+            )
+            processed_file, _ = process_nifti(input_data=ras_file)
+            assert not np.array_equal(processed_file, ras_file._dataobj)
+            assert np.array_equal(processed_file, lpi_transformed_file)
+
+
+def test_process_nifti_orientation_las_to_lpi(team_slug_darwin_json_v2):
+    """
+    Test that an input NifTI annotation file in the LAS orientation is correctly
+    transformed to the LPI orientation.
+
+    Do this by emulating the `process_nifti` function, which:
+    - 1: Transforms the input file into the RAS orientation
+    - 2: Transforms the transformed RAS file into the LPI orientation
+    """
+    with tempfile.TemporaryDirectory() as tmpdir:
+        with ZipFile("tests/data.zip") as zfile:
+            zfile.extractall(tmpdir)
+            filepath = (
+                Path(tmpdir)
+                / team_slug_darwin_json_v2
+                / "nifti"
+                / "releases"
+                / "latest"
+                / "annotations"
+                / "BRAINIX_NIFTI_ROI.nii.gz"
+            )
+            lpi_ornt = [[0.0, -1.0], [1.0, -1.0], [2.0, -1.0]]
+            las_file = nib.load(filepath)
+            ras_transformed_file = nib.funcs.as_closest_canonical(las_file)
+            lpi_transformed_file = nib.orientations.apply_orientation(
+                ras_transformed_file.get_fdata(), lpi_ornt
+            )
+            processed_file, _ = process_nifti(input_data=las_file)
+            assert not np.array_equal(processed_file, las_file._dataobj)
+            assert np.array_equal(processed_file, lpi_transformed_file)
+
+
 def serialise_annotation_file(
     annotation_file: AnnotationFile, as_dict
 ) -> Union[str, dict]:
@@ -389,3 +455,108 @@ if __name__ == "__main__":
             "w",
         ) as f:
             f.write(output_json_string)
+
+
+def adjust_nifti_label_filepath(nifti_annotation_filepath: Path, nifti_filepath: Path):
+    """
+    Adjusts a specific NifTI label path to point to a local NifTI file for import testing.
+    This is requied to allow the test to run in multiple environments
+    """
+    with open(nifti_annotation_filepath) as f:
+        input_data = json.load(f)
+
+    # Inject the nifti_filepath into the data.label key
+    input_data["data"][0]["label"] = str(nifti_filepath)
+
+    # Save the modified JSON back to the file
+    with open(nifti_annotation_filepath, "w") as f:
+        json.dump(input_data, f, indent=4)
+
+
+def round_polygon_annotation_coordinates(annotation, decimal_places=2):
+    """
+    Rounds all coordinates in the annotation to a specified number of decimal places.
+
+    Parameters:
+    - annotation: The annotation data (list of lists).
+    - decimal_places: The number of decimal places to round to.
+
+    Returns:
+    - A new annotation structure with rounded coordinates.
+    """
+    return [
+        [
+            {
+                "x": round(point["x"], decimal_places),
+                "y": round(point["y"], decimal_places),
+            }
+            for point in path
+        ]
+        for path in annotation
+    ]
+
+
+def test_parse_path_nifti_with_legacy_scaling():
+    nifti_annotation_filepath = (
+        Path(__file__).parents[2] / "data" / "nifti" / "nifti.json"
+    )
+    nifti_filepath = (
+        Path(__file__).parents[2] / "data" / "nifti" / "BRAINIX_NIFTI_ROI.nii.gz"
+    )
+    expected_annotations_filepath = (
+        Path(__file__).parents[2]
+        / "data"
+        / "nifti"
+        / "legacy"
+        / "BRAINIX_NIFTI_ROI.nii.json"
+    )
+    adjust_nifti_label_filepath(nifti_annotation_filepath, nifti_filepath)
+    expected_annotations = parse_darwin_json(expected_annotations_filepath)
+    parsed_annotations = parse_path(nifti_annotation_filepath, legacy=True)
+    for frame_idx in expected_annotations.annotations[0].frames:
+        expected_annotation = (
+            expected_annotations.annotations[0].frames[frame_idx].data["paths"]
+        )
+        parsed_annotation = (
+            parsed_annotations[0].annotations[0].frames[frame_idx].data["paths"]
+        )
+        expected_annotation_rounded = round_polygon_annotation_coordinates(
+            expected_annotation, decimal_places=4
+        )
+        parsed_annotation_rounded = round_polygon_annotation_coordinates(
+            parsed_annotation, decimal_places=4
+        )
+        assert expected_annotation_rounded == parsed_annotation_rounded
+
+
+def test_parse_path_nifti_without_legacy_scaling():
+    nifti_annotation_filepath = (
+        Path(__file__).parents[2] / "data" / "nifti" / "nifti.json"
+    )
+    nifti_filepath = (
+        Path(__file__).parents[2] / "data" / "nifti" / "BRAINIX_NIFTI_ROI.nii.gz"
+    )
+    expected_annotations_filepath = (
+        Path(__file__).parents[2]
+        / "data"
+        / "nifti"
+        / "no-legacy"
+        / "BRAINIX_NIFTI_ROI.nii.json"
+    )
+    adjust_nifti_label_filepath(nifti_annotation_filepath, nifti_filepath)
+    expected_annotations = parse_darwin_json(expected_annotations_filepath)
+    parsed_annotations = parse_path(nifti_annotation_filepath, legacy=False)
+    for frame_idx in expected_annotations.annotations[0].frames:
+        expected_annotation = (
+            expected_annotations.annotations[0].frames[frame_idx].data["paths"]
+        )
+        parsed_annotation = (
+            parsed_annotations[0].annotations[0].frames[frame_idx].data["paths"]
+        )
+        expected_annotation_rounded = round_polygon_annotation_coordinates(
+            expected_annotation, decimal_places=4
+        )
+        parsed_annotation_rounded = round_polygon_annotation_coordinates(
+            parsed_annotation, decimal_places=4
+        )
+        assert expected_annotation_rounded == parsed_annotation_rounded
