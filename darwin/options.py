@@ -168,6 +168,11 @@ class Options:
             action="store_true",
             help="Upload a volume with all 3 orthogonal views.",
         )
+        parser_push.add_argument(
+            "--handle_as_slices",
+            action="store_true",
+            help="Upload DICOM files as slices",
+        )
 
         parser_push.add_argument(
             "--path", type=str, default=None, help="Folder to upload the files into."

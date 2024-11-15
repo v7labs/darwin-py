@@ -3,6 +3,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 import responses
+import inspect
+
 
 from darwin.client import Client
 from darwin.config import Config
@@ -416,7 +418,98 @@ def test_upload_files(dataset: RemoteDataset, request_upload_endpoint: str):
     assert upload_handler.error_count == 0
 
 
+@pytest.mark.usefixtures("file_read_write_test")
+@responses.activate
+def test_upload_files_adds_handle_as_slices_option_to_upload_payload(
+    dataset: RemoteDataset, request_upload_endpoint: str
+):
+    request_upload_response = {
+        "blocked_items": [],
+        "items": [
+            {
+                "id": "3b241101-e2bb-4255-8caf-4136c566a964",
+                "name": "test.dcm",
+                "path": "/",
+                "slots": [
+                    {
+                        "type": "image",
+                        "file_name": "test.dcm",
+                        "slot_name": "0",
+                        "upload_id": "123e4567-e89b-12d3-a456-426614174000",
+                        "as_frames": False,
+                        "extract_views": False,
+                    }
+                ],
+            }
+        ],
+    }
+    responses.add(
+        responses.POST,
+        request_upload_endpoint,
+        json=request_upload_response,
+        status=200,
+    )
+    Path("test.dcm").touch()
+    local_file = LocalFile(local_path=Path("test.dcm"))
+    with patch("darwin.backend_v2.BackendV2.register_data") as mock_register_data:
+        with patch.object(dataset, "fetch_remote_files", return_value=[]):
+            UploadHandler.build(dataset, [local_file], handle_as_slices=True)
+            assert mock_register_data.call_count == 1
+            assert mock_register_data.call_args[0][1]["options"] == {
+                "handle_as_slices": True
+            }
+
+
+@pytest.mark.usefixtures("file_read_write_test")
+@responses.activate
+def test_upload_files_does_not_add_handle_as_slices_option_to_upload_payload(
+    dataset: RemoteDataset, request_upload_endpoint: str
+):
+    request_upload_response = {
+        "blocked_items": [],
+        "items": [
+            {
+                "id": "3b241101-e2bb-4255-8caf-4136c566a964",
+                "name": "test.dcm",
+                "path": "/",
+                "slots": [
+                    {
+                        "type": "image",
+                        "file_name": "test.dcm",
+                        "slot_name": "0",
+                        "upload_id": "123e4567-e89b-12d3-a456-426614174000",
+                        "as_frames": False,
+                        "extract_views": False,
+                    }
+                ],
+            }
+        ],
+    }
+    responses.add(
+        responses.POST,
+        request_upload_endpoint,
+        json=request_upload_response,
+        status=200,
+    )
+    Path("test.dcm").touch()
+    local_file = LocalFile(local_path=Path("test.dcm"))
+    with patch("darwin.backend_v2.BackendV2.register_data") as mock_register_data:
+        with patch.object(dataset, "fetch_remote_files", return_value=[]):
+            UploadHandler.build(dataset, [local_file], handle_as_slices=False)
+            assert mock_register_data.call_count == 1
+            assert mock_register_data.call_args[0][1]["options"] == {
+                "handle_as_slices": False
+            }
+
+
+def test_default_value_for_handle_as_slices():
+    signature = inspect.signature(UploadHandlerV2._request_upload)
+    handle_as_slices_default_value = signature.parameters["handle_as_slices"].default
+    assert handle_as_slices_default_value is False
+
+
 class TestUploadChunkSize:
+
     def test_default_value_when_env_var_is_not_set(self):
         assert _upload_chunk_size() == 500
 
