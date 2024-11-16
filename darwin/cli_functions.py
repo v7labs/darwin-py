@@ -655,6 +655,7 @@ def upload_data(
     path: Optional[str],
     frames: bool,
     extract_views: bool = False,
+    handle_as_slices: bool = False,
     preserve_folders: bool = False,
     verbose: bool = False,
     item_merge_mode: Optional[str] = None,
@@ -682,6 +683,8 @@ def upload_data(
         Specify whether the files will be uploaded as a list of frames or not.
     extract_views : bool
         If providing a volume, specify whether to extract the orthogonal views or not.
+    handle_as_slices : bool
+        Whether to upload DICOM files as slices
     preserve_folders : bool
         Specify whether or not to preserve folder paths when uploading.
     verbose : bool
@@ -779,6 +782,7 @@ def upload_data(
                 fps=fps,
                 as_frames=frames,
                 extract_views=extract_views,
+                handle_as_slices=handle_as_slices,
                 path=path,
                 preserve_folders=preserve_folders,
                 progress_callback=progress_callback,

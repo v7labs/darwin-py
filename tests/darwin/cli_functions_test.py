@@ -229,6 +229,7 @@ class TestUploadData:
                         None,
                         False,
                         False,
+                        False,
                         True,
                     )
                     get_remote_dataset_mock.assert_called_once()

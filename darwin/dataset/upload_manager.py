@@ -382,6 +382,7 @@ class UploadHandler(ABC):
         dataset: "RemoteDataset",
         local_files: List[LocalFile],
         multi_file_items: Optional[List[MultiFileItem]] = None,
+        handle_as_slices: Optional[bool] = False,
     ):
         self._progress: Optional[
             Iterator[Callable[[Optional[ByteReadCallback]], None]]
@@ -391,11 +392,17 @@ class UploadHandler(ABC):
         self.dataset: RemoteDataset = dataset
         self.errors: List[UploadRequestError] = []
         self.skip_existing_full_remote_filepaths()
-        self.blocked_items, self.pending_items = self._request_upload()
+        self.blocked_items, self.pending_items = self._request_upload(
+            handle_as_slices=handle_as_slices
+        )
 
     @staticmethod
-    def build(dataset: "RemoteDataset", local_files: List[LocalFile]):
-        return UploadHandlerV2(dataset, local_files)
+    def build(
+        dataset: "RemoteDataset",
+        local_files: List[LocalFile],
+        handle_as_slices: Optional[bool] = False,
+    ):
+        return UploadHandlerV2(dataset, local_files, handle_as_slices=handle_as_slices)
 
     @property
     def client(self) -> "Client":
@@ -542,7 +549,9 @@ class UploadHandler(ABC):
                 file_to_upload(callback)
 
     @abstractmethod
-    def _request_upload(self) -> Tuple[List[ItemPayload], List[ItemPayload]]:
+    def _request_upload(
+        self, handle_as_slices: Optional[bool] = False
+    ) -> Tuple[List[ItemPayload], List[ItemPayload]]:
         pass
 
     @abstractmethod
@@ -565,14 +574,18 @@ class UploadHandlerV2(UploadHandler):
         dataset: "RemoteDataset",
         local_files: List[LocalFile],
         multi_file_items: Optional[List[MultiFileItem]] = None,
+        handle_as_slices: Optional[bool] = False,
     ):
         super().__init__(
             dataset=dataset,
             local_files=local_files,
             multi_file_items=multi_file_items,
+            handle_as_slices=handle_as_slices,
         )
 
-    def _request_upload(self) -> Tuple[List[ItemPayload], List[ItemPayload]]:
+    def _request_upload(
+        self, handle_as_slices: Optional[bool] = False
+    ) -> Tuple[List[ItemPayload], List[ItemPayload]]:
         blocked_items = []
         items = []
         chunk_size: int = _upload_chunk_size()
@@ -585,7 +598,10 @@ class UploadHandlerV2(UploadHandler):
                         "items": [
                             file.serialize_darwin_json_v2() for file in file_chunk
                         ],
-                        "options": {"ignore_dicom_layout": True},
+                        "options": {
+                            "ignore_dicom_layout": True,
+                            "handle_as_slices": handle_as_slices,
+                        },
                     }
                     for file_chunk in chunk(self.multi_file_items, chunk_size)
                 ]
@@ -603,7 +619,10 @@ class UploadHandlerV2(UploadHandler):
 
         upload_payloads.extend(
             [
-                {"items": [file.serialize_darwin_json_v2() for file in file_chunk]}
+                {
+                    "items": [file.serialize_darwin_json_v2() for file in file_chunk],
+                    "options": {"handle_as_slices": handle_as_slices},
+                }
                 for file_chunk in chunk(single_file_items, chunk_size)
             ]
         )

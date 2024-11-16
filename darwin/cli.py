@@ -124,6 +124,7 @@ def _run(args: Namespace, parser: ArgumentParser) -> None:
                 args.path,
                 args.frames,
                 args.extract_views,
+                args.handle_as_slices,
                 args.preserve_folders,
                 args.verbose,
                 args.item_merge_mode,

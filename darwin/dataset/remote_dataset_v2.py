@@ -171,6 +171,7 @@ class RemoteDatasetV2(RemoteDataset):
         fps: int = 0,
         as_frames: bool = False,
         extract_views: bool = False,
+        handle_as_slices: Optional[bool] = False,
         files_to_exclude: Optional[List[PathLike]] = None,
         path: Optional[str] = None,
         preserve_folders: bool = False,
@@ -199,6 +200,8 @@ class RemoteDatasetV2(RemoteDataset):
             When the uploading file is a video, specify whether it's going to be uploaded as a list of frames.
         extract_views: bool, default: False
             When the uploading file is a volume, specify whether it's going to be split into orthogonal views.
+        handle_as_slices: Optioonal[bool], default: False
+            Whether to upload DICOM files as slices
         files_to_exclude : Optional[PathLike]], default: None
             Optional list of files to exclude from the file scan. These can be folders.
         path: Optional[str], default: None
@@ -267,7 +270,9 @@ class RemoteDatasetV2(RemoteDataset):
             local_files, multi_file_items = _find_files_to_upload_as_multi_file_items(
                 search_files, files_to_exclude, fps, item_merge_mode
             )
-            handler = UploadHandlerV2(self, local_files, multi_file_items)
+            handler = UploadHandlerV2(
+                self, local_files, multi_file_items, handle_as_slices=handle_as_slices
+            )
         else:
             local_files = _find_files_to_upload_as_single_file_items(
                 search_files,
@@ -279,7 +284,9 @@ class RemoteDatasetV2(RemoteDataset):
                 extract_views,
                 preserve_folders,
             )
-            handler = UploadHandlerV2(self, local_files)
+            handler = UploadHandlerV2(
+                self, local_files, handle_as_slices=handle_as_slices
+            )
         if blocking:
             handler.upload(
                 max_workers=max_workers,
@@ -883,10 +890,10 @@ def _find_files_to_upload_as_multi_file_items(
         List of directories to search for files.
     files_to_exclude : List[PathLike]
         List of files to exclude from the file scan.
-    item_merge_mode : str
-        Mode to merge the files in the folders. Valid options are: 'slots', 'series', 'channels'.
     fps : int
         When uploading video files, specify the framerate
+    item_merge_mode : str
+        Mode to merge the files in the folders. Valid options are: 'slots', 'series', 'channels'.
 
     Returns
     -------
