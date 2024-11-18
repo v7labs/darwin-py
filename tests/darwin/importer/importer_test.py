@@ -1061,7 +1061,6 @@ class TestImportItemLevelProperties:
         ) as mock_get_team_props, patch(
             "darwin.importer.importer._create_update_item_properties"
         ) as mock_create_update_props:
-
             metadata_path = False
             mock_get_team_props.side_effect = [
                 ({}, {}),
@@ -1109,12 +1108,14 @@ class TestImportItemLevelProperties:
                 dataset=mock_dataset,
             )
 
-            create_properties_first_call, update_properties_first_call = (
-                mock_create_update_props.call_args_list[0][0][0:2]
-            )
-            create_properties_second_call, update_properties_second_call = (
-                mock_create_update_props.call_args_list[1][0][0:2]
-            )
+            (
+                create_properties_first_call,
+                update_properties_first_call,
+            ) = mock_create_update_props.call_args_list[0][0][0:2]
+            (
+                create_properties_second_call,
+                update_properties_second_call,
+            ) = mock_create_update_props.call_args_list[1][0][0:2]
 
             assert len(create_properties_first_call) == 0
             assert len(update_properties_first_call) == 0
@@ -1158,7 +1159,6 @@ class TestImportItemLevelProperties:
         ) as mock_get_team_props, patch(
             "darwin.importer.importer._create_update_item_properties"
         ) as mock_create_update_props:
-
             metadata_path = Path(
                 "darwin/future/tests/data/.v7/metadata_with_item_level_properties.json"
             )
@@ -1238,12 +1238,14 @@ class TestImportItemLevelProperties:
                 dataset=mock_dataset,
             )
 
-            create_properties_first_call, update_properties_first_call = (
-                mock_create_update_props.call_args_list[0][0][2:4]
-            )
-            create_properties_second_call, update_properties_second_call = (
-                mock_create_update_props.call_args_list[1][0][2:4]
-            )
+            (
+                create_properties_first_call,
+                update_properties_first_call,
+            ) = mock_create_update_props.call_args_list[0][0][2:4]
+            (
+                create_properties_second_call,
+                update_properties_second_call,
+            ) = mock_create_update_props.call_args_list[1][0][2:4]
 
             assert len(create_properties_first_call) == 2
             assert len(update_properties_first_call) == 0
@@ -1289,7 +1291,6 @@ class TestImportItemLevelProperties:
         ) as mock_get_team_props, patch(
             "darwin.importer.importer._create_update_item_properties"
         ) as mock_create_update_props:
-
             metadata_path = Path(
                 "darwin/future/tests/data/.v7/metadata_with_item_level_properties.json"
             )
@@ -1371,12 +1372,14 @@ class TestImportItemLevelProperties:
                 dataset=mock_dataset,
             )
 
-            create_properties_first_call, update_properties_first_call = (
-                mock_create_update_props.call_args_list[0][0][2:4]
-            )
-            create_properties_second_call, update_properties_second_call = (
-                mock_create_update_props.call_args_list[1][0][2:4]
-            )
+            (
+                create_properties_first_call,
+                update_properties_first_call,
+            ) = mock_create_update_props.call_args_list[0][0][2:4]
+            (
+                create_properties_second_call,
+                update_properties_second_call,
+            ) = mock_create_update_props.call_args_list[1][0][2:4]
 
             assert len(create_properties_first_call) == 2
             assert len(update_properties_first_call) == 0
@@ -1432,7 +1435,6 @@ class TestImportItemLevelProperties:
         ) as mock_get_team_props, patch(
             "darwin.importer.importer._create_update_item_properties"
         ) as mock_create_update_props:
-
             metadata_path = Path(
                 "darwin/future/tests/data/.v7/metadata_with_item_level_properties.json"
             )
@@ -1571,12 +1573,14 @@ class TestImportItemLevelProperties:
                 dataset=mock_dataset,
             )
 
-            create_properties_first_call, update_properties_first_call = (
-                mock_create_update_props.call_args_list[0][0][2:4]
-            )
-            create_properties_second_call, update_properties_second_call = (
-                mock_create_update_props.call_args_list[1][0][2:4]
-            )
+            (
+                create_properties_first_call,
+                update_properties_first_call,
+            ) = mock_create_update_props.call_args_list[0][0][2:4]
+            (
+                create_properties_second_call,
+                update_properties_second_call,
+            ) = mock_create_update_props.call_args_list[1][0][2:4]
 
             assert len(create_properties_first_call) == 0
             assert len(update_properties_first_call) == 2
@@ -1620,7 +1624,6 @@ class TestImportItemLevelProperties:
         ) as mock_get_team_props, patch(
             "darwin.importer.importer._create_update_item_properties"
         ) as mock_create_update_props:
-
             metadata_path = False
             mock_get_team_props.side_effect = [
                 (
@@ -1761,12 +1764,14 @@ class TestImportItemLevelProperties:
                 dataset=mock_dataset,
             )
 
-            create_properties_first_call, update_properties_first_call = (
-                mock_create_update_props.call_args_list[0][0][2:4]
-            )
-            create_properties_second_call, update_properties_second_call = (
-                mock_create_update_props.call_args_list[1][0][2:4]
-            )
+            (
+                create_properties_first_call,
+                update_properties_first_call,
+            ) = mock_create_update_props.call_args_list[0][0][2:4]
+            (
+                create_properties_second_call,
+                update_properties_second_call,
+            ) = mock_create_update_props.call_args_list[1][0][2:4]
 
             assert len(create_properties_first_call) == 0
             assert len(update_properties_first_call) == 0
@@ -1799,7 +1804,6 @@ class TestImportItemLevelProperties:
         ) as mock_get_team_props, patch(
             "darwin.importer.importer._create_update_item_properties"
         ) as mock_create_update_props:
-
             metadata_path = Path(
                 "darwin/future/tests/data/.v7/metadata_with_item_level_properties.json"
             )
@@ -1938,12 +1942,14 @@ class TestImportItemLevelProperties:
                 dataset=mock_dataset,
             )
 
-            create_properties_first_call, update_properties_first_call = (
-                mock_create_update_props.call_args_list[0][0][2:4]
-            )
-            create_properties_second_call, update_properties_second_call = (
-                mock_create_update_props.call_args_list[1][0][2:4]
-            )
+            (
+                create_properties_first_call,
+                update_properties_first_call,
+            ) = mock_create_update_props.call_args_list[0][0][2:4]
+            (
+                create_properties_second_call,
+                update_properties_second_call,
+            ) = mock_create_update_props.call_args_list[1][0][2:4]
 
             assert len(create_properties_first_call) == 0
             assert len(update_properties_first_call) == 2

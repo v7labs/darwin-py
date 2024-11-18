@@ -509,7 +509,6 @@ def test_default_value_for_handle_as_slices():
 
 
 class TestUploadChunkSize:
-
     def test_default_value_when_env_var_is_not_set(self):
         assert _upload_chunk_size() == 500
 
