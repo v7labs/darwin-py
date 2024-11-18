@@ -253,14 +253,15 @@ def compare_annotations_export(
         actual_filename = get_actual_annotation_filename(
             expected_filename, actual_annotation_files
         )
-        expected_annotation_data, actual_annotation_data = (
-            parse_expected_and_actual_annotations(
-                expected_annotation_files,
-                actual_annotation_files,
-                expected_filename,
-                actual_filename,
-                annotation_format,
-            )
+        (
+            expected_annotation_data,
+            actual_annotation_data,
+        ) = parse_expected_and_actual_annotations(
+            expected_annotation_files,
+            actual_annotation_files,
+            expected_filename,
+            actual_filename,
+            annotation_format,
         )
         for idx, expected_annotation_file in enumerate(expected_annotation_data):
             actual_annotation_file = actual_annotation_data[idx]

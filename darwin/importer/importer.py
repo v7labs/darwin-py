@@ -499,9 +499,10 @@ def _import_properties(
     metadata_property_classes, metadata_item_props = _parse_metadata_file(metadata_path)
 
     # Get team properties
-    team_properties_annotation_lookup, team_item_properties_lookup = (
-        _get_team_properties_annotation_lookup(client, dataset.team)
-    )
+    (
+        team_properties_annotation_lookup,
+        team_item_properties_lookup,
+    ) = _get_team_properties_annotation_lookup(client, dataset.team)
 
     # Build metadata lookups
     (
@@ -748,12 +749,13 @@ def _import_properties(
             ].add(t_prop_val.id)
 
     # Create/Update team item properties based on metadata
-    item_properties_to_create_from_metadata, item_properties_to_update_from_metadata = (
-        _create_update_item_properties(
-            _normalize_item_properties(metadata_item_prop_lookup),
-            team_item_properties_lookup,
-            client,
-        )
+    (
+        item_properties_to_create_from_metadata,
+        item_properties_to_update_from_metadata,
+    ) = _create_update_item_properties(
+        _normalize_item_properties(metadata_item_prop_lookup),
+        team_item_properties_lookup,
+        client,
     )
 
     console = Console(theme=_console_theme())
@@ -804,9 +806,10 @@ def _import_properties(
             updated_properties.append(prop)
 
     # get latest team properties
-    team_properties_annotation_lookup, team_item_properties_lookup = (
-        _get_team_properties_annotation_lookup(client, dataset.team)
-    )
+    (
+        team_properties_annotation_lookup,
+        team_item_properties_lookup,
+    ) = _get_team_properties_annotation_lookup(client, dataset.team)
 
     # Update item-level properties from annotations
     _, item_properties_to_update_from_annotations = _create_update_item_properties(
@@ -835,9 +838,10 @@ def _import_properties(
             updated_properties.append(prop)
 
     # get latest team properties
-    team_properties_annotation_lookup, team_item_properties_lookup = (
-        _get_team_properties_annotation_lookup(client, dataset.team)
-    )
+    (
+        team_properties_annotation_lookup,
+        team_item_properties_lookup,
+    ) = _get_team_properties_annotation_lookup(client, dataset.team)
 
     # loop over metadata_cls_id_prop_lookup, and update additional metadata property values
     for (annotation_class_id, prop_name), m_prop in metadata_cls_id_prop_lookup.items():
@@ -987,7 +991,6 @@ def _create_update_item_properties(
 
         # If the property exists in the team, check that all values are present
         if item_prop_name in team_item_properties_lookup:
-
             t_prop = team_item_properties_lookup[item_prop_name]
             # If the property is a text property it won't have predefined values, so continue
             if t_prop.type == "text":
@@ -1014,7 +1017,6 @@ def _create_update_item_properties(
 
         # If the property does not exist in the team, create it
         else:
-
             # If we've already planned to create this property, simply extend the property values
             for prop in create_properties:
                 if prop.name == item_prop_name:
@@ -1957,7 +1959,6 @@ def _overwrite_warning(
                 files_with_item_properties_to_overwrite.append(local_file.full_path)
 
     if files_with_annotations_to_overwrite or files_with_item_properties_to_overwrite:
-
         # Overwriting of annotations
         if files_with_annotations_to_overwrite:
             console.print(
