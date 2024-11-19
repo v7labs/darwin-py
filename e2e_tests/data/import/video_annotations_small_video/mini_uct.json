@@ -1,0 +1,904 @@
+{
+  "version": "2.0",
+  "schema_ref": "https://darwin-public.s3.eu-west-1.amazonaws.com/darwin_json/2.0/schema.json",
+  "item": {
+    "name": "small_video.mp4",
+    "path": "/",
+    "source_info": {
+      "item_id": "01927880-0b20-0006-97b0-4f41cfbd0ebd",
+      "dataset": {
+        "name": "test_dataset_3ccaab8e-3de2-467d-b75f-7b7b5776bd8a",
+        "slug": "test_dataset_3ccaab8e-3de2-467d-b75f-7b7b5776bd8a",
+        "dataset_management_url": "https://staging.v7labs.com/datasets/386252/dataset-management"
+      },
+      "team": {
+        "name": "E2E Testing",
+        "slug": "e2e-testing"
+      },
+      "workview_url": "https://staging.v7labs.com/workview?dataset=386252&item=01927880-0b20-0006-97b0-4f41cfbd0ebd"
+    },
+    "slots": [
+      {
+        "type": "video",
+        "slot_name": "0",
+        "width": 1920,
+        "height": 1080,
+        "fps": 1,
+        "thumbnail_url": "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/8a6d5f0a-dd31-44bc-b719-5a9a0c2febbd/thumbnail",
+        "source_files": [
+          {
+            "file_name": "small_video.mp4",
+            "storage_key": "darwin-py/videos/small_video.mp4",
+            "url": "https://staging.v7labs.com/api/v2/teams/e2e-testing/uploads/18e0b4da-bb5f-4b24-beac-f2520bd4cf23"
+          }
+        ],
+        "frame_count": 10,
+        "frame_urls": [
+          "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/8a6d5f0a-dd31-44bc-b719-5a9a0c2febbd/sections/0",
+          "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/8a6d5f0a-dd31-44bc-b719-5a9a0c2febbd/sections/1",
+          "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/8a6d5f0a-dd31-44bc-b719-5a9a0c2febbd/sections/2",
+          "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/8a6d5f0a-dd31-44bc-b719-5a9a0c2febbd/sections/3",
+          "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/8a6d5f0a-dd31-44bc-b719-5a9a0c2febbd/sections/4",
+          "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/8a6d5f0a-dd31-44bc-b719-5a9a0c2febbd/sections/5",
+          "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/8a6d5f0a-dd31-44bc-b719-5a9a0c2febbd/sections/6",
+          "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/8a6d5f0a-dd31-44bc-b719-5a9a0c2febbd/sections/7",
+          "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/8a6d5f0a-dd31-44bc-b719-5a9a0c2febbd/sections/8",
+          "https://staging.v7labs.com/api/v2/teams/e2e-testing/files/8a6d5f0a-dd31-44bc-b719-5a9a0c2febbd/sections/9"
+        ]
+      }
+    ]
+  },
+  "annotations": [
+    {
+      "frames": {
+        "1": {
+          "instance_id": {
+            "value": 14
+          },
+          "keyframe": true,
+          "skeleton": {
+            "nodes": [
+              {
+                "name": "node",
+                "occluded": false,
+                "x": 14.7549,
+                "y": 12.402
+              },
+              {
+                "name": "2",
+                "occluded": false,
+                "x": 10.1667,
+                "y": 9.3824
+              }
+            ]
+          },
+          "text": {
+            "text": "test_text"
+          }
+        },
+        "2": {
+          "instance_id": {
+            "value": 14
+          },
+          "keyframe": false,
+          "skeleton": {
+            "nodes": [
+              {
+                "name": "node",
+                "occluded": false,
+                "x": 14.7549,
+                "y": 12.402
+              },
+              {
+                "name": "2",
+                "occluded": false,
+                "x": 10.1667,
+                "y": 9.3824
+              }
+            ]
+          },
+          "text": {
+            "text": "test_text"
+          }
+        },
+        "3": {
+          "instance_id": {
+            "value": 14
+          },
+          "keyframe": true,
+          "skeleton": {
+            "nodes": [
+              {
+                "name": "node",
+                "occluded": false,
+                "x": 14.7549,
+                "y": 12.402
+              },
+              {
+                "name": "2",
+                "occluded": false,
+                "x": 10.1667,
+                "y": 9.3824
+              }
+            ]
+          },
+          "text": {
+            "text": "test_text"
+          }
+        }
+      },
+      "global_sub_types": {},
+      "id": "5a00aa6d-64ee-47ba-a030-9b8bb6129fa9",
+      "interpolate_algorithm": "linear-1.1",
+      "interpolated": true,
+      "name": "test_skeleton_with_subtypes_and_properties",
+      "properties": [
+        {
+          "frame_index": 1,
+          "name": "multi_select-1",
+          "value": "2"
+        },
+        {
+          "frame_index": 1,
+          "name": "multi_select-1",
+          "value": "1"
+        },
+        {
+          "frame_index": 1,
+          "name": "single_select-1",
+          "value": "2"
+        }
+      ],
+      "ranges": [
+        [
+          1,
+          4
+        ]
+      ],
+      "slot_names": [
+        "0"
+      ]
+    },
+    {
+      "frames": {
+        "8": {
+          "instance_id": {
+            "value": 15
+          },
+          "keyframe": true,
+          "line": {
+            "path": [
+              {
+                "x": 8.4804,
+                "y": 9.0196
+              },
+              {
+                "x": 13.0882,
+                "y": 5.1471
+              },
+              {
+                "x": 12.451,
+                "y": 13.4804
+              }
+            ]
+          },
+          "text": {
+            "text": "test_text"
+          }
+        },
+        "9": {
+          "instance_id": {
+            "value": 15
+          },
+          "keyframe": true,
+          "line": {
+            "path": [
+              {
+                "x": 8.4804,
+                "y": 9.0196
+              },
+              {
+                "x": 13.0882,
+                "y": 5.1471
+              },
+              {
+                "x": 12.451,
+                "y": 13.4804
+              }
+            ]
+          },
+          "text": {
+            "text": "test_text"
+          }
+        }
+      },
+      "global_sub_types": {},
+      "id": "cae4fce9-50bc-46db-a71a-1e76b43edc92",
+      "interpolate_algorithm": "linear-1.1",
+      "interpolated": true,
+      "name": "test_line_with_subtypes_and_properties",
+      "properties": [
+        {
+          "frame_index": 8,
+          "name": "multi_select-1",
+          "value": "2"
+        },
+        {
+          "frame_index": 8,
+          "name": "multi_select-1",
+          "value": "1"
+        },
+        {
+          "frame_index": 8,
+          "name": "single_select-1",
+          "value": "1"
+        }
+      ],
+      "ranges": [
+        [
+          8,
+          10
+        ]
+      ],
+      "slot_names": [
+        "0"
+      ]
+    },
+    {
+      "frames": {
+        "8": {
+          "instance_id": {
+            "value": 16
+          },
+          "keyframe": true,
+          "keypoint": {
+            "x": 8.2353,
+            "y": 19.951
+          },
+          "text": {
+            "text": "test_text"
+          }
+        },
+        "9": {
+          "instance_id": {
+            "value": 16
+          },
+          "keyframe": true,
+          "keypoint": {
+            "x": 8.2353,
+            "y": 19.951
+          },
+          "text": {
+            "text": "test_text"
+          }
+        }
+      },
+      "global_sub_types": {},
+      "id": "1538874f-fe2e-4a65-8f42-7ce31339842c",
+      "interpolate_algorithm": "linear-1.1",
+      "interpolated": true,
+      "name": "test_keypoint_with_subtypes_and_properties",
+      "properties": [
+        {
+          "frame_index": 8,
+          "name": "multi_select-1",
+          "value": "2"
+        },
+        {
+          "frame_index": 8,
+          "name": "multi_select-1",
+          "value": "1"
+        },
+        {
+          "frame_index": 8,
+          "name": "single_select-1",
+          "value": "2"
+        }
+      ],
+      "ranges": [
+        [
+          8,
+          10
+        ]
+      ],
+      "slot_names": [
+        "0"
+      ]
+    },
+    {
+      "frames": {
+        "5": {
+          "ellipse": {
+            "angle": 0.2019,
+            "center": {
+              "x": 8.799,
+              "y": 6.8627
+            },
+            "radius": {
+              "x": 5.3788,
+              "y": 5.3788
+            }
+          },
+          "instance_id": {
+            "value": 17
+          },
+          "keyframe": true,
+          "text": {
+            "text": "test_text"
+          }
+        },
+        "6": {
+          "ellipse": {
+            "angle": 0.2019,
+            "center": {
+              "x": 8.799,
+              "y": 6.8627
+            },
+            "radius": {
+              "x": 5.3788,
+              "y": 5.3788
+            }
+          },
+          "instance_id": {
+            "value": 17
+          },
+          "keyframe": false,
+          "text": {
+            "text": "test_text"
+          }
+        },
+        "7": {
+          "ellipse": {
+            "angle": 0.2019,
+            "center": {
+              "x": 8.799,
+              "y": 6.8627
+            },
+            "radius": {
+              "x": 5.3788,
+              "y": 5.3788
+            }
+          },
+          "instance_id": {
+            "value": 17
+          },
+          "keyframe": true,
+          "text": {
+            "text": "test_text"
+          }
+        }
+      },
+      "global_sub_types": {},
+      "id": "1a50ad19-6516-4bfb-aba9-81d4313f242a",
+      "interpolate_algorithm": "linear-1.1",
+      "interpolated": true,
+      "name": "test_ellipse_with_subtypes_and_properties",
+      "properties": [
+        {
+          "frame_index": 5,
+          "name": "single_select-1",
+          "value": "1"
+        }
+      ],
+      "ranges": [
+        [
+          5,
+          8
+        ]
+      ],
+      "slot_names": [
+        "0"
+      ]
+    },
+    {
+      "frames": {
+        "5": {
+          "bounding_box": {
+            "h": 4.607799999999999,
+            "w": 6.0783999999999985,
+            "x": 16.2255,
+            "y": 3.3824
+          },
+          "instance_id": {
+            "value": 18
+          },
+          "keyframe": true,
+          "polygon": {
+            "paths": [
+              [
+                {
+                  "x": 18.4804,
+                  "y": 3.3824
+                },
+                {
+                  "x": 16.2255,
+                  "y": 7.451
+                },
+                {
+                  "x": 22.3039,
+                  "y": 7.9902
+                },
+                {
+                  "x": 21.8137,
+                  "y": 7.3529
+                }
+              ]
+            ]
+          },
+          "text": {
+            "text": "test_text"
+          }
+        },
+        "6": {
+          "bounding_box": {
+            "h": 4.607799999999999,
+            "w": 6.0783999999999985,
+            "x": 16.2255,
+            "y": 3.3824
+          },
+          "instance_id": {
+            "value": 18
+          },
+          "keyframe": false,
+          "polygon": {
+            "paths": [
+              [
+                {
+                  "x": 18.4804,
+                  "y": 3.3824
+                },
+                {
+                  "x": 16.2255,
+                  "y": 7.451
+                },
+                {
+                  "x": 22.3039,
+                  "y": 7.9902
+                },
+                {
+                  "x": 21.8137,
+                  "y": 7.3529
+                }
+              ]
+            ]
+          },
+          "text": {
+            "text": "test_text"
+          }
+        },
+        "7": {
+          "bounding_box": {
+            "h": 4.607799999999999,
+            "w": 6.0783999999999985,
+            "x": 16.2255,
+            "y": 3.3824
+          },
+          "instance_id": {
+            "value": 18
+          },
+          "keyframe": true,
+          "polygon": {
+            "paths": [
+              [
+                {
+                  "x": 18.4804,
+                  "y": 3.3824
+                },
+                {
+                  "x": 16.2255,
+                  "y": 7.451
+                },
+                {
+                  "x": 22.3039,
+                  "y": 7.9902
+                },
+                {
+                  "x": 21.8137,
+                  "y": 7.3529
+                }
+              ]
+            ]
+          },
+          "text": {
+            "text": "test_text"
+          }
+        }
+      },
+      "global_sub_types": {},
+      "id": "7642a105-42d5-4b2c-ac07-f5230da1afb2",
+      "interpolate_algorithm": "linear-1.1",
+      "interpolated": true,
+      "name": "test_polygon_with_subtypes_and_properties",
+      "properties": [
+        {
+          "frame_index": 5,
+          "name": "multi_select-1",
+          "value": "1"
+        },
+        {
+          "frame_index": 5,
+          "name": "multi_select-1",
+          "value": "2"
+        },
+        {
+          "frame_index": 5,
+          "name": "single_select-1",
+          "value": "2"
+        }
+      ],
+      "ranges": [
+        [
+          5,
+          8
+        ]
+      ],
+      "slot_names": [
+        "0"
+      ]
+    },
+    {
+      "frames": {
+        "5": {
+          "bounding_box": {
+            "h": 2.402,
+            "w": 3.3824,
+            "x": 20.4902,
+            "y": 12.1569
+          },
+          "instance_id": {
+            "value": 19
+          },
+          "keyframe": true,
+          "text": {
+            "text": "test_text"
+          }
+        },
+        "6": {
+          "bounding_box": {
+            "h": 2.402,
+            "w": 3.3824,
+            "x": 20.4902,
+            "y": 12.1569
+          },
+          "instance_id": {
+            "value": 19
+          },
+          "keyframe": false,
+          "text": {
+            "text": "test_text"
+          }
+        },
+        "7": {
+          "bounding_box": {
+            "h": 2.402,
+            "w": 3.3824,
+            "x": 20.4902,
+            "y": 12.1569
+          },
+          "instance_id": {
+            "value": 19
+          },
+          "keyframe": true,
+          "text": {
+            "text": "test_text"
+          }
+        }
+      },
+      "global_sub_types": {},
+      "id": "57e9c6dc-50d2-44a6-8dc1-f7ce0ef422ee",
+      "interpolate_algorithm": "linear-1.1",
+      "interpolated": true,
+      "name": "test_bounding_box_with_subtypes_and_properties",
+      "properties": [
+        {
+          "frame_index": 5,
+          "name": "multi_select-1",
+          "value": null
+        },
+        {
+          "frame_index": 5,
+          "name": "single_select-1",
+          "value": "2"
+        }
+      ],
+      "ranges": [
+        [
+          5,
+          8
+        ]
+      ],
+      "slot_names": [
+        "0"
+      ]
+    },
+    {
+      "frames": {
+        "4": {
+          "keyframe": true,
+          "mask": {}
+        },
+        "5": {
+          "keyframe": true,
+          "mask": {},
+          "text": {
+            "text": "test_text"
+          }
+        },
+        "6": {
+          "keyframe": true,
+          "mask": {}
+        }
+      },
+      "id": "54e70102-7c0f-46b8-ac39-9fb4960fbc6d",
+      "interpolate_algorithm": "linear-1.1",
+      "name": "test_mask_with_subtypes_and_properties",
+      "only_keyframes": true,
+      "properties": [
+        {
+          "frame_index": 4,
+          "name": "multi_select-1",
+          "value": null
+        },
+        {
+          "frame_index": 4,
+          "name": "single_select-1",
+          "value": null
+        },
+        {
+          "frame_index": 5,
+          "name": "multi_select-1",
+          "value": "1"
+        },
+        {
+          "frame_index": 5,
+          "name": "multi_select-1",
+          "value": "2"
+        },
+        {
+          "frame_index": 5,
+          "name": "single_select-1",
+          "value": "2"
+        }
+      ],
+      "ranges": [
+        [
+          4,
+          7
+        ]
+      ],
+      "slot_names": [
+        "0"
+      ]
+    },
+    {
+      "frames": {
+        "0": {
+          "keyframe": true,
+          "tag": {},
+          "text": {
+            "text": "test_text"
+          }
+        },
+        "1": {
+          "keyframe": false,
+          "tag": {},
+          "text": {
+            "text": "test_text"
+          }
+        },
+        "2": {
+          "keyframe": true,
+          "tag": {},
+          "text": {
+            "text": "test_text"
+          }
+        }
+      },
+      "id": "49d7eb79-4c71-45ee-b518-99c1f90c4be4",
+      "name": "test_tag_with_subtypes_and_properties",
+      "properties": [
+        {
+          "frame_index": 0,
+          "name": "multi_select-1",
+          "value": "1"
+        },
+        {
+          "frame_index": 0,
+          "name": "multi_select-1",
+          "value": "2"
+        },
+        {
+          "frame_index": 0,
+          "name": "single_select-1",
+          "value": "2"
+        }
+      ],
+      "ranges": [
+        [
+          0,
+          3
+        ]
+      ],
+      "slot_names": [
+        "0"
+      ]
+    },
+    {
+      "frames": {
+        "4": {
+          "keyframe": true,
+          "raster_layer": {
+            "dense_rle": [
+              0,
+              24970,
+              1,
+              4,
+              0,
+              1914,
+              1,
+              8,
+              0,
+              1912,
+              1,
+              8,
+              0,
+              1911,
+              1,
+              10,
+              0,
+              1910,
+              1,
+              10,
+              0,
+              1910,
+              1,
+              10,
+              0,
+              1910,
+              1,
+              10,
+              0,
+              1911,
+              1,
+              8,
+              0,
+              1912,
+              1,
+              8,
+              0,
+              1914,
+              1,
+              4,
+              0,
+              2031346
+            ],
+            "mask_annotation_ids_mapping": {
+              "54e70102-7c0f-46b8-ac39-9fb4960fbc6d": 1
+            },
+            "total_pixels": 2073600
+          }
+        },
+        "5": {
+          "keyframe": true,
+          "raster_layer": {
+            "dense_rle": [
+              0,
+              24970,
+              1,
+              4,
+              0,
+              1914,
+              1,
+              8,
+              0,
+              1912,
+              1,
+              8,
+              0,
+              1911,
+              1,
+              10,
+              0,
+              1910,
+              1,
+              10,
+              0,
+              1910,
+              1,
+              10,
+              0,
+              1910,
+              1,
+              10,
+              0,
+              1911,
+              1,
+              8,
+              0,
+              1912,
+              1,
+              8,
+              0,
+              1914,
+              1,
+              4,
+              0,
+              2031346
+            ],
+            "mask_annotation_ids_mapping": {
+              "54e70102-7c0f-46b8-ac39-9fb4960fbc6d": 1
+            },
+            "total_pixels": 2073600
+          }
+        },
+        "6": {
+          "keyframe": true,
+          "raster_layer": {
+            "dense_rle": [
+              0,
+              24970,
+              1,
+              4,
+              0,
+              1914,
+              1,
+              8,
+              0,
+              1912,
+              1,
+              8,
+              0,
+              1911,
+              1,
+              10,
+              0,
+              1910,
+              1,
+              10,
+              0,
+              1910,
+              1,
+              10,
+              0,
+              1910,
+              1,
+              10,
+              0,
+              1911,
+              1,
+              8,
+              0,
+              1912,
+              1,
+              8,
+              0,
+              1914,
+              1,
+              4,
+              0,
+              2031346
+            ],
+            "mask_annotation_ids_mapping": {
+              "54e70102-7c0f-46b8-ac39-9fb4960fbc6d": 1
+            },
+            "total_pixels": 2073600
+          }
+        }
+      },
+      "id": "d87c4c88-5fc4-4fb4-ae93-e88c38c4bf34",
+      "name": "__raster_layer__",
+      "only_keyframes": true,
+      "properties": [],
+      "ranges": [
+        [
+          0,
+          10
+        ]
+      ],
+      "slot_names": [
+        "0"
+      ]
+    }
+  ],
+  "properties": []
+}

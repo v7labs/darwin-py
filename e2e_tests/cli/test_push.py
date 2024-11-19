@@ -7,7 +7,7 @@ from e2e_tests.helpers import (
     wait_until_items_processed,
     list_items,
 )
-from e2e_tests.objects import E2EDataset, ConfigValues
+from e2e_tests.objects import E2EDataset, E2EItem, ConfigValues
 
 import tempfile
 import zipfile
@@ -25,12 +25,24 @@ def extract_and_push(
             )
             assert_cli(result, 0)
             wait_until_items_processed(config_values, local_dataset.id)
-            return list_items(
+            items = list_items(
                 config_values.api_key,
                 local_dataset.id,
                 config_values.team_slug,
                 config_values.server,
             )
+            for item in items:
+                local_dataset.add_item(
+                    E2EItem(
+                        name=item["name"],
+                        id=item["id"],
+                        path=item["path"],
+                        file_name=item["name"],
+                        slot_name=item["slots"][0]["file_name"],
+                        annotations=[],
+                    )
+                )
+            return items
 
 
 def test_push_mixed_filetypes(
