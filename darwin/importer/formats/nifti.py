@@ -515,12 +515,12 @@ def process_nifti(
     ornt: Optional[List[List[float]]] = [[0.0, -1.0], [1.0, -1.0], [2.0, -1.0]],
 ) -> Tuple[np.ndarray, Tuple[float]]:
     """
-    Function that converts a nifti object to the RAS orientation, then converts to the passed ornt orientation.
+    Converts a nifti object of any orientation to the passed ornt orientation.
     The default ornt is LPI.
 
     Args:
         input_data: nibabel nifti object.
-        ornt: (n,2) orientation array.
+        ornt: (n,2) orientation array. It defines a transformation from RAS.
             ornt[N,1] is a flip of axis N of the array, where 1 means no flip and -1 means flip.
             ornt[:,0] is the transpose that needs to be done to the implied array, as in arr.transpose(ornt[:,0]).
 
@@ -529,9 +529,14 @@ def process_nifti(
         pixdims: tuple of nifti header zoom values.
     """
     img = correct_nifti_header_if_necessary(input_data)
-    img = nib.funcs.as_closest_canonical(img)
-    data_array = nib.orientations.apply_orientation(img.get_fdata(), ornt)
-    pixdims = img.header.get_zooms()
+    orig_ax_codes = nib.orientations.aff2axcodes(img.affine)
+    orig_ornt = nib.orientations.axcodes2ornt(orig_ax_codes)
+    transform = nib.orientations.ornt_transform(orig_ornt, ornt)
+    reoriented_img = img.as_reoriented(transform)
+
+    data_array = reoriented_img.get_fdata()
+    pixdims = reoriented_img.header.get_zooms()
+
     return data_array, pixdims
 
 
