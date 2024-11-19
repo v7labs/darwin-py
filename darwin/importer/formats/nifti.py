@@ -376,7 +376,7 @@ def mask_to_polygon(
             else:
                 return {"x": y, "y": x}
         else:
-            return {"x": y * pixdims[1], "y": x * pixdims[0]}
+            return {"x": y * pixdims[0], "y": x * pixdims[1]}
 
     _labels, external_paths, _internal_paths = find_contours(mask)
     if len(external_paths) > 1:
