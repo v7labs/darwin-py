@@ -935,8 +935,6 @@ def dataset_import(
 
     try:
         importer: ImportParser = get_importer(format)
-        if format == "nifti" and legacy:
-            importer = partial(importer, legacy=True)
 
         dataset: RemoteDataset = client.get_remote_dataset(
             dataset_identifier=dataset_slug

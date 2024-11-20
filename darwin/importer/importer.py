@@ -118,6 +118,7 @@ def _find_and_parse(  # noqa: C901
     console: Optional[Console] = None,
     use_multi_cpu: bool = True,
     cpu_limit: int = 1,
+    remote_files_that_require_legacy_scaling: Optional[List[Path]] = None,
 ) -> Optional[Iterable[dt.AnnotationFile]]:
     is_console = console is not None
 
@@ -147,7 +148,18 @@ def _find_and_parse(  # noqa: C901
         maybe_console(f"Using multiprocessing with {cpu_limit} workers")
         try:
             with WorkerPool(cpu_limit) as pool:
-                parsed_files = pool.map(importer, tqdm(files) if is_console else files)
+                if importer.__module__ == "darwin.importer.formats.nifti":
+                    parsed_files = pool.map(
+                        lambda file: importer(
+                            file,
+                            remote_files_that_require_legacy_scaling=remote_files_that_require_legacy_scaling,  # type: ignore
+                        ),
+                        tqdm(files),
+                    )
+                else:
+                    parsed_files = pool.map(
+                        importer, tqdm(files) if is_console else files
+                    )
         except KeyboardInterrupt:
             maybe_console("Keyboard interrupt. Stopping.")
             return None
@@ -157,7 +169,18 @@ def _find_and_parse(  # noqa: C901
 
     else:
         maybe_console("Using single CPU")
-        parsed_files = list(map(importer, tqdm(files) if is_console else files))
+        if importer.__module__ == "darwin.importer.formats.nifti":
+            parsed_files = [
+                importer(
+                    file,
+                    remote_files_that_require_legacy_scaling=remote_files_that_require_legacy_scaling,  # type: ignore
+                )
+                for file in tqdm(files)
+            ]
+        else:
+            parsed_files = [
+                importer(file) for file in (tqdm(files) if is_console else files)
+            ]
     parsed_files = [f for f in parsed_files if f is not None]
 
     maybe_console("Finished.")
@@ -300,7 +323,7 @@ def _get_team_properties_annotation_lookup(
         team_slug (str): Team slug
 
     Returns:
-        Tuple[Dict[Tuple[str, Optional[int]], FullProperty], Dict[str, FullProperty]]: Tuple of two dictionaries
+        Tuple[Dict[Tuple[str, Optional[int]], FullProperty], Dict[str, FullProperty]: Tuple of two dictionaries
     """
     # get team properties -> List[FullProperty]
     team_properties = client.get_team_properties(team_slug)
@@ -1097,7 +1120,7 @@ def import_annotations(  # noqa: C901
     overwrite: bool = False,
     use_multi_cpu: bool = False,
     cpu_limit: Optional[int] = None,
-    legacy: Optional[bool] = False,
+    legacy: Optional[bool] = None,
 ) -> None:
     """
     Imports the given given Annotations into the given Dataset.
@@ -1152,17 +1175,13 @@ def import_annotations(  # noqa: C901
     IncompatibleOptions
         - If both ``append`` and ``delete_for_empty`` are specified as ``True``.
     """
-
     console = Console(theme=_console_theme())
 
-    # The below try / except block is necessary, but temporary
-    # CLI-initiated imports will raise an AttributeError because of the partial function
-    # This block handles SDK-initiated imports
-    try:
-        if importer.__module__ == "darwin.importer.formats.nifti" and legacy:
-            importer = partial(importer, legacy=True)
-    except AttributeError:
-        pass
+    if legacy is not None:
+        console.print(
+            "The `legacy` flag is now non-functional and will be deprecated soon. The annotation import process now automatically detects if legacy annotation scaling is required.",
+            style="warning",
+        )
 
     if append and delete_for_empty:
         raise IncompatibleOptions(
@@ -1206,10 +1225,23 @@ def import_annotations(  # noqa: C901
     console.print("Retrieving local annotations ...", style="info")
     local_files = []
     local_files_missing_remotely = []
-
-    maybe_parsed_files: Optional[Iterable[dt.AnnotationFile]] = _find_and_parse(
-        importer, file_paths, console, use_multi_cpu, cpu_limit
-    )
+    print(importer)
+    if importer.__module__ == "darwin.importer.formats.nifti":
+        remote_files_that_require_legacy_scaling = (
+            dataset._get_remote_files_that_require_legacy_scaling()
+        )
+        maybe_parsed_files: Optional[Iterable[dt.AnnotationFile]] = _find_and_parse(
+            importer,
+            file_paths,
+            console,
+            use_multi_cpu,
+            cpu_limit,
+            remote_files_that_require_legacy_scaling,
+        )
+    else:
+        maybe_parsed_files: Optional[Iterable[dt.AnnotationFile]] = _find_and_parse(
+            importer, file_paths, console, use_multi_cpu, cpu_limit
+        )
 
     if not maybe_parsed_files:
         raise ValueError("Not able to parse any files.")

@@ -62,9 +62,11 @@ class Options:
         )
         parser_convert.add_argument(
             "--legacy",
-            action="store_true",
-            default=False,
-            help="Import annotation files using legacy process (isotropic transformation).",
+            type=lambda x: (str(x).lower() == "true") if x is not None else None,
+            nargs="?",
+            const=True,
+            default=None,
+            help="Import annotation files using legacy process (isotropic transformation). Pass 'true' to enable, or omit for None.",
         )
         parser_convert.add_argument(
             "output_dir", type=str, help="Where to store output files."
@@ -381,9 +383,11 @@ class Options:
         )
         parser_import.add_argument(
             "--legacy",
-            action="store_true",
-            default=False,
-            help="Import annotation files using legacy process (isotropic transformation).",
+            type=lambda x: (str(x).lower() == "true") if x is not None else None,
+            nargs="?",
+            const=True,
+            default=None,
+            help="Import annotation files using legacy process (isotropic transformation). Pass 'true' to enable, or omit for None.",
         )
 
         # Cpu limit for multiprocessing tasks
@@ -416,9 +420,11 @@ class Options:
         )
         parser_convert.add_argument(
             "--legacy",
-            action="store_true",
-            default=False,
-            help="Import annotation files using legacy process (isotropic transformation).",
+            type=lambda x: (str(x).lower() == "true") if x is not None else None,
+            nargs="?",
+            const=True,
+            default=None,
+            help="Import annotation files using legacy process (isotropic transformation). Pass 'true' to enable, or omit for None.",
         )
         parser_convert.add_argument(
             "-o", "--output_dir", type=str, help="Where to store output files."
