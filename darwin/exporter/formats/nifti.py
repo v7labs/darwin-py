@@ -223,7 +223,7 @@ def check_for_error_and_return_imageid(
     # Check if all item slots have the correct file-extension
     for slot in video_annotation.slots:
         for source_file in slot.source_files:
-            filename = Path(source_file["file_name"])
+            filename = Path(source_file.file_name)
             if not (
                 filename.name.lower().endswith(".nii.gz")
                 or filename.name.lower().endswith(".nii")
