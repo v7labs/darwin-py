@@ -135,12 +135,14 @@ def test_multi_slot_without_folders_planned_image_paths():
             Slot(
                 name="slot1",
                 type="image",
-                source_files=[SourceFile(file_name="source_name_1.jpg")],
+                source_files=[
+                    {"file_name": "source_name_1.jpg"},
+                ],  # type: ignore
             ),
             Slot(
                 name="slot2",
                 type="image",
-                source_files=[SourceFile(file_name="source_name_2.jpg")],
+                source_files=[{"file_name": "source_name_2.jpg"}],  # type: ignore
             ),
         ],
         remote_path="/",
@@ -166,12 +168,12 @@ def test_multi_slot_with_folders_planned_image_path():
             Slot(
                 name="slot1",
                 type="image",
-                source_files=[SourceFile(file_name="source_name_1.jpg")],
+                source_files=[{"file_name": "source_name_1.jpg"}],  # type: ignore
             ),
             Slot(
                 name="slot2",
                 type="image",
-                source_files=[SourceFile(file_name="source_name_2.jpg")],
+                source_files=[{"file_name": "source_name_2.jpg"}],  # type: ignore
             ),
         ],
         remote_path="/remote/path",
@@ -208,7 +210,66 @@ def test_single_slot_root_path_with_folders_planned_image_paths():
     assert result == expected
 
 
-def test_multiple_source_files_planned_image_paths():
+def test_dicom_series_planned_image_paths():
+    annotation = AnnotationFile(
+        path=Path("/local/annotations/series.json"),
+        filename="series.dcm",
+        annotation_classes={
+            AnnotationClass(name="test_class", annotation_type="polygon")
+        },
+        annotations=[],
+        slots=[
+            Slot(
+                name="slot1",
+                type="dicom",
+                source_files=[
+                    {"file_name": "slice_1.dcm"},
+                    {"file_name": "slice_2.dcm"},
+                    {"file_name": "slice_3.dcm"},
+                ],  # type: ignore
+            )
+        ],
+        remote_path="/",
+    )
+    images_path = Path("/local/images")
+    results = dm._get_planned_image_paths(annotation, images_path, use_folders=False)
+    expected = [
+        images_path / "series.dcm" / "slot1" / "slice_1.dcm",
+        images_path / "series.dcm" / "slot1" / "slice_2.dcm",
+        images_path / "series.dcm" / "slot1" / "slice_3.dcm",
+    ]
+    assert results == expected
+
+
+def test_extracted_frames_planned_image_paths():
+    annotation = AnnotationFile(
+        path=Path("/local/annotations/video.json"),
+        filename="video.mp4",
+        annotation_classes={
+            AnnotationClass(name="test_class", annotation_type="polygon")
+        },
+        annotations=[],
+        slots=[
+            Slot(
+                name="0",
+                type="image",
+                source_files=[
+                    {"file_name": "frame_0.jpg"},
+                    {"file_name": "video.mp4"},
+                ],  # type: ignore
+            ),
+        ],
+        remote_path="/",
+    )
+    images_path = Path("/local/images")
+    results = dm._get_planned_image_paths(annotation, images_path, use_folders=False)
+    expected = [
+        images_path / "video.mp4" / "0" / "frame_0.jpg",
+    ]
+    assert results == expected
+
+
+def test_multiple_source_files_raises_error():
     annotation = AnnotationFile(
         path=Path("/local/annotations/image.json"),
         filename="image.jpg",
@@ -221,19 +282,22 @@ def test_multiple_source_files_planned_image_paths():
                 name="slot1",
                 type="image",
                 source_files=[
-                    SourceFile(file_name="source_name_1.jpg"),
-                    SourceFile(file_name="source_name_2.jpg"),
-                ],
+                    {"file_name": "image1.jpg"},
+                    {"file_name": "image2.jpg"},
+                ],  # type: ignore
             )
         ],
+        remote_path="/",
     )
     images_path = Path("/local/images")
-    results = dm._get_planned_image_paths(annotation, images_path, use_folders=False)
-    expected = [
-        images_path / "image.jpg" / "slot1" / "source_name_1.jpg",
-        images_path / "image.jpg" / "slot1" / "source_name_2.jpg",
-    ]
-    assert results == expected
+
+    with pytest.raises(ValueError) as exc_info:
+        dm._get_planned_image_paths(annotation, images_path, use_folders=False)
+
+    assert (
+        str(exc_info.value)
+        == "This slot contains data that is not a DICOM series or a frame extracted from a video"
+    )
 
 
 def test__remove_empty_directories(tmp_path: Path) -> None:

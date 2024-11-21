@@ -19,7 +19,11 @@ from requests.adapters import HTTPAdapter, Retry
 from rich.console import Console
 
 import darwin.datatypes as dt
-from darwin.dataset.utils import sanitize_filename
+from darwin.dataset.utils import (
+    sanitize_filename,
+    SUPPORTED_IMAGE_EXTENSIONS,
+    SUPPORTED_VIDEO_EXTENSIONS,
+)
 from darwin.datatypes import AnnotationFile
 from darwin.exceptions import MissingDependency
 from darwin.utils import (
@@ -670,9 +674,44 @@ def _get_planned_image_paths(
             return [images_path / filename]
     else:
         for slot in annotation.slots:
+            if len(slot.source_files) > 1:
+                # Check that the item is either a DICOM series or a frame extracted from a video
+                is_dicom_series = all(
+                    source_file["file_name"].lower().endswith(".dcm")  # type: ignore
+                    for source_file in slot.source_files
+                )
+                is_extracted_frame = (
+                    len(slot.source_files) == 2
+                    and any(
+                        source_file["file_name"].lower().endswith(ext)  # type: ignore
+                        for ext in SUPPORTED_VIDEO_EXTENSIONS
+                        for source_file in slot.source_files
+                    )
+                    and any(
+                        source_file["file_name"].lower().endswith(ext)  # type: ignore
+                        for ext in SUPPORTED_IMAGE_EXTENSIONS
+                        for source_file in slot.source_files
+                    )
+                )
+                if is_extracted_frame:
+                    # Select only the image if it's an extracted frame
+                    frame_source_file = next(
+                        source_file
+                        for source_file in slot.source_files
+                        if any(
+                            source_file["file_name"].lower().endswith(ext)  # type: ignore
+                            for ext in SUPPORTED_IMAGE_EXTENSIONS
+                        )
+                    )
+                    slot.source_files = [frame_source_file]
+                if not is_dicom_series and not is_extracted_frame:
+                    raise ValueError(
+                        "This slot contains data that is not a DICOM series or a frame extracted from a video"
+                    )
+
             slot_name = Path(slot.name)
             for source_file in slot.source_files:
-                file_name = source_file.file_name
+                file_name = source_file["file_name"]  # type: ignore
                 if use_folders and annotation.remote_path != "/":
                     file_paths.append(
                         images_path
