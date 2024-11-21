@@ -305,12 +305,12 @@ def _download_all_slots_from_json_annotation(
                     )
         else:
             for upload in slot.source_files:
-                file_path = slot_path / sanitize_filename(upload["file_name"])
+                file_path = slot_path / sanitize_filename(upload.file_name)
                 generator.append(
                     functools.partial(
                         _download_image_with_trace,
                         annotation,
-                        upload["url"],
+                        upload.url,
                         file_path,
                         api_key,
                     )
@@ -361,8 +361,8 @@ def _download_single_slot_from_json_annotation(
     else:
         if len(slot.source_files) > 0:
             image = slot.source_files[0]
-            image_url = image["url"]
-            image_filename = image["file_name"]
+            image_url = image.url
+            image_filename = image.file_name
             if image_filename.endswith(".nii.gz"):
                 suffix = ".nii.gz"
                 stem = annotation.filename[: -len(suffix)]
@@ -677,18 +677,18 @@ def _get_planned_image_paths(
             if len(slot.source_files) > 1:
                 # Check that the item is either a DICOM series or a frame extracted from a video
                 is_dicom_series = all(
-                    source_file["file_name"].lower().endswith(".dcm")  # type: ignore
+                    source_file.file_name.endswith(".dcm")  # type: ignore
                     for source_file in slot.source_files
                 )
                 is_extracted_frame = (
                     len(slot.source_files) == 2
                     and any(
-                        source_file["file_name"].lower().endswith(ext)  # type: ignore
+                        source_file.file_name.endswith(ext)  # type: ignore
                         for ext in SUPPORTED_VIDEO_EXTENSIONS
                         for source_file in slot.source_files
                     )
                     and any(
-                        source_file["file_name"].lower().endswith(ext)  # type: ignore
+                        source_file.file_name.endswith(ext)  # type: ignore
                         for ext in SUPPORTED_IMAGE_EXTENSIONS
                         for source_file in slot.source_files
                     )
@@ -699,7 +699,7 @@ def _get_planned_image_paths(
                         source_file
                         for source_file in slot.source_files
                         if any(
-                            source_file["file_name"].lower().endswith(ext)  # type: ignore
+                            source_file.file_name.endswith(ext)  # type: ignore
                             for ext in SUPPORTED_IMAGE_EXTENSIONS
                         )
                     )
@@ -711,7 +711,7 @@ def _get_planned_image_paths(
 
             slot_name = Path(slot.name)
             for source_file in slot.source_files:
-                file_name = source_file["file_name"]  # type: ignore
+                file_name = source_file.file_name  # type: ignore
                 if use_folders and annotation.remote_path != "/":
                     file_paths.append(
                         images_path

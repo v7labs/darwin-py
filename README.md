@@ -21,7 +21,7 @@ Main functions are (but not limited to):
 - Upload/download data to/from remote datasets
 - Direct integration with PyTorch dataloaders
 
-Support tested for python 3.8 - 3.10
+Support tested for python 3.9 - 3.12
 
 ##  🏁 Installation
 

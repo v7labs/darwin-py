@@ -168,9 +168,9 @@ class RemoteDataset(ABC):
                 # When splitting into frames, we need to read each frame individually
                 # Because we use the source name suffix, we need to adjust this to .png here
                 current_stem = Path(
-                    annotation["item"]["slots"][0]["source_files"][0]["file_name"]
+                    annotation["item"]["slots"][0]["source_files"][0].file_name
                 ).stem
-                annotation["item"]["slots"][0]["source_files"][0]["file_name"] = (
+                annotation["item"]["slots"][0]["source_files"][0].file_name = (
                     current_stem + ".png"
                 )
                 # We also need to account for the folder that this function creates

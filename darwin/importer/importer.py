@@ -1,5 +1,7 @@
 import concurrent.futures
 import uuid
+import json
+import copy
 from collections import defaultdict
 from functools import partial
 from logging import getLogger
@@ -19,6 +21,7 @@ from typing import (
     Tuple,
     Union,
 )
+
 
 from darwin.datatypes import (
     AnnotationFile,
@@ -496,9 +499,10 @@ def _import_properties(
     metadata_property_classes, metadata_item_props = _parse_metadata_file(metadata_path)
 
     # Get team properties
-    team_properties_annotation_lookup, team_item_properties_lookup = (
-        _get_team_properties_annotation_lookup(client, dataset.team)
-    )
+    (
+        team_properties_annotation_lookup,
+        team_item_properties_lookup,
+    ) = _get_team_properties_annotation_lookup(client, dataset.team)
 
     # Build metadata lookups
     (
@@ -745,12 +749,13 @@ def _import_properties(
             ].add(t_prop_val.id)
 
     # Create/Update team item properties based on metadata
-    item_properties_to_create_from_metadata, item_properties_to_update_from_metadata = (
-        _create_update_item_properties(
-            _normalize_item_properties(metadata_item_prop_lookup),
-            team_item_properties_lookup,
-            client,
-        )
+    (
+        item_properties_to_create_from_metadata,
+        item_properties_to_update_from_metadata,
+    ) = _create_update_item_properties(
+        _normalize_item_properties(metadata_item_prop_lookup),
+        team_item_properties_lookup,
+        client,
     )
 
     console = Console(theme=_console_theme())
@@ -801,9 +806,10 @@ def _import_properties(
             updated_properties.append(prop)
 
     # get latest team properties
-    team_properties_annotation_lookup, team_item_properties_lookup = (
-        _get_team_properties_annotation_lookup(client, dataset.team)
-    )
+    (
+        team_properties_annotation_lookup,
+        team_item_properties_lookup,
+    ) = _get_team_properties_annotation_lookup(client, dataset.team)
 
     # Update item-level properties from annotations
     _, item_properties_to_update_from_annotations = _create_update_item_properties(
@@ -832,9 +838,10 @@ def _import_properties(
             updated_properties.append(prop)
 
     # get latest team properties
-    team_properties_annotation_lookup, team_item_properties_lookup = (
-        _get_team_properties_annotation_lookup(client, dataset.team)
-    )
+    (
+        team_properties_annotation_lookup,
+        team_item_properties_lookup,
+    ) = _get_team_properties_annotation_lookup(client, dataset.team)
 
     # loop over metadata_cls_id_prop_lookup, and update additional metadata property values
     for (annotation_class_id, prop_name), m_prop in metadata_cls_id_prop_lookup.items():
@@ -984,7 +991,6 @@ def _create_update_item_properties(
 
         # If the property exists in the team, check that all values are present
         if item_prop_name in team_item_properties_lookup:
-
             t_prop = team_item_properties_lookup[item_prop_name]
             # If the property is a text property it won't have predefined values, so continue
             if t_prop.type == "text":
@@ -1011,7 +1017,6 @@ def _create_update_item_properties(
 
         # If the property does not exist in the team, create it
         else:
-
             # If we've already planned to create this property, simply extend the property values
             for prop in create_properties:
                 if prop.name == item_prop_name:
@@ -1864,6 +1869,17 @@ def _import_annotations(
 
     try:
         dataset.import_annotation(id, payload=payload)
+    except RequestEntitySizeExceeded:
+        logger.warning(
+            "Annotation payload exceeds request entity size. Splitting payload into smaller chunks for import."
+        )
+        payloads = _split_payloads(payload)
+        for chunked_payload in payloads:
+            try:
+                dataset.import_annotation(id, payload=chunked_payload)
+            except Exception as e:
+                errors.append(e)
+                success = dt.Success.FAILURE
     except Exception as e:
         errors.append(e)
         success = dt.Success.FAILURE
@@ -1943,7 +1959,6 @@ def _overwrite_warning(
                 files_with_item_properties_to_overwrite.append(local_file.full_path)
 
     if files_with_annotations_to_overwrite or files_with_item_properties_to_overwrite:
-
         # Overwriting of annotations
         if files_with_annotations_to_overwrite:
             console.print(
@@ -2185,3 +2200,56 @@ def _warn_for_annotations_with_multiple_instance_ids(
             console.print(
                 f"- File: {file} has {files_with_multi_instance_id_annotations[file]} annotation(s) with multiple instance IDs"
             )
+
+
+def _split_payloads(
+    payload: Dict[str, Any], max_payload_size: int = 32_000_000
+) -> List[Dict[str, Any]]:
+    """
+    This function takes an input payload and splits it into smaller payloads, ensuring each chunk does not exceed the specified maximum size.
+    This is useful when importing annotations, as it prevents HTTP 413 errors (`RequestEntitySizeExceeded`) from occurring due to large request entity sizes.
+
+    Parameters
+    ----------
+    payload : Dict[str, Any]
+        The input payload to be split.
+    max_payload_size : int, optional
+        The maximum size of each split payload. Defaults to 32,000,000 bytes.
+
+    Returns
+    -------
+    List[Dict[str, Any]]
+        A list of split payloads, each not exceeding the specified maximum size.
+
+    Raises
+    ------
+    ValueError
+        If any single annotation exceeds the `max_payload_size` limit
+    """
+    payloads = []
+    base_payload = {"annotations": [], "overwrite": payload["overwrite"]}
+    current_payload = copy.deepcopy(base_payload)
+    current_payload_size = 0
+
+    for annotation in payload["annotations"]:
+        annotation_size = len(json.dumps({"annotations": [annotation]}).encode("utf-8"))
+        if current_payload_size + annotation_size < max_payload_size:
+            current_payload["annotations"].append(annotation)
+            current_payload_size += annotation_size
+        else:
+            if annotation_size > max_payload_size:
+                raise ValueError(
+                    f"One or more annotations exceed the maximum allowed size of 32 MiB ({max_payload_size})"
+                )
+            payloads.append(current_payload)
+            current_payload = copy.deepcopy(base_payload)
+            current_payload["overwrite"] = (
+                False  # Required to make sure subsequent payloads don't overwrite previous ones
+            )
+            current_payload["annotations"].append(annotation)
+            current_payload_size = annotation_size
+
+    if current_payload["annotations"]:
+        payloads.append(current_payload)
+
+    return payloads

@@ -136,13 +136,13 @@ def test_multi_slot_without_folders_planned_image_paths():
                 name="slot1",
                 type="image",
                 source_files=[
-                    {"file_name": "source_name_1.jpg"},
-                ],  # type: ignore
+                    SourceFile(file_name="source_name_1.jpg"),
+                ],
             ),
             Slot(
                 name="slot2",
                 type="image",
-                source_files=[{"file_name": "source_name_2.jpg"}],  # type: ignore
+                source_files=[SourceFile(file_name="source_name_2.jpg")],
             ),
         ],
         remote_path="/",
@@ -168,12 +168,12 @@ def test_multi_slot_with_folders_planned_image_path():
             Slot(
                 name="slot1",
                 type="image",
-                source_files=[{"file_name": "source_name_1.jpg"}],  # type: ignore
+                source_files=[SourceFile(file_name="source_name_1.jpg")],
             ),
             Slot(
                 name="slot2",
                 type="image",
-                source_files=[{"file_name": "source_name_2.jpg"}],  # type: ignore
+                source_files=[SourceFile(file_name="source_name_2.jpg")],
             ),
         ],
         remote_path="/remote/path",
@@ -223,10 +223,10 @@ def test_dicom_series_planned_image_paths():
                 name="slot1",
                 type="dicom",
                 source_files=[
-                    {"file_name": "slice_1.dcm"},
-                    {"file_name": "slice_2.dcm"},
-                    {"file_name": "slice_3.dcm"},
-                ],  # type: ignore
+                    SourceFile(file_name="slice_1.dcm"),
+                    SourceFile(file_name="slice_2.dcm"),
+                    SourceFile(file_name="slice_3.dcm"),
+                ],
             )
         ],
         remote_path="/",
@@ -254,9 +254,9 @@ def test_extracted_frames_planned_image_paths():
                 name="0",
                 type="image",
                 source_files=[
-                    {"file_name": "frame_0.jpg"},
-                    {"file_name": "video.mp4"},
-                ],  # type: ignore
+                    SourceFile(file_name="frame_0.jpg"),
+                    SourceFile(file_name="video.mp4"),
+                ],
             ),
         ],
         remote_path="/",
@@ -282,9 +282,9 @@ def test_multiple_source_files_raises_error():
                 name="slot1",
                 type="image",
                 source_files=[
-                    {"file_name": "image1.jpg"},
-                    {"file_name": "image2.jpg"},
-                ],  # type: ignore
+                    SourceFile(file_name="image1.jpg"),
+                    SourceFile(file_name="image2.jpg"),
+                ],
             )
         ],
         remote_path="/",

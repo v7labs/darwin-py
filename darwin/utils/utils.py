@@ -612,9 +612,7 @@ def _parse_darwin_v2(path: Path, data: Dict[str, Any]) -> dt.AnnotationFile:
             image_width=slot.width,
             image_height=slot.height,
             image_url=(
-                None
-                if len(slot.source_files or []) == 0
-                else slot.source_files[0]["url"]
+                None if len(slot.source_files or []) == 0 else slot.source_files[0].url
             ),
             image_thumbnail_url=slot.thumbnail_url,
             workview_url=item_source.get("workview_url", None),
@@ -630,12 +628,18 @@ def _parse_darwin_v2(path: Path, data: Dict[str, Any]) -> dt.AnnotationFile:
 
 
 def _parse_darwin_slot(data: Dict[str, Any]) -> dt.Slot:
+    source_files_data = data.get("source_files", [])
+    source_files = [
+        dt.SourceFile(file_name=source_file["file_name"], url=source_file.get("url"))
+        for source_file in source_files_data
+    ]
+
     return dt.Slot(
         name=data["slot_name"],
         type=data["type"],
         width=data.get("width"),
         height=data.get("height"),
-        source_files=data.get("source_files", []),
+        source_files=source_files,
         thumbnail_url=data.get("thumbnail_url"),
         frame_count=data.get("frame_count"),
         frame_urls=data.get("frame_urls"),

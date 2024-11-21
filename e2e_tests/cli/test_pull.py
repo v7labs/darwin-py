@@ -16,14 +16,14 @@ def test_pull_with_remote_folder_structure(
         f"{Path.home()}/.darwin/datasets/{config_values.team_slug}/{local_dataset.slug}/images"
     )
     expected_filepaths = [
-        f"{pull_dir}/image_1",
-        f"{pull_dir}/image_2",
-        f"{pull_dir}/dir1/image_3",
-        f"{pull_dir}/dir1/image_4",
-        f"{pull_dir}/dir2/image_5",
-        f"{pull_dir}/dir2/image_6",
-        f"{pull_dir}/dir1/dir3/image_7",
-        f"{pull_dir}/dir1/dir3/image_8",
+        f"{pull_dir}/image_1.jpg",
+        f"{pull_dir}/image_2.jpg",
+        f"{pull_dir}/dir1/image_3.jpg",
+        f"{pull_dir}/dir1/image_4.jpg",
+        f"{pull_dir}/dir2/image_5.jpg",
+        f"{pull_dir}/dir2/image_6.jpg",
+        f"{pull_dir}/dir1/dir3/image_7.jpg",
+        f"{pull_dir}/dir1/dir3/image_8.jpg",
     ]
     item_type = "single_slotted"
     annotation_format = "darwin"

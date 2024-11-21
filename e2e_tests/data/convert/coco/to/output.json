@@ -19,8 +19,8 @@
       "license": 0,
       "file_name": "",
       "coco_url": "n/a",
-      "height": null,
-      "width": null,
+      "height": 1920,
+      "width": 1080,
       "date_captured": "",
       "flickr_url": "n/a",
       "darwin_url": null,
@@ -60,26 +60,27 @@
       "id": 3,
       "image_id": 2043925204,
       "category_id": 3961009249,
-      "segmentation": [
-        [
-          0.0,
-          0.0,
-          1.0,
-          0.0,
-          1.0,
-          1.0,
-          0.0,
-          1.0
+      "segmentation": {
+        "counts": [
+          0,
+          2,
+          1918,
+          2,
+          2071678
+        ],
+        "size": [
+          1920,
+          1080
         ]
-      ],
-      "area": 1.0,
+      },
+      "area": 0,
       "bbox": [
-        0.0,
-        0.0,
-        1.0,
-        1.0
+        0,
+        0,
+        2,
+        2
       ],
-      "iscrowd": 0,
+      "iscrowd": 1,
       "extra": {}
     }
   ],

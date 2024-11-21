@@ -22,6 +22,7 @@ from darwin.dataset.download_manager import (
 from darwin.dataset.release import Release, ReleaseStatus
 from darwin.dataset.remote_dataset_v2 import (
     RemoteDatasetV2,
+    _find_files_to_upload_as_single_file_items,
     _find_files_to_upload_as_multi_file_items,
 )
 from darwin.dataset.upload_manager import (
@@ -845,6 +846,24 @@ class TestPush:
                     item_merge_mode="slots",
                     **args,  # type: ignore
                 )
+
+    @pytest.mark.usefixtures("setup_zip")
+    def test_files_in_root_push_directoies_are_given_correct_remote_path(
+        self, setup_zip
+    ):
+        directory = setup_zip / "push_test_dir" / "topdir" / "subdir_1"
+        local_files = _find_files_to_upload_as_single_file_items(
+            [directory],
+            [],
+            [],
+            path="",
+            fps=1,
+            as_frames=False,
+            extract_views=False,
+            preserve_folders=True,
+        )
+        assert local_files[0].data["path"] == "/"
+        assert local_files[1].data["path"] == "/"
 
 
 @pytest.mark.usefixtures("setup_zip")
