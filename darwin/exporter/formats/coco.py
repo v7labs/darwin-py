@@ -6,6 +6,7 @@ from zlib import crc32
 
 import numpy as np
 import orjson as json
+from upolygon import draw_polygon, rle_encode
 
 import darwin.datatypes as dt
 from darwin.utils import convert_polygons_to_sequences
@@ -175,35 +176,64 @@ def _build_annotation(
 ) -> Optional[Dict[str, Any]]:
     annotation_type = annotation.annotation_class.annotation_type
     if annotation_type == "polygon":
-        sequences = convert_polygons_to_sequences(
-            annotation.data["paths"], rounding=False
-        )
-        x_coords = [s[0::2] for s in sequences]
-        y_coords = [s[1::2] for s in sequences]
-        min_x = np.min([np.min(x_coord) for x_coord in x_coords])
-        min_y = np.min([np.min(y_coord) for y_coord in y_coords])
-        max_x = np.max([np.max(x_coord) for x_coord in x_coords])
-        max_y = np.max([np.max(y_coord) for y_coord in y_coords])
-        w = max_x - min_x
-        h = max_y - min_y
-        # Compute the area of the polygon
-        poly_area = np.sum(
-            [
-                _polygon_area(x_coord, y_coord)
-                for x_coord, y_coord in zip(x_coords, y_coords)
-            ]
-        )
+        if len(annotation.data["paths"]) == 1:
+            sequences = convert_polygons_to_sequences(
+                annotation.data["paths"], rounding=False
+            )
+            x_coords = [s[0::2] for s in sequences]
+            y_coords = [s[1::2] for s in sequences]
+            min_x = np.min([np.min(x_coord) for x_coord in x_coords])
+            min_y = np.min([np.min(y_coord) for y_coord in y_coords])
+            max_x = np.max([np.max(x_coord) for x_coord in x_coords])
+            max_y = np.max([np.max(y_coord) for y_coord in y_coords])
+            w = max_x - min_x
+            h = max_y - min_y
+            # Compute the area of the polygon
+            poly_area = np.sum(
+                [
+                    _polygon_area(x_coord, y_coord)
+                    for x_coord, y_coord in zip(x_coords, y_coords)
+                ]
+            )
 
-        return {
-            "id": annotation_id,
-            "image_id": _build_image_id(annotation_file),
-            "category_id": categories[annotation.annotation_class.name],
-            "segmentation": sequences,
-            "area": poly_area,
-            "bbox": [min_x, min_y, w, h],
-            "iscrowd": 0,
-            "extra": _build_extra(annotation),
-        }
+            return {
+                "id": annotation_id,
+                "image_id": _build_image_id(annotation_file),
+                "category_id": categories[annotation.annotation_class.name],
+                "segmentation": sequences,
+                "area": poly_area,
+                "bbox": [min_x, min_y, w, h],
+                "iscrowd": 0,
+                "extra": _build_extra(annotation),
+            }
+        elif len(annotation.data["paths"]) > 1:
+            mask = np.zeros((annotation_file.image_height, annotation_file.image_width))
+            sequences = convert_polygons_to_sequences(annotation.data["paths"])
+            draw_polygon(mask, sequences, 1)
+            counts = rle_encode(mask)
+
+            x_coords = [s[0::2] for s in sequences]
+            y_coords = [s[1::2] for s in sequences]
+            min_x = np.min([np.min(x_coord) for x_coord in x_coords])
+            min_y = np.min([np.min(y_coord) for y_coord in y_coords])
+            max_x = np.max([np.max(x_coord) for x_coord in x_coords])
+            max_y = np.max([np.max(y_coord) for y_coord in y_coords])
+            w = max_x - min_x + 1
+            h = max_y - min_y + 1
+
+            return {
+                "id": annotation_id,
+                "image_id": _build_image_id(annotation_file),
+                "category_id": categories[annotation.annotation_class.name],
+                "segmentation": {
+                    "counts": counts,
+                    "size": [annotation_file.image_height, annotation_file.image_width],
+                },
+                "area": 0,
+                "bbox": [min_x, min_y, w, h],
+                "iscrowd": 1,
+                "extra": _build_extra(annotation),
+            }
     elif annotation_type == "tag":
         pass
     elif annotation_type == "bounding_box":
