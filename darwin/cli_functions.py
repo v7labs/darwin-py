@@ -1238,9 +1238,6 @@ def dataset_convert(
     try:
         parser: ExportParser = get_exporter(format)
 
-        if format == "nifti" and legacy:
-            parser = partial(parser, legacy=True)
-
         dataset: RemoteDataset = client.get_remote_dataset(
             dataset_identifier=identifier
         )

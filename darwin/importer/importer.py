@@ -1225,7 +1225,6 @@ def import_annotations(  # noqa: C901
     console.print("Retrieving local annotations ...", style="info")
     local_files = []
     local_files_missing_remotely = []
-    print(importer)
     if importer.__module__ == "darwin.importer.formats.nifti":
         remote_files_that_require_legacy_scaling = (
             dataset._get_remote_files_that_require_legacy_scaling()
