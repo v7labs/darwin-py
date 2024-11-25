@@ -29,7 +29,7 @@ try:
 except ImportError:
     import_fail_string = r"""
     You must install darwin-py with pip install darwin-py\[medical]
-    in order to export using nifti format
+    in order to export using nifti forma
     """
     console.print(import_fail_string)
     exit()
