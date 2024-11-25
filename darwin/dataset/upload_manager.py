@@ -5,6 +5,8 @@ import time
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path, PurePosixPath
+import zipfile
+import tempfile
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -211,11 +213,18 @@ class MultiFileItem:
         self.name = directory.name
         self.files = [LocalFile(file, fps=fps) for file in files]
         self.merge_mode = merge_mode
-        self._create_layout()
+        self._prepare_local_files_and_create_layout()
 
-    def _create_layout(self):
+    def _prepare_local_files_and_create_layout(self):
         """
-        Sets the layout as a LayoutV3 object to be used when uploading the files as a dataset item.
+        This function:
+        - Ensures that the files to be uploaded are valid for the given merge mode
+        - Creates a LayoutV3 object for `ItemMergeMode.SLOTS` & `ItemMergeMode.CHANNELS` items
+
+        For `ItemMergeMode.SERIES` items:
+        - Every slice is zipped into a single source file. This is necessary to upload
+        individual DICOM slices as volumetric series
+        - Layout is set to ``None`` because the files are zipped into a single source file
 
         Raises
         ------
@@ -238,11 +247,9 @@ class MultiFileItem:
             ]
             if not self.files:
                 raise ValueError("No `.dcm` files found in 1st level of directory")
-            self.slot_names = [self.name] * len(self.files)
-            self.layout = {
-                "version": 3,
-                "slots_grid": [[[self.name]]],
-            }
+            self._create_series_zip()
+            self.layout = None
+            self.slot_names = ["0"]
         elif self.merge_mode == ItemMergeMode.CHANNELS:
             # Currently, only image files are supported in multi-channel items. This is planned to change in the future
             self.files = [
@@ -277,7 +284,27 @@ class MultiFileItem:
                     slot[optional_property] = local_file.data.get(optional_property)
             slots.append(slot)
 
-        return {"slots": slots, "layout": self.layout, "name": self.name, "path": "/"}
+        return {
+            "slots": slots,
+            "layout": self.layout,
+            "name": self.name,
+            "path": "/",
+        }
+
+    def _create_series_zip(self):
+        """
+        For a given series `MultiFileItem`:
+        - Zip all `.dcm` files into a temporary zip file
+        - Replace all `.dcm` files with the zip file
+
+        This is necessary to upload individual DICOM slices as volumetric series
+        """
+        self._temp_zip_dir = tempfile.TemporaryDirectory()
+        zip_path = Path(self._temp_zip_dir.name) / f"{self.name}.dcm"
+        with zipfile.ZipFile(zip_path, "w") as zip_file:
+            for local_file in self.files:
+                zip_file.write(local_file.local_path, local_file.local_path.name)
+        self.files = [LocalFile(zip_path)]
 
     @property
     def full_path(self) -> str:
@@ -599,7 +626,6 @@ class UploadHandlerV2(UploadHandler):
                             file.serialize_darwin_json_v2() for file in file_chunk
                         ],
                         "options": {
-                            "ignore_dicom_layout": True,
                             "handle_as_slices": handle_as_slices,
                         },
                     }

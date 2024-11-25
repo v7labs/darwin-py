@@ -985,15 +985,13 @@ class TestPushDICOMSeries:
             [directory], [], 0, item_merge_mode="series"
         )
         assert len(multi_file_items) == 1
-        assert len(local_files) == 5
+        assert len(local_files) == 1
         assert multi_file_items[0].merge_mode == ItemMergeMode.SERIES
         assert multi_file_items[0].files == local_files
         assert multi_file_items[0].directory == directory
         assert multi_file_items[0].name == directory.name
-        assert multi_file_items[0].layout == {
-            "version": 3,
-            "slots_grid": [[["dicoms"]]],
-        }
+        assert multi_file_items[0].slot_names == ["0"]
+        assert multi_file_items[0].layout is None
 
     def test_dicoms_and_other_files(self, setup_zip):
         directory = (
@@ -1003,15 +1001,13 @@ class TestPushDICOMSeries:
             [directory], [], 0, item_merge_mode="series"
         )
         assert len(multi_file_items) == 1
-        assert len(local_files) == 5
+        assert len(local_files) == 1
         assert multi_file_items[0].merge_mode == ItemMergeMode.SERIES
         assert multi_file_items[0].files == local_files
         assert multi_file_items[0].directory == directory
         assert multi_file_items[0].name == directory.name
-        assert multi_file_items[0].layout == {
-            "version": 3,
-            "slots_grid": [[["dicoms_and_other_files"]]],
-        }
+        assert multi_file_items[0].layout is None
+        assert multi_file_items[0].slot_names == ["0"]
 
     def test_multiple_file_types(self, setup_zip):
         directory = setup_zip / "push_test_dir" / "multiple_file_types"
@@ -1019,15 +1015,13 @@ class TestPushDICOMSeries:
             [directory], [], 0, item_merge_mode="series"
         )
         assert len(multi_file_items) == 1
-        assert len(local_files) == 3
+        assert len(local_files) == 1
         assert multi_file_items[0].merge_mode == ItemMergeMode.SERIES
         assert multi_file_items[0].files == local_files
         assert multi_file_items[0].directory == directory
         assert multi_file_items[0].name == directory.name
-        assert multi_file_items[0].layout == {
-            "version": 3,
-            "slots_grid": [[["multiple_file_types"]]],
-        }
+        assert multi_file_items[0].layout is None
+        assert multi_file_items[0].slot_names == ["0"]
 
 
 @pytest.mark.usefixtures("setup_zip")
