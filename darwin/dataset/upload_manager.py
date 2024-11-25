@@ -224,7 +224,7 @@ class MultiFileItem:
         For `ItemMergeMode.SERIES` items:
         - Every slice is zipped into a single source file. This is necessary to upload
         individual DICOM slices as volumetric series
-        - Layout is set to ``None`` because the files are zipped into a single source file
+        - Layout is set to `None` because the files are zipped into a single source file
 
         Raises
         ------
