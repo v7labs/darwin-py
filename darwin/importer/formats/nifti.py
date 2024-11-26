@@ -29,7 +29,11 @@ import darwin.datatypes as dt
 from darwin.importer.formats.nifti_schemas import nifti_import_schema
 
 
-def parse_path(path: Path, legacy: bool = False) -> Optional[List[dt.AnnotationFile]]:
+def parse_path(
+    path: Path,
+    legacy: bool = False,
+    remote_files_that_require_legacy_scaling: Optional[List] = [],
+) -> Optional[List[dt.AnnotationFile]]:
     """
     Parses the given ``nifti`` file and returns a ``List[dt.AnnotationFile]`` with the parsed
     information.
@@ -55,11 +59,6 @@ def parse_path(path: Path, legacy: bool = False) -> Optional[List[dt.AnnotationF
             "Skipping file: {} (not a json file)".format(path), style="bold yellow"
         )
         return None
-    if legacy:
-        console.print(
-            "Legacy flag is set to True. Annotations will be resized to isotropic pixel dimensions.",
-            style="bold blue",
-        )
     data = attempt_decode(path)
     try:
         validate(data, schema=nifti_import_schema)
@@ -79,6 +78,7 @@ def parse_path(path: Path, legacy: bool = False) -> Optional[List[dt.AnnotationF
         return None
     annotation_files = []
     for nifti_annotation in nifti_annotations:
+        legacy = nifti_annotation["image"] in remote_files_that_require_legacy_scaling
         annotation_file = _parse_nifti(
             Path(nifti_annotation["label"]),
             nifti_annotation["image"],

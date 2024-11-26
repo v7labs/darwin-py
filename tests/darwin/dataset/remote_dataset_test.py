@@ -11,7 +11,6 @@ import orjson as json
 import pytest
 import responses
 from pydantic import ValidationError
-
 from darwin.client import Client
 from darwin.config import Config
 from darwin.dataset import RemoteDataset
@@ -1895,3 +1894,59 @@ def test_force_slots_false(mock_is_file_extension_allowed):
     assert count == 10
     for expected_path in expected_paths:
         assert expected_path in planned_paths
+
+
+@pytest.mark.usefixtures("file_read_write_test")
+class TestGetRemoteFilesThatRequireLegacyScaling:
+    @pytest.fixture
+    def mock_remote_files(self):
+        return [
+            DatasetItem(
+                id=1,
+                filename="filename",
+                status="new",
+                archived=False,
+                filesize=1024,  # Example size in bytes
+                dataset_id=1,
+                dataset_slug="test-dataset",
+                seq=1,
+                current_workflow_id=None,
+                path="/path/to/file",
+                slots=[{"metadata": {"medical": {"handler": "MONAI"}}}],
+                layout={},
+                current_workflow=None,
+            ),
+            DatasetItem(
+                id=2,
+                filename="filename",
+                status="new",
+                archived=False,
+                filesize=2048,  # Example size in bytes
+                dataset_id=1,
+                dataset_slug="test-dataset",
+                seq=2,
+                current_workflow_id=None,
+                path="/path/to/file",
+                slots=[{"metadata": {"medical": {}}}],
+                layout={},
+                current_workflow=None,
+            ),
+        ]
+
+    @patch.object(RemoteDatasetV2, "fetch_remote_files")
+    def test_get_remote_files_that_require_legacy_scaling(
+        self, mock_fetch_remote_files, mock_remote_files
+    ):
+        mock_fetch_remote_files.return_value = mock_remote_files
+        remote_dataset = RemoteDatasetV2(
+            client=MagicMock(),
+            team="test-team",
+            name="test-dataset",
+            slug="test-dataset",
+            dataset_id=1,
+        )
+
+        result = remote_dataset._get_remote_files_that_require_legacy_scaling()
+
+        assert len(result) == 1
+        assert result[0] == "/path/to/file/filename"

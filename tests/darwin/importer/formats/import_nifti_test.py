@@ -190,7 +190,11 @@ def test_image_annotation_nifti_import_single_slot_to_mask_legacy(
             with patch("darwin.importer.formats.nifti.zoom") as mock_zoom:
                 mock_zoom.side_effect = ndimage.zoom
 
-                annotation_files = parse_path(path=upload_json, legacy=True)
+                remote_files_that_require_legacy_scaling = ["vol0 (1).nii"]
+                annotation_files = parse_path(
+                    path=upload_json,
+                    remote_files_that_require_legacy_scaling=remote_files_that_require_legacy_scaling,
+                )
                 annotation_file = annotation_files[0]
                 output_json_string = json.loads(
                     serialise_annotation_file(annotation_file, as_dict=False)
@@ -512,7 +516,11 @@ def test_parse_path_nifti_with_legacy_scaling():
     )
     adjust_nifti_label_filepath(nifti_annotation_filepath, nifti_filepath)
     expected_annotations = parse_darwin_json(expected_annotations_filepath)
-    parsed_annotations = parse_path(nifti_annotation_filepath, legacy=True)
+    remote_files_that_require_legacy_scaling = ["BRAINIX_NIFTI_ROI.nii.gz"]
+    parsed_annotations = parse_path(
+        nifti_annotation_filepath,
+        remote_files_that_require_legacy_scaling=remote_files_that_require_legacy_scaling,
+    )
     for frame_idx in expected_annotations.annotations[0].frames:
         expected_annotation = (
             expected_annotations.annotations[0].frames[frame_idx].data["paths"]

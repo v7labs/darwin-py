@@ -8,15 +8,28 @@ from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Tuple, Union
 
 from rich.console import Console
+from rich.theme import Theme
 
-console = Console()
+
+def _console_theme() -> Theme:
+    return Theme(
+        {
+            "success": "bold green",
+            "warning": "bold yellow",
+            "error": "bold red",
+            "info": "bold deep_sky_blue1",
+        }
+    )
+
+
+console = Console(theme=_console_theme())
 try:
     import nibabel as nib
     from nibabel.orientations import io_orientation, ornt_transform
 except ImportError:
     import_fail_string = r"""
     You must install darwin-py with pip install darwin-py\[medical]
-    in order to export using nifti format
+    in order to export using nifti forma
     """
     console.print(import_fail_string)
     exit()
@@ -47,7 +60,7 @@ class Volume:
 def export(
     annotation_files: Iterable[dt.AnnotationFile],
     output_dir: Path,
-    legacy: bool = False,
+    legacy: Optional[bool] = None,
 ) -> None:
     """
     Exports the given ``AnnotationFile``\\s into nifti format inside of the given
@@ -59,7 +72,7 @@ def export(
         The ``AnnotationFile``\\s to be exported.
     output_dir : Path
         The folder where the new instance mask files will be.
-    legacy : bool, default=False
+    legacy : bool, default=None
         If ``True``, the exporter will use the legacy calculation.
         If ``False``, the exporter will use the new calculation by dividing with pixdims.
 
@@ -70,14 +83,20 @@ def export(
 
     """
 
-    if legacy:
+    if legacy is not None:
         console.print(
-            "Legacy flag is set to True. Annotations will be resized using legacy calculations.",
-            style="bold blue",
+            "The `legacy` flag is now non-functional and will be deprecated soon. The annotation conversion process now automatically detects if legacy annotation scaling is required.",
+            style="warning",
         )
 
     video_annotations = list(annotation_files)
     for video_annotation in video_annotations:
+        try:
+            medical_metadata = video_annotation.slots[0].metadata
+            legacy = not medical_metadata.get("handler") == "MONAI"  # type: ignore
+        except (KeyError, AttributeError):
+            legacy = True
+
         image_id = check_for_error_and_return_imageid(video_annotation, output_dir)
         if not isinstance(image_id, str):
             continue

@@ -55,7 +55,16 @@ class TestExportCli:
             ("yolo", data_path / "yolo/from", data_path / "yolo/to"),
             ("cvat", data_path / "cvat/from", data_path / "cvat/to"),
             ("pascalvoc", data_path / "pascalvoc/from", data_path / "pascalvoc/to"),
-            ("nifti", data_path / "nifti/from", data_path / "nifti/to"),
+            (
+                "nifti",
+                data_path / "nifti-legacy-scaling/from",
+                data_path / "nifti-legacy-scaling/to",
+            ),
+            (
+                "nifti",
+                data_path / "nifti-no-legacy-scaling/from",
+                data_path / "nifti-no-legacy-scaling/to",
+            ),
             (
                 "instance_mask",
                 data_path / "instance_mask/from",

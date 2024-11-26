@@ -873,6 +873,34 @@ class RemoteDatasetV2(RemoteDataset):
         print(f"Reistration complete. Check your items in the dataset: {self.slug}")
         return results
 
+    def _get_remote_files_that_require_legacy_scaling(self) -> List[Path]:
+        """
+        Get all remote files that have been scaled upon upload. These files require that
+        NifTI annotations are similarly scaled during import
+
+        Parameters
+        ----------
+        dataset : RemoteDataset
+            The remote dataset to get the files from
+
+        Returns
+        -------
+        List[Path]
+            A list of full remote paths of dataset items that require NifTI annotations to be scaled
+        """
+        remote_files_that_require_legacy_scaling = []
+        remote_files = self.fetch_remote_files()
+        for remote_file in remote_files:
+            if not (
+                remote_file.slots[0]
+                .get("metadata", {})
+                .get("medical", {})
+                .get("handler")
+            ):
+                remote_files_that_require_legacy_scaling.append(remote_file.full_path)
+
+        return remote_files_that_require_legacy_scaling
+
 
 def _find_files_to_upload_as_multi_file_items(
     search_files: List[PathLike],
