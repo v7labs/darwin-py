@@ -206,18 +206,8 @@ def test_push_dicom_series(
     """
     expected_push_dir = "flat_directory_of_2_dicom_files"
     expected_name = "flat_directory_of_2_dicom_files"
-    expected_slot_types = ["dicom", "dicom"]
-    expected_layout = {
-        "slots_grid": [
-            [
-                [
-                    "flat_directory_of_2_dicom_files",
-                ]
-            ]
-        ],
-        "version": 3,
-    }
-    expected_file_names = ["flat_directory_of_2_dicom_files"]
+    expected_slot_types = ["dicom"]
+    expected_layout = {"slots": ["0"], "type": "simple", "version": 1}
     push_dir = Path(__file__).parents[1] / "data" / "push" / f"{expected_push_dir}.zip"
     items = extract_and_push(
         push_dir,
@@ -232,4 +222,4 @@ def test_push_dicom_series(
     assert dicom_series_item["slot_types"] == expected_slot_types
     assert dicom_series_item["layout"] == expected_layout
     for num, slot in enumerate(dicom_series_item["slots"]):
-        assert slot["slot_name"] == expected_file_names[num]
+        assert slot["slot_name"] == "0"
