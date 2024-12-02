@@ -889,7 +889,9 @@ class RemoteDatasetV2(RemoteDataset):
             A list of full remote paths of dataset items that require NifTI annotations to be scaled
         """
         remote_files_that_require_legacy_scaling = []
-        remote_files = self.fetch_remote_files()
+        remote_files = self.fetch_remote_files(
+            filters={"statuses": ["new", "annotate", "review", "complete", "archived"]}
+        )
         for remote_file in remote_files:
             if not (
                 remote_file.slots[0]
