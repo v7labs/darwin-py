@@ -215,11 +215,14 @@ def _build_attribute_lookup(dataset: "RemoteDataset") -> Dict[str, Unknown]:
     return lookup
 
 
-def _get_remote_files(
-    dataset: "RemoteDataset", filenames: List[str], chunk_size: int = 100
+def _get_remote_files_ready_for_import(
+    dataset: "RemoteDataset",
+    filenames: List[str],
+    chunk_size: int = 100,
 ) -> Dict[str, Dict[str, Any]]:
     """
-    Fetches remote files from the datasets in chunks; by default 100 filenames at a time.
+    Fetches remote files that are ready for import from the datasets in chunks; by
+    default 100 filenames at a time.
 
     The output is a dictionary for each remote file with the following keys:
     - "item_id": Item ID
@@ -227,19 +230,54 @@ def _get_remote_files(
     - "layout": The layout of the item
 
     Fetching slot names & layout is necessary here to avoid double-trip to API downstream for remote files.
+
+    Raises a ValueError if any of the remote files are not in the `new`, `annotate`,
+    `review`, `complete`, or `archived` statuses.
+
+    Parameters
+    ----------
+    dataset : RemoteDataset
+        The remote dataset to fetch the files from.
+    filenames : List[str]
+        A list of filenames to fetch.
+    chunk_size : int
+        The number of filenames to fetch at a time.
     """
     remote_files = {}
+    remote_files_not_ready_for_import = {}
     for i in range(0, len(filenames), chunk_size):
         chunk = filenames[i : i + chunk_size]
         for remote_file in dataset.fetch_remote_files(
             {"types": "image,playback_video,video_frame", "item_names": chunk}
         ):
-            slot_names = _get_slot_names(remote_file)
-            remote_files[remote_file.full_path] = {
-                "item_id": remote_file.id,
-                "slot_names": slot_names,
-                "layout": remote_file.layout,
-            }
+            if remote_file.status not in [
+                "new",
+                "annotate",
+                "review",
+                "complete",
+                "archived",
+            ]:
+                remote_files_not_ready_for_import[remote_file.full_path] = (
+                    remote_file.status
+                )
+            else:
+                slot_names = _get_slot_names(remote_file)
+                remote_files[remote_file.full_path] = {
+                    "item_id": remote_file.id,
+                    "slot_names": slot_names,
+                    "layout": remote_file.layout,
+                }
+    if remote_files_not_ready_for_import:
+        console = Console(theme=_console_theme())
+        console.print(
+            "The following files are either still processing, or failed to process, so annotations cannot be imported:",
+            style="warning",
+        )
+        for file, status in remote_files_not_ready_for_import.items():
+            console.print(f"  - {file}, status: {status}")
+        raise ValueError(
+            "Some files targeted for annotation import are either still processing, or failed to process, so annotations cannot be imported."
+        )
     return remote_files
 
 
@@ -1261,7 +1299,11 @@ def import_annotations(  # noqa: C901
     chunk_size = 100
     while chunk_size > 0:
         try:
-            remote_files = _get_remote_files(dataset, filenames, chunk_size)
+            remote_files = _get_remote_files_ready_for_import(
+                dataset,
+                filenames,
+                chunk_size,
+            )
             break
         except RequestEntitySizeExceeded:
             chunk_size -= 8

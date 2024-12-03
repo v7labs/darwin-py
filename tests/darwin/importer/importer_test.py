@@ -23,7 +23,7 @@ from darwin.importer.importer import (
     _display_slot_warnings_and_errors,
     _find_and_parse,
     _get_annotation_format,
-    _get_remote_files,
+    _get_remote_files_ready_for_import,
     _get_slot_names,
     _import_annotations,
     _is_skeleton_class,
@@ -213,14 +213,42 @@ def test__build_attribute_lookup() -> None:
     assert result == expected_lookup
 
 
-def test__get_remote_files() -> None:
+def test__get_remote_files_ready_for_import_succeeds() -> None:
     mock_dataset = Mock()
     mock_dataset.fetch_remote_files.return_value = [
-        Mock(full_path="path/to/file1", id="file1_id", layout="layout1"),
-        Mock(full_path="path/to/file2", id="file2_id", layout="layout2"),
+        Mock(
+            full_path="path/to/file1",
+            id="file1_id",
+            layout="layout1",
+            status="new",
+        ),
+        Mock(
+            full_path="path/to/file2",
+            id="file2_id",
+            layout="layout2",
+            status="annotate",
+        ),
+        Mock(
+            full_path="path/to/file3",
+            id="file3_id",
+            layout="layout3",
+            status="review",
+        ),
+        Mock(
+            full_path="path/to/file4",
+            id="file4_id",
+            layout="layout4",
+            status="complete",
+        ),
+        Mock(
+            full_path="path/to/file5",
+            id="file5_id",
+            layout="layout5",
+            status="archived",
+        ),
     ]
 
-    filenames = ["file1", "file2"]
+    filenames = ["file1", "file2", "file3", "file4"]
     expected_result = {
         "path/to/file1": {
             "item_id": "file1_id",
@@ -232,13 +260,68 @@ def test__get_remote_files() -> None:
             "slot_names": ["slot_name2"],
             "layout": "layout2",
         },
+        "path/to/file3": {
+            "item_id": "file3_id",
+            "slot_names": ["slot_name3"],
+            "layout": "layout3",
+        },
+        "path/to/file4": {
+            "item_id": "file4_id",
+            "slot_names": ["slot_name4"],
+            "layout": "layout4",
+        },
+        "path/to/file5": {
+            "item_id": "file5_id",
+            "slot_names": ["slot_name5"],
+            "layout": "layout5",
+        },
     }
 
     with patch("darwin.importer.importer._get_slot_names") as mock_get_slot_names:
-        mock_get_slot_names.side_effect = [["slot_name1"], ["slot_name2"]]
-        result = _get_remote_files(mock_dataset, filenames)
+        mock_get_slot_names.side_effect = [
+            ["slot_name1"],
+            ["slot_name2"],
+            ["slot_name3"],
+            ["slot_name4"],
+            ["slot_name5"],
+        ]
+        result = _get_remote_files_ready_for_import(mock_dataset, filenames)
         assert result == expected_result
-        assert mock_get_slot_names.call_count == 2
+        assert mock_get_slot_names.call_count == 5
+
+
+def test__get_remote_files_ready_for_import_raises_with_statuses_not_ready_for_import() -> (
+    None
+):
+    mock_dataset = Mock()
+
+    mock_dataset.fetch_remote_files.return_value = [
+        Mock(full_path="path/to/file2", id="file2_id", layout="layout2", status="error")
+    ]
+    with pytest.raises(ValueError):
+        _get_remote_files_ready_for_import(mock_dataset, ["file2"])
+
+    mock_dataset.fetch_remote_files.return_value = [
+        Mock(
+            full_path="path/to/file3",
+            id="file3_id",
+            layout="layout3",
+            status="uploading",
+        )
+    ]
+    with pytest.raises(ValueError):
+        _get_remote_files_ready_for_import(mock_dataset, ["file3"])
+
+    mock_dataset.fetch_remote_files.return_value = [
+        Mock(
+            full_path="path/to/file4",
+            id="file4_id",
+            layout="layout4",
+            status="processing",
+        )
+    ]
+    with pytest.raises(ValueError):
+        _get_remote_files_ready_for_import(mock_dataset, ["file4"])
 
 
 def test__get_slot_names() -> None:
