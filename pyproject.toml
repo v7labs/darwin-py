@@ -171,7 +171,7 @@ version = "^12.0"
 
 [tool.poetry.dependencies.ruff]
 optional = true
-version = ">=0.4.7,<0.8.0"
+version = ">=0.4.7,<0.9.0"
 
 [tool.poetry.dependencies.validate-pyproject]
 optional = true
