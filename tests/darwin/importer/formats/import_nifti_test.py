@@ -190,7 +190,13 @@ def test_image_annotation_nifti_import_single_slot_to_mask_legacy(
             with patch("darwin.importer.formats.nifti.zoom") as mock_zoom:
                 mock_zoom.side_effect = ndimage.zoom
 
-                remote_files_that_require_legacy_scaling = ["vol0 (1).nii"]
+                remote_files_that_require_legacy_scaling = {
+                    Path("/vol0 (1).nii"): {
+                        "0": np.array(
+                            [[-1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]]
+                        )
+                    }
+                }
                 annotation_files = parse_path(
                     path=upload_json,
                     remote_files_that_require_legacy_scaling=remote_files_that_require_legacy_scaling,
@@ -516,7 +522,11 @@ def test_parse_path_nifti_with_legacy_scaling():
     )
     adjust_nifti_label_filepath(nifti_annotation_filepath, nifti_filepath)
     expected_annotations = parse_darwin_json(expected_annotations_filepath)
-    remote_files_that_require_legacy_scaling = ["BRAINIX_NIFTI_ROI.nii.gz"]
+    remote_files_that_require_legacy_scaling = {
+        Path("/BRAINIX_NIFTI_ROI.nii.gz"): {
+            "0": np.array([[-1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]])
+        }
+    }
     parsed_annotations = parse_path(
         nifti_annotation_filepath,
         remote_files_that_require_legacy_scaling=remote_files_that_require_legacy_scaling,
@@ -551,9 +561,13 @@ def test_parse_path_nifti_without_legacy_scaling():
         / "no-legacy"
         / "BRAINIX_NIFTI_ROI.nii.json"
     )
+    remote_files_that_require_legacy_scaling = {}
     adjust_nifti_label_filepath(nifti_annotation_filepath, nifti_filepath)
     expected_annotations = parse_darwin_json(expected_annotations_filepath)
-    parsed_annotations = parse_path(nifti_annotation_filepath, legacy=False)
+    parsed_annotations = parse_path(
+        nifti_annotation_filepath,
+        remote_files_that_require_legacy_scaling=remote_files_that_require_legacy_scaling,
+    )
     for frame_idx in expected_annotations.annotations[0].frames:
         expected_annotation = (
             expected_annotations.annotations[0].frames[frame_idx].data["paths"]
