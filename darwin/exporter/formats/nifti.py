@@ -164,6 +164,7 @@ def export(
                 image_id=image_id,
                 output_dir=output_dir,
                 legacy=legacy,
+                filename=video_annotation.filename,
             )
 
 
@@ -498,7 +499,7 @@ def write_output_volume_to_disk(
             dataobj=volume.pixel_array.astype(np.int16),
             affine=volume.affine,
         )
-        img = get_reoriented_nifti_image(img, volume)
+        img = get_reoriented_nifti_image(img, volume, legacy, filename)
         if volume.from_raster_layer:
             output_path = Path(output_dir) / f"{image_id}_{volume.class_name}_m.nii.gz"
         else:
@@ -508,9 +509,14 @@ def write_output_volume_to_disk(
         nib.save(img=img, filename=output_path)
 
 
-def get_reoriented_nifti_image(img: nib.Nifti1Image, volume: Dict) -> nib.Nifti1Image:
+def get_reoriented_nifti_image(
+    img: nib.Nifti1Image, volume: Dict, legacy: bool, filename: str
+) -> nib.Nifti1Image:
     """
     Reorients the given NIfTI image based on the original affine.
+
+    For files that require legacy scaling, we flip all axes of the image to be aligned
+    with the target dataset item.
 
     Parameters
     ----------
@@ -518,6 +524,12 @@ def get_reoriented_nifti_image(img: nib.Nifti1Image, volume: Dict) -> nib.Nifti1
         The NIfTI image to be reoriented
     volume: Dict
         The volume containing the affine and original affine
+    legacy: bool
+        If ``True``, the exporter will flip all axes of the image if the dataset item
+        is not a DICOM
+        If ``False``, the exporter will not flip the axes
+    filename: str
+        The filename of the dataset item
     """
     if volume.original_affine is not None:
         img_ax_codes = nib.orientations.aff2axcodes(volume.affine)
@@ -526,6 +538,11 @@ def get_reoriented_nifti_image(img: nib.Nifti1Image, volume: Dict) -> nib.Nifti1
         orig_ornt = nib.orientations.axcodes2ornt(orig_ax_codes)
         transform = nib.orientations.ornt_transform(img_ornt, orig_ornt)
         img = img.as_reoriented(transform)
+        is_dicom = filename.lower().endswith(".dcm")
+        if legacy and not is_dicom:
+            img = nib.Nifti1Image(
+                np.flip(img.get_fdata(), (0, 1, 2)).astype(np.int16), img.affine
+            )
     return img
 
 

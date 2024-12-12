@@ -529,6 +529,9 @@ def process_nifti(
     Converts a nifti object of any orientation to the passed ornt orientation.
     The default ornt is LPI.
 
+    For files that require legacy scaling, we flip all axes of the image to be aligned
+    with the target dataset item.
+
     Args:
         input_data: nibabel nifti object.
         ornt: (n,2) orientation array. It defines a transformation to LPI
@@ -547,10 +550,13 @@ def process_nifti(
     orig_ax_codes = nib.orientations.aff2axcodes(img.affine)
     orig_ornt = nib.orientations.axcodes2ornt(orig_ax_codes)
     if remote_file_path in remote_files_that_require_legacy_scaling:
+        is_dicom = remote_file_path.suffix.lower() == ".dcm"
         slot_affine_map = remote_files_that_require_legacy_scaling[remote_file_path]
         affine = slot_affine_map[next(iter(slot_affine_map))]  # Take the 1st slot
         ax_codes = nib.orientations.aff2axcodes(affine)
         ornt = nib.orientations.axcodes2ornt(ax_codes)
+        if not is_dicom:
+            img = nib.Nifti1Image(np.flip(img.get_fdata(), (0, 1, 2)), affine)
     transform = nib.orientations.ornt_transform(orig_ornt, ornt)
     reoriented_img = img.as_reoriented(transform)
     data_array = reoriented_img.get_fdata()
