@@ -168,12 +168,12 @@ def test_image_annotation_nifti_import_single_slot_to_mask_legacy(
                 / "releases"
                 / "latest"
                 / "annotations"
-                / "vol0_brain.nii.gz"
+                / "sample_nifti.nii"
             )
             input_dict = {
                 "data": [
                     {
-                        "image": "vol0 (1).nii",
+                        "image": "2044737.fat.nii",
                         "label": str(label_path),
                         "class_map": {"1": "brain"},
                         "mode": "mask",
@@ -191,9 +191,14 @@ def test_image_annotation_nifti_import_single_slot_to_mask_legacy(
                 mock_zoom.side_effect = ndimage.zoom
 
                 remote_files_that_require_legacy_scaling = {
-                    Path("/vol0 (1).nii"): {
+                    Path("/2044737.fat.nii"): {
                         "0": np.array(
-                            [[-1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]]
+                            [
+                                [2.23214293, 0, 0, -247.76787233],
+                                [0, 2.23214293, 0, -191.96429443],
+                                [0, 0, 3, -21],
+                                [0, 0, 0, 1],
+                            ]
                         )
                     }
                 }
@@ -210,7 +215,7 @@ def test_image_annotation_nifti_import_single_slot_to_mask_legacy(
                         Path(tmpdir)
                         / team_slug_darwin_json_v2
                         / "nifti"
-                        / "vol0_annotation_file_to_mask.json",
+                        / "sample_nifti.nii.json",
                         "r",
                     )
                 )
@@ -222,17 +227,18 @@ def test_image_annotation_nifti_import_single_slot_to_mask_legacy(
                 ]
                 [
                     frame.get("raster_layer", {}).pop("mask_annotation_ids_mapping")
-                    for frame in expected_json_string["annotations"][0][
+                    for frame in expected_json_string["annotations"][1][
                         "frames"
                     ].values()
                 ]
 
-                assert mock_zoom.call_count == len(
-                    expected_json_string["annotations"][0]["frames"]
+                assert (
+                    mock_zoom.call_count
+                    == expected_json_string["item"]["slots"][0]["frame_count"]
                 )
                 assert (
                     output_json_string["annotations"][0]["frames"]
-                    == expected_json_string["annotations"][0]["frames"]
+                    == expected_json_string["annotations"][1]["frames"]
                 )
 
 
@@ -510,21 +516,26 @@ def test_parse_path_nifti_with_legacy_scaling():
     nifti_annotation_filepath = (
         Path(__file__).parents[2] / "data" / "nifti" / "nifti.json"
     )
-    nifti_filepath = (
-        Path(__file__).parents[2] / "data" / "nifti" / "BRAINIX_NIFTI_ROI.nii.gz"
-    )
+    nifti_filepath = Path(__file__).parents[2] / "data" / "nifti" / "sample_nifti.nii"
     expected_annotations_filepath = (
         Path(__file__).parents[2]
         / "data"
         / "nifti"
         / "legacy"
-        / "BRAINIX_NIFTI_ROI.nii.json"
+        / "sample_nifti.nii.json"
     )
     adjust_nifti_label_filepath(nifti_annotation_filepath, nifti_filepath)
     expected_annotations = parse_darwin_json(expected_annotations_filepath)
     remote_files_that_require_legacy_scaling = {
-        Path("/BRAINIX_NIFTI_ROI.nii.gz"): {
-            "0": np.array([[-1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]])
+        Path("/2044737.fat.nii.gz"): {
+            "0": np.array(
+                [
+                    [2.23214293, 0, 0, -247.76787233],
+                    [0, 2.23214293, 0, -191.96429443],
+                    [0, 0, 3, -21],
+                    [0, 0, 0, 1],
+                ]
+            )
         }
     }
     parsed_annotations = parse_path(
