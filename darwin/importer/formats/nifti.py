@@ -526,14 +526,22 @@ def process_nifti(
     remote_files_that_require_legacy_scaling: Dict[Path, Dict[str, Any]] = {},
 ) -> Tuple[np.ndarray, Tuple[float]]:
     """
-    Converts a nifti object of any orientation to the passed ornt orientation.
+    Converts a NifTI object of any orientation to the passed ornt orientation.
     The default ornt is LPI.
 
-    For files that require legacy scaling, we flip all axes of the image to be aligned
-    with the target dataset item.
+    Files that were uploaded before the `MED_2D_VIEWER` feature are `legacy`. Non-legacy
+    files are uploaded and re-oriented to the `LPI` orientation. Legacy files
+    files were treated differently:
+    - Legacy NifTI files were re-oriented to `LPI`, but their
+      affine was stored as `RAS`, which is the opposite orientation. However, because
+      their pixel data is stored in `LPI`, we can treat them the same way as non-legacy
+      files.
+    - Legacy DICOM files were not always re-oriented to `LPI`. We therefore use the
+      affine of the dataset item from `slot_affine_map` to re-orient the NifTI file to
+      be imported
 
     Args:
-        input_data: nibabel nifti object.
+        input_data: nibabel NifTI object.
         ornt: (n,2) orientation array. It defines a transformation to LPI
             ornt[N,1] is a flip of axis N of the array, where 1 means no flip and -1 means flip.
             ornt[:,0] is the transpose that needs to be done to the implied array, as in arr.transpose(ornt[:,0]).
@@ -549,14 +557,12 @@ def process_nifti(
     img = correct_nifti_header_if_necessary(input_data)
     orig_ax_codes = nib.orientations.aff2axcodes(img.affine)
     orig_ornt = nib.orientations.axcodes2ornt(orig_ax_codes)
-    if remote_file_path in remote_files_that_require_legacy_scaling:
-        is_dicom = remote_file_path.suffix.lower() == ".dcm"
+    is_dicom = remote_file_path.suffix.lower() == ".dcm"
+    if remote_file_path in remote_files_that_require_legacy_scaling and is_dicom:
         slot_affine_map = remote_files_that_require_legacy_scaling[remote_file_path]
         affine = slot_affine_map[next(iter(slot_affine_map))]  # Take the 1st slot
         ax_codes = nib.orientations.aff2axcodes(affine)
         ornt = nib.orientations.axcodes2ornt(ax_codes)
-        if not is_dicom:
-            img = nib.Nifti1Image(np.flip(img.get_fdata(), (0, 1, 2)), affine)
     transform = nib.orientations.ornt_transform(orig_ornt, ornt)
     reoriented_img = img.as_reoriented(transform)
     data_array = reoriented_img.get_fdata()

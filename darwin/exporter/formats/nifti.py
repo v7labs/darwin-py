@@ -499,7 +499,7 @@ def write_output_volume_to_disk(
             dataobj=volume.pixel_array.astype(np.int16),
             affine=volume.affine,
         )
-        img = get_reoriented_nifti_image(img, volume, legacy, filename)
+        img = _get_reoriented_nifti_image(img, volume, legacy, filename)
         if volume.from_raster_layer:
             output_path = Path(output_dir) / f"{image_id}_{volume.class_name}_m.nii.gz"
         else:
@@ -509,14 +509,17 @@ def write_output_volume_to_disk(
         nib.save(img=img, filename=output_path)
 
 
-def get_reoriented_nifti_image(
+def _get_reoriented_nifti_image(
     img: nib.Nifti1Image, volume: Dict, legacy: bool, filename: str
 ) -> nib.Nifti1Image:
     """
-    Reorients the given NIfTI image based on the original affine.
+    Reorients the given NIfTI image based on the affine of the originally uploaded file.
 
-    For files that require legacy scaling, we flip all axes of the image to be aligned
-    with the target dataset item.
+    Files that were uploaded before the `MED_2D_VIEWER` feature are `legacy`. Non-legacy
+    files are uploaded and re-oriented to the `LPI` orientation. Legacy NifTI
+    files were treated differently. These files were re-oriented to `LPI`, but their
+    affine was stored as `RAS`, which is the opposite orientation. We therefore need to
+    flip the axes of these images to ensure alignment.
 
     Parameters
     ----------
