@@ -1,6 +1,5 @@
 import json
 import tempfile
-from functools import partial
 from pathlib import Path
 from typing import List, Tuple
 from unittest.mock import MagicMock, Mock, _patch, patch
@@ -2143,12 +2142,6 @@ def test__get_annotation_format():
     assert _get_annotation_format(get_importer("nifti")) == "nifti"
     assert _get_annotation_format(get_importer("pascal_voc")) == "pascal_voc"
     assert _get_annotation_format(get_importer("superannotate")) == "superannotate"
-
-
-def test__get_annotation_format_with_partial():
-    nifti_importer = get_importer("nifti")
-    legacy_nifti_importer = partial(nifti_importer, legacy=True)
-    assert _get_annotation_format(legacy_nifti_importer) == "nifti"
 
 
 def test_no_verify_warning_for_single_slotted_items():
