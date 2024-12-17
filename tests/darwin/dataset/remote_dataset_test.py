@@ -6,6 +6,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict
 from unittest.mock import MagicMock, patch
+import numpy as np
 
 import orjson as json
 import pytest
@@ -1906,7 +1907,14 @@ class TestGetRemoteFilesThatRequireLegacyScaling:
                 seq=1,
                 current_workflow_id=None,
                 path="/path/to/file",
-                slots=[{"metadata": {"medical": {"handler": "MONAI"}}}],
+                slots=[
+                    {
+                        "slot_name": "0",
+                        "metadata": {
+                            "medical": {"handler": "MONAI", "affine": [1, 0, 0, 0]}
+                        },
+                    }
+                ],
                 layout={},
                 current_workflow=None,
             ),
@@ -1921,7 +1929,21 @@ class TestGetRemoteFilesThatRequireLegacyScaling:
                 seq=2,
                 current_workflow_id=None,
                 path="/path/to/file",
-                slots=[{"metadata": {"medical": {}}}],
+                slots=[
+                    {
+                        "slot_name": "0",
+                        "metadata": {
+                            "medical": {
+                                "affine": [
+                                    [-1, 0, 0, 0],
+                                    [0, -1, 0, 0],
+                                    [0, 0, -1, 0],
+                                    [0, 0, 0, 1],
+                                ]
+                            }
+                        },
+                    }
+                ],
                 layout={},
                 current_workflow=None,
             ),
@@ -1941,6 +1963,7 @@ class TestGetRemoteFilesThatRequireLegacyScaling:
         )
 
         result = remote_dataset._get_remote_files_that_require_legacy_scaling()
-
-        assert len(result) == 1
-        assert result[0] == "/path/to/file/filename"
+        assert Path("/path/to/file/filename") in result
+        np.testing.assert_array_equal(
+            result[Path("/path/to/file/filename")]["0"], np.array([[-1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]])  # type: ignore
+        )

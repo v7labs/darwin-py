@@ -3,7 +3,7 @@ import uuid
 import warnings
 from collections import OrderedDict, defaultdict
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Any
 
 from rich.console import Console
 
@@ -31,8 +31,7 @@ from darwin.importer.formats.nifti_schemas import nifti_import_schema
 
 def parse_path(
     path: Path,
-    legacy: bool = False,
-    remote_files_that_require_legacy_scaling: Optional[List] = [],
+    remote_files_that_require_legacy_scaling: Dict[Path, Dict[str, Any]] = {},
 ) -> Optional[List[dt.AnnotationFile]]:
     """
     Parses the given ``nifti`` file and returns a ``List[dt.AnnotationFile]`` with the parsed
@@ -42,9 +41,8 @@ def parse_path(
     ----------
     path : Path
         The ``Path`` to the ``nifti`` file.
-    legacy : bool, default: False
-        If ``True``, the function will not attempt to resize the annotations to isotropic pixel dimensions.
-        If ``False``, the function will resize the annotations to isotropic pixel dimensions.
+    remote_files_that_require_legacy_scaling : Optional[Dict[Path, Dict[str, Any]]]
+        A dictionary of remote file full paths to their slot affine maps
 
     Returns
     -------
@@ -78,16 +76,20 @@ def parse_path(
         return None
     annotation_files = []
     for nifti_annotation in nifti_annotations:
-        legacy = nifti_annotation["image"] in remote_files_that_require_legacy_scaling
+        remote_file_path = Path(nifti_annotation["image"])
+        if not str(remote_file_path).startswith("/"):
+            remote_file_path = Path("/" + str(remote_file_path))
+
         annotation_file = _parse_nifti(
             Path(nifti_annotation["label"]),
-            nifti_annotation["image"],
+            Path(nifti_annotation["image"]),
             path,
             class_map=nifti_annotation.get("class_map"),
             mode=nifti_annotation.get("mode", "image"),
             slot_names=nifti_annotation.get("slot_names", []),
             is_mpr=nifti_annotation.get("is_mpr", False),
-            legacy=legacy,
+            remote_file_path=remote_file_path,
+            remote_files_that_require_legacy_scaling=remote_files_that_require_legacy_scaling,
         )
         annotation_files.append(annotation_file)
     return annotation_files
@@ -101,10 +103,16 @@ def _parse_nifti(
     mode: str,
     slot_names: List[str],
     is_mpr: bool,
-    legacy: bool = False,
+    remote_file_path: Path,
+    remote_files_that_require_legacy_scaling: Dict[Path, Dict[str, Any]] = {},
 ) -> dt.AnnotationFile:
-    img, pixdims = process_nifti(nib.load(nifti_path))
+    img, pixdims = process_nifti(
+        nib.load(nifti_path),
+        remote_file_path=remote_file_path,
+        remote_files_that_require_legacy_scaling=remote_files_that_require_legacy_scaling,
+    )
 
+    legacy = remote_file_path in remote_files_that_require_legacy_scaling
     processed_class_map = process_class_map(class_map)
     video_annotations = []
     if mode == "instances":  # For each instance produce a video annotation
@@ -159,11 +167,12 @@ def _parse_nifti(
             dt.AnnotationClass(class_name, "mask", "mask")
             for class_name in class_map.values()
         }
-
+    remote_path = "/" if filename.parent == "." else filename.parent
+    filename = Path(filename.name)
     return dt.AnnotationFile(
         path=json_path,
         filename=str(filename),
-        remote_path="/",
+        remote_path=str(remote_path),
         annotation_classes=annotation_classes,
         annotations=video_annotations,
         slots=[
@@ -353,7 +362,7 @@ def nifti_to_video_polygon_annotation(
     if len(all_frame_ids) == 1:
         segments = [[all_frame_ids[0], all_frame_ids[0] + 1]]
     elif len(all_frame_ids) > 1:
-        segments = [[min(all_frame_ids), max(all_frame_ids)]]
+        segments = [[min(all_frame_ids), max(all_frame_ids) + 1]]
     video_annotation = dt.make_video_annotation(
         frame_annotations,
         keyframes={f_id: True for f_id in all_frame_ids},
@@ -513,16 +522,33 @@ def correct_nifti_header_if_necessary(img_nii):
 def process_nifti(
     input_data: nib.nifti1.Nifti1Image,
     ornt: Optional[List[List[float]]] = [[0.0, -1.0], [1.0, -1.0], [2.0, -1.0]],
+    remote_file_path: Path = Path("/"),
+    remote_files_that_require_legacy_scaling: Dict[Path, Dict[str, Any]] = {},
 ) -> Tuple[np.ndarray, Tuple[float]]:
     """
-    Converts a nifti object of any orientation to the passed ornt orientation.
+    Converts a NifTI object of any orientation to the passed ornt orientation.
     The default ornt is LPI.
 
+    Files that were uploaded before the `MED_2D_VIEWER` feature are `legacy`. Non-legacy
+    files are uploaded and re-oriented to the `LPI` orientation. Legacy files
+    files were treated differently:
+    - Legacy NifTI files were re-oriented to `LPI`, but their
+      affine was stored as `RAS`, which is the opposite orientation. However, because
+      their pixel data is stored in `LPI`, we can treat them the same way as non-legacy
+      files.
+    - Legacy DICOM files were not always re-oriented to `LPI`. We therefore use the
+      affine of the dataset item from `slot_affine_map` to re-orient the NifTI file to
+      be imported
+
     Args:
-        input_data: nibabel nifti object.
-        ornt: (n,2) orientation array. It defines a transformation from RAS.
+        input_data: nibabel NifTI object.
+        ornt: (n,2) orientation array. It defines a transformation to LPI
             ornt[N,1] is a flip of axis N of the array, where 1 means no flip and -1 means flip.
             ornt[:,0] is the transpose that needs to be done to the implied array, as in arr.transpose(ornt[:,0]).
+        remote_file_path: Path
+            The full path of the remote file
+        remote_files_that_require_legacy_scaling: Dict[Path, Dict[str, Any]]
+            A dictionary of remote file full paths to their slot affine maps
 
     Returns:
         data_array: pixel array with orientation ornt.
@@ -531,9 +557,14 @@ def process_nifti(
     img = correct_nifti_header_if_necessary(input_data)
     orig_ax_codes = nib.orientations.aff2axcodes(img.affine)
     orig_ornt = nib.orientations.axcodes2ornt(orig_ax_codes)
+    is_dicom = remote_file_path.suffix.lower() == ".dcm"
+    if remote_file_path in remote_files_that_require_legacy_scaling and is_dicom:
+        slot_affine_map = remote_files_that_require_legacy_scaling[remote_file_path]
+        affine = slot_affine_map[next(iter(slot_affine_map))]  # Take the 1st slot
+        ax_codes = nib.orientations.aff2axcodes(affine)
+        ornt = nib.orientations.axcodes2ornt(ax_codes)
     transform = nib.orientations.ornt_transform(orig_ornt, ornt)
     reoriented_img = img.as_reoriented(transform)
-
     data_array = reoriented_img.get_fdata()
     pixdims = reoriented_img.header.get_zooms()
 
