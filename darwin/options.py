@@ -61,14 +61,6 @@ class Options:
             help="Annotation files (or folders) to convert.",
         )
         parser_convert.add_argument(
-            "--legacy",
-            type=lambda x: (str(x).lower() == "true") if x is not None else None,
-            nargs="?",
-            const=True,
-            default=None,
-            help="The legacy flag is now non-functional and will be deprecated soon. The annotation conversion process now automatically detects if legacy annotation scaling is required.",
-        )
-        parser_convert.add_argument(
             "output_dir", type=str, help="Where to store output files."
         )
 
@@ -381,14 +373,6 @@ class Options:
             action="store_true",
             help="Bypass warnings about overwiting existing annotations.",
         )
-        parser_import.add_argument(
-            "--legacy",
-            type=lambda x: (str(x).lower() == "true") if x is not None else None,
-            nargs="?",
-            const=True,
-            default=None,
-            help="The legacy flag is now non-functional and will be deprecated soon. The annotation import process now automatically detects if legacy annotation scaling is required.",
-        )
 
         # Cpu limit for multiprocessing tasks
         def cpu_default_types(input: Any) -> Optional[int]:  # type: ignore
@@ -417,14 +401,6 @@ class Options:
         )
         parser_convert.add_argument(
             "format", type=str, help="Annotation format to convert to."
-        )
-        parser_convert.add_argument(
-            "--legacy",
-            type=lambda x: (str(x).lower() == "true") if x is not None else None,
-            nargs="?",
-            const=True,
-            default=None,
-            help="The legacy flag is now non-functional and will be deprecated soon. The annotation conversion process now automatically detects if legacy annotation scaling is required.",
         )
         parser_convert.add_argument(
             "-o", "--output_dir", type=str, help="Where to store output files."

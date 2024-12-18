@@ -3,7 +3,6 @@ import uuid
 import json
 import copy
 from collections import defaultdict
-from functools import partial
 from logging import getLogger
 from multiprocessing import cpu_count
 from pathlib import Path
@@ -1158,7 +1157,6 @@ def import_annotations(  # noqa: C901
     overwrite: bool = False,
     use_multi_cpu: bool = False,
     cpu_limit: Optional[int] = None,
-    legacy: Optional[bool] = None,
 ) -> None:
     """
     Imports the given given Annotations into the given Dataset.
@@ -1200,9 +1198,6 @@ def import_annotations(  # noqa: C901
         If ``cpu_limit`` is greater than the number of available CPU cores, it will be set to the number of available cores.
         If ``cpu_limit`` is less than 1, it will be set to CPU count - 2.
         If ``cpu_limit`` is omitted, it will be set to CPU count - 2.
-    legacy : bool, default: False
-        If ``True`` will use the legacy isotropic transformation to resize annotations
-        If ``False`` will not use the legacy isotropic transformation to resize annotations
     Raises
     -------
     ValueError
@@ -1214,12 +1209,6 @@ def import_annotations(  # noqa: C901
         - If both ``append`` and ``delete_for_empty`` are specified as ``True``.
     """
     console = Console(theme=_console_theme())
-
-    if legacy is not None:
-        console.print(
-            "The `legacy` flag is now non-functional and will be deprecated soon. The annotation import process now automatically detects if legacy annotation scaling is required.",
-            style="warning",
-        )
 
     if append and delete_for_empty:
         raise IncompatibleOptions(
@@ -2072,9 +2061,6 @@ def _get_annotation_format(
     annotation_format : str
         The annotation format of the importer used to parse local files
     """
-    # This `if` block is temporary, but necessary while we migrate NifTI imports between the legacy method & the new method
-    if isinstance(importer, partial):
-        return importer.func.__module__.split(".")[3]
     return importer.__module__.split(".")[3]
 
 

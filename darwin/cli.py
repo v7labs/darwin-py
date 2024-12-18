@@ -100,7 +100,7 @@ def _run(args: Namespace, parser: ArgumentParser) -> None:
         print(__version__)
 
     elif args.command == "convert":
-        f.convert(args.format, args.files, args.output_dir, legacy=args.legacy)
+        f.convert(args.format, args.files, args.output_dir)
     elif args.command == "dataset":
         if args.action == "remote":
             f.list_remote_datasets(args.all, args.team)
@@ -173,12 +173,13 @@ def _run(args: Namespace, parser: ArgumentParser) -> None:
                 args.import_annotators,
                 args.import_reviewers,
                 args.overwrite,
-                legacy=args.legacy,
                 cpu_limit=args.cpu_limit,
             )
         elif args.action == "convert":
             f.dataset_convert(
-                args.dataset, args.format, args.output_dir, legacy=args.legacy
+                args.dataset,
+                args.format,
+                args.output_dir,
             )
         elif args.action == "set-file-status":
             f.set_file_status(args.dataset, args.status, args.files)

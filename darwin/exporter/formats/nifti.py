@@ -59,7 +59,6 @@ class Volume:
 def export(
     annotation_files: Iterable[dt.AnnotationFile],
     output_dir: Path,
-    legacy: Optional[bool] = None,
 ) -> None:
     """
     Exports the given ``AnnotationFile``\\s into nifti format inside of the given
@@ -71,23 +70,12 @@ def export(
         The ``AnnotationFile``\\s to be exported.
     output_dir : Path
         The folder where the new instance mask files will be.
-    legacy : bool, default=None
-        If ``True``, the exporter will use the legacy calculation.
-        If ``False``, the exporter will use the new calculation by dividing with pixdims.
-
 
     Returns
     -------
     sends output volumes, image_id and output_dir to the write_output_volume_to_disk function
 
     """
-
-    if legacy is not None:
-        console.print(
-            "The `legacy` flag is now non-functional and will be deprecated soon. The annotation conversion process now automatically detects if legacy annotation scaling is required.",
-            style="warning",
-        )
-
     video_annotations = list(annotation_files)
     for video_annotation in video_annotations:
         try:

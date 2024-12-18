@@ -5,7 +5,6 @@ import json
 import os
 import sys
 import traceback
-from functools import partial
 from glob import glob
 from itertools import tee
 from pathlib import Path
@@ -888,7 +887,6 @@ def dataset_import(
     import_annotators: bool = False,
     import_reviewers: bool = False,
     overwrite: bool = False,
-    legacy: bool = False,
     use_multi_cpu: bool = False,
     cpu_limit: Optional[int] = None,
 ) -> None:
@@ -922,9 +920,6 @@ def dataset_import(
     overwrite : bool, default: False
         If ``True`` it will bypass a warning that the import will overwrite the current annotations if any are present.
         If ``False`` this warning will be skipped and the import will overwrite the current annotations without warning.
-    legacy : bool, default: False
-        If ``True`` it will resize the annotations to be isotropic.
-        If ``False`` it will not resize the annotations to be isotropic.
     use_multi_cpu : bool, default: False
         If ``True`` it will use all multiple CPUs to speed up the import process.
     cpu_limit : Optional[int], default: Core count - 2
@@ -955,7 +950,6 @@ def dataset_import(
             overwrite,
             use_multi_cpu,
             cpu_limit,
-            legacy,
         )
 
     except ImporterNotFoundError:
@@ -1211,7 +1205,6 @@ def dataset_convert(
     dataset_identifier: str,
     format: str,
     output_dir: Optional[PathLike] = None,
-    legacy: bool = False,
 ) -> None:
     """
     Converts the annotations from the given dataset to the given format.
@@ -1227,10 +1220,6 @@ def dataset_convert(
     output_dir : Optional[PathLike], default: None
         The folder where the exported annotation files will be. If None it will be the inside the
         annotations folder of the dataset under 'other_formats/{format}'.
-    legacy : bool, default: False
-        This flag is only for the nifti format.
-        If True, it will resize the annotations by dividing by pixdims.
-        If False, it will not export the annotations using legacy calculations
     """
     identifier: DatasetIdentifier = DatasetIdentifier.parse(dataset_identifier)
     client: Client = _load_client(team_slug=identifier.team_slug)
@@ -1269,7 +1258,9 @@ def dataset_convert(
 
 
 def convert(
-    format: str, files: List[PathLike], output_dir: Path, legacy: bool = False
+    format: str,
+    files: List[PathLike],
+    output_dir: Path,
 ) -> None:
     """
     Converts the given files to the specified format.
@@ -1282,15 +1273,9 @@ def convert(
         List of files to be converted.
     output_dir: Path
         Folder where the exported annotations will be placed.
-    legacy: bool, default: False
-        This flag is only for the nifti format.
-        If True, it will resize the annotations by dividing by pixdims
-        If False, it will not export the annotations using legacy calculations.
     """
     try:
         parser: ExportParser = get_exporter(format)
-        if format == "nifti" and legacy:
-            parser = partial(parser, legacy=True)
     except ExporterNotFoundError:
         _error(f"Unsupported export format, currently supported: {export_formats}")
     except AttributeError:
