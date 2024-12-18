@@ -19,7 +19,6 @@ from typing import (
     Tuple,
     Dict,
 )
-from rich.console import Console
 import requests
 
 from darwin.datatypes import PathLike, Slot, SourceFile
@@ -27,7 +26,6 @@ from darwin.doc_enum import DocEnum
 from darwin.path_utils import construct_full_path
 from darwin.utils import chunk
 from darwin.utils.utils import is_image_extension_allowed_by_filename, SLOTS_GRID_MAP
-from darwin.importer.importer import _console_theme
 
 if TYPE_CHECKING:
     from darwin.client import Client
@@ -418,7 +416,6 @@ class UploadHandler(ABC):
         self.local_files = local_files
         self.dataset: RemoteDataset = dataset
         self.errors: List[UploadRequestError] = []
-        self.skip_existing_full_remote_filepaths()
         self.blocked_items, self.pending_items = self._request_upload(
             handle_as_slices=handle_as_slices
         )
@@ -465,57 +462,6 @@ class UploadHandler(ABC):
     def progress(self):
         """Current level of upload progress."""
         return self._progress
-
-    def skip_existing_full_remote_filepaths(self) -> None:
-        """
-        Checks if any items to be uploaded have duplicate {item_path}/{item_name} with
-        items already present in the remote dataset. Skip these files and display
-        a warning for each one.
-        """
-        console = Console(theme=_console_theme())
-        full_remote_filepaths = [
-            Path(file.full_path) for file in self.dataset.fetch_remote_files()
-        ]
-
-        multi_file_items_to_remove = []
-        local_files_to_remove = []
-
-        if self.multi_file_items:
-            for multi_file_item in self.multi_file_items:
-                if Path(multi_file_item.full_path) in full_remote_filepaths:
-                    local_files_to_remove.extend(multi_file_item.files)
-                    multi_file_items_to_remove.append(multi_file_item)
-                    console.print(
-                        f"The remote filepath {multi_file_item.full_path} is already occupied by a dataset item in the `{self.dataset.slug}` dataset. Skipping upload of item.",
-                        style="warning",
-                    )
-        if self.local_files:
-            for local_file in self.local_files:
-                if (
-                    Path(local_file.full_path) in full_remote_filepaths
-                    and local_file not in local_files_to_remove
-                ):
-                    local_files_to_remove.append(local_file)
-                    console.print(
-                        f"The remote filepath {local_file.full_path} already exists in the `{self.dataset.slug}` dataset. Skipping upload of item.",
-                        style="warning",
-                    )
-        self.local_files = [
-            local_file
-            for local_file in self.local_files
-            if local_file not in local_files_to_remove
-        ]
-        if self.multi_file_items:
-            self.multi_file_items = [
-                multi_file_item
-                for multi_file_item in self.multi_file_items
-                if multi_file_item not in multi_file_items_to_remove
-            ]
-
-        if not self.local_files and not self.multi_file_items:
-            raise ValueError(
-                "All items to be uploaded have paths that already exist in the remote dataset. No items to upload."
-            )
 
     def prepare_upload(
         self,

@@ -65,10 +65,7 @@ def test_request_upload_is_not_called_on_init(
     dataset: RemoteDataset, request_upload_endpoint: str
 ):
     with patch.object(dataset, "fetch_remote_files", return_value=[]):
-        with patch.object(
-            UploadHandler, "skip_existing_full_remote_filepaths", return_value=[]
-        ):
-            upload_handler = UploadHandler.build(dataset, [])
+        upload_handler = UploadHandler.build(dataset, [])
 
     assert upload_handler.pending_count == 0
     assert upload_handler.blocked_count == 0
@@ -521,77 +518,3 @@ class TestUploadChunkSize:
     def test_value_specified_by_env_var(self, mock: MagicMock):
         assert _upload_chunk_size() == 123
         mock.assert_called_once_with("DARWIN_UPLOAD_CHUNK_SIZE")
-
-
-def test_skip_existing_full_remote_filepaths_with_local_files():
-    mock_dataset = MagicMock()
-    mock_dataset.fetch_remote_files.return_value = [
-        MagicMock(full_path="/existing_file_1.jpg"),
-        MagicMock(full_path="/existing_file_2.jpg"),
-    ]
-    mock_dataset.slug = "test-dataset"
-
-    local_file_1 = MagicMock(full_path="/existing_file_1.jpg")
-    local_file_2 = MagicMock(full_path="/new_file.jpg")
-
-    with patch("darwin.dataset.upload_manager.Console.print") as mock_print:
-        upload_handler = UploadHandlerV2(mock_dataset, [local_file_1, local_file_2], [])
-
-        assert local_file_1 not in upload_handler.local_files
-        assert local_file_2 in upload_handler.local_files
-
-        mock_print.assert_any_call(
-            "The remote filepath /existing_file_1.jpg already exists in the `test-dataset` dataset. Skipping upload of item.",
-            style="warning",
-        )
-
-
-def test_skip_existing_full_remote_filepaths_with_multi_file_items():
-    mock_dataset = MagicMock()
-    mock_dataset.fetch_remote_files.return_value = [
-        MagicMock(full_path="/existing_multi_file_item.jpg"),
-    ]
-    mock_dataset.slug = "test-dataset"
-
-    multi_file_item_1 = MagicMock(
-        full_path="/existing_multi_file_item.jpg", files=[MagicMock()]
-    )
-    multi_file_item_2 = MagicMock(
-        full_path="/new_multi_file_item.jpg", files=[MagicMock()]
-    )
-
-    with patch("darwin.dataset.upload_manager.Console.print") as mock_print:
-        upload_handler = UploadHandlerV2(
-            mock_dataset, [], [multi_file_item_1, multi_file_item_2]
-        )
-
-        assert multi_file_item_1 not in upload_handler.multi_file_items
-        assert multi_file_item_2 in upload_handler.multi_file_items
-
-        # Verify that the correct warning was printed
-        mock_print.assert_any_call(
-            "The remote filepath /existing_multi_file_item.jpg is already occupied by a dataset item in the `test-dataset` dataset. Skipping upload of item.",
-            style="warning",
-        )
-
-
-def test_skip_existing_full_remote_filepaths_raises_if_no_files_left():
-    mock_dataset = MagicMock()
-    mock_dataset.fetch_remote_files.return_value = [
-        MagicMock(full_path="/existing_multi_file_item_1.jpg"),
-        MagicMock(full_path="/existing_multi_file_item_2.jpg"),
-    ]
-    mock_dataset.slug = "test-dataset"
-
-    multi_file_item_1 = MagicMock(
-        full_path="/existing_multi_file_item_1.jpg", files=[MagicMock()]
-    )
-    multi_file_item_2 = MagicMock(
-        full_path="/existing_multi_file_item_2.jpg", files=[MagicMock()]
-    )
-
-    with pytest.raises(
-        ValueError,
-        match="All items to be uploaded have paths that already exist in the remote dataset. No items to upload.",
-    ):
-        UploadHandlerV2(mock_dataset, [], [multi_file_item_1, multi_file_item_2])
