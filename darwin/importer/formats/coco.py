@@ -88,7 +88,7 @@ def parse_json(
         annotation["segmentation"]
         if image_id not in image_annotations:
             image_annotations[image_id] = []
-        image_annotations[image_id].append(
+        image_annotations[image_id].extend(
             parse_annotation(annotation, category_lookup_table)
         )
 
@@ -105,7 +105,7 @@ def parse_json(
 def parse_annotation(
     annotation: Dict[str, dt.UnknownType],
     category_lookup_table: Dict[str, dt.UnknownType],
-) -> Optional[dt.Annotation]:
+) -> List[dt.Annotation]:
     """
     Parses the given ``json`` dictionary into a darwin ``Annotation`` if possible.
 
@@ -128,20 +128,20 @@ def parse_annotation(
     if iscrowd:
         logger.warn(
             f"Skipping annotation {annotation.get('id')} because it is a crowd "
-            "annotation, and Darwin does not support import of crowd annotations."
+            "annotation, and Darwin does not support import of COCO crowd annotations."
         )
-        return None
+        return []
 
     if len(segmentation) == 0 and len(annotation["bbox"]) == 4:
         x, y, w, h = map(int, annotation["bbox"])
-        return dt.make_bounding_box(category["name"], x, y, w, h)
+        return [dt.make_bounding_box(category["name"], x, y, w, h)]
     elif (
         len(segmentation) == 0
         and len(annotation["bbox"]) == 1
         and len(annotation["bbox"][0]) == 4
     ):
         x, y, w, h = map(int, annotation["bbox"][0])
-        return dt.make_bounding_box(category["name"], x, y, w, h)
+        return [dt.make_bounding_box(category["name"], x, y, w, h)]
     elif isinstance(segmentation, dict):
         logger.warn(
             "warning, converting complex coco rle mask to polygon, could take some time"
@@ -167,21 +167,23 @@ def parse_annotation(
                 except StopIteration:
                     break
             paths.append(path)
-        return dt.make_polygon(category["name"], paths)
+        return [dt.make_polygon(category["name"], paths)]
     elif isinstance(segmentation, list):
-        path = []
-        points = iter(
-            segmentation[0] if isinstance(segmentation[0], list) else segmentation
-        )
-        while True:
-            try:
-                x, y = next(points), next(points)
-                path.append({"x": x, "y": y})
-            except StopIteration:
-                break
-        return dt.make_polygon(category["name"], path)
+        paths = segmentation if isinstance(segmentation[0], list) else [segmentation]
+        polygons = []
+        for path in paths:
+            point_path = []
+            points = iter(path)
+            while True:
+                try:
+                    x, y = next(points), next(points)
+                    point_path.append({"x": x, "y": y})
+                except StopIteration:
+                    break
+            polygons.append(dt.make_polygon(category["name"], point_path))
+        return polygons
     else:
-        return None
+        return []
 
 
 def _decode_file(current_encoding: str, path: Path):
