@@ -170,7 +170,7 @@ def parse_annotation(
         return [dt.make_polygon(category["name"], paths)]
     elif isinstance(segmentation, list):
         paths = segmentation if isinstance(segmentation[0], list) else [segmentation]
-        polygons = []
+        point_paths = []
         for path in paths:
             point_path = []
             points = iter(path)
@@ -180,8 +180,8 @@ def parse_annotation(
                     point_path.append({"x": x, "y": y})
                 except StopIteration:
                     break
-            polygons.append(dt.make_polygon(category["name"], point_path))
-        return polygons
+            point_paths.append(point_path)
+        return [dt.make_polygon(category["name"], point_paths)]
     else:
         return []
 

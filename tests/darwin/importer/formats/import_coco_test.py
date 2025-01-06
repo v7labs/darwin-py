@@ -26,8 +26,8 @@ def test_parse_annotation_single_polygon():
     assert path[2] == {"x": 20, "y": 20}
 
 
-def test_parse_annotation_multiple_polygons():
-    """Test parsing segmentation with multiple polygons"""
+def test_parse_annotation_multiple_paths():
+    """Test parsing segmentation with multiple paths in a single polygon"""
     annotation = {
         "segmentation": [
             [10, 10, 20, 10, 20, 20, 10, 20],
@@ -41,16 +41,17 @@ def test_parse_annotation_multiple_polygons():
 
     result = parse_annotation(annotation, category_lookup)
 
-    assert len(result) == 2
-    assert all(isinstance(r, dt.Annotation) for r in result)
-    assert all(r.annotation_class.name == "test_class" for r in result)
+    assert len(result) == 1
+    assert isinstance(result[0], dt.Annotation)
+    assert result[0].annotation_class.name == "test_class"
+    assert len(result[0].data["paths"]) == 2
 
     path1 = result[0].data["paths"][0]
     assert len(path1) == 4
     assert path1[0] == {"x": 10, "y": 10}
     assert path1[2] == {"x": 20, "y": 20}
 
-    path2 = result[1].data["paths"][0]
+    path2 = result[0].data["paths"][1]
     assert len(path2) == 4
     assert path2[0] == {"x": 30, "y": 30}
     assert path2[2] == {"x": 40, "y": 40}
