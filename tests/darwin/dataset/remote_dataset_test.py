@@ -1950,7 +1950,7 @@ class TestGetRemoteFilesThatRequireLegacyScaling:
         ]
 
     @patch.object(RemoteDatasetV2, "fetch_remote_files")
-    def test_get_remote_files_that_require_legacy_scaling(
+    def test_get_remote_files_that_require_legacy_nifti_scaling(
         self, mock_fetch_remote_files, mock_remote_files
     ):
         mock_fetch_remote_files.return_value = mock_remote_files
@@ -1962,7 +1962,7 @@ class TestGetRemoteFilesThatRequireLegacyScaling:
             dataset_id=1,
         )
 
-        result = remote_dataset._get_remote_files_that_require_legacy_scaling()
+        result = remote_dataset._get_remote_files_that_require_legacy_nifti_scaling()
         assert Path("/path/to/file/filename") in result
         np.testing.assert_array_equal(
             result[Path("/path/to/file/filename")]["0"], np.array([[-1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]])  # type: ignore
