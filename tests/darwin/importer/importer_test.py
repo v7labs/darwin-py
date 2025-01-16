@@ -1,7 +1,7 @@
 import json
 import tempfile
 from pathlib import Path
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 from unittest.mock import MagicMock, Mock, _patch, patch
 from zipfile import ZipFile
 
@@ -34,7 +34,9 @@ from darwin.importer.importer import (
     _warn_for_annotations_with_multiple_instance_ids,
     _serialize_item_level_properties,
     _split_payloads,
+    _get_remote_files_targeted_by_import,
 )
+from darwin.exceptions import RequestEntitySizeExceeded
 
 
 @pytest.fixture
@@ -1795,7 +1797,6 @@ class TestImportItemLevelProperties:
                             property_values=[
                                 PropertyValue(type="string", value="1"),
                                 PropertyValue(type="string", value="2"),
-                                PropertyValue(type="string", value="3"),
                             ],
                         ),
                     },
@@ -1827,7 +1828,6 @@ class TestImportItemLevelProperties:
                             property_values=[
                                 PropertyValue(type="string", value="1"),
                                 PropertyValue(type="string", value="2"),
-                                PropertyValue(type="string", value="3"),
                             ],
                         ),
                     },
@@ -2005,7 +2005,6 @@ class TestImportItemLevelProperties:
                             property_values=[
                                 PropertyValue(type="string", value="1"),
                                 PropertyValue(type="string", value="2"),
-                                PropertyValue(type="string", value="3"),
                             ],
                         ),
                     },
@@ -3615,3 +3614,119 @@ def test__split_payloads_overwrites_on_first_payload_and_appends_on_the_rest():
     assert result[0]["overwrite"]
     assert not result[1]["overwrite"]
     assert not result[2]["overwrite"]
+
+
+def test__get_remote_files_targeted_by_import_success() -> None:
+    """Test successful case where files are found remotely."""
+    mock_dataset = Mock()
+    mock_console = Mock()
+
+    # Mock the remote files that will be returned
+    mock_remote_file1 = Mock(full_path="/path/to/file1.json")
+    mock_remote_file2 = Mock(full_path="/path/to/file2.json")
+
+    mock_dataset.fetch_remote_files.return_value = [
+        mock_remote_file1,
+        mock_remote_file2,
+    ]
+
+    # Mock the importer function to return one file per call
+    def mock_importer(path: Path) -> List[dt.AnnotationFile]:
+        file_num = int(path.stem.replace("file", ""))
+        mock_file = Mock(
+            spec=dt.AnnotationFile,
+            filename=f"file{file_num}.json",
+            full_path=f"/path/to/file{file_num}.json",
+        )
+        return [mock_file]
+
+    result = _get_remote_files_targeted_by_import(
+        importer=mock_importer,
+        file_paths=[Path("file1.json"), Path("file2.json")],
+        dataset=mock_dataset,
+        console=mock_console,
+    )
+
+    assert len(result) == 2
+    assert result[0] == mock_remote_file1
+    assert result[1] == mock_remote_file2
+    mock_dataset.fetch_remote_files.assert_called_once()
+
+
+def test__get_remote_files_targeted_by_import_no_files_parsed() -> None:
+    """Test error case when no files can be parsed."""
+    mock_dataset = Mock()
+    mock_console = Mock()
+
+    # Mock the importer function to return None (no files parsed)
+    def mock_importer(path: Path) -> Optional[List[dt.AnnotationFile]]:
+        return None
+
+    with pytest.raises(ValueError, match="Not able to parse any files."):
+        _get_remote_files_targeted_by_import(
+            importer=mock_importer,
+            file_paths=[Path("file1.json")],
+            dataset=mock_dataset,
+            console=mock_console,
+        )
+
+
+def test__get_remote_files_targeted_by_import_url_too_long() -> None:
+    """Test error case when URL becomes too long even with minimum chunk size."""
+    mock_dataset = Mock()
+    mock_console = Mock()
+
+    # Mock the importer function to return one file per call
+    def mock_importer(path: Path) -> List[dt.AnnotationFile]:
+        file_num = int(path.stem.replace("file", ""))
+        mock_file = Mock(
+            spec=dt.AnnotationFile,
+            filename=f"file{file_num}.json",
+            full_path=f"/path/to/file{file_num}.json",
+        )
+        return [mock_file]
+
+    # Mock fetch_remote_files to always raise RequestEntitySizeExceeded
+    mock_dataset.fetch_remote_files.side_effect = RequestEntitySizeExceeded()
+
+    with pytest.raises(
+        ValueError,
+        match="Unable to fetch remote file list - URL too long even with minimum chunk size.",
+    ):
+        _get_remote_files_targeted_by_import(
+            importer=mock_importer,
+            file_paths=[Path("file1.json")],
+            dataset=mock_dataset,
+            console=mock_console,
+        )
+
+
+def test__get_remote_files_targeted_by_import_partial_match() -> None:
+    """Test case where some files exist remotely and others don't."""
+    mock_dataset = Mock()
+    mock_console = Mock()
+
+    # Mock only one file exists remotely
+    mock_remote_file1 = Mock(full_path="/path/to/file1.json")
+    mock_dataset.fetch_remote_files.return_value = [mock_remote_file1]
+
+    # Mock the importer function to return one file per call
+    def mock_importer(path: Path) -> List[dt.AnnotationFile]:
+        file_num = int(path.stem.replace("file", ""))
+        mock_file = Mock(
+            spec=dt.AnnotationFile,
+            filename=f"file{file_num}.json",
+            full_path=f"/path/to/file{file_num}.json",
+        )
+        return [mock_file]
+
+    result = _get_remote_files_targeted_by_import(
+        importer=mock_importer,
+        file_paths=[Path("file1.json"), Path("file2.json")],
+        dataset=mock_dataset,
+        console=mock_console,
+    )
+
+    assert len(result) == 1
+    assert result[0] == mock_remote_file1
+    mock_dataset.fetch_remote_files.assert_called_once()
