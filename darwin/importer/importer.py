@@ -2442,10 +2442,10 @@ def _get_remote_medical_file_transform_requirements(
                 elif primary_plane == "CORONAL":
                     pixdims = [pixdims[1], pixdims[2]]
                 slot_pixdim_map[slot_name] = pixdims
-            if slot_pixdim_map:
-                remote_files_that_require_pixel_to_mm_transform[
-                    remote_file.full_path
-                ] = slot_pixdim_map
+        if slot_pixdim_map:
+            remote_files_that_require_pixel_to_mm_transform[remote_file.full_path] = (
+                slot_pixdim_map
+            )
         else:
             slot_affine_map = {}
             for slot in remote_file.slots:

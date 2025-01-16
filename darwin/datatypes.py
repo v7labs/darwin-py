@@ -255,19 +255,11 @@ class Annotation:
         y_scale : float
             Scale factor for y coordinates
         """
-        if (
-            getattr(self, "annotation_class", None)
-            and self.annotation_class.name == "__raster_layer__"
-        ):
-            return
-
         annotation_type = (
             self.annotation_class.annotation_type
             if hasattr(self, "annotation_class")
             else None
         )
-        if not annotation_type:
-            return
 
         if annotation_type == "bounding_box":
             self.data["x"] *= x_scale
