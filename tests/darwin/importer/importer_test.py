@@ -11,7 +11,9 @@ from darwin.future.data_objects.properties import (
     FullProperty,
     PropertyValue,
 )
+from darwin.item import DatasetItem
 import pytest
+import numpy as np
 from darwin import datatypes as dt
 from darwin.importer import get_importer
 from darwin.importer.importer import (
@@ -35,6 +37,7 @@ from darwin.importer.importer import (
     _serialize_item_level_properties,
     _split_payloads,
     _get_remote_files_targeted_by_import,
+    _get_remote_medical_file_transform_requirements,
 )
 from darwin.exceptions import RequestEntitySizeExceeded
 
@@ -1436,12 +1439,72 @@ class TestImportItemLevelProperties:
                             property_values=[
                                 PropertyValue(type="string", value="1"),
                                 PropertyValue(type="string", value="2"),
-                                PropertyValue(type="string", value="3"),
                             ],
                         ),
                     },
                 ),
-                ({}, {}),
+                (
+                    {},
+                    {
+                        "prop1": FullProperty(
+                            name="prop1",
+                            type="single_select",
+                            description="",
+                            required=True,
+                            slug="test_team",
+                            dataset_ids=[],
+                            granularity=PropertyGranularity("item"),
+                            property_values=[
+                                PropertyValue(type="string", value="1"),
+                                PropertyValue(type="string", value="2"),
+                            ],
+                        ),
+                        "prop2": FullProperty(
+                            name="prop2",
+                            type="multi_select",
+                            description="",
+                            required=False,
+                            slug="test_team",
+                            dataset_ids=[],
+                            granularity=PropertyGranularity("item"),
+                            property_values=[
+                                PropertyValue(type="string", value="1"),
+                                PropertyValue(type="string", value="2"),
+                            ],
+                        ),
+                    },
+                ),
+                (
+                    {},
+                    {
+                        "prop1": FullProperty(
+                            name="prop1",
+                            type="single_select",
+                            description="",
+                            required=True,
+                            slug="test_team",
+                            dataset_ids=[],
+                            granularity=PropertyGranularity("item"),
+                            property_values=[
+                                PropertyValue(type="string", value="1"),
+                                PropertyValue(type="string", value="2"),
+                            ],
+                        ),
+                        "prop2": FullProperty(
+                            name="prop2",
+                            type="multi_select",
+                            description="",
+                            required=False,
+                            slug="test_team",
+                            dataset_ids=[],
+                            granularity=PropertyGranularity("item"),
+                            property_values=[
+                                PropertyValue(type="string", value="1"),
+                                PropertyValue(type="string", value="2"),
+                            ],
+                        ),
+                    },
+                ),
             ]
             mock_create_update_props.side_effect = _create_update_item_properties
 
@@ -1942,7 +2005,6 @@ class TestImportItemLevelProperties:
                             granularity=PropertyGranularity("item"),
                             property_values=[
                                 PropertyValue(type="string", value="1"),
-                                PropertyValue(type="string", value="2"),
                             ],
                         ),
                     },
@@ -3630,7 +3692,6 @@ def test__get_remote_files_targeted_by_import_success() -> None:
         mock_remote_file2,
     ]
 
-    # Mock the importer function to return one file per call
     def mock_importer(path: Path) -> List[dt.AnnotationFile]:
         file_num = int(path.stem.replace("file", ""))
         mock_file = Mock(
@@ -3658,7 +3719,6 @@ def test__get_remote_files_targeted_by_import_no_files_parsed() -> None:
     mock_dataset = Mock()
     mock_console = Mock()
 
-    # Mock the importer function to return None (no files parsed)
     def mock_importer(path: Path) -> Optional[List[dt.AnnotationFile]]:
         return None
 
@@ -3676,7 +3736,6 @@ def test__get_remote_files_targeted_by_import_url_too_long() -> None:
     mock_dataset = Mock()
     mock_console = Mock()
 
-    # Mock the importer function to return one file per call
     def mock_importer(path: Path) -> List[dt.AnnotationFile]:
         file_num = int(path.stem.replace("file", ""))
         mock_file = Mock(
@@ -3686,7 +3745,6 @@ def test__get_remote_files_targeted_by_import_url_too_long() -> None:
         )
         return [mock_file]
 
-    # Mock fetch_remote_files to always raise RequestEntitySizeExceeded
     mock_dataset.fetch_remote_files.side_effect = RequestEntitySizeExceeded()
 
     with pytest.raises(
@@ -3706,11 +3764,9 @@ def test__get_remote_files_targeted_by_import_partial_match() -> None:
     mock_dataset = Mock()
     mock_console = Mock()
 
-    # Mock only one file exists remotely
     mock_remote_file1 = Mock(full_path="/path/to/file1.json")
     mock_dataset.fetch_remote_files.return_value = [mock_remote_file1]
 
-    # Mock the importer function to return one file per call
     def mock_importer(path: Path) -> List[dt.AnnotationFile]:
         file_num = int(path.stem.replace("file", ""))
         mock_file = Mock(
@@ -3730,3 +3786,191 @@ def test__get_remote_files_targeted_by_import_partial_match() -> None:
     assert len(result) == 1
     assert result[0] == mock_remote_file1
     mock_dataset.fetch_remote_files.assert_called_once()
+
+
+def test__get_remote_medical_file_transform_requirements_empty_list():
+    """Test that empty input list returns empty dictionaries"""
+    remote_files: List[DatasetItem] = []
+    legacy_scaling, pixel_transform = _get_remote_medical_file_transform_requirements(
+        remote_files
+    )
+    assert legacy_scaling == {}
+    assert pixel_transform == {}
+
+
+def test__get_remote_medical_file_transform_requirements_no_slots():
+    """Test that files with no slots are handled correctly"""
+    mock_file = MagicMock(spec=DatasetItem)
+    mock_file.slots = None
+    mock_file.full_path = "/path/to/file"
+    remote_files: List[DatasetItem] = [mock_file]
+    legacy_scaling, pixel_transform = _get_remote_medical_file_transform_requirements(
+        remote_files
+    )
+    assert legacy_scaling == {}
+    assert pixel_transform == {}
+
+
+def test__get_remote_medical_file_transform_requirements_non_medical_slots():
+    """Test that files with non-medical slots are handled correctly"""
+    mock_file = MagicMock(spec=DatasetItem)
+    mock_file.slots = [{"slot_name": "slot1", "metadata": {}}]
+    mock_file.full_path = "/path/to/file"
+    remote_files: List[DatasetItem] = [mock_file]
+    legacy_scaling, pixel_transform = _get_remote_medical_file_transform_requirements(
+        remote_files
+    )
+    assert legacy_scaling == {}
+    assert pixel_transform == {}
+
+
+def test__get_remote_medical_file_transform_requirements_monai_axial():
+    """Test MONAI-handled medical slots with AXIAL plane"""
+    mock_file = MagicMock(spec=DatasetItem)
+    mock_file.slots = [
+        {
+            "slot_name": "slot1",
+            "metadata": {
+                "medical": {
+                    "handler": "MONAI",
+                    "plane_map": {"slot1": "AXIAL"},
+                    "pixdims": [1.0, 2.0, 3.0],
+                }
+            },
+        }
+    ]
+    mock_file.full_path = "/path/to/file"
+    remote_files: List[DatasetItem] = [mock_file]
+    legacy_scaling, pixel_transform = _get_remote_medical_file_transform_requirements(
+        remote_files
+    )
+    assert legacy_scaling == {}
+    assert pixel_transform == {"/path/to/file": {"slot1": [1.0, 2.0]}}
+
+
+def test__get_remote_medical_file_transform_requirements_monai_coronal():
+    """Test MONAI-handled medical slots with CORONAL plane"""
+    mock_file = MagicMock(spec=DatasetItem)
+    mock_file.slots = [
+        {
+            "slot_name": "slot1",
+            "metadata": {
+                "medical": {
+                    "handler": "MONAI",
+                    "plane_map": {"slot1": "CORONAL"},
+                    "pixdims": [1.0, 2.0, 3.0],
+                }
+            },
+        }
+    ]
+    mock_file.full_path = "/path/to/file"
+    remote_files: List[DatasetItem] = [mock_file]
+    legacy_scaling, pixel_transform = _get_remote_medical_file_transform_requirements(
+        remote_files
+    )
+    assert legacy_scaling == {}
+    assert pixel_transform == {"/path/to/file": {"slot1": [1.0, 3.0]}}
+
+
+def test__get_remote_medical_file_transform_requirements_monai_saggital():
+    """Test MONAI-handled medical slots with SAGGITAL plane"""
+    mock_file = MagicMock(spec=DatasetItem)
+    mock_file.slots = [
+        {
+            "slot_name": "slot1",
+            "metadata": {
+                "medical": {
+                    "handler": "MONAI",
+                    "plane_map": {"slot1": "SAGITTAL"},
+                    "pixdims": [1.0, 2.0, 3.0],
+                }
+            },
+        }
+    ]
+    mock_file.full_path = "/path/to/file"
+    remote_files: List[DatasetItem] = [mock_file]
+    legacy_scaling, pixel_transform = _get_remote_medical_file_transform_requirements(
+        remote_files
+    )
+    assert legacy_scaling == {}
+    assert pixel_transform == {"/path/to/file": {"slot1": [2.0, 3.0]}}
+
+
+def test__get_remote_medical_file_transform_requirements_legacy_nifti():
+    """Test legacy NifTI scaling"""
+    mock_file = MagicMock(spec=DatasetItem)
+    mock_file.slots = [
+        {
+            "slot_name": "slot1",
+            "metadata": {
+                "medical": {
+                    "affine": [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]
+                }
+            },
+        }
+    ]
+    mock_file.full_path = "/path/to/file"
+    remote_files: List[DatasetItem] = [mock_file]
+    legacy_scaling, pixel_transform = _get_remote_medical_file_transform_requirements(
+        remote_files
+    )
+    assert pixel_transform == {}
+    assert "/path/to/file" in legacy_scaling
+    assert "slot1" in legacy_scaling["/path/to/file"]
+    assert legacy_scaling["/path/to/file"]["slot1"].shape == (4, 4)
+    assert (
+        legacy_scaling["/path/to/file"]["slot1"]
+        == np.array(
+            [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]], dtype=np.float64
+        )
+    ).all()
+
+
+def test__get_remote_medical_file_transform_requirements_mixed():
+    """Test mixed case with both MONAI and legacy NifTI files"""
+    mock_file1 = MagicMock(spec=DatasetItem)
+    mock_file1.slots = [
+        {
+            "slot_name": "slot1",
+            "metadata": {
+                "medical": {
+                    "handler": "MONAI",
+                    "plane_map": {"slot1": "AXIAL"},
+                    "pixdims": [1.0, 2.0, 3.0],
+                }
+            },
+        }
+    ]
+    mock_file1.full_path = "/path/to/file1"
+
+    mock_file2 = MagicMock(spec=DatasetItem)
+    mock_file2.slots = [
+        {
+            "slot_name": "slot2",
+            "metadata": {
+                "medical": {
+                    "affine": [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]
+                }
+            },
+        }
+    ]
+    mock_file2.full_path = "/path/to/file2"
+
+    remote_files: List[DatasetItem] = [mock_file1, mock_file2]
+    legacy_scaling, pixel_transform = _get_remote_medical_file_transform_requirements(
+        remote_files
+    )
+
+    # Check MONAI file results
+    assert pixel_transform == {"/path/to/file1": {"slot1": [1.0, 2.0]}}
+
+    # Check legacy NifTI file results
+    assert "/path/to/file2" in legacy_scaling
+    assert "slot2" in legacy_scaling["/path/to/file2"]
+    assert legacy_scaling["/path/to/file2"]["slot2"].shape == (4, 4)
+    assert (
+        legacy_scaling["/path/to/file2"]["slot2"]
+        == np.array(
+            [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]], dtype=np.float64
+        )
+    ).all()

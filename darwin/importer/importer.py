@@ -2431,6 +2431,7 @@ def _get_remote_medical_file_transform_requirements(
         if not remote_file.slots:
             continue
         slot_pixdim_map = {}
+        slot_affine_map = {}
         for slot in remote_file.slots:
             if not slot_is_medical(slot):
                 continue
@@ -2440,22 +2441,20 @@ def _get_remote_medical_file_transform_requirements(
                 pixdims = slot["metadata"]["medical"]["pixdims"]
                 if primary_plane == "AXIAL":
                     pixdims = [pixdims[0], pixdims[1]]
-                elif primary_plane == "SAGGITAL":
-                    pixdims = [pixdims[0], pixdims[2]]
                 elif primary_plane == "CORONAL":
+                    pixdims = [pixdims[0], pixdims[2]]
+                elif primary_plane == "SAGITTAL":
                     pixdims = [pixdims[1], pixdims[2]]
                 slot_pixdim_map[slot_name] = pixdims
+            else:
+                slot_affine_map[slot["slot_name"]] = np.array(
+                    slot["metadata"]["medical"]["affine"], dtype=np.float64
+                )
         if slot_pixdim_map:
             remote_files_that_require_pixel_to_mm_transform[remote_file.full_path] = (
                 slot_pixdim_map
             )
-        else:
-            slot_affine_map = {}
-            for slot in remote_file.slots:
-                slot_affine_map[slot["slot_name"]] = np.array(
-                    slot["metadata"]["medical"]["affine"],
-                    dtype=np.float64,
-                )
+        if slot_affine_map:
             remote_files_that_require_legacy_nifti_scaling[remote_file.full_path] = (
                 slot_affine_map
             )
@@ -2472,6 +2471,18 @@ def _scale_coordinates_by_pixdims(
 ) -> List[dt.AnnotationFile]:
     """
     This function scales coordinates by the pixdims of the (x, y) axes.
+
+    Parameters
+    ----------
+    maybe_parsed_files: List[dt.AnnotationFile]
+        The parsed annotation files
+    remote_files_that_require_pixel_to_mm_transform: Dict[Path, Any]
+        The remote files that require a pixel to mm transform
+
+    Returns
+    -------
+    List[dt.AnnotationFile]
+        The parsed annotation files with coordinates scaled by the pixdims of the (x, y) axes
     """
     if not remote_files_that_require_pixel_to_mm_transform:
         return maybe_parsed_files
@@ -2493,7 +2504,7 @@ def _scale_coordinates_by_pixdims(
 
 
 def slot_is_medical(slot: Dict[str, Any]) -> bool:
-    return slot.get("metadata", {}).get("medical", {}) is not None
+    return slot.get("metadata", {}).get("medical") is not None
 
 
 def slot_is_handled_by_monai(slot: Dict[str, Any]) -> bool:
