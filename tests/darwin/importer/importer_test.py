@@ -39,6 +39,8 @@ from darwin.importer.importer import (
     _get_remote_files_targeted_by_import,
     _get_remote_medical_file_transform_requirements,
     _scale_coordinates_by_pixdims,
+    slot_is_medical,
+    slot_is_handled_by_monai,
 )
 from darwin.exceptions import RequestEntitySizeExceeded
 from darwin.datatypes import (
@@ -4240,15 +4242,15 @@ def test_scale_coordinates_by_pixdims():
     )
 
     remote_files_that_require_pixel_to_mm_transform: Dict[
-        Path, Dict[str, Dict[str, float]]
+        str, Dict[str, List[float]]
     ] = {
-        image_annotations_path: {
-            "slot1": {"x": 2.0, "y": 3.0},
-            "slot2": {"x": 1.5, "y": 2.5},
+        str(image_annotations_path): {
+            "slot1": [2.0, 3.0],
+            "slot2": [1.5, 2.5],
         },
-        video_annotations_path: {
-            "slot1": {"x": 4.0, "y": 6.0},
-            "slot2": {"x": 3.0, "y": 5.0},
+        str(video_annotations_path): {
+            "slot1": [4.0, 6.0],
+            "slot2": [3.0, 5.0],
         },
     }
 
@@ -4297,10 +4299,10 @@ def test_scale_coordinates_by_pixdims_no_scaling_needed():
     )
 
     remote_files_that_require_pixel_to_mm_transform: Dict[
-        Path, Dict[str, Dict[str, float]]
+        str, Dict[str, List[float]]
     ] = {
-        image_annotations_path: {
-            "slot2": {"x": 1.0, "y": 1.0},
+        str(image_annotations_path): {
+            "slot2": [1.0, 1.0],
         },
     }
 
@@ -4315,3 +4317,24 @@ def test_scale_coordinates_by_pixdims_no_scaling_needed():
         "w": 30,
         "h": 40,
     }
+
+
+def test_slot_is_medical():
+    """
+    Test that slot_is_medical returns True if the slot has medical metadata
+    """
+    medical_slot = {"metadata": {"medical": {}}}
+    non_medical_slot = {"metadata": {}}
+    assert slot_is_medical(medical_slot) is True
+    assert slot_is_medical(non_medical_slot) is False
+
+
+def test_slot_is_handled_by_monai():
+    """
+    Test that slot_is_handled_by_monai returns True if the slot has MONAI handler
+
+    """
+    monai_slot = {"metadata": {"medical": {"handler": "MONAI"}}}
+    non_monai_slot = {"metadata": {"medical": {}}}
+    assert slot_is_handled_by_monai(monai_slot) is True
+    assert slot_is_handled_by_monai(non_monai_slot) is False

@@ -2487,28 +2487,26 @@ def _scale_coordinates_by_pixdims(
     if not remote_files_that_require_pixel_to_mm_transform:
         return maybe_parsed_files
     for file in maybe_parsed_files:
-        if Path(file.full_path) in remote_files_that_require_pixel_to_mm_transform:
+        if file.full_path in remote_files_that_require_pixel_to_mm_transform:
             for annotation in file.annotations:
                 slot_name = annotation.slot_names[0]
                 if (
                     slot_name
                     not in remote_files_that_require_pixel_to_mm_transform[
-                        Path(file.full_path)
+                        file.full_path
                     ]
                 ):
                     continue
                 pixdims = remote_files_that_require_pixel_to_mm_transform[
-                    Path(file.full_path)
+                    file.full_path
                 ][slot_name]
                 if isinstance(annotation, dt.VideoAnnotation):
                     for _, frame_annotation in annotation.frames.items():
                         frame_annotation.scale_coordinates(
-                            float(pixdims["x"]), float(pixdims["y"])
+                            float(pixdims[0]), float(pixdims[1])
                         )
                 elif isinstance(annotation, dt.Annotation):
-                    annotation.scale_coordinates(
-                        float(pixdims["x"]), float(pixdims["y"])
-                    )
+                    annotation.scale_coordinates(float(pixdims[0]), float(pixdims[1]))
     return maybe_parsed_files
 
 
