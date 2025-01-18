@@ -71,6 +71,11 @@ UNSUPPORTED_CLASSES = ["string", "graph"]
 # Classes that are defined on team level automatically and available in all datasets
 GLOBAL_CLASSES = ["__raster_layer__"]
 
+# Add a length of 5 for URL encoding overhead and separators per filename
+FILENAME_OVERHEAD = 5
+MAX_URL_LENGTH = 2000
+BASE_URL_LENGTH = 200
+
 DEPRECATION_MESSAGE = """
 
 This function is going to be turned into private. This means that breaking
@@ -2379,21 +2384,28 @@ def _get_remote_files_targeted_by_import(
     remote_filenames = list({file.filename for file in maybe_parsed_files})
     remote_filepaths = [file.full_path for file in maybe_parsed_files]
 
-    chunk_size = 100
     all_remote_files: List[DatasetItem] = []
-    while chunk_size > 0:
-        try:
-            for i in range(0, len(remote_filenames), chunk_size):
-                chunk = remote_filenames[i : i + chunk_size]
-                remote_files = dataset.fetch_remote_files(filters={"item_names": chunk})
-                all_remote_files.extend(remote_files)
-            break
-        except RequestEntitySizeExceeded:
-            chunk_size -= 8
-            if chunk_size <= 0:
-                raise ValueError(
-                    "Unable to fetch remote file list - URL too long even with minimum chunk size."
-                )
+    current_chunk: List[str] = []
+    current_length = BASE_URL_LENGTH
+    max_chunk_length = MAX_URL_LENGTH - BASE_URL_LENGTH
+
+    for filename in remote_filenames:
+        filename_length = len(filename) + FILENAME_OVERHEAD
+        if current_length + filename_length > max_chunk_length and current_chunk:
+            remote_files = dataset.fetch_remote_files(
+                filters={"item_names": current_chunk}
+            )
+            all_remote_files.extend(remote_files)
+            current_chunk = []
+            current_length = BASE_URL_LENGTH
+
+        current_chunk.append(filename)
+        current_length += filename_length
+
+    if current_chunk:
+        remote_files = dataset.fetch_remote_files(filters={"item_names": current_chunk})
+        all_remote_files.extend(remote_files)
+
     return [
         remote_file
         for remote_file in all_remote_files

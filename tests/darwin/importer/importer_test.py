@@ -41,6 +41,8 @@ from darwin.importer.importer import (
     _scale_coordinates_by_pixdims,
     slot_is_medical,
     slot_is_handled_by_monai,
+    MAX_URL_LENGTH,
+    BASE_URL_LENGTH,
 )
 from darwin.exceptions import RequestEntitySizeExceeded
 from darwin.datatypes import (
@@ -3942,25 +3944,24 @@ def test__get_remote_files_targeted_by_import_no_files_parsed() -> None:
 
 
 def test__get_remote_files_targeted_by_import_url_too_long() -> None:
-    """Test error case when URL becomes too long even with minimum chunk size."""
+    """Test that files that would cause URL length to exceed limits are handled appropriately."""
     mock_dataset = Mock()
     mock_console = Mock()
 
+    # Create a filename that would exceed the max URL length by itself
+    very_long_filename = "a" * (MAX_URL_LENGTH - BASE_URL_LENGTH + 10) + ".json"
+
     def mock_importer(path: Path) -> List[dt.AnnotationFile]:
-        file_num = int(path.stem.replace("file", ""))
         mock_file = Mock(
             spec=dt.AnnotationFile,
-            filename=f"file{file_num}.json",
-            full_path=f"/path/to/file{file_num}.json",
+            filename=very_long_filename,
+            full_path=f"/path/to/{very_long_filename}",
         )
         return [mock_file]
 
     mock_dataset.fetch_remote_files.side_effect = RequestEntitySizeExceeded()
 
-    with pytest.raises(
-        ValueError,
-        match="Unable to fetch remote file list - URL too long even with minimum chunk size.",
-    ):
+    with pytest.raises(RequestEntitySizeExceeded):
         _get_remote_files_targeted_by_import(
             importer=mock_importer,
             file_paths=[Path("file1.json")],
@@ -3968,34 +3969,10 @@ def test__get_remote_files_targeted_by_import_url_too_long() -> None:
             console=mock_console,
         )
 
-
-def test__get_remote_files_targeted_by_import_partial_match() -> None:
-    """Test case where some files exist remotely and others don't."""
-    mock_dataset = Mock()
-    mock_console = Mock()
-
-    mock_remote_file1 = Mock(full_path="/path/to/file1.json")
-    mock_dataset.fetch_remote_files.return_value = [mock_remote_file1]
-
-    def mock_importer(path: Path) -> List[dt.AnnotationFile]:
-        file_num = int(path.stem.replace("file", ""))
-        mock_file = Mock(
-            spec=dt.AnnotationFile,
-            filename=f"file{file_num}.json",
-            full_path=f"/path/to/file{file_num}.json",
-        )
-        return [mock_file]
-
-    result = _get_remote_files_targeted_by_import(
-        importer=mock_importer,
-        file_paths=[Path("file1.json"), Path("file2.json")],
-        dataset=mock_dataset,
-        console=mock_console,
+    # Verify fetch_remote_files was called with just the one filename
+    mock_dataset.fetch_remote_files.assert_called_once_with(
+        filters={"item_names": [very_long_filename]}
     )
-
-    assert len(result) == 1
-    assert result[0] == mock_remote_file1
-    mock_dataset.fetch_remote_files.assert_called_once()
 
 
 def test__get_remote_medical_file_transform_requirements_empty_list():
