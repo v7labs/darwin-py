@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse
+import gzip
 import json
 import os
 import re
@@ -106,6 +107,10 @@ def generate_video_artifacts(
         total_frames=manifest_metadata["total_frames"],
     )
 
+    log("\nExtracting audio peaks...", quiet)
+
+    maybe_extract_audio_peaks(source_file, dirs["base_dir"], quiet)
+
     log("\nProcessing segment indices...", quiet)
 
     hq_hls_index = get_hls_index_with_storage_urls(
@@ -155,8 +160,16 @@ def generate_video_artifacts(
             # 'storage_key' - storage key for the source file
         },
         # This array must be used to upload all generated files to storage
+        "uploads_prefix": storage_key_prefix,
         "uploads_mappings": storage_keys["uploads_mappings"],
     }
+
+    # Add audio peaks key if audio was extracted
+    # Must be uploaded with Content-Encoding gzip
+    if storage_keys["storage_audio_peaks_key"]:
+        result_metadata["registration_payload"]["storage_audio_peaks_key"] = (
+            storage_keys["storage_audio_peaks_key"]
+        )
 
     log("\nSaving metadata...", quiet)
 
@@ -529,8 +542,12 @@ def extract_frames(source_file: str, output_dir: str, downsampling_step: float):
             "-hide_banner",
             "-v",
             "error",
+            "-start_number",
+            "0",
             "-i",
             source_file,
+            "-start_number",
+            "0",
             "-vsync",
             "passthrough",
             "-vf",
@@ -548,6 +565,8 @@ def extract_frames(source_file: str, output_dir: str, downsampling_step: float):
             "error",
             "-i",
             source_file,
+            "-start_number",
+            "0",
             "-vsync",
             "passthrough",
             "-f",
@@ -625,6 +644,72 @@ def get_hls_index_with_storage_urls(segments_dir: str, storage_key_prefix: str) 
         )
 
 
+def maybe_extract_audio_peaks(
+    source_file: str, output_dir: str, quiet: bool
+) -> Optional[str]:
+    """
+    Extract audio peaks from video file and gzip the result.
+    Returns path to the gzipped peaks file if audio stream exists, None otherwise.
+    """
+    # First check if audio stream exists
+    cmd = [
+        "ffprobe",
+        "-v",
+        "error",
+        "-select_streams",
+        "a",
+        "-show_entries",
+        "stream=codec_type",
+        "-of",
+        "json",
+        source_file,
+    ]
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    data = json.loads(result.stdout)
+
+    if not data.get("streams"):
+        log("No audio streams found", quiet)
+        return None
+
+    raw_output_path = os.path.join(output_dir, "audio_peaks.raw")
+    gzipped_output_path = os.path.join(output_dir, "audio_peaks.gz")
+
+    cmd = [
+        "ffmpeg",
+        "-hide_banner",
+        "-v",
+        "error",
+        "-i",
+        source_file,
+        "-map",
+        "0:a:0",
+        "-ac",
+        "1",
+        "-af",
+        "aresample=1000,asetnsamples=1",
+        "-f",
+        "u8",
+        raw_output_path,
+    ]
+
+    try:
+        subprocess.run(cmd, check=True)
+        # Gzip the output file
+        with open(raw_output_path, "rb") as f_in:
+            with gzip.open(gzipped_output_path, "wb") as f_out:
+                f_out.writelines(f_in)
+        # Remove the raw file
+        os.remove(raw_output_path)
+        return gzipped_output_path
+    except (subprocess.CalledProcessError, OSError):
+        log("Failed to extract audio peaks", quiet)
+        if os.path.exists(raw_output_path):
+            os.remove(raw_output_path)
+        if os.path.exists(gzipped_output_path):
+            os.remove(gzipped_output_path)
+        return None
+
+
 def create_storage_keys(storage_key_prefix: str, dirs: Dict) -> Dict:
     """Create storage keys for all generated files for further upload"""
     uploads_mappings = []
@@ -657,11 +742,19 @@ def create_storage_keys(storage_key_prefix: str, dirs: Dict) -> Dict:
     for frame in Path(dirs["sections"]).glob("*.png"):
         add_mapping(str(frame), f"{storage_sections_key_prefix}/{frame.name}")
 
+    # Audio peaks
+    storage_audio_peaks_key = None
+    audio_peaks_path = os.path.join(dirs["base_dir"], "audio_peaks.gz")
+    if os.path.exists(audio_peaks_path):
+        storage_audio_peaks_key = f"{storage_key_prefix}/audio_peaks.gz"
+        add_mapping(audio_peaks_path, storage_audio_peaks_key)
+
     return {
         "uploads_mappings": uploads_mappings,
         "storage_frames_manifest_key": storage_frames_manifest_key,
         "storage_thumbnail_key": storage_thumbnail_key,
         "storage_sections_key_prefix": storage_sections_key_prefix,
+        "storage_audio_peaks_key": storage_audio_peaks_key,
     }
 
 
