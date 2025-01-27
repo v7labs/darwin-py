@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-import argparse
 import gzip
 import json
 import os
@@ -8,14 +6,12 @@ import subprocess
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
+from rich.console import Console
 
-def log(message: str, quiet: bool = False) -> None:
-    """Print message if quiet mode is not enabled"""
-    if not quiet:
-        print(message)
+console = Console()
 
 
-def check_ffmpeg_version():
+def _check_ffmpeg_version():
     """
     Check if FFmpeg version 5 is installed.
     Raises RuntimeError if FFmpeg is not found or version is different.
@@ -38,148 +34,7 @@ def check_ffmpeg_version():
         raise RuntimeError("FFmpeg not found. Please install FFmpeg version 5")
 
 
-def generate_video_artifacts(
-    source_file: str,
-    desired_fps: float,
-    output_dir: str,
-    storage_key_prefix: str,
-    segment_length: int = 2,
-    quiet: bool = False,
-) -> Dict:
-    """
-    Generate video artifacts including segments, thumbnails, frames and manifest.
-
-    Args:
-        source_file: Path to source video file
-        desired_fps: Desired frames per second (0.0 for native fps)
-        output_dir: Directory to store generated artifacts
-        storage_key_prefix: Prefix for storage keys
-        segment_length: Length of each segment in seconds
-        quiet: If True, suppress progress output
-
-    Returns:
-        Dict containing metadata and paths to generated artifacts
-    """
-    dirs = create_directories(output_dir)
-
-    repaired, source_file = maybe_repair_video(source_file, dirs["base_dir"], quiet)
-
-    storage_key_prefix = storage_key_prefix.strip("/")
-
-    log("\nExtracting video metadata...", quiet)
-
-    metadata = get_video_metadata(source_file)
-    native_fps = float(metadata["native_fps"])
-    downsampling_step = (
-        round(max(native_fps / desired_fps, 1.0), 4) if desired_fps > 0 else 1.0
-    )
-    source_file_size = os.path.getsize(source_file)
-
-    log(f"\nVideo resolution: {metadata['width']}x{metadata['height']}", quiet)
-    log(f"Native FPS: {native_fps}", quiet)
-    log(f"Downsampling step: {downsampling_step}", quiet)
-    log(f"Source file size: {source_file_size} bytes", quiet)
-
-    log("\nExtracting video segments...", quiet)
-
-    segments_metadata = extract_segments(
-        source_file=source_file, dirs=dirs, segment_length=segment_length
-    )
-
-    log("\nExtracting frames...", quiet)
-
-    extract_frames(source_file, dirs["sections"], downsampling_step)
-
-    log("\nCreating frames manifest...", quiet)
-
-    manifest_metadata = create_frames_manifest(
-        source_file=source_file,
-        segments_dir=dirs["segments_high"],
-        downsampling_step=downsampling_step,
-        manifest_path=os.path.join(dirs["base_dir"], "frames_manifest.txt"),
-    )
-
-    log("\nExtracting thumbnail...", quiet)
-
-    extract_thumbnail(
-        source_file=source_file,
-        output_path=os.path.join(dirs["base_dir"], "thumbnail.jpg"),
-        total_frames=manifest_metadata["total_frames"],
-    )
-
-    log("\nExtracting audio peaks...", quiet)
-
-    maybe_extract_audio_peaks(source_file, dirs["base_dir"], quiet)
-
-    log("\nProcessing segment indices...", quiet)
-
-    hq_hls_index = get_hls_index_with_storage_urls(
-        dirs["segments_high"], f"{storage_key_prefix}/segments/high"
-    )
-    lq_hls_index = get_hls_index_with_storage_urls(
-        dirs["segments_low"], f"{storage_key_prefix}/segments/low"
-    )
-
-    log("\nGenerating storage keys...", quiet)
-
-    storage_keys = create_storage_keys(storage_key_prefix, dirs)
-
-    # Prepare final metadata
-    result_metadata = {
-        "repaired": repaired,
-        "source_file": source_file,
-        "registration_payload": {
-            "type": "video",
-            "width": metadata["width"],
-            "height": metadata["height"],
-            "native_fps": metadata["native_fps"],
-            "fps": desired_fps,
-            "visible_frames": manifest_metadata["visible_frames"],
-            "total_frames": manifest_metadata["total_frames"],
-            # After item registration with this payload,
-            # DARWIN will use storage keys from HLS indexes and fields defined below
-            # to create signed URLs and fetch files from storage.
-            # Make sure you use the correct storage key prefix.
-            "hls_segments": {
-                "high_quality": {
-                    "index": hq_hls_index,
-                    "bitrate": segments_metadata["bitrates"]["high"],
-                },
-                "low_quality": {
-                    "index": lq_hls_index,
-                    "bitrate": segments_metadata["bitrates"]["low"],
-                },
-            },
-            "storage_sections_key_prefix": storage_keys["storage_sections_key_prefix"],
-            "storage_frames_manifest_key": storage_keys["storage_frames_manifest_key"],
-            "storage_thumbnail_key": storage_keys["storage_thumbnail_key"],
-            "total_size_bytes": source_file_size,
-            # To complete registration payload, add the following fields:
-            # 'name' - name of the file on DARWIN
-            # 'path' - path to the file on DARWIN
-            # 'storage_key' - storage key for the source file
-        },
-        # This array must be used to upload all generated files to storage
-        "uploads_prefix": storage_key_prefix,
-        "uploads_mappings": storage_keys["uploads_mappings"],
-    }
-
-    # Add audio peaks key if audio was extracted
-    # Must be uploaded with Content-Encoding gzip
-    if storage_keys["storage_audio_peaks_key"]:
-        result_metadata["registration_payload"]["storage_audio_peaks_key"] = (
-            storage_keys["storage_audio_peaks_key"]
-        )
-
-    log("\nSaving metadata...", quiet)
-
-    with open(os.path.join(dirs["base_dir"], "metadata.json"), "w") as f:
-        json.dump(result_metadata, f, indent=2)
-
-    return result_metadata
-
-
-def create_directories(base_dir: str) -> Dict[str, str]:
+def _create_directories(base_dir: str) -> Dict[str, str]:
     """Create required directory structure for artifacts"""
 
     paths = {
@@ -198,33 +53,33 @@ def create_directories(base_dir: str) -> Dict[str, str]:
     return paths
 
 
-def maybe_repair_video(
-    source_file: str, output_dir: str, quiet: bool = False
-) -> Tuple[bool, str]:
+def _maybe_repair_video(source_file: str, output_dir: str) -> Tuple[bool, str]:
     """
     Attempt to repair video if errors are detected.
 
     Args:
         source_file: Path to source video file
         output_dir: Directory to store repaired video if needed
-        quiet: If True, suppress progress output
+
+    Returns:
+        Tuple[bool, str]: (was_repaired, final_source_file_path)
     """
-    log(f"Checking video for errors: {source_file}", quiet)
-    errors = check_video_for_errors(source_file)
+    console.print(f"Checking video for errors: {source_file}")
+    errors = _check_video_for_errors(source_file)
     if errors:
         errors_list = errors.split("\n")
         first_three = "\n".join(errors_list[:3])
-        log(f"Video contains errors:\n{first_three}\n...", quiet)
-        log("Attempting to repair video...", quiet)
-        repaired_file = attempt_video_repair(source_file, output_dir, quiet)
-        log(f"Video repaired successfully: {repaired_file}", quiet)
+        console.print(f"Video contains errors:\n{first_three}\n...")
+        console.print("Attempting to repair video...")
+        repaired_file = _attempt_video_repair(source_file, output_dir)
+        console.print(f"Video repaired successfully: {repaired_file}")
         return (True, repaired_file)
     else:
-        log("No errors detected, proceeding with original video", quiet)
+        console.print("No errors detected, proceeding with original video")
         return (False, source_file)
 
 
-def check_video_for_errors(source_file: str) -> str:
+def _check_video_for_errors(source_file: str) -> str:
     """
     Check if video file has any errors using FFmpeg error detection.
 
@@ -248,18 +103,20 @@ def check_video_for_errors(source_file: str) -> str:
         "-",
     ]
 
-    result = subprocess.run(cmd, capture_output=True, text=True)
-    return result.stderr.strip()
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        return result.stderr.strip()
+    except subprocess.CalledProcessError as e:
+        return e.stderr.strip()
 
 
-def attempt_video_repair(source_file: str, output_dir: str, quiet: bool = False) -> str:
+def _attempt_video_repair(source_file: str, output_dir: str) -> str:
     """
     Attempt to repair corrupted video by re-encoding it using hardware acceleration if available.
 
     Args:
         source_file: Path to source video file
         output_dir: Directory to store repaired video
-        quiet: If True, suppress progress output
 
     Returns:
         str: Path to repaired video file
@@ -290,9 +147,8 @@ def attempt_video_repair(source_file: str, output_dir: str, quiet: bool = False)
         subprocess.run(cmd, check=True, capture_output=True)
         return output_file
     except subprocess.CalledProcessError:
-        log(
-            "Hardware acceleration with H265 failed, falling back to software encoding with H264",
-            quiet,
+        console.print(
+            "Hardware acceleration with H265 failed, falling back to software encoding with H264"
         )
 
         cmd = [
@@ -314,7 +170,7 @@ def attempt_video_repair(source_file: str, output_dir: str, quiet: bool = False)
         return output_file
 
 
-def count_frames(source_file: str) -> int:
+def _count_frames(source_file: str) -> int:
     cmd = [
         "ffprobe",
         "-v",
@@ -332,7 +188,7 @@ def count_frames(source_file: str) -> int:
     return int(json.loads(result.stdout)["streams"][0]["nb_read_frames"])
 
 
-def get_video_metadata(source_file: str) -> Dict:
+def _get_video_metadata(source_file: str) -> Dict:
     """Extract video metadata using ffprobe"""
     cmd = [
         "ffprobe",
@@ -363,7 +219,7 @@ def get_video_metadata(source_file: str) -> Dict:
     # If avg_frame_rate calculation failed, try calculating from frame count and duration
     if native_fps == 0.0:
         duration = float(data["duration"])
-        total_frames = count_frames(source_file)
+        total_frames = _count_frames(source_file)
         native_fps = round(total_frames / duration, 2)
 
     return {
@@ -373,7 +229,7 @@ def get_video_metadata(source_file: str) -> Dict:
     }
 
 
-def calculate_avg_bitrate(index_data: str, segments: List[str]) -> Optional[float]:
+def _calculate_avg_bitrate(index_data: str, segments: List[str]) -> Optional[float]:
     """
     Calculate average bitrate from HLS segments.
     Returns None if no valid segments found.
@@ -407,7 +263,7 @@ def calculate_avg_bitrate(index_data: str, segments: List[str]) -> Optional[floa
     return None
 
 
-def extract_segments(source_file: str, dirs: Dict, segment_length: int) -> Dict:
+def _extract_segments(source_file: str, dirs: Dict, segment_length: int) -> Dict:
     """
     Extract HLS segments in high and low quality
     Returns segment info and frame counts per segment
@@ -470,13 +326,13 @@ def extract_segments(source_file: str, dirs: Dict, segment_length: int) -> Dict:
         with open(index_path) as f:
             index_data = f.read()
             segments = sorted(Path(quality_dir).glob("*.ts"))
-            bitrate = calculate_avg_bitrate(index_data, [str(s) for s in segments])
+            bitrate = _calculate_avg_bitrate(index_data, [str(s) for s in segments])
             bitrates[quality] = bitrate
 
     return {"bitrates": bitrates}
 
 
-def extract_thumbnail(source_file: str, output_path: str, total_frames: int) -> str:
+def _extract_thumbnail(source_file: str, output_path: str, total_frames: int) -> str:
     """Extract thumbnail from middle frame"""
     middle_frame = total_frames // 2
 
@@ -499,7 +355,7 @@ def extract_thumbnail(source_file: str, output_path: str, total_frames: int) -> 
     return output_path
 
 
-def get_frames_timestamps(source_file: str) -> List[float]:
+def _get_frames_timestamps(source_file: str) -> List[float]:
     """Get frame timestamps using ffmpeg showinfo filter"""
     cmd = [
         "ffmpeg",
@@ -529,7 +385,7 @@ def get_frames_timestamps(source_file: str) -> List[float]:
     return frames
 
 
-def extract_frames(source_file: str, output_dir: str, downsampling_step: float):
+def _extract_frames(source_file: str, output_dir: str, downsampling_step: float):
     """Extract frames using ffmpeg with optional downsampling"""
     frame_pattern = os.path.join(output_dir, "%09d.png")
 
@@ -542,8 +398,6 @@ def extract_frames(source_file: str, output_dir: str, downsampling_step: float):
             "-hide_banner",
             "-v",
             "error",
-            "-start_number",
-            "0",
             "-i",
             source_file,
             "-start_number",
@@ -577,25 +431,25 @@ def extract_frames(source_file: str, output_dir: str, downsampling_step: float):
     subprocess.run(cmd, check=True)
 
 
-def get_segment_frame_counts(segments_dir: str) -> List[int]:
+def _get_segment_frame_counts(segments_dir: str) -> List[int]:
     """Get frame counts for each segment in order"""
     segments = sorted(Path(segments_dir).glob("*.ts"))
     segment_frame_counts = []
     for segment in segments:
-        count = count_frames(str(segment))
+        count = _count_frames(str(segment))
         segment_frame_counts.append(count)
     return segment_frame_counts
 
 
-def create_frames_manifest(
+def _create_frames_manifest(
     source_file: str, segments_dir: str, downsampling_step: float, manifest_path: str
 ) -> Dict:
     """
     Create frames manifest mapping frames to segments
     Format: FRAME_NO_IN_SEGMENT:SEGMENT_NO:VISIBILITY_FLAG:TIMESTAMP
     """
-    frames_timestamps = get_frames_timestamps(source_file)
-    segment_frame_counts = get_segment_frame_counts(segments_dir)
+    frames_timestamps = _get_frames_timestamps(source_file)
+    segment_frame_counts = _get_segment_frame_counts(segments_dir)
 
     file_lines = []
     visible_frames = 0
@@ -629,7 +483,7 @@ def create_frames_manifest(
     return {"visible_frames": visible_frames, "total_frames": frame_no}
 
 
-def get_hls_index_with_storage_urls(segments_dir: str, storage_key_prefix: str) -> str:
+def _get_hls_index_with_storage_urls(segments_dir: str, storage_key_prefix: str) -> str:
     """
     Replaces relative paths in HLS index file by storage keys.
     """
@@ -644,9 +498,7 @@ def get_hls_index_with_storage_urls(segments_dir: str, storage_key_prefix: str) 
         )
 
 
-def maybe_extract_audio_peaks(
-    source_file: str, output_dir: str, quiet: bool
-) -> Optional[str]:
+def _maybe_extract_audio_peaks(source_file: str, output_dir: str) -> Optional[str]:
     """
     Extract audio peaks from video file and gzip the result.
     Returns path to the gzipped peaks file if audio stream exists, None otherwise.
@@ -668,7 +520,7 @@ def maybe_extract_audio_peaks(
     data = json.loads(result.stdout)
 
     if not data.get("streams"):
-        log("No audio streams found", quiet)
+        console.print("No audio streams found")
         return None
 
     raw_output_path = os.path.join(output_dir, "audio_peaks.raw")
@@ -702,7 +554,7 @@ def maybe_extract_audio_peaks(
         os.remove(raw_output_path)
         return gzipped_output_path
     except (subprocess.CalledProcessError, OSError):
-        log("Failed to extract audio peaks", quiet)
+        console.print("Failed to extract audio peaks")
         if os.path.exists(raw_output_path):
             os.remove(raw_output_path)
         if os.path.exists(gzipped_output_path):
@@ -710,126 +562,147 @@ def maybe_extract_audio_peaks(
         return None
 
 
-def create_storage_keys(storage_key_prefix: str, dirs: Dict) -> Dict:
-    """Create storage keys for all generated files for further upload"""
-    uploads_mappings = []
+def extract_artifacts(
+    source_file: str,
+    output_dir: str,
+    storage_key_prefix: str,
+    *,
+    fps: float = 0.0,
+    segment_length: int = 2,
+    repair: bool = False,
+) -> Dict:
+    """
+    Extracts video artifacts including segments, frames, thumbnail for
+    read-only registration in the Darwin platform.
 
-    def add_mapping(local_path: str, storage_key: str):
-        uploads_mappings.append({"local_path": local_path, "storage_key": storage_key})
+    Args:
+        source_file: Path to source video file
+        output_dir: Directory to store generated artifacts
+        storage_key_prefix: Prefix for storage keys
+        fps: Desired frames per second (0.0 for native fps), defaults to 0.0
+        segment_length: Length of each segment in seconds, defaults to 2
+        repair: If True, attempt to repair video if errors are detected, defaults to False
 
-    # Add mappings for all generated files
-    # Manifest
-    manifest_path = os.path.join(dirs["base_dir"], "frames_manifest.txt")
-    storage_frames_manifest_key = f"{storage_key_prefix}/frames_manifest.txt"
-    add_mapping(manifest_path, storage_frames_manifest_key)
+    Returns:
+        Dict containing metadata and paths to generated artifacts
 
-    # Thumbnail
-    thumbnail_path = os.path.join(dirs["base_dir"], "thumbnail.jpg")
-    storage_thumbnail_key = f"{storage_key_prefix}/thumbnail.jpg"
-    add_mapping(thumbnail_path, storage_thumbnail_key)
+    Raises:
+        FileNotFoundError: If source_file does not exist
+    """
+    if not os.path.exists(source_file):
+        raise FileNotFoundError(f"Source video file not found: {source_file}")
 
-    # Segments
-    storage_hq_segments_key_prefix = f"{storage_key_prefix}/segments/high"
-    for segment in Path(dirs["segments_high"]).glob("*.ts"):
-        add_mapping(str(segment), f"{storage_hq_segments_key_prefix}/{segment.name}")
+    _check_ffmpeg_version()
+    dirs = _create_directories(output_dir)
 
-    storage_lq_segments_key_prefix = f"{storage_key_prefix}/segments/low"
-    for segment in Path(dirs["segments_low"]).glob("*.ts"):
-        add_mapping(str(segment), f"{storage_lq_segments_key_prefix}/{segment.name}")
+    repaired = False
+    if repair:
+        repaired, source_file = _maybe_repair_video(source_file, dirs["base_dir"])
 
-    # Frame sections
-    storage_sections_key_prefix = f"{storage_key_prefix}/sections"
-    for frame in Path(dirs["sections"]).glob("*.png"):
-        add_mapping(str(frame), f"{storage_sections_key_prefix}/{frame.name}")
+    storage_key_prefix = storage_key_prefix.strip("/")
 
-    # Audio peaks
-    storage_audio_peaks_key = None
-    audio_peaks_path = os.path.join(dirs["base_dir"], "audio_peaks.gz")
-    if os.path.exists(audio_peaks_path):
-        storage_audio_peaks_key = f"{storage_key_prefix}/audio_peaks.gz"
-        add_mapping(audio_peaks_path, storage_audio_peaks_key)
+    console.print("\nExtracting video metadata...")
 
-    return {
-        "uploads_mappings": uploads_mappings,
-        "storage_frames_manifest_key": storage_frames_manifest_key,
-        "storage_thumbnail_key": storage_thumbnail_key,
-        "storage_sections_key_prefix": storage_sections_key_prefix,
-        "storage_audio_peaks_key": storage_audio_peaks_key,
+    metadata = _get_video_metadata(source_file)
+    native_fps = float(metadata["native_fps"])
+    downsampling_step = round(max(native_fps / fps, 1.0), 4) if fps > 0 else 1.0
+    source_file_size = os.path.getsize(source_file)
+
+    console.print(f"\nVideo resolution: {metadata['width']}x{metadata['height']}")
+    console.print(f"Native FPS: {native_fps}")
+    console.print(f"Downsampling step: {downsampling_step}")
+    console.print(f"Source file size: {source_file_size} bytes")
+
+    console.print("\nExtracting video segments...")
+
+    segments_metadata = _extract_segments(
+        source_file=source_file, dirs=dirs, segment_length=segment_length
+    )
+
+    console.print("\nExtracting frames...")
+
+    _extract_frames(source_file, dirs["sections"], downsampling_step)
+
+    console.print("\nCreating frames manifest...")
+
+    manifest_metadata = _create_frames_manifest(
+        source_file=source_file,
+        segments_dir=dirs["segments_high"],
+        downsampling_step=downsampling_step,
+        manifest_path=os.path.join(dirs["base_dir"], "frames_manifest.txt"),
+    )
+
+    console.print("\nExtracting thumbnail...")
+
+    _extract_thumbnail(
+        source_file=source_file,
+        output_path=os.path.join(dirs["base_dir"], "thumbnail.jpg"),
+        total_frames=manifest_metadata["total_frames"],
+    )
+
+    console.print("\nExtracting audio peaks...")
+
+    _maybe_extract_audio_peaks(source_file, dirs["base_dir"])
+
+    console.print("\nProcessing segment indices...")
+
+    hq_hls_index = _get_hls_index_with_storage_urls(
+        dirs["segments_high"], f"{storage_key_prefix}/segments/high"
+    )
+    lq_hls_index = _get_hls_index_with_storage_urls(
+        dirs["segments_low"], f"{storage_key_prefix}/segments/low"
+    )
+
+    console.print("\nSaving metadata...")
+
+    source_file_name = os.path.basename(source_file)
+
+    # Prepare final metadata
+    result_metadata = {
+        "repaired": repaired,
+        "source_file": source_file,
+        "storage_key_prefix": storage_key_prefix,
+        "registration_payload": {
+            "type": "video",
+            "width": metadata["width"],
+            "height": metadata["height"],
+            "native_fps": metadata["native_fps"],
+            "fps": fps,
+            "visible_frames": manifest_metadata["visible_frames"],
+            "total_frames": manifest_metadata["total_frames"],
+            # After item registration with this payload,
+            # DARWIN will use storage keys from HLS indexes and fields defined below
+            # to create signed URLs and fetch files from storage.
+            # Therefore, the storage key must be correct.
+            "hls_segments": {
+                "high_quality": {
+                    "index": hq_hls_index,
+                    "bitrate": segments_metadata["bitrates"]["high"],
+                },
+                "low_quality": {
+                    "index": lq_hls_index,
+                    "bitrate": segments_metadata["bitrates"]["low"],
+                },
+            },
+            "storage_key": f"{storage_key_prefix}/{source_file_name}",
+            "storage_sections_key_prefix": f"{storage_key_prefix}/sections",
+            "storage_frames_manifest_key": f"{storage_key_prefix}/frames_manifest.txt",
+            "storage_thumbnail_key": f"{storage_key_prefix}/thumbnail.jpg",
+            "total_size_bytes": source_file_size,
+            "name": source_file_name,
+            "path": "/",
+        },
     }
 
+    # Add audio peaks key if audio was extracted
+    # Must be uploaded with Content-Encoding gzip
+    audio_peaks_path = os.path.join(dirs["base_dir"], "audio_peaks.gz")
+    if os.path.exists(audio_peaks_path):
+        result_metadata["registration_payload"][
+            "storage_audio_peaks_key"
+        ] = f"{storage_key_prefix}/audio_peaks.gz"
 
-def main():
-    """CLI entrypoint for video artifacts generation"""
-    parser = argparse.ArgumentParser(
-        description="Generate video artifacts (segments, sections, thumbnail, frames manifest)",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
+    with open(os.path.join(dirs["base_dir"], "metadata.json"), "w") as f:
+        json.dump(result_metadata, f, indent=2)
 
-    parser.add_argument("input_file", help="Path to input video file")
-
-    parser.add_argument(
-        "-k",
-        "--storage-key-prefix",
-        help="Storage key prefix for generated files",
-        required=True,
-    )
-
-    parser.add_argument(
-        "-o", "--output-dir", help="Output directory for artifacts", required=True
-    )
-
-    parser.add_argument(
-        "-f",
-        "--fps",
-        help="Desired output FPS (0.0 for native)",
-        type=float,
-        default=0.0,
-    )
-
-    parser.add_argument(
-        "-s",
-        "--segment-length",
-        help="Length of each segment in seconds",
-        type=int,
-        default=2,
-    )
-
-    parser.add_argument("--quiet", help="Suppress progress output", action="store_true")
-
-    args = parser.parse_args()
-
-    if not os.path.isfile(args.input_file):
-        parser.error(f"Input file does not exist: {args.input_file}")
-
-    check_ffmpeg_version()
-
-    try:
-        log(f"Processing {args.input_file}...", args.quiet)
-        log(f"Output directory: {args.output_dir}", args.quiet)
-        log(f"Target FPS: {'native' if args.fps == 0 else args.fps}", args.quiet)
-        log(f"Segment length: {args.segment_length}s", args.quiet)
-        log(f"Storage path prefix: {args.storage_key_prefix}", args.quiet)
-        log("Starting artifact generation...", args.quiet)
-
-        generate_video_artifacts(
-            source_file=args.input_file,
-            desired_fps=args.fps,
-            output_dir=args.output_dir,
-            storage_key_prefix=args.storage_key_prefix,
-            segment_length=args.segment_length,
-            quiet=args.quiet,
-        )
-
-        log("\nProcessing complete!", args.quiet)
-        log(f"Metadata: {os.path.join(args.output_dir, 'metadata.json')}", args.quiet)
-
-    except subprocess.CalledProcessError as e:
-        parser.error(
-            f"FFmpeg/FFprobe error: {e.stderr.decode() if e.stderr else str(e)}"
-        )
-    except Exception as e:
-        parser.error(f"Processing failed: {str(e)}")
-
-
-if __name__ == "__main__":
-    main()
+    return result_metadata
