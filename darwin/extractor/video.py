@@ -13,8 +13,8 @@ console = Console()
 
 def _check_ffmpeg_version():
     """
-    Check if FFmpeg version 5 is installed.
-    Raises RuntimeError if FFmpeg is not found or version is different.
+    Check if FFmpeg version 5 or higher is installed.
+    Raises RuntimeError if FFmpeg is not found or version is lower.
     """
     try:
         result = subprocess.run(["ffmpeg", "-version"], capture_output=True, text=True)
@@ -25,13 +25,15 @@ def _check_ffmpeg_version():
             raise RuntimeError("Could not determine FFmpeg version")
 
         major_version = int(version_match.group(1))
-        if major_version != 5:
+        if major_version < 5:
             raise RuntimeError(
-                f"FFmpeg version 5 required, found version {major_version}"
+                f"FFmpeg version 5 or higher required, found version {major_version}"
             )
 
     except FileNotFoundError:
-        raise RuntimeError("FFmpeg not found. Please install FFmpeg version 5")
+        raise RuntimeError(
+            "FFmpeg not found. Please install FFmpeg version 5 or higher"
+        )
 
 
 def _create_directories(base_dir: str) -> Dict[str, str]:

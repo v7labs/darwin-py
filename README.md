@@ -44,7 +44,7 @@ If you wish to use video frame extraction, then you can use the `ocv` flag to in
 pip install darwin-py[ocv]
 ```
 
-If you wish to use video artifacts extraction, then you need to install [FFmpeg 5](https://www.ffmpeg.org/download.html#release_5.1)
+If you wish to use video artifacts extraction, then you need to install [FFmpeg](https://www.ffmpeg.org/download.html)
 
 To run test, first install the `test` extra package
 
