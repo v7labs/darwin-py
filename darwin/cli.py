@@ -101,6 +101,18 @@ def _run(args: Namespace, parser: ArgumentParser) -> None:
 
     elif args.command == "convert":
         f.convert(args.format, args.files, args.output_dir)
+    elif args.command == "extract":
+        if args.extract_type == "video-artifacts":
+            f.extract_video_artifacts(
+                source_file=args.source_file,
+                output_dir=args.output_dir,
+                storage_key_prefix=args.storage_key_prefix,
+                fps=args.fps,
+                segment_length=args.segment_length,
+                repair=args.repair,
+            )
+        else:
+            parser.print_help()
     elif args.command == "dataset":
         if args.action == "remote":
             f.list_remote_datasets(args.all, args.team)
