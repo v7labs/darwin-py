@@ -520,6 +520,37 @@ def test_handle_subs() -> None:
     assert result == expected_result
 
 
+def test__handle_subs_empty_attributes() -> None:
+    from darwin.importer.importer import _handle_subs
+
+    annotation = dt.Annotation(
+        annotation_class=dt.AnnotationClass(
+            name="bbox1", annotation_type="bounding_box"
+        ),
+        data={"x": 451.525, "y": 213.559, "w": 913.22, "h": 538.983},
+        subs=[],
+        slot_names=[],
+        id="a25e4613-718c-4cc8-9170-1bf372853f22",
+    )
+
+    initial_data = {
+        "bounding_box": {"x": 451.525, "y": 213.559, "w": 913.22, "h": 538.983}
+    }
+
+    result = _handle_subs(
+        annotation=annotation,
+        data=initial_data,
+        annotation_class_id="bbox1",
+        attributes={},
+        include_empty_attributes=True,
+    )
+
+    assert result == {
+        "bounding_box": {"x": 451.525, "y": 213.559, "w": 913.22, "h": 538.983},
+        "attributes": {"attributes": []},
+    }
+
+
 def test__format_polygon_for_import() -> None:
     from darwin.importer.importer import _format_polygon_for_import
 
