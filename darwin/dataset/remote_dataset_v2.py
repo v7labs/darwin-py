@@ -908,10 +908,12 @@ class RemoteDatasetV2(RemoteDataset):
             ):
                 slot_affine_map = {}
                 for slot in remote_file.slots:
-                    slot_affine_map[slot["slot_name"]] = np.array(
-                        slot["metadata"]["medical"]["affine"],
-                        dtype=np.float64,
-                    )
+                    affine = slot["metadata"]["medical"]["affine"]
+                    if affine:
+                        slot_affine_map[slot["slot_name"]] = np.array(
+                            affine,
+                            dtype=np.float64,
+                        )
                 remote_files_that_require_legacy_scaling[
                     Path(remote_file.full_path)
                 ] = slot_affine_map
