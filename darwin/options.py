@@ -548,6 +548,59 @@ class Options:
             "version", help="Check current version of the repository. "
         )
 
+        # EXTRACTION
+        parser_extract = subparsers.add_parser(
+            "extract", help="Extract and process media files"
+        )
+        extract_subparsers = parser_extract.add_subparsers(dest="extract_type")
+
+        # Video artifacts
+        parser_video = extract_subparsers.add_parser(
+            "video-artifacts",
+            help="Extract video artifacts for read-only registration in the Darwin platform",
+            description="Process video files to generate streaming artifacts including HLS segments, "
+            "thumbnails, frame extracts, and manifest files required for video playback "
+            "in the V7 Darwin platform.",
+        )
+        parser_video.add_argument(
+            "source_file",
+            type=str,
+            help="Path to input video file",
+        )
+        parser_video.add_argument(
+            "-p",
+            "--storage-key-prefix",
+            type=str,
+            required=True,
+            help="Storage key prefix for generated files",
+        )
+        parser_video.add_argument(
+            "-o",
+            "--output-dir",
+            type=str,
+            required=True,
+            help="Output directory for artifacts",
+        )
+        parser_video.add_argument(
+            "-f",
+            "--fps",
+            type=float,
+            default=0.0,
+            help="Desired output FPS (0.0 for native)",
+        )
+        parser_video.add_argument(
+            "-s",
+            "--segment-length",
+            type=int,
+            default=2,
+            help="Length of each segment in seconds",
+        )
+        parser_video.add_argument(
+            "--repair",
+            action="store_true",
+            help="Checks video for errors and attempts to repair them",
+        )
+
         argcomplete.autocomplete(self.parser)
 
     def parse_args(self) -> Tuple[Namespace, ArgumentParser]:
