@@ -48,6 +48,23 @@ jobs:
                      pip install wheel && \
                      pip install --upgrade setuptools && \
                      pip install --editable '.[test,ml,medical,dev, ocv]'"
+                     
+      - name: Install ffmpeg (Ubuntu)
+        if: matrix.os == 'ubuntu-latest'
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
+      - name: Install ffmpeg (macOS)
+        if: matrix.os == 'macos-latest'
+        shell: bash
+        run: brew install ffmpeg
+
+      - name: Install ffmpeg (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: choco install ffmpeg -y
 
       - name: Run pytest
         shell: bash # Stops Windows hosts from using PowerShell
