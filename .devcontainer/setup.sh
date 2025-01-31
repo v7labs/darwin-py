@@ -1,22 +1,25 @@
 #!/bin/bash
+
 set -e  # Exit on error
 
 # Update and install dependencies
-sudo apt update
+sudo apt update -y
+sudo apt upgrade -y
+sudo apt-get install -y python3-openssl
 sudo apt install -y make build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev \
-  wget curl llvm libncurses5-dev libncursesw5-dev xz-utils tk-dev libffi-dev liblzma-dev python-openssl git
+  wget curl llvm libncurses5-dev libncursesw5-dev xz-utils tk-dev libffi-dev liblzma-dev git
 
 # Install pyenv
 curl https://pyenv.run | bash
 
 # Add pyenv to shell profile
-echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.bashrc
-echo 'export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.bashrc
-echo 'eval "$(pyenv init --path)"' >> ~/.bashrc
-echo 'eval "$(pyenv init -)"' >> ~/.bashrc
+echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.profile
+echo '[[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.profile
+echo 'eval "$(pyenv init --path)"' >> ~/.profile
+echo 'eval "$(pyenv init -)"' >> ~/.profile
 
 # Apply changes
-source ~/.bashrc
+source ~/.profile
 
 # Install Python 3.10 using pyenv
 pyenv install 3.10.0
@@ -28,15 +31,16 @@ curl -sSL https://install.python-poetry.org | python3 -
 export PATH="$HOME/.local/bin:$PATH"
 
 # Initialize Poetry environment
-poetry shell #source /workspaces/darwin-py/.venv/bin/activate
+source /workspaces/darwin-py/.venv/bin/activate #poetry shell
 poetry install
 
 # Install additional Python dependencies
 pip install darwin-py[test]
 pip install darwin-py[ml]
+pip install darwin-py[ocv]
 
-# Authenticate and verify Darwin CLI
 pip install connected-components-3d
+pip install nibabel
 
 # FFmpeg
 FFMPEG_VERSION="6.0"  # Ensure this is version 5 or higher
@@ -52,4 +56,5 @@ cd -
 
 #Run tests to verify all is good
 pytest
+
 echo "Setup complete!"
