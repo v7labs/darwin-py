@@ -756,7 +756,7 @@ def _remove_empty_directories(images_path: Path) -> bool:
 
 
 def _check_for_duplicate_local_filepaths(
-    download_functions: List[Callable[[], None]]
+    download_functions: List[Callable[[], None]],
 ) -> None:
     """
     If pulling a release without folders, check for duplicate filepaths in the download functions.
