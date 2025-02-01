@@ -1,7 +1,6 @@
 import json
 import logging
 import os
-import time
 import zlib
 from logging import Logger
 from pathlib import Path
@@ -695,7 +694,7 @@ class Client:
             "Authorization": f"ApiKey {api_key}",
         }
         api_url: str = Client.default_api_url()
-        response: requests.Response = cls._get_raw_from_full_url(
+        response: requests.Response = requests.get(
             urljoin(api_url, "/users/token_info"), headers=headers
         )
 
@@ -736,9 +735,14 @@ class Client:
         return os.getenv("DARWIN_BASE_URL", "https://darwin.v7labs.com")
 
     def _get_headers(
-        self, team_slug: Optional[str] = None, compressed: bool = False
+        self,
+        team_slug: Optional[str] = None,
+        compressed: bool = False,
+        auth_token: Optional[bool] = False,
     ) -> Dict[str, str]:
         headers: Dict[str, str] = {"Content-Type": "application/json"}
+        if auth_token:
+            return headers
 
         api_key: Optional[str] = None
         team_config: Optional[Team] = self.config.get_team(
@@ -769,11 +773,13 @@ class Client:
         self,
         url: str,
         team_slug: Optional[str] = None,
-        retry: bool = False,
         stream: bool = False,
+        auth_token: Optional[bool] = False,
     ) -> Response:
         response: Response = self.session.get(
-            url, headers=self._get_headers(team_slug), stream=stream
+            url,
+            headers=self._get_headers(team_slug, auth_token=auth_token),
+            stream=stream,
         )
 
         self.log.debug(
@@ -784,32 +790,23 @@ class Client:
         )
 
         self._raise_if_known_error(response, url)
-
-        if not response.ok and retry:
-            time.sleep(10)
-            return self._get_raw_from_full_url(
-                url=url, team_slug=team_slug, retry=False, stream=stream
-            )
-
         response.raise_for_status()
-
         return response
 
     def _get_raw(
         self,
         endpoint: str,
         team_slug: Optional[str] = None,
-        retry: bool = False,
         stream: bool = False,
     ) -> Response:
         return self._get_raw_from_full_url(
-            urljoin(self.url, endpoint), team_slug, retry=retry, stream=stream
+            urljoin(self.url, endpoint), team_slug, stream=stream
         )
 
     def _get(
-        self, endpoint: str, team_slug: Optional[str] = None, retry: bool = False
+        self, endpoint: str, team_slug: Optional[str] = None
     ) -> Union[Dict[str, UnknownType], List[Dict[str, UnknownType]]]:
-        response = self._get_raw(endpoint, team_slug, retry)
+        response = self._get_raw(endpoint, team_slug)
         return self._decode_response(response)
 
     @retry(
@@ -823,7 +820,6 @@ class Client:
         endpoint: str,
         payload: Dict[str, UnknownType],
         team_slug: Optional[str] = None,
-        retry: bool = False,
     ) -> Response:
         response: requests.Response = self.session.put(
             urljoin(self.url, endpoint),
@@ -839,13 +835,7 @@ class Client:
         )
 
         self._raise_if_known_error(response, urljoin(self.url, endpoint))
-
-        if not response.ok and retry:
-            time.sleep(10)
-            return self._put_raw(endpoint, payload=payload, retry=False)
-
         response.raise_for_status()
-
         return response
 
     def _put(
@@ -853,9 +843,8 @@ class Client:
         endpoint: str,
         payload: Dict[str, UnknownType],
         team_slug: Optional[str] = None,
-        retry: bool = False,
     ) -> Union[Dict[str, UnknownType], List[Dict[str, UnknownType]]]:
-        response: Response = self._put_raw(endpoint, payload, team_slug, retry)
+        response: Response = self._put_raw(endpoint, payload, team_slug)
         return self._decode_response(response)
 
     @retry(
@@ -869,7 +858,6 @@ class Client:
         endpoint: str,
         payload: Optional[Dict[str, UnknownType]] = None,
         team_slug: Optional[str] = None,
-        retry: bool = False,
     ) -> Response:
         if payload is None:
             payload = {}
@@ -903,13 +891,7 @@ class Client:
         )
 
         self._raise_if_known_error(response, urljoin(self.url, endpoint))
-
-        if not response.ok and retry:
-            time.sleep(10)
-            return self._post_raw(endpoint, payload=payload, retry=False)
-
         response.raise_for_status()
-
         return response
 
     def _post(
@@ -917,9 +899,8 @@ class Client:
         endpoint: str,
         payload: Optional[Dict[str, UnknownType]] = None,
         team_slug: Optional[str] = None,
-        retry: bool = False,
     ) -> Union[Dict[str, UnknownType], List[Dict[str, UnknownType]]]:
-        response: Response = self._post_raw(endpoint, payload, team_slug, retry)
+        response: Response = self._post_raw(endpoint, payload, team_slug)
         return self._decode_response(response)
 
     @retry(
@@ -933,7 +914,6 @@ class Client:
         endpoint: str,
         payload: Optional[Dict[str, UnknownType]] = None,
         team_slug: Optional[str] = None,
-        retry: bool = False,
     ) -> Union[Dict[str, UnknownType], List[Dict[str, UnknownType]]]:
         if payload is None:
             payload = {}
@@ -952,13 +932,7 @@ class Client:
         )
 
         self._raise_if_known_error(response, urljoin(self.url, endpoint))
-
-        if not response.ok and retry:
-            time.sleep(10)
-            return self._delete(endpoint, payload=payload, retry=False)
-
         response.raise_for_status()
-
         return self._decode_response(response)
 
     def _raise_if_known_error(self, response: Response, url: str) -> None:
