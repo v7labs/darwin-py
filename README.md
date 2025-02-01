@@ -22,7 +22,7 @@ Main functions are (but not limited to):
 
 Support tested for python 3.9 - 3.12
 
-## 🏁 Installation
+## 🏁 Installation 
 
 ```
 pip install darwin-py
