@@ -263,7 +263,7 @@ def export_release(
 
 
 def delete_annotation_uuids(
-    annotations: Sequence[Union[dt.Annotation, dt.VideoAnnotation]]
+    annotations: Sequence[Union[dt.Annotation, dt.VideoAnnotation]],
 ):
     """
     Removes all UUIDs present in instances of `dt.Annotation` and `dt.VideoAnnotation` objects.
