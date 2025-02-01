@@ -81,7 +81,7 @@ instead of calling this low-level function directly.
 
 
 def _build_main_annotations_lookup_table(
-    annotation_classes: List[Dict[str, Unknown]]
+    annotation_classes: List[Dict[str, Unknown]],
 ) -> Dict[str, Unknown]:
     MAIN_ANNOTATION_TYPES = [
         "bounding_box",
@@ -484,7 +484,7 @@ def _serialize_item_level_properties(
 
 
 def _parse_metadata_file(
-    metadata_path: Union[Path, bool]
+    metadata_path: Union[Path, bool],
 ) -> Tuple[List[PropertyClass], List[Dict[str, str]]]:
     if isinstance(metadata_path, Path):
         metadata = parse_metadata(metadata_path)
@@ -1001,7 +1001,7 @@ def _import_properties(
 
 
 def _normalize_item_properties(
-    item_properties: Union[Dict[str, Dict[str, Any]], List[Dict[str, str]]]
+    item_properties: Union[Dict[str, Dict[str, Any]], List[Dict[str, str]]],
 ) -> Dict[str, Dict[str, Any]]:
     """
     Normalizes item properties to a common dictionary format.
@@ -2046,7 +2046,7 @@ def _overwrite_warning(
 
 
 def _get_annotation_format(
-    importer: Callable[[Path], Union[List[dt.AnnotationFile], dt.AnnotationFile, None]]
+    importer: Callable[[Path], Union[List[dt.AnnotationFile], dt.AnnotationFile, None]],
 ) -> str:
     """
     Returns the annotation format of the importer used to parse local annotation files
