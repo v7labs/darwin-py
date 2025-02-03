@@ -84,7 +84,7 @@ async def _build_layout(item: UploadItem) -> Dict:
 
 
 async def _build_payload_items(
-    items_and_paths: List[Tuple[UploadItem, Path]]
+    items_and_paths: List[Tuple[UploadItem, Path]],
 ) -> List[Dict]:
     """
     Builds the payload for the items to be registered for upload
