@@ -31,16 +31,12 @@ curl -sSL https://install.python-poetry.org | python3 -
 export PATH="$HOME/.local/bin:$PATH"
 
 # Initialize Poetry environment
-source /workspaces/darwin-py/.venv/bin/activate #poetry shell
-poetry install
+PROJECT_DIR="$(pwd)"
+export VENV_PATH="$PROJECT_DIR/.venv"
+poetry config virtualenvs.in-project true
 
-# Install additional Python dependencies
-pip install darwin-py[test]
-pip install darwin-py[ml]
-pip install darwin-py[ocv]
-
-pip install connected-components-3d
-pip install nibabel
+poetry install --all-extras  
+source "$VENV_PATH/bin/activate" #poetry shell
 
 # FFmpeg
 FFMPEG_VERSION="6.0"  # Ensure this is version 5 or higher

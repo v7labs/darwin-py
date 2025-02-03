@@ -1,18 +1,23 @@
 # Development Environment
 This doesn't represent the only way to develop on darwin-py, but does represent an easy and configurable way to manage things like underlying dependencies and python versions
-## Shell environment
+## Devcontainer - One click approach
+Just use the devcontainer config, either in Github codespaces or in using the [VSCode extension](https://code.visualstudio.com/docs/devcontainers/tutorial). 
+NB the config is [here](../.devcontainer/devcontainer.json)
+
+## Manual setup
+### Shell environment
 No requirement for any particular shell, [zsh](https://github.com/ohmyzsh/ohmyzsh/wiki/Installing-ZSH) + [oh my zsh](https://ohmyz.sh/) is a good setup commonly used, but whatever environment you use make sure to install the recommended alias's and path exports that the below systems require for your particular shell environment, particularly pertinent for poetry which has an added step that it prints to console but isn't included on the webpage. 
-## Pyenv
+### Pyenv
 Pyenv manages system python versions, install instructions can be found [here](https://github.com/pyenv/pyenv). 
 After installation of pyenv, install a python version that is compatible with darwin-py (3.9-3.12 as of writing)
 
 `pyenv install 3.10`
 
 If the command `pyenv` isn't recognized, it hasn't installed to your shell environemnt config file correctly .zshrc .bashrc etc. 
-## Poetry
+### Poetry
 Poetry manages project level dependencies and local python versions. Install instructions [here](https://python-poetry.org/docs/). Make sure to follow the printed instructions and add the path to your shell environment, if running the command `poetry --version` after installation doesn't work, it means your path hasn't been updated
 
-## New Folder Setup
+### New Folder Setup
 To Start from scratch and get a development/QA environemnt setup. This process means you will have a fresh python version with only the dependencies required by darwin-py that is uncorrupted by other packages installed on the system python
 - clone darwin py repo
 - navigate to downloaded repo
@@ -22,7 +27,7 @@ To Start from scratch and get a development/QA environemnt setup. This process m
 
 Pyenv + Poetry here get used in conjuction, with pyenv telling the system whenever `python` is called in a folder that has been set with `pyenv local <version>` that it should use that local version. Poetry is then set to prefer that local version of python, and to create a per project copy of python to use, it will clone `<version>` into a .venv folder locally, and install dependencies there. If new environment is required, run `rm -rf .venv` while inside the project folder, set a new pyenv version if needed and re-run poetry commands 
 
-## Subsequent Uses
+### Subsequent Uses
 Once a folder is setup, it can easily be reused
 - navigate to folder
 - run `poetry shell`
