@@ -105,7 +105,7 @@
           "instance_id": {
             "value": 14
           },
-          "keyframe": true,
+          "keyframe": false,
           "skeleton": {
             "nodes": [
               {
@@ -190,7 +190,7 @@
           "instance_id": {
             "value": 15
           },
-          "keyframe": true,
+          "keyframe": false,
           "line": {
             "path": [
               {
@@ -263,7 +263,7 @@
           "instance_id": {
             "value": 16
           },
-          "keyframe": true,
+          "keyframe": false,
           "keypoint": {
             "x": 8.2353,
             "y": 19.951
@@ -362,7 +362,7 @@
           "instance_id": {
             "value": 17
           },
-          "keyframe": true,
+          "keyframe": false,
           "text": {
             "text": "test_text"
           }
@@ -476,7 +476,7 @@
           "instance_id": {
             "value": 18
           },
-          "keyframe": true,
+          "keyframe": false,
           "polygon": {
             "paths": [
               [
@@ -578,7 +578,7 @@
           "instance_id": {
             "value": 19
           },
-          "keyframe": true,
+          "keyframe": false,
           "text": {
             "text": "test_text"
           }
@@ -687,7 +687,7 @@
           }
         },
         "2": {
-          "keyframe": true,
+          "keyframe": false,
           "tag": {},
           "text": {
             "text": "test_text"
