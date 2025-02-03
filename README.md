@@ -7,8 +7,6 @@
 ⚡️ Official library to annotate, manage datasets, and models on
 [V7's Darwin Training Data Platform](https://darwin.v7labs.com). ⚡️
 
-Need to label data? [**Start using V7 free today**](https://www.v7labs.com/get-started)
-
 Darwin-py can both be used from the [command line](#usage-as-a-command-line-interface-cli) and as a [python library](#usage-as-a-python-library).
 
 <hr/>
