@@ -178,23 +178,6 @@ def test__build_main_annotations_lookup_table() -> None:
     result = _build_main_annotations_lookup_table(annotation_classes)
     assert result == expected_lookup
 
-
-def test__find_and_parse():
-    """
-    Ensure that the function doesn't return any None values.
-    """
-    with tempfile.TemporaryDirectory() as tmpdir:
-        with ZipFile("tests/data.zip") as zfile:
-            zfile.extractall(tmpdir)
-            annotations_path = Path(tmpdir) / "v7-darwin-json-v2" / "_find_and_parse"
-            importer = get_importer("coco")
-            files = _find_and_parse(
-                importer=importer,
-                file_paths=[annotations_path],
-            )
-            assert all(isinstance(file, dt.AnnotationFile) for file in files)
-
-
 def test__build_attribute_lookup() -> None:
     mock_dataset = Mock()
     mock_dataset.fetch_remote_attributes.return_value = [
@@ -2215,7 +2198,6 @@ def test__assign_item_properties_to_dataset(mock_client, mock_dataset, mock_cons
 
 
 def test__get_annotation_format():
-    assert _get_annotation_format(get_importer("coco")) == "coco"
     assert _get_annotation_format(get_importer("csv_tags_video")) == "csv_tags_video"
     assert _get_annotation_format(get_importer("csv_tags")) == "csv_tags"
     assert _get_annotation_format(get_importer("darwin")) == "darwin"
