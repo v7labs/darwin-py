@@ -40,6 +40,17 @@ Can also force poetry commands without being in a shell environment by prependin
 
 `poetry run python -m darwin.cli`
 
+###  Testing
+To run unit tests locally:
+```
+pytest
+```
+
+To run end-to-end tests locally, copy `e2e_tests/.env.example` to `.env` and populate all variables. Then run:
+```
+pytest e2e_tests
+```
+
 ## Useful Aliases
 Aliases can be helpful for testing and development. Add them to your shell configuration file .bashrc .zshrc etc for ease of use and development
 ```
