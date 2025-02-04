@@ -51,9 +51,9 @@ from darwin.utils import (
 )
 from darwin.utils.get_item_count import get_item_count
 
-INITIAL_WAIT = 60
-MAX_WAIT = 300
-MAX_RETRIES = 10
+INITIAL_WAIT = int(os.getenv("DARWIN_RETRY_INITIAL_WAIT", "60"))
+MAX_WAIT = int(os.getenv("DARWIN_RETRY_MAX_WAIT", "300"))
+MAX_RETRIES = int(os.getenv("DARWIN_RETRY_MAX_ATTEMPTS", "10"))
 
 
 def log_rate_limit_exceeded(retry_state: RetryCallState):
