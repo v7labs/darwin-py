@@ -1284,8 +1284,13 @@ class TestPull:
 
 
 class TestPullNamingConvention:
+    @pytest.mark.usefixtures("file_read_write_test")
     def _test_pull_naming_convention(
-        self, file_name, use_folders, video_frames, force_slots
+        self,
+        file_name,
+        use_folders,
+        video_frames,
+        force_slots,
     ):
         with tempfile.TemporaryDirectory() as temp_dir:
             with zipfile.ZipFile("tests/data.zip") as zfile:
@@ -1294,7 +1299,7 @@ class TestPullNamingConvention:
                     Path(temp_dir) / "v7-darwin-json-v2/pull_naming_tests" / file_name
                 )
                 download_func = _download_image_from_json_annotation(
-                    api_key="api_key",
+                    client=darwin_client,
                     annotation_path=file_path,
                     image_path=Path("dataset_dir_path"),
                     use_folders=use_folders,
@@ -1823,7 +1828,10 @@ class TestGetReleases:
         assert isinstance(releases[0], Release)
 
 
-def test_force_slots_true(mock_is_file_extension_allowed):
+@pytest.mark.usefixtures("file_read_write_test")
+def test_force_slots_true(
+    mock_is_file_extension_allowed, darwin_client, file_read_write_test
+):
     mock_is_file_extension_allowed.return_value = True
     with tempfile.TemporaryDirectory() as tmp_dir:
         with zipfile.ZipFile("tests/data.zip") as zfile:
@@ -1831,8 +1839,8 @@ def test_force_slots_true(mock_is_file_extension_allowed):
             annotations_path = Path(tmp_dir) / "v7-darwin-json-v2/force_slots"
             images_path = Path("images")
             generator, count = download_all_images_from_annotations(
-                api_key="api_key",
                 annotations_path=annotations_path,
+                client=darwin_client,
                 images_path=images_path,
                 force_slots=True,
                 force_replace=True,
@@ -1857,7 +1865,10 @@ def test_force_slots_true(mock_is_file_extension_allowed):
         assert expected_path in planned_paths
 
 
-def test_force_slots_false(mock_is_file_extension_allowed):
+@pytest.mark.usefixtures("file_read_write_test")
+def test_force_slots_false(
+    mock_is_file_extension_allowed, darwin_client, file_read_write_test
+):
     mock_is_file_extension_allowed.return_value = True
     with tempfile.TemporaryDirectory() as tmp_dir:
         with zipfile.ZipFile("tests/data.zip") as zfile:
@@ -1865,8 +1876,8 @@ def test_force_slots_false(mock_is_file_extension_allowed):
             annotations_path = Path(tmp_dir) / "v7-darwin-json-v2/force_slots"
             images_path = Path("images")
             generator, count = download_all_images_from_annotations(
-                api_key="api_key",
                 annotations_path=annotations_path,
+                client=darwin_client,
                 images_path=images_path,
                 force_slots=False,
                 force_replace=True,

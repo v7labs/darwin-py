@@ -39,7 +39,7 @@ from darwin.dataset.utils import (
     is_unix_like_os,
     make_class_lists,
 )
-from darwin.datatypes import AnnotationClass, AnnotationFile, ItemId, PathLike, Team
+from darwin.datatypes import AnnotationClass, AnnotationFile, ItemId, PathLike
 from darwin.exceptions import MissingDependency, NotFound, UnsupportedExportFormat
 from darwin.exporter.formats.darwin import build_image_annotation
 from darwin.item import DatasetItem
@@ -385,15 +385,9 @@ class RemoteDataset(ABC):
             # No images will be downloaded
             return None, 0
 
-        team_config: Optional[Team] = self.client.config.get_team(self.team)
-        if not team_config:
-            raise ValueError("Unable to get Team configuration.")
-
-        api_key = team_config.api_key
-
         # Create the generator with the download instructions
         progress, count = download_all_images_from_annotations(
-            api_key=api_key,
+            client=self.client,
             annotations_path=annotations_dir,
             images_path=self.local_images_path,
             force_replace=force_replace,

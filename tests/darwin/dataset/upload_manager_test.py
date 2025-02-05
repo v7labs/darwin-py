@@ -6,7 +6,7 @@ import responses
 import inspect
 
 
-from darwin.client import Client
+from darwin.client import Client, MAX_RETRIES
 from darwin.config import Config
 from darwin.dataset import RemoteDataset
 from darwin.dataset.identifier import DatasetIdentifier
@@ -199,15 +199,16 @@ def test_error_count_is_correct_on_signature_request(
     responses.add(responses.GET, sign_upload_endpoint, status=500)
 
     local_file = LocalFile(local_path=Path("test.jpg"))
-    with patch.object(dataset, "fetch_remote_files", return_value=[]):
+    with patch.object(dataset, "fetch_remote_files", return_value=[]), patch(
+        "time.sleep", return_value=None
+    ):
         upload_handler = UploadHandler.build(dataset, [local_file])
-
-    upload_handler.upload()
-    for file_to_upload in upload_handler.progress:
-        file_to_upload()
+        upload_handler.upload()
+        for file_to_upload in upload_handler.progress:
+            file_to_upload()
 
     responses.assert_call_count(request_upload_endpoint, 1)
-    responses.assert_call_count(sign_upload_endpoint, 1)
+    responses.assert_call_count(sign_upload_endpoint, MAX_RETRIES)
     responses.assert_call_count(upload_to_s3_endpoint, 0)
     responses.assert_call_count(confirm_upload_endpoint, 0)
 

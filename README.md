@@ -50,6 +50,30 @@ To run test, first install the `test` extra package
 pip install darwin-py[test]
 ```
 
+### Configuration
+
+#### Retry Configuration
+
+The SDK includes a retry mechanism for handling API rate limits (429) and server errors (500, 502, 503, 504). You can configure the retry behavior using the following environment variables:
+
+- `DARWIN_RETRY_INITIAL_WAIT`: Initial wait time in seconds between retries (default: 60)
+- `DARWIN_RETRY_MAX_WAIT`: Maximum wait time in seconds between retries (default: 300)
+- `DARWIN_RETRY_MAX_ATTEMPTS`: Maximum number of retry attempts (default: 10)
+
+Example configuration:
+```bash
+# Configure shorter retry intervals and fewer attempts
+export DARWIN_RETRY_INITIAL_WAIT=30
+export DARWIN_RETRY_MAX_WAIT=120
+export DARWIN_RETRY_MAX_ATTEMPTS=5
+```
+
+The retry mechanism will automatically handle:
+- Rate limiting (HTTP 429)
+- Server errors (HTTP 500, 502, 503, 504)
+
+For each retry attempt, you'll see a message indicating the type of error and the wait time before the next attempt.
+
 ### Development
 
 See our development and QA environment installation recommendations [here](docs/DEV.md)
