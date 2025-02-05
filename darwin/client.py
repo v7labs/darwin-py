@@ -69,6 +69,58 @@ def retry_if_status_code_429(retry_state: RetryCallState):
     return False
 
 
+def retry_if_status_code_429_or_5xx(retry_state: RetryCallState) -> bool:
+    """
+    Determines if a request should be retried based on the response status code.
+
+    Retries on:
+    - Rate limit (429)
+    - Server errors (500, 502, 503, 504)
+
+    Parameters
+    ----------
+    retry_state : RetryCallState
+        The current state of the retry mechanism
+
+    Returns
+    -------
+    bool
+        True if the request should be retried, False otherwise
+    """
+    exception = retry_state.outcome.exception()
+    if isinstance(exception, HTTPError):
+        response: Response = exception.response
+        return response.status_code in {
+            429,
+            500,
+            502,
+            503,
+            504,
+        }
+    return False
+
+
+def log_retry_error(retry_state: RetryCallState) -> None:
+    """
+    Logs information about why a request is being retried.
+
+    Parameters
+    ----------
+    retry_state : RetryCallState
+        The current state of the retry mechanism
+    """
+    wait_time = retry_state.next_action.sleep
+    exception = retry_state.outcome.exception()
+    if isinstance(exception, HTTPError):
+        response: Response = exception.response
+        if response.status_code == 429:
+            print(f"Rate limit exceeded. Retrying in {wait_time:.2f} seconds...")
+        else:
+            print(
+                f"Server error {response.status_code}. Retrying in {wait_time:.2f} seconds..."
+            )
+
+
 class Client:
     def __init__(
         self,
@@ -766,8 +818,8 @@ class Client:
     @retry(
         wait=wait_exponential_jitter(initial=INITIAL_WAIT, max=MAX_WAIT),
         stop=stop_after_attempt(MAX_RETRIES),
-        retry=retry_if_status_code_429,
-        before_sleep=log_rate_limit_exceeded,
+        retry=retry_if_status_code_429_or_5xx,
+        before_sleep=log_retry_error,
     )
     def _get_raw_from_full_url(
         self,
@@ -812,8 +864,8 @@ class Client:
     @retry(
         wait=wait_exponential_jitter(initial=INITIAL_WAIT, max=MAX_WAIT),
         stop=stop_after_attempt(MAX_RETRIES),
-        retry=retry_if_status_code_429,
-        before_sleep=log_rate_limit_exceeded,
+        retry=retry_if_status_code_429_or_5xx,
+        before_sleep=log_retry_error,
     )
     def _put_raw(
         self,
@@ -850,8 +902,8 @@ class Client:
     @retry(
         wait=wait_exponential_jitter(initial=INITIAL_WAIT, max=MAX_WAIT),
         stop=stop_after_attempt(MAX_RETRIES),
-        retry=retry_if_status_code_429,
-        before_sleep=log_rate_limit_exceeded,
+        retry=retry_if_status_code_429_or_5xx,
+        before_sleep=log_retry_error,
     )
     def _post_raw(
         self,
@@ -906,8 +958,8 @@ class Client:
     @retry(
         wait=wait_exponential_jitter(initial=INITIAL_WAIT, max=MAX_WAIT),
         stop=stop_after_attempt(MAX_RETRIES),
-        retry=retry_if_status_code_429,
-        before_sleep=log_rate_limit_exceeded,
+        retry=retry_if_status_code_429_or_5xx,
+        before_sleep=log_retry_error,
     )
     def _delete(
         self,

@@ -618,7 +618,7 @@ class TestClientRetry:
 
     @patch("time.sleep", return_value=None)
     def test_put_retries_on_429(self, mock_sleep, client):
-        # Create a mock response that simulates a 429 status
+
         mock_response = Mock(spec=Response)
         mock_response.status_code = 429
         mock_response.headers = {}
