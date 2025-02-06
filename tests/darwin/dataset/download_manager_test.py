@@ -8,6 +8,8 @@ import responses
 from darwin.dataset import download_manager as dm
 from darwin.datatypes import AnnotationClass, AnnotationFile, Slot, SourceFile
 from tests.fixtures import *
+from darwin.client import Client
+from darwin.config import Config
 
 
 @pytest.fixture
@@ -26,6 +28,23 @@ def slot_w_manifests() -> Slot:
         source_files=[],
         frame_manifest=[{"url": "http://test.com"}, {"url": "http://test2.com"}],
     )
+
+
+@pytest.fixture
+def darwin_client(
+    darwin_config_path: Path,
+    darwin_datasets_path: Path,
+    team_slug_darwin_json_v2: str,
+) -> Client:
+    config = Config(darwin_config_path)
+    config.put(["global", "api_endpoint"], "http://localhost/api")
+    config.put(["global", "base_url"], "http://localhost")
+    config.put(["teams", team_slug_darwin_json_v2, "api_key"], "mock_api_key")
+    config.put(
+        ["teams", team_slug_darwin_json_v2, "datasets_dir"],
+        str(darwin_datasets_path),
+    )
+    return Client(config)
 
 
 def test_parse_manifests(manifest_paths: List[Path]) -> None:
@@ -49,15 +68,21 @@ def test_parse_manifests(manifest_paths: List[Path]) -> None:
     assert segment_manifests[3].items[1].visibility is True
 
 
+@pytest.mark.usefixtures("file_read_write_test")
 def test_get_segment_manifests(
-    manifest_paths: List[Path], slot_w_manifests: Slot
+    manifest_paths: List[Path],
+    slot_w_manifests: Slot,
+    darwin_client: Client,
+    file_read_write_test,
 ) -> None:
     parent_path = Path("tests/darwin/dataset/data/manifest_examples")
     files = [open(path, "r").read() for path in manifest_paths]
     with responses.RequestsMock() as rsps:
         rsps.add(responses.GET, "http://test.com", body=files[0])
         rsps.add(responses.GET, "http://test2.com", body=files[1])
-        segment_manifests = dm.get_segment_manifests(slot_w_manifests, parent_path, "")
+        segment_manifests = dm.get_segment_manifests(
+            slot_w_manifests, parent_path, darwin_client
+        )
         assert len(segment_manifests) == 4
         assert len(segment_manifests[0].items) == 2
         assert len(segment_manifests[1].items) == 2

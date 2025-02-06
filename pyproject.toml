@@ -13,7 +13,7 @@ license = "MIT"
 name = "darwin-py"
 readme = "README.md"
 repository = "https://github.com/v7labs/darwin-py"
-version = "1.1.3"
+version = "1.1.4"
 [[tool.poetry.packages]]
 include = "darwin"
 
@@ -163,7 +163,7 @@ version = "^1.0.0"
 
 [tool.poetry.dependencies.opencv-python-headless]
 optional = true
-version = "4.10.0.84"
+version = "4.11.0.86"
 
 [tool.poetry.dependencies.pytest-rerunfailures]
 optional = true
@@ -171,7 +171,7 @@ version = "^12.0"
 
 [tool.poetry.dependencies.ruff]
 optional = true
-version = ">=0.4.7,<0.9.0"
+version = ">=0.4.7,<0.10.0"
 
 [tool.poetry.dependencies.validate-pyproject]
 optional = true

@@ -81,7 +81,7 @@ instead of calling this low-level function directly.
 
 
 def _build_main_annotations_lookup_table(
-    annotation_classes: List[Dict[str, Unknown]]
+    annotation_classes: List[Dict[str, Unknown]],
 ) -> Dict[str, Unknown]:
     MAIN_ANNOTATION_TYPES = [
         "bounding_box",
@@ -484,7 +484,7 @@ def _serialize_item_level_properties(
 
 
 def _parse_metadata_file(
-    metadata_path: Union[Path, bool]
+    metadata_path: Union[Path, bool],
 ) -> Tuple[List[PropertyClass], List[Dict[str, str]]]:
     if isinstance(metadata_path, Path):
         metadata = parse_metadata(metadata_path)
@@ -1001,7 +1001,7 @@ def _import_properties(
 
 
 def _normalize_item_properties(
-    item_properties: Union[Dict[str, Dict[str, Any]], List[Dict[str, str]]]
+    item_properties: Union[Dict[str, Dict[str, Any]], List[Dict[str, str]]],
 ) -> Dict[str, Dict[str, Any]]:
     """
     Normalizes item properties to a common dictionary format.
@@ -1586,6 +1586,7 @@ def _handle_subs(
     data: dt.DictFreeForm,
     annotation_class_id: str,
     attributes: Dict[str, dt.UnknownType],
+    include_empty_attributes: Optional[bool] = False,
 ) -> dt.DictFreeForm:
     for sub in annotation.subs:
         if sub.annotation_type == "text":
@@ -1608,6 +1609,9 @@ def _handle_subs(
             data["instance_id"] = {"value": sub.data}
         else:
             data[sub.annotation_type] = sub.data
+
+    if not data.get("attributes") and include_empty_attributes:
+        data["attributes"] = {"attributes": []}
 
     return data
 
@@ -1707,6 +1711,7 @@ def _get_annotation_data(
                 _format_polygon_for_import(annotation, data),
                 annotation_class_id,
                 attributes,
+                include_empty_attributes=True,
             ),
         )
     else:
@@ -2046,7 +2051,7 @@ def _overwrite_warning(
 
 
 def _get_annotation_format(
-    importer: Callable[[Path], Union[List[dt.AnnotationFile], dt.AnnotationFile, None]]
+    importer: Callable[[Path], Union[List[dt.AnnotationFile], dt.AnnotationFile, None]],
 ) -> str:
     """
     Returns the annotation format of the importer used to parse local annotation files

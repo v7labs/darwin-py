@@ -1220,7 +1220,7 @@ def _parse_annotators(annotators: List[Dict[str, Any]]) -> List[dt.AnnotationAut
 
 
 def _parse_properties(
-    properties: List[Dict[str, Any]]
+    properties: List[Dict[str, Any]],
 ) -> Optional[List[SelectedProperty]]:
     selected_properties = []
     for property in properties:
@@ -1512,7 +1512,7 @@ def _parse_version(data: dict) -> dt.AnnotationFileVersion:
 
 
 def _data_to_annotations(
-    data: Dict[str, Any]
+    data: Dict[str, Any],
 ) -> List[Union[dt.Annotation, dt.VideoAnnotation]]:
     raw_image_annotations = filter(
         lambda annotation: (
