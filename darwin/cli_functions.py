@@ -1059,7 +1059,7 @@ def set_file_status(dataset_slug: str, status: str, files: List[str]) -> None:
     files: List[str]
         Names of the files we want to update.
     """
-    available_statuses = ["archived", "clear", "new", "restore-archived", "complete"]
+    available_statuses = ["archived", "new", "restore-archived", "complete"]
     if status not in available_statuses:
         _error(
             f"Invalid status '{status}', available statuses: {', '.join(available_statuses)}"
@@ -1075,8 +1075,6 @@ def set_file_status(dataset_slug: str, status: str, files: List[str]) -> None:
         )
         if status == "archived":
             dataset.archive(items)
-        elif status == "clear":
-            dataset.reset(items)
         elif status == "new":
             dataset.move_to_new(items)
         elif status == "restore-archived":

@@ -500,17 +500,6 @@ class RemoteDataset(ABC):
         """
 
     @abstractmethod
-    def reset(self, items: Iterable[DatasetItem]) -> None:
-        """
-        Resets the given ``DatasetItem``\\s.
-
-        Parameters
-        ----------
-        items : Iterable[DatasetItem]
-            The ``DatasetItem``\\s to be reset.
-        """
-
-    @abstractmethod
     def complete(self, items: Iterable[DatasetItem]) -> None:
         """
         Completes the given ``DatasetItem``\\s.

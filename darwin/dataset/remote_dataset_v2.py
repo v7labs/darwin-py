@@ -418,18 +418,6 @@ class RemoteDatasetV2(RemoteDataset):
             team_slug=self.team,
         )
 
-    def reset(self, items: Iterable[DatasetItem]) -> None:
-        """
-        Deprecated
-        Resets the  given ``DatasetItem``\\s.
-
-        Parameters
-        ----------
-        items : Iterable[DatasetItem]
-            The ``DatasetItem``\\s to be resetted.
-        """
-        raise ValueError("Reset is deprecated for version 2 datasets")
-
     def complete(self, items: Iterable[DatasetItem]) -> None:
         """
         Completes the given ``DatasetItem``\\s.
