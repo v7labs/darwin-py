@@ -10,6 +10,7 @@ from typing import (
     Sequence,
     Tuple,
     Union,
+    Iterable,
 )
 import numpy as np
 from pydantic import ValidationError
@@ -362,13 +363,13 @@ class RemoteDatasetV2(RemoteDataset):
             else:
                 return
 
-    def archive(self, items: Iterator[DatasetItem]) -> None:
+    def archive(self, items: Iterable[DatasetItem]) -> None:
         """
         Archives (soft-deletion) the given ``DatasetItem``\\s belonging to this ``RemoteDataset``.
 
         Parameters
         ----------
-        items : Iterator[DatasetItem]
+        items : Iterable[DatasetItem]
             The ``DatasetItem``\\s to be archived.
         """
         payload: Dict[str, Any] = {
@@ -379,13 +380,13 @@ class RemoteDatasetV2(RemoteDataset):
         }
         self.client.api_v2.archive_items(payload, team_slug=self.team)
 
-    def restore_archived(self, items: Iterator[DatasetItem]) -> None:
+    def restore_archived(self, items: Iterable[DatasetItem]) -> None:
         """
         Restores the archived ``DatasetItem``\\s that belong to this ``RemoteDataset``.
 
         Parameters
         ----------
-        items : Iterator[DatasetItem]
+        items : Iterable[DatasetItem]
             The ``DatasetItem``\\s to be restored.
         """
         payload: Dict[str, Any] = {
@@ -396,13 +397,13 @@ class RemoteDatasetV2(RemoteDataset):
         }
         self.client.api_v2.restore_archived_items(payload, team_slug=self.team)
 
-    def move_to_new(self, items: Iterator[DatasetItem]) -> None:
+    def move_to_new(self, items: Iterable[DatasetItem]) -> None:
         """
         Changes the given ``DatasetItem``\\s status to ``new``.
 
         Parameters
         ----------
-        items : Iterator[DatasetItem]
+        items : Iterable[DatasetItem]
             The ``DatasetItem``\\s whose status will change.
         """
 
@@ -417,25 +418,25 @@ class RemoteDatasetV2(RemoteDataset):
             team_slug=self.team,
         )
 
-    def reset(self, items: Iterator[DatasetItem]) -> None:
+    def reset(self, items: Iterable[DatasetItem]) -> None:
         """
         Deprecated
         Resets the  given ``DatasetItem``\\s.
 
         Parameters
         ----------
-        items : Iterator[DatasetItem]
+        items : Iterable[DatasetItem]
             The ``DatasetItem``\\s to be resetted.
         """
         raise ValueError("Reset is deprecated for version 2 datasets")
 
-    def complete(self, items: Iterator[DatasetItem]) -> None:
+    def complete(self, items: Iterable[DatasetItem]) -> None:
         """
         Completes the given ``DatasetItem``\\s.
 
         Parameters
         ----------
-        items : Iterator[DatasetItem]
+        items : Iterable[DatasetItem]
             The ``DatasetItem``\\s to be completed.
         """
         (workflow_id, stages) = self._fetch_stages("complete")
@@ -449,13 +450,13 @@ class RemoteDatasetV2(RemoteDataset):
             team_slug=self.team,
         )
 
-    def delete_items(self, items: Iterator[DatasetItem]) -> None:
+    def delete_items(self, items: Iterable[DatasetItem]) -> None:
         """
         Deletes the given ``DatasetItem``\\s.
 
         Parameters
         ----------
-        items : Iterator[DatasetItem]
+        items : Iterable[DatasetItem]
             The ``DatasetItem``\\s to be deleted.
         """
         self.client.api_v2.delete_items(
