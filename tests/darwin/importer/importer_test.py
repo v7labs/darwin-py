@@ -3977,7 +3977,6 @@ def test__get_remote_files_targeted_by_import_success() -> None:
     mock_dataset = Mock()
     mock_console = Mock()
 
-    # Mock the remote files that will be returned
     mock_remote_file1 = Mock(full_path="/path/to/file1.json")
     mock_remote_file2 = Mock(full_path="/path/to/file2.json")
 
@@ -4030,7 +4029,6 @@ def test__get_remote_files_targeted_by_import_url_too_long() -> None:
     mock_dataset = Mock()
     mock_console = Mock()
 
-    # Create a filename that would exceed the max URL length by itself
     very_long_filename = "a" * (MAX_URL_LENGTH - BASE_URL_LENGTH + 10) + ".json"
 
     def mock_importer(path: Path) -> List[dt.AnnotationFile]:
@@ -4051,7 +4049,6 @@ def test__get_remote_files_targeted_by_import_url_too_long() -> None:
             console=mock_console,
         )
 
-    # Verify fetch_remote_files was called with just the one filename
     mock_dataset.fetch_remote_files.assert_called_once_with(
         filters={"item_names": [very_long_filename]}
     )
@@ -4230,10 +4227,7 @@ def test__get_remote_medical_file_transform_requirements_mixed():
         remote_files
     )
 
-    # Check MONAI file results
     assert pixel_transform == {"/path/to/file1": {"slot1": [1.0, 2.0]}}
-
-    # Check legacy NifTI file results
     assert "/path/to/file2" in legacy_scaling
     assert "slot2" in legacy_scaling["/path/to/file2"]
     assert legacy_scaling["/path/to/file2"]["slot2"].shape == (4, 4)
