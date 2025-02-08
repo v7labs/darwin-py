@@ -7,23 +7,22 @@
 ⚡️ Official library to annotate, manage datasets, and models on
 [V7's Darwin Training Data Platform](https://darwin.v7labs.com). ⚡️
 
-Need to label data? [**Start using V7 free today**](https://www.v7labs.com/get-started)
-
 Darwin-py can both be used from the [command line](#usage-as-a-command-line-interface-cli) and as a [python library](#usage-as-a-python-library).
 
 <hr/>
 
 Main functions are (but not limited to):
 
-- Client authentication
-- Listing local and remote datasets
-- Create/remove datasets
-- Upload/download data to/from remote datasets
-- Direct integration with PyTorch dataloaders
+-   Client authentication
+-   Listing local and remote datasets
+-   Create/remove datasets
+-   Upload/download data to/from remote datasets
+-   Direct integration with PyTorch dataloaders
+-   Extracting video artifacts
 
 Support tested for python 3.9 - 3.12
 
-##  🏁 Installation
+## 🏁 Installation
 
 ```
 pip install darwin-py
@@ -43,11 +42,38 @@ If you wish to use video frame extraction, then you can use the `ocv` flag to in
 pip install darwin-py[ocv]
 ```
 
+If you wish to use video artifacts extraction, then you need to install [FFmpeg](https://www.ffmpeg.org/download.html)
+
 To run test, first install the `test` extra package
 
 ```
 pip install darwin-py[test]
 ```
+
+### Configuration
+
+#### Retry Configuration
+
+The SDK includes a retry mechanism for handling API rate limits (429) and server errors (500, 502, 503, 504). You can configure the retry behavior using the following environment variables:
+
+- `DARWIN_RETRY_INITIAL_WAIT`: Initial wait time in seconds between retries (default: 60)
+- `DARWIN_RETRY_MAX_WAIT`: Maximum wait time in seconds between retries (default: 300)
+- `DARWIN_RETRY_MAX_ATTEMPTS`: Maximum number of retry attempts (default: 10)
+
+Example configuration:
+```bash
+# Configure shorter retry intervals and fewer attempts
+export DARWIN_RETRY_INITIAL_WAIT=30
+export DARWIN_RETRY_MAX_WAIT=120
+export DARWIN_RETRY_MAX_ATTEMPTS=5
+```
+
+The retry mechanism will automatically handle:
+- Rate limiting (HTTP 429)
+- Server errors (HTTP 500, 502, 503, 504)
+
+For each retry attempt, you'll see a message indicating the type of error and the wait time before the next attempt.
+
 ### Development
 
 See our development and QA environment installation recommendations [here](docs/DEV.md)
@@ -132,8 +158,8 @@ For videos, the frame rate extraction rate can be specified by adding `--fps <fr
 
 Supported extensions:
 
-- Video files: [`.mp4`, `.bpm`, `.mov` formats].
-- Image files [`.jpg`, `.jpeg`, `.png` formats].
+-   Video files: [`.mp4`, `.bpm`, `.mov` formats].
+-   Image files [`.jpg`, `.jpeg`, `.png` formats].
 
 ```
 $ darwin dataset push test /path/to/folder/with/images
@@ -173,7 +199,6 @@ Usage can be inferred from looking at the operations performed in `darwin/cli_fu
 A minimal example to download a dataset is provided below and a more extensive one can be found in
 
 [./darwin_demo.py](https://github.com/v7labs/darwin-py/blob/master/darwin_demo.py).
-
 
 ```python
 from darwin.client import Client

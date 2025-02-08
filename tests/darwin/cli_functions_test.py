@@ -6,13 +6,18 @@ import pytest
 import responses
 from rich.console import Console
 
-from darwin.cli_functions import delete_files, set_file_status, upload_data
+from darwin.cli_functions import (
+    delete_files,
+    extract_video_artifacts,
+    set_file_status,
+    upload_data,
+)
 from darwin.client import Client
 from darwin.config import Config
 from darwin.dataset import RemoteDataset
 from darwin.dataset.remote_dataset_v2 import RemoteDatasetV2
-from tests.fixtures import *
 from darwin.utils import BLOCKED_UPLOAD_ERROR_ALREADY_EXISTS
+from tests.fixtures import *
 
 
 @pytest.fixture
@@ -434,3 +439,31 @@ class TestDeleteFiles:
                         )
                         mock.assert_called_once()
                         exception.assert_called_once_with(1)
+
+
+class TestExtractVideo:
+    def test_extract_video(self, tmp_path):
+        """Test basic video extraction via CLI function"""
+        source_file = "test_video.mp4"
+        output_dir = str(tmp_path)
+
+        with patch("darwin.extractor.video.extract_artifacts") as mock_extract:
+            mock_extract.return_value = {}
+
+            extract_video_artifacts(
+                source_file,
+                output_dir,
+                storage_key_prefix="test/prefix",
+                fps=30.0,
+                segment_length=2,
+                repair=False,
+            )
+
+            mock_extract.assert_called_once_with(
+                source_file=source_file,
+                output_dir=output_dir,
+                fps=30.0,
+                segment_length=2,
+                repair=False,
+                storage_key_prefix="test/prefix",
+            )

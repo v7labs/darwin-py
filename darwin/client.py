@@ -1,16 +1,15 @@
 import json
 import logging
 import os
-import time
 import zlib
 from logging import Logger
 from pathlib import Path
 from typing import Dict, Iterator, List, Optional, Union, cast
-
+from requests.exceptions import HTTPError
 import requests
 from requests import Response
 from requests.adapters import HTTPAdapter
-
+from tenacity import RetryCallState, retry, stop_after_attempt, wait_exponential_jitter
 from darwin.backend_v2 import BackendV2
 from darwin.config import Config
 from darwin.dataset.identifier import DatasetIdentifier
@@ -51,6 +50,75 @@ from darwin.utils import (
     urljoin,
 )
 from darwin.utils.get_item_count import get_item_count
+
+INITIAL_WAIT = int(os.getenv("DARWIN_RETRY_INITIAL_WAIT", "60"))
+MAX_WAIT = int(os.getenv("DARWIN_RETRY_MAX_WAIT", "300"))
+MAX_RETRIES = int(os.getenv("DARWIN_RETRY_MAX_ATTEMPTS", "10"))
+
+
+def log_rate_limit_exceeded(retry_state: RetryCallState):
+    wait_time = retry_state.next_action.sleep
+    print(f"Rate limit exceeded. Retrying in {wait_time:.2f} seconds...")
+
+
+def retry_if_status_code_429(retry_state: RetryCallState):
+    exception = retry_state.outcome.exception()
+    if isinstance(exception, HTTPError):
+        response: Response = exception.response
+        return response.status_code == 429
+    return False
+
+
+def retry_if_status_code_429_or_5xx(retry_state: RetryCallState) -> bool:
+    """
+    Determines if a request should be retried based on the response status code.
+
+    Retries on:
+    - Rate limit (429)
+    - Server errors (500, 502, 503, 504)
+
+    Parameters
+    ----------
+    retry_state : RetryCallState
+        The current state of the retry mechanism
+
+    Returns
+    -------
+    bool
+        True if the request should be retried, False otherwise
+    """
+    exception = retry_state.outcome.exception()
+    if isinstance(exception, HTTPError):
+        response: Response = exception.response
+        return response.status_code in {
+            429,
+            500,
+            502,
+            503,
+            504,
+        }
+    return False
+
+
+def log_retry_error(retry_state: RetryCallState) -> None:
+    """
+    Logs information about why a request is being retried.
+
+    Parameters
+    ----------
+    retry_state : RetryCallState
+        The current state of the retry mechanism
+    """
+    wait_time = retry_state.next_action.sleep
+    exception = retry_state.outcome.exception()
+    if isinstance(exception, HTTPError):
+        response: Response = exception.response
+        if response.status_code == 429:
+            print(f"Rate limit exceeded. Retrying in {wait_time:.2f} seconds...")
+        else:
+            print(
+                f"Server error {response.status_code}. Retrying in {wait_time:.2f} seconds..."
+            )
 
 
 class Client:
@@ -719,9 +787,14 @@ class Client:
         return os.getenv("DARWIN_BASE_URL", "https://darwin.v7labs.com")
 
     def _get_headers(
-        self, team_slug: Optional[str] = None, compressed: bool = False
+        self,
+        team_slug: Optional[str] = None,
+        compressed: bool = False,
+        auth_token: Optional[bool] = False,
     ) -> Dict[str, str]:
         headers: Dict[str, str] = {"Content-Type": "application/json"}
+        if auth_token:
+            return headers
 
         api_key: Optional[str] = None
         team_config: Optional[Team] = self.config.get_team(
@@ -742,15 +815,23 @@ class Client:
         headers["User-Agent"] = f"darwin-py/{__version__}"
         return headers
 
+    @retry(
+        wait=wait_exponential_jitter(initial=INITIAL_WAIT, max=MAX_WAIT),
+        stop=stop_after_attempt(MAX_RETRIES),
+        retry=retry_if_status_code_429_or_5xx,
+        before_sleep=log_retry_error,
+    )
     def _get_raw_from_full_url(
         self,
         url: str,
         team_slug: Optional[str] = None,
-        retry: bool = False,
         stream: bool = False,
+        auth_token: Optional[bool] = False,
     ) -> Response:
         response: Response = self.session.get(
-            url, headers=self._get_headers(team_slug), stream=stream
+            url,
+            headers=self._get_headers(team_slug, auth_token=auth_token),
+            stream=stream,
         )
 
         self.log.debug(
@@ -761,40 +842,36 @@ class Client:
         )
 
         self._raise_if_known_error(response, url)
-
-        if not response.ok and retry:
-            time.sleep(10)
-            return self._get_raw_from_full_url(
-                url=url, team_slug=team_slug, retry=False, stream=stream
-            )
-
         response.raise_for_status()
-
         return response
 
     def _get_raw(
         self,
         endpoint: str,
         team_slug: Optional[str] = None,
-        retry: bool = False,
         stream: bool = False,
     ) -> Response:
         return self._get_raw_from_full_url(
-            urljoin(self.url, endpoint), team_slug, retry=retry, stream=stream
+            urljoin(self.url, endpoint), team_slug, stream=stream
         )
 
     def _get(
-        self, endpoint: str, team_slug: Optional[str] = None, retry: bool = False
+        self, endpoint: str, team_slug: Optional[str] = None
     ) -> Union[Dict[str, UnknownType], List[Dict[str, UnknownType]]]:
-        response = self._get_raw(endpoint, team_slug, retry)
+        response = self._get_raw(endpoint, team_slug)
         return self._decode_response(response)
 
+    @retry(
+        wait=wait_exponential_jitter(initial=INITIAL_WAIT, max=MAX_WAIT),
+        stop=stop_after_attempt(MAX_RETRIES),
+        retry=retry_if_status_code_429_or_5xx,
+        before_sleep=log_retry_error,
+    )
     def _put_raw(
         self,
         endpoint: str,
         payload: Dict[str, UnknownType],
         team_slug: Optional[str] = None,
-        retry: bool = False,
     ) -> Response:
         response: requests.Response = self.session.put(
             urljoin(self.url, endpoint),
@@ -810,13 +887,7 @@ class Client:
         )
 
         self._raise_if_known_error(response, urljoin(self.url, endpoint))
-
-        if not response.ok and retry:
-            time.sleep(10)
-            return self._put_raw(endpoint, payload=payload, retry=False)
-
         response.raise_for_status()
-
         return response
 
     def _put(
@@ -824,17 +895,21 @@ class Client:
         endpoint: str,
         payload: Dict[str, UnknownType],
         team_slug: Optional[str] = None,
-        retry: bool = False,
     ) -> Union[Dict[str, UnknownType], List[Dict[str, UnknownType]]]:
-        response: Response = self._put_raw(endpoint, payload, team_slug, retry)
+        response: Response = self._put_raw(endpoint, payload, team_slug)
         return self._decode_response(response)
 
+    @retry(
+        wait=wait_exponential_jitter(initial=INITIAL_WAIT, max=MAX_WAIT),
+        stop=stop_after_attempt(MAX_RETRIES),
+        retry=retry_if_status_code_429_or_5xx,
+        before_sleep=log_retry_error,
+    )
     def _post_raw(
         self,
         endpoint: str,
         payload: Optional[Dict[str, UnknownType]] = None,
         team_slug: Optional[str] = None,
-        retry: bool = False,
     ) -> Response:
         if payload is None:
             payload = {}
@@ -868,13 +943,7 @@ class Client:
         )
 
         self._raise_if_known_error(response, urljoin(self.url, endpoint))
-
-        if not response.ok and retry:
-            time.sleep(10)
-            return self._post_raw(endpoint, payload=payload, retry=False)
-
         response.raise_for_status()
-
         return response
 
     def _post(
@@ -882,17 +951,21 @@ class Client:
         endpoint: str,
         payload: Optional[Dict[str, UnknownType]] = None,
         team_slug: Optional[str] = None,
-        retry: bool = False,
     ) -> Union[Dict[str, UnknownType], List[Dict[str, UnknownType]]]:
-        response: Response = self._post_raw(endpoint, payload, team_slug, retry)
+        response: Response = self._post_raw(endpoint, payload, team_slug)
         return self._decode_response(response)
 
+    @retry(
+        wait=wait_exponential_jitter(initial=INITIAL_WAIT, max=MAX_WAIT),
+        stop=stop_after_attempt(MAX_RETRIES),
+        retry=retry_if_status_code_429_or_5xx,
+        before_sleep=log_retry_error,
+    )
     def _delete(
         self,
         endpoint: str,
         payload: Optional[Dict[str, UnknownType]] = None,
         team_slug: Optional[str] = None,
-        retry: bool = False,
     ) -> Union[Dict[str, UnknownType], List[Dict[str, UnknownType]]]:
         if payload is None:
             payload = {}
@@ -911,13 +984,7 @@ class Client:
         )
 
         self._raise_if_known_error(response, urljoin(self.url, endpoint))
-
-        if not response.ok and retry:
-            time.sleep(10)
-            return self._delete(endpoint, payload=payload, retry=False)
-
         response.raise_for_status()
-
         return self._decode_response(response)
 
     def _raise_if_known_error(self, response: Response, url: str) -> None:

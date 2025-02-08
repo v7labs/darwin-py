@@ -13,7 +13,6 @@ darwin_py.egg-info/PKG-INFO
 *.jpg
 *.bpm
 *.mov
-*.mp4
 *.txt
 
 # from https://raw.githubusercontent.com/github/gitignore/master/Python.gitignore
@@ -125,7 +124,7 @@ celerybeat.pid
 *.sage.py
 
 # Environments
-.env*
+.env
 .venv*
 env/
 venv/

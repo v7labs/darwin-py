@@ -60,16 +60,17 @@ from darwin.exceptions import (
 )
 from darwin.exporter import ExporterNotFoundError, export_annotations, get_exporter
 from darwin.exporter.formats import supported_formats as export_formats
+from darwin.extractor import video
 from darwin.importer import ImporterNotFoundError, get_importer, import_annotations
 from darwin.importer.formats import supported_formats as import_formats
 from darwin.item import DatasetItem
 from darwin.utils import (
+    BLOCKED_UPLOAD_ERROR_ALREADY_EXISTS,
     find_files,
     persist_client_configuration,
     prompt,
     secure_continue_request,
     validate_file_against_schema,
-    BLOCKED_UPLOAD_ERROR_ALREADY_EXISTS,
 )
 
 
@@ -1468,3 +1469,41 @@ def _console_theme() -> Theme:
 
 def _has_valid_status(status: str) -> bool:
     return status in ["new", "annotate", "review", "complete", "archived"]
+
+
+def extract_video_artifacts(
+    source_file: str,
+    output_dir: str,
+    storage_key_prefix: str,
+    *,
+    fps: float = 0.0,
+    segment_length: int = 2,
+    repair: bool = False,
+) -> None:
+    """
+    Generate video artifacts (segments, sections, thumbnail, frames manifest).
+
+    Parameters
+    ----------
+    source_file : str
+        Path to input video file
+    output_dir : str
+        Output directory for artifacts
+    storage_key_prefix : str
+        Storage key prefix for generated files
+    fps : float, optional
+        Desired output FPS (0.0 for native), by default 0.0
+    segment_length : int, optional
+        Length of each segment in seconds, by default 2
+    repair : bool, optional
+        Whether to attempt to repair video if errors are detected, by default False
+    """
+
+    video.extract_artifacts(
+        source_file=source_file,
+        output_dir=output_dir,
+        storage_key_prefix=storage_key_prefix,
+        fps=fps,
+        segment_length=segment_length,
+        repair=repair,
+    )
