@@ -3,7 +3,6 @@ import json as native_json
 import re
 from dataclasses import dataclass
 from enum import Enum
-from numbers import Number
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Tuple, Union
 
@@ -538,7 +537,7 @@ def _get_reoriented_nifti_image(
 
 
 def shift_polygon_coords(
-    polygon: List[Dict], pixdim: List[Number], legacy: bool = False
+    polygon: List[Dict], pixdim: List[float], legacy: bool = False
 ) -> List:
     if legacy:
         # Need to make it clear that we flip x/y because we need to take the transpose later.

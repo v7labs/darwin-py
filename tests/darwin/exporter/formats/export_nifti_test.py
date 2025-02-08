@@ -169,3 +169,58 @@ def test_export_creates_file_for_polygons_and_masks(
                 # Empty the directory for the next test
                 for output_file in video_annotation_files[video_annotation_file]:
                     (Path(tmpdir) / output_file).unlink()
+
+
+def test_shift_polygon_coords_legacy():
+    """Test the `shift_polygon_coords` function in legacy mode with different pixdim ratios."""
+    # Case 1: pixdim[1] > pixdim[0]
+    polygon = [{"x": 10, "y": 20}, {"x": 30, "y": 40}, {"x": 50, "y": 60}]
+    pixdim = [1.0, 2.0, 1.0]
+    result = nifti.shift_polygon_coords(polygon, pixdim, legacy=True)
+    expected = [
+        {"x": 20, "y": 20},
+        {"x": 40, "y": 60},
+        {"x": 60, "y": 100},
+    ]
+    assert result == expected
+
+    # Case 2: pixdim[1] < pixdim[0]
+    polygon = [{"x": 10, "y": 20}, {"x": 30, "y": 40}, {"x": 50, "y": 60}]
+    pixdim = [2.0, 1.0, 1.0]
+    result = nifti.shift_polygon_coords(polygon, pixdim, legacy=True)
+    expected = [
+        {"x": 40, "y": 10},
+        {"x": 80, "y": 30},
+        {"x": 120, "y": 50},
+    ]
+    assert result == expected
+
+    # Case 3: pixdim[1] == pixdim[0]
+    polygon = [{"x": 10, "y": 20}, {"x": 30, "y": 40}, {"x": 50, "y": 60}]
+    pixdim = [1.0, 1.0, 1.0]
+    result = nifti.shift_polygon_coords(polygon, pixdim, legacy=True)
+    expected = [
+        {"x": 20, "y": 10},
+        {"x": 40, "y": 30},
+        {"x": 60, "y": 50},
+    ]
+    assert result == expected
+
+
+def test_shift_polygon_coords_no_legacy():
+    """Test the `shift_polygon_coords` function in non-legacy mode."""
+    polygon = [{"x": 10, "y": 20}, {"x": 30, "y": 40}, {"x": 50, "y": 60}]
+    pixdim = [2.0, 1.0, 1.0]
+    result = nifti.shift_polygon_coords(polygon, pixdim, legacy=False)
+    expected = [{"x": 20, "y": 10}, {"x": 40, "y": 30}, {"x": 60, "y": 50}]
+    assert result == expected
+
+
+def test_shift_polygon_coords_empty_polygon():
+    """Test the `shift_polygon_coords` function with an empty polygon."""
+    empty_polygon = []
+    pixdim = [1.0, 1.0, 1.0]
+    result = nifti.shift_polygon_coords(empty_polygon, pixdim, legacy=True)
+    assert result == []
+    result = nifti.shift_polygon_coords(empty_polygon, pixdim, legacy=False)
+    assert result == []
