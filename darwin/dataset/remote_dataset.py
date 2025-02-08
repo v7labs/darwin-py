@@ -467,68 +467,57 @@ class RemoteDataset(ABC):
         """
 
     @abstractmethod
-    def archive(self, items: Iterator[DatasetItem]) -> None:
+    def archive(self, items: Iterable[DatasetItem]) -> None:
         """
         Archives (soft-deletion) the given ``DatasetItem``\\s belonging to this ``RemoteDataset``.
 
         Parameters
         ----------
-        items : Iterator[DatasetItem]
+        items : Iterable[DatasetItem]
             The ``DatasetItem``\\s to be archived.
         """
 
     @abstractmethod
-    def restore_archived(self, items: Iterator[DatasetItem]) -> None:
+    def restore_archived(self, items: Iterable[DatasetItem]) -> None:
         """
         Restores the archived ``DatasetItem``\\s that belong to this ``RemoteDataset``.
 
         Parameters
         ----------
-        items : Iterator[DatasetItem]
+        items : Iterable[DatasetItem]
             The ``DatasetItem``\\s to be restored.
         """
 
     @abstractmethod
-    def move_to_new(self, items: Iterator[DatasetItem]) -> None:
+    def move_to_new(self, items: Iterable[DatasetItem]) -> None:
         """
         Changes the given ``DatasetItem``\\s status to ``new``.
 
         Parameters
         ----------
-        items : Iterator[DatasetItem]
+        items : Iterable[DatasetItem]
             The ``DatasetItem``\\s whose status will change.
         """
 
     @abstractmethod
-    def reset(self, items: Iterator[DatasetItem]) -> None:
-        """
-        Resets the given ``DatasetItem``\\s.
-
-        Parameters
-        ----------
-        items : Iterator[DatasetItem]
-            The ``DatasetItem``\\s to be reset.
-        """
-
-    @abstractmethod
-    def complete(self, items: Iterator[DatasetItem]) -> None:
+    def complete(self, items: Iterable[DatasetItem]) -> None:
         """
         Completes the given ``DatasetItem``\\s.
 
         Parameters
         ----------
-        items : Iterator[DatasetItem]
+        items : Iterable[DatasetItem]
             The ``DatasetItem``\\s to be completed.
         """
 
     @abstractmethod
-    def delete_items(self, items: Iterator[DatasetItem]) -> None:
+    def delete_items(self, items: Iterable[DatasetItem]) -> None:
         """
         Deletes the given ``DatasetItem``\\s.
 
         Parameters
         ----------
-        items : Iterator[DatasetItem]
+        items : Iterable[DatasetItem]
             The ``DatasetItem``\\s to be deleted.
         """
 
