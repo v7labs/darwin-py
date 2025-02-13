@@ -35,7 +35,7 @@ except ImportError:
 import numpy as np
 
 import darwin.datatypes as dt
-from darwin.utils import convert_polygons_to_mask, get_primary_plane_from_nifti
+from darwin.utils import convert_polygons_to_mask
 
 
 class Plane(Enum):
@@ -79,11 +79,15 @@ def export(
     """
     video_annotations = list(annotation_files)
     for video_annotation in video_annotations:
+        slot_name = video_annotation.slots[0].name
         try:
             medical_metadata = video_annotation.slots[0].metadata
             legacy = not medical_metadata.get("handler") == "MONAI"  # type: ignore
+            plane_map = medical_metadata.get("plane_map", {slot_name: "AXIAL"})
+            primary_plane = plane_map.get(slot_name, "AXIAL")
         except (KeyError, AttributeError):
             legacy = True
+            primary_plane = "AXIAL"
 
         image_id = check_for_error_and_return_imageid(video_annotation, output_dir)
         if not isinstance(image_id, str):
@@ -104,6 +108,7 @@ def export(
             class_names_to_export=polygon_class_names,
             from_raster_layer=False,
             mask_present=mask_present,
+            primary_plane=primary_plane,
         )
         slot_map = {slot.name: slot for slot in video_annotation.slots}
         polygon_annotations = [
@@ -133,6 +138,7 @@ def export(
                 video_annotation,
                 class_names_to_export=list(mask_id_to_classname.values()),
                 from_raster_layer=True,
+                primary_plane=primary_plane,
             )
 
             # This assumes only one raster_layer annotation. If we allow multiple raster layers per annotation file we need to change this.
@@ -162,6 +168,7 @@ def build_output_volumes(
     from_raster_layer: bool = False,
     class_names_to_export: List[str] = None,
     mask_present: Optional[bool] = False,
+    primary_plane: str = "AXIAL",
 ) -> Dict:
     """
     This is a function to create the output volumes based on the whole annotation file
@@ -176,6 +183,8 @@ def build_output_volumes(
         The list of class names to export
     mask_present: bool
         If mask annotations are present in the annotation
+    primary_plane: str
+        The primary plane of the annotation
     Returns
     -------
     output_volumes: Dict
@@ -198,9 +207,6 @@ def build_output_volumes(
             class_names_to_export = [
                 ""
             ]  # If there are no annotations to export, we still need to create an empty volume
-
-        # Determine primary plane from affine matrix
-        primary_plane = get_primary_plane_from_nifti(affine)
 
         output_volumes[series_instance_uid] = {
             class_name: Volume(
