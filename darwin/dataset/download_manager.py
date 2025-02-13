@@ -9,13 +9,21 @@ import urllib
 from collections import Counter
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    List,
+    Optional,
+    Tuple,
+    TYPE_CHECKING,
+)
 
 import numpy as np
 import orjson as json
 import requests
 from PIL import Image
-from requests.adapters import HTTPAdapter, Retry
 from rich.console import Console
 
 import darwin.datatypes as dt
@@ -34,9 +42,12 @@ from darwin.utils import (
     parse_darwin_json,
 )
 
+if TYPE_CHECKING:
+    from darwin.client import Client
+
 
 def download_all_images_from_annotations(
-    api_key: str,
+    client: "Client",
     annotations_path: Path,
     images_path: Path,
     force_replace: bool = False,
@@ -48,7 +59,7 @@ def download_all_images_from_annotations(
     ignore_slots: bool = False,
 ) -> Tuple[Callable[[], Iterable[Any]], int]:
     """
-    Downloads the all images corresponding to a project.
+    Downloads all the images corresponding to a project.
 
     Parameters
     ----------
@@ -146,7 +157,7 @@ def download_all_images_from_annotations(
     download_functions: List = []
     for annotation_path, force_slots in annotations_to_download_path:
         file_download_functions = lazy_download_image_from_annotation(
-            api_key,
+            client,
             annotation_path,
             images_path,
             annotation_format,
@@ -164,8 +175,8 @@ def download_all_images_from_annotations(
 
 
 def lazy_download_image_from_annotation(
-    api_key: str,
-    annotation_path: Path,
+    client: "Client",
+    annotation: AnnotationFile,
     images_path: Path,
     annotation_format: str,
     use_folders: bool,
@@ -179,10 +190,10 @@ def lazy_download_image_from_annotation(
 
     Parameters
     ----------
-    api_key : str
-        API Key of the current team
-    annotation_path : Path
-        Path where the annotation is located
+    client : Client
+        Client of the current team
+    annotation : AnnotationFile
+        Annotation file corresponding to the dataset file
     images_path : Path
         Path where to download the image
     annotation_format : str
@@ -202,8 +213,8 @@ def lazy_download_image_from_annotation(
 
     if annotation_format == "json":
         return _download_image_from_json_annotation(
-            api_key,
-            annotation_path,
+            client,
+            annotation,
             images_path,
             use_folders,
             video_frames,
@@ -217,7 +228,7 @@ def lazy_download_image_from_annotation(
 
 
 def _download_image_from_json_annotation(
-    api_key: str,
+    client: "Client",
     annotation_path: Path,
     image_path: Path,
     use_folders: bool,
@@ -239,7 +250,7 @@ def _download_image_from_json_annotation(
         if ignore_slots:
             return _download_single_slot_from_json_annotation(
                 annotation,
-                api_key,
+                client,
                 parent_path,
                 annotation_path,
                 video_frames,
@@ -247,12 +258,12 @@ def _download_image_from_json_annotation(
             )
         if force_slots:
             return _download_all_slots_from_json_annotation(
-                annotation, api_key, parent_path, video_frames
+                annotation, client, parent_path, video_frames
             )
         else:
             return _download_single_slot_from_json_annotation(
                 annotation,
-                api_key,
+                client,
                 parent_path,
                 annotation_path,
                 video_frames,
@@ -263,7 +274,10 @@ def _download_image_from_json_annotation(
 
 
 def _download_all_slots_from_json_annotation(
-    annotation: dt.AnnotationFile, api_key: str, parent_path: Path, video_frames: bool
+    annotation: dt.AnnotationFile,
+    client: "Client",
+    parent_path: Path,
+    video_frames: bool,
 ) -> Iterable[Callable[[], None]]:
     generator = []
     for slot in annotation.slots:
@@ -280,7 +294,7 @@ def _download_all_slots_from_json_annotation(
             video_path: Path = slot_path
             video_path.mkdir(exist_ok=True, parents=True)
             if not slot.frame_urls:
-                segment_manifests = get_segment_manifests(slot, slot_path, api_key)
+                segment_manifests = get_segment_manifests(slot, slot_path, client)
                 for index, manifest in enumerate(segment_manifests):
                     if slot.segments is None:
                         raise ValueError("No segments found")
@@ -290,7 +304,7 @@ def _download_all_slots_from_json_annotation(
                         functools.partial(
                             _download_and_extract_video_segment,
                             segment_url,
-                            api_key,
+                            client,
                             path,
                             manifest,
                         )
@@ -300,7 +314,7 @@ def _download_all_slots_from_json_annotation(
                     path = video_path / f"{i:07d}.png"
                     generator.append(
                         functools.partial(
-                            _download_image, frame_url, path, api_key, slot
+                            _download_image, frame_url, path, client, slot
                         )
                     )
         else:
@@ -312,7 +326,7 @@ def _download_all_slots_from_json_annotation(
                         annotation,
                         upload.url,
                         file_path,
-                        api_key,
+                        client,
                     )
                 )
     return generator
@@ -320,7 +334,7 @@ def _download_all_slots_from_json_annotation(
 
 def _download_single_slot_from_json_annotation(
     annotation: dt.AnnotationFile,
-    api_key: str,
+    client: "Client",
     parent_path: Path,
     annotation_path: Path,
     video_frames: bool,
@@ -337,7 +351,7 @@ def _download_single_slot_from_json_annotation(
 
         # Indicates it's a long video and uses the segment and manifest
         if not slot.frame_urls:
-            segment_manifests = get_segment_manifests(slot, video_path, api_key)
+            segment_manifests = get_segment_manifests(slot, video_path, client)
             for index, manifest in enumerate(segment_manifests):
                 if slot.segments is None:
                     raise ValueError("No segments found")
@@ -347,7 +361,7 @@ def _download_single_slot_from_json_annotation(
                     functools.partial(
                         _download_and_extract_video_segment,
                         segment_url,
-                        api_key,
+                        client,
                         path,
                         manifest,
                     )
@@ -356,7 +370,7 @@ def _download_single_slot_from_json_annotation(
             for i, frame_url in enumerate(slot.frame_urls):
                 path = video_path / f"{i:07d}.png"
                 generator.append(
-                    functools.partial(_download_image, frame_url, path, api_key, slot)
+                    functools.partial(_download_image, frame_url, path, client, slot)
                 )
     else:
         if len(slot.source_files) > 0:
@@ -380,7 +394,7 @@ def _download_single_slot_from_json_annotation(
                     annotation,
                     image_url,
                     image_path,
-                    api_key,
+                    client,
                 )
             )
     return generator
@@ -404,7 +418,7 @@ def _update_local_path(annotation: AnnotationFile, url, local_path):
 
 
 def _download_image(
-    url: str, path: Path, api_key: str, slot: Optional[dt.Slot] = None
+    url: str, path: Path, client: "Client", slot: Optional[dt.Slot] = None
 ) -> None:
     if path.exists():
         return
@@ -416,11 +430,11 @@ def _download_image(
         transform_file_function = _rg16_to_grayscale
     while True:
         if "token" in url:
-            response: requests.Response = requests.get(url, stream=True)
-        else:
-            response = requests.get(
-                url, headers={"Authorization": f"ApiKey {api_key}"}, stream=True
+            response: requests.Response = client._get_raw_from_full_url(
+                url, stream=True
             )
+        else:
+            response = client._get_raw_from_full_url(url, stream=True)
         # Correct status: download image
         if response.ok and has_json_content_type(response):
             # this branch is a workaround for edge case in V1 when video file from external storage could be registered
@@ -441,8 +455,8 @@ def _download_image(
         time.sleep(1)
 
 
-def _download_image_with_trace(annotation, image_url, image_path, api_key):
-    _download_image(image_url, image_path, api_key)
+def _download_image_with_trace(annotation, image_url, image_path, client):
+    _download_image(image_url, image_path, client)
     _update_local_path(annotation, image_url, image_path)
 
 
@@ -498,9 +512,9 @@ def _rg16_to_grayscale(path):
 
 
 def _download_and_extract_video_segment(
-    url: str, api_key: str, path: Path, manifest: dt.SegmentManifest
+    url: str, client: "Client", path: Path, manifest: dt.SegmentManifest
 ) -> None:
-    _download_video_segment_file(url, api_key, path)
+    _download_video_segment_file(url, client, path)
     _extract_frames_from_segment(path, manifest)
     path.unlink()
 
@@ -538,17 +552,9 @@ def _extract_frames_from_segment(path: Path, manifest: dt.SegmentManifest) -> No
     cap.release()
 
 
-def _download_video_segment_file(url: str, api_key: str, path: Path) -> None:
-    with requests.Session() as session:
-        retries = Retry(
-            total=5, backoff_factor=0.5, status_forcelist=[500, 502, 503, 504]
-        )
-        session.mount("https://", HTTPAdapter(max_retries=retries))
-        if "token" in url:
-            response = session.get(url)
-        else:
-            session.headers = {"Authorization": f"ApiKey {api_key}"}
-            response = session.get(url)
+def _download_video_segment_file(url: str, client: "Client", path: Path) -> None:
+    auth_token = "token" in url
+    response = client._get_raw_from_full_url(url, stream=True, auth_token=auth_token)
     if not response.ok or (400 <= response.status_code <= 499):
         raise Exception(
             f"Request to ({url}) failed. Status code: {response.status_code}, content:\n{get_response_content(response)}."
@@ -559,41 +565,37 @@ def _download_video_segment_file(url: str, api_key: str, path: Path) -> None:
             file.write(chunk)
 
 
-def download_manifest_txts(urls: List[str], api_key: str, folder: Path) -> List[Path]:
+def download_manifest_txts(
+    urls: List[str], client: "Client", folder: Path
+) -> List[Path]:
     paths = []
-    with requests.Session() as session:
-        retries = Retry(
-            total=5, backoff_factor=0.5, status_forcelist=[500, 502, 503, 504]
+    for index, url in enumerate(urls):
+        auth_token = "token" in url
+        response = client._get_raw_from_full_url(
+            url, stream=True, auth_token=auth_token
         )
-        session.mount("https://", HTTPAdapter(max_retries=retries))
-        for index, url in enumerate(urls):
-            if "token" in url:
-                response = session.get(url)
-            else:
-                session.headers = {"Authorization": f"ApiKey {api_key}"}
-                response = session.get(url)
-            if not response.ok or (400 <= response.status_code <= 499):
-                raise Exception(
-                    f"Request to ({url}) failed. Status code: {response.status_code}, content:\n{get_response_content(response)}."
-                )
-            if not response.content:
-                raise Exception(f"Manifest file ({url}) is empty.")
-            path = folder / f"manifest_{index + 1}.txt"
-            with open(str(path), "wb") as file:
-                file.write(response.content)
-            paths.append(path)
+        if not response.ok or (400 <= response.status_code <= 499):
+            raise Exception(
+                f"Request to ({url}) failed. Status code: {response.status_code}, content:\n{get_response_content(response)}."
+            )
+        if not response.content:
+            raise Exception(f"Manifest file ({url}) is empty.")
+        path = folder / f"manifest_{index + 1}.txt"
+        with open(str(path), "wb") as file:
+            file.write(response.content)
+        paths.append(path)
     return paths
 
 
 def get_segment_manifests(
-    slot: dt.Slot, parent_path: Path, api_key: str
+    slot: dt.Slot, parent_path: Path, client: "Client"
 ) -> List[dt.SegmentManifest]:
     with TemporaryDirectory(dir=parent_path) as tmpdirname:
         tmpdir = Path(tmpdirname)
         if slot.frame_manifest is None:
             raise ValueError("No frame manifest found")
         frame_urls = [item["url"] for item in slot.frame_manifest]
-        manifest_paths = download_manifest_txts(frame_urls, api_key, tmpdir)
+        manifest_paths = download_manifest_txts(frame_urls, client, tmpdir)
         segment_manifests = _parse_manifests(manifest_paths, slot.name or "0")
     return segment_manifests
 
@@ -756,7 +758,7 @@ def _remove_empty_directories(images_path: Path) -> bool:
 
 
 def _check_for_duplicate_local_filepaths(
-    download_functions: List[Callable[[], None]]
+    download_functions: List[Callable[[], None]],
 ) -> None:
     """
     If pulling a release without folders, check for duplicate filepaths in the download functions.
