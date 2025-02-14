@@ -126,7 +126,6 @@ def _find_and_parse(  # noqa: C901
         Dict[str, Dict[Path, np.ndarray]]
     ] = {},
     pixdims_and_primary_plane: Optional[Dict[str, Dict[Path, np.ndarray]]] = {},
-    parse_name_and_path_only: bool = False,
 ) -> Optional[Iterable[dt.AnnotationFile]]:
     is_console = console is not None
 
@@ -162,7 +161,6 @@ def _find_and_parse(  # noqa: C901
                             file,
                             legacy_remote_file_slot_affine_maps=legacy_remote_file_slot_affine_maps,  # type: ignore
                             pixdims_and_primary_plane=pixdims_and_primary_plane,  # type: ignore
-                            parse_name_and_path_only=parse_name_and_path_only,
                         ),
                         tqdm(files),
                     )
@@ -185,7 +183,6 @@ def _find_and_parse(  # noqa: C901
                     file,
                     legacy_remote_file_slot_affine_maps=legacy_remote_file_slot_affine_maps,  # type: ignore
                     pixdims_and_primary_plane=pixdims_and_primary_plane,  # type: ignore
-                    parse_name_and_path_only=parse_name_and_path_only,
                 )
                 for file in tqdm(files)
             ]
@@ -2384,7 +2381,6 @@ def _get_remote_files_targeted_by_import(
         console,
         use_multi_cpu,
         cpu_limit,
-        parse_name_and_path_only=True,
     )
     if not maybe_parsed_files:
         raise ValueError("Not able to parse any files.")
