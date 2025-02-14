@@ -94,7 +94,7 @@ def parse_path(
             legacy_remote_file_slot_affine_maps=legacy_remote_file_slot_affine_maps,
             pixdims_and_primary_planes=pixdims_and_primary_planes,
         )
-    annotation_files.append(annotation_file)
+        annotation_files.append(annotation_file)
     return annotation_files
 
 

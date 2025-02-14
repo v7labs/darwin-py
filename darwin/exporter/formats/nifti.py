@@ -152,6 +152,7 @@ def export(
                     mask_id_to_classname=mask_id_to_classname,
                     slot_map=slot_map,
                     output_volumes=raster_output_volumes,
+                    primary_plane=primary_plane,
                 )
             write_output_volume_to_disk(
                 raster_output_volumes,
@@ -409,6 +410,7 @@ def populate_output_volumes_from_raster_layer(
     mask_id_to_classname: Dict,
     slot_map: Dict,
     output_volumes: Dict,
+    primary_plane: str,
 ) -> Dict:
     """
     Populates the output volumes provided with the raster layer annotations
@@ -423,7 +425,8 @@ def populate_output_volumes_from_raster_layer(
         Dictionary of the different slots within the annotation file
     output_volumes : Dict
         volumes created from the build_output_volumes file
-
+    primary_plane: str
+        The primary plane of the volume containing the annotation
     Returns
     -------
     volume : dict
@@ -443,7 +446,12 @@ def populate_output_volumes_from_raster_layer(
         frame_data = annotation.frames[frame_idx]
         dense_rle = frame_data.data["dense_rle"]
         mask_2d = decode_rle(dense_rle, slot.width, slot.height)
-        multilabel_volume[:, :, frame_idx] = mask_2d.T
+        if primary_plane == "AXIAL":
+            multilabel_volume[:, :, frame_idx] = mask_2d.T
+        elif primary_plane == "CORONAL":
+            multilabel_volume[:, frame_idx, :] = mask_2d.T
+        elif primary_plane == "SAGITTAL":
+            multilabel_volume[frame_idx, :, :] = mask_2d.T
         mask_annotation_ids_mapping.update(
             frame_data.data["mask_annotation_ids_mapping"]
         )

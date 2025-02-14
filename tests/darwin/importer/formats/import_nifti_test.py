@@ -2,7 +2,7 @@ import argparse
 import json
 import tempfile
 from pathlib import Path
-from typing import Union, List
+from typing import Union
 from unittest.mock import patch
 from zipfile import ZipFile
 

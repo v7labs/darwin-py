@@ -126,7 +126,7 @@ def _find_and_parse(  # noqa: C901
         Dict[str, Dict[Path, np.ndarray]]
     ] = {},
     pixdims_and_primary_planes: Optional[Dict[str, Dict[Path, np.ndarray]]] = {},
-) -> Optional[Iterable[dt.AnnotationFile]] | None:
+) -> Optional[Iterable[dt.AnnotationFile]]:
     is_console = console is not None
 
     logger = getLogger(__name__)
