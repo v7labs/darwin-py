@@ -2,7 +2,7 @@ import argparse
 import json
 import tempfile
 from pathlib import Path
-from typing import Union
+from typing import Union, List
 from unittest.mock import patch
 from zipfile import ZipFile
 
@@ -537,7 +537,7 @@ def test_parse_path_nifti_with_legacy_scaling():
     )
     adjust_nifti_label_filepath(nifti_annotation_filepath, nifti_filepath)
     expected_annotations = parse_darwin_json(expected_annotations_filepath)
-    remote_files_that_require_legacy_scaling = {
+    legacy_remote_file_slot_affine_maps = {
         Path("/2044737.fat.nii.gz"): {
             "0": np.array(
                 [
@@ -551,7 +551,7 @@ def test_parse_path_nifti_with_legacy_scaling():
     }
     parsed_annotations = parse_path(
         nifti_annotation_filepath,
-        remote_files_that_require_legacy_scaling=remote_files_that_require_legacy_scaling,
+        legacy_remote_file_slot_affine_maps=legacy_remote_file_slot_affine_maps,
     )
     for frame_idx in expected_annotations.annotations[0].frames:
         expected_annotation = (
