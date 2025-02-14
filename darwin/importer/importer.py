@@ -125,8 +125,8 @@ def _find_and_parse(  # noqa: C901
     legacy_remote_file_slot_affine_maps: Optional[
         Dict[str, Dict[Path, np.ndarray]]
     ] = {},
-    pixdims_and_primary_plane: Optional[Dict[str, Dict[Path, np.ndarray]]] = {},
-) -> Optional[Iterable[dt.AnnotationFile]]:
+    pixdims_and_primary_planes: Optional[Dict[str, Dict[Path, np.ndarray]]] = {},
+) -> Optional[Iterable[dt.AnnotationFile]] | None:
     is_console = console is not None
 
     logger = getLogger(__name__)
@@ -160,7 +160,7 @@ def _find_and_parse(  # noqa: C901
                         lambda file: importer(
                             file,
                             legacy_remote_file_slot_affine_maps=legacy_remote_file_slot_affine_maps,  # type: ignore
-                            pixdims_and_primary_plane=pixdims_and_primary_plane,  # type: ignore
+                            pixdims_and_primary_planes=pixdims_and_primary_planes,  # type: ignore
                         ),
                         tqdm(files),
                     )
@@ -182,7 +182,7 @@ def _find_and_parse(  # noqa: C901
                 importer(
                     file,
                     legacy_remote_file_slot_affine_maps=legacy_remote_file_slot_affine_maps,  # type: ignore
-                    pixdims_and_primary_plane=pixdims_and_primary_plane,  # type: ignore
+                    pixdims_and_primary_planes=pixdims_and_primary_planes,  # type: ignore
                 )
                 for file in tqdm(files)
             ]
@@ -195,6 +195,8 @@ def _find_and_parse(  # noqa: C901
     maybe_console("Finished.")
     # Sometimes we have a list of lists of AnnotationFile, sometimes we have a list of AnnotationFile
     # We flatten the list of lists
+    if not parsed_files:
+        return None
     if isinstance(parsed_files, list):
         if isinstance(parsed_files[0], list):
             parsed_files = [item for sublist in parsed_files for item in sublist]
@@ -1268,7 +1270,7 @@ def import_annotations(  # noqa: C901
     )
     (
         legacy_remote_file_slot_affine_maps,
-        pixdims_and_primary_plane,
+        pixdims_and_primary_planes,
     ) = _get_remote_medical_file_transform_requirements(remote_files_targeted_by_import)
 
     if importer.__module__ == "darwin.importer.formats.nifti":
@@ -1279,7 +1281,7 @@ def import_annotations(  # noqa: C901
             use_multi_cpu,
             cpu_limit,
             legacy_remote_file_slot_affine_maps,
-            pixdims_and_primary_plane,
+            pixdims_and_primary_planes,
         )
     else:
         maybe_parsed_files: Optional[Iterable[dt.AnnotationFile]] = _find_and_parse(
@@ -2428,7 +2430,7 @@ def _get_remote_medical_file_transform_requirements(
     in the legacy_remote_file_slot_affine_map dictionary.
 
     If the file is medical, the pixdims and the primary plane are returned
-    in the pixdims_and_primary_plane dictionary.
+    in the pixdims_and_primary_planes dictionary.
 
     Parameters
     ----------
@@ -2440,11 +2442,11 @@ def _get_remote_medical_file_transform_requirements(
         A tuple of 2 dictionaries:
         - legacy_remote_file_slot_affine_map: A dictionary of remote files
         that require legacy NifTI scaling and the slot name to affine matrix mapping
-        - pixdims_and_primary_plane: A dictionary of remote files
-        containing the (x, y) pixdims of the primary plane
+        - pixdims_and_primary_planes: A dictionary of remote files
+        containing the (x, y, z) pixdims and the primary plane
     """
     legacy_remote_file_slot_affine_map = {}
-    pixdims_and_primary_plane = {}
+    pixdims_and_primary_planes = {}
     for remote_file in remote_files_targeted_by_import:
         if not remote_file.slots:
             continue
@@ -2462,7 +2464,7 @@ def _get_remote_medical_file_transform_requirements(
                     slot["metadata"]["medical"]["affine"], dtype=np.float64
                 )
         if slot_pixdim_primary_plane_map:
-            pixdims_and_primary_plane[Path(remote_file.full_path)] = (
+            pixdims_and_primary_planes[Path(remote_file.full_path)] = (
                 slot_pixdim_primary_plane_map
             )
         if slot_affine_map:
@@ -2472,7 +2474,7 @@ def _get_remote_medical_file_transform_requirements(
 
     return (
         legacy_remote_file_slot_affine_map,
-        pixdims_and_primary_plane,
+        pixdims_and_primary_planes,
     )
 
 

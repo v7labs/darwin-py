@@ -3794,11 +3794,11 @@ def test__get_remote_files_targeted_by_import_url_too_long() -> None:
 def test__get_remote_medical_file_transform_requirements_empty_list():
     """Test that empty input list returns empty dictionaries"""
     remote_files: List[DatasetItem] = []
-    legacy_scaling, pixel_transform = _get_remote_medical_file_transform_requirements(
-        remote_files
+    legacy_scaling, pixdims_and_primary_planes = (
+        _get_remote_medical_file_transform_requirements(remote_files)
     )
     assert legacy_scaling == {}
-    assert pixel_transform == {}
+    assert pixdims_and_primary_planes == {}
 
 
 def test__get_remote_medical_file_transform_requirements_no_slots():
@@ -3807,11 +3807,11 @@ def test__get_remote_medical_file_transform_requirements_no_slots():
     mock_file.slots = None
     mock_file.full_path = "/path/to/file"
     remote_files: List[DatasetItem] = [mock_file]
-    legacy_scaling, pixel_transform = _get_remote_medical_file_transform_requirements(
-        remote_files
+    legacy_scaling, pixdims_and_primary_planes = (
+        _get_remote_medical_file_transform_requirements(remote_files)
     )
     assert legacy_scaling == {}
-    assert pixel_transform == {}
+    assert pixdims_and_primary_planes == {}
 
 
 def test__get_remote_medical_file_transform_requirements_non_medical_slots():
@@ -3820,11 +3820,11 @@ def test__get_remote_medical_file_transform_requirements_non_medical_slots():
     mock_file.slots = [{"slot_name": "slot1", "metadata": {}}]
     mock_file.full_path = "/path/to/file"
     remote_files: List[DatasetItem] = [mock_file]
-    legacy_scaling, pixel_transform = _get_remote_medical_file_transform_requirements(
-        remote_files
+    legacy_scaling, pixdims_and_primary_planes = (
+        _get_remote_medical_file_transform_requirements(remote_files)
     )
     assert legacy_scaling == {}
-    assert pixel_transform == {}
+    assert pixdims_and_primary_planes == {}
 
 
 def test__get_remote_medical_file_transform_requirements_monai_axial():
@@ -3844,11 +3844,13 @@ def test__get_remote_medical_file_transform_requirements_monai_axial():
     ]
     mock_file.full_path = "/path/to/file"
     remote_files: List[DatasetItem] = [mock_file]
-    legacy_scaling, pixel_transform = _get_remote_medical_file_transform_requirements(
-        remote_files
+    legacy_scaling, pixdims_and_primary_planes = (
+        _get_remote_medical_file_transform_requirements(remote_files)
     )
     assert legacy_scaling == {}
-    assert pixel_transform == {"/path/to/file": {"slot1": [1.0, 2.0]}}
+    assert pixdims_and_primary_planes == {
+        Path("/path/to/file"): {"slot1": ([1.0, 2.0, 3.0], "AXIAL")}
+    }
 
 
 def test__get_remote_medical_file_transform_requirements_monai_coronal():
@@ -3868,14 +3870,16 @@ def test__get_remote_medical_file_transform_requirements_monai_coronal():
     ]
     mock_file.full_path = "/path/to/file"
     remote_files: List[DatasetItem] = [mock_file]
-    legacy_scaling, pixel_transform = _get_remote_medical_file_transform_requirements(
-        remote_files
+    legacy_scaling, pixdims_and_primary_planes = (
+        _get_remote_medical_file_transform_requirements(remote_files)
     )
     assert legacy_scaling == {}
-    assert pixel_transform == {"/path/to/file": {"slot1": [1.0, 3.0]}}
+    assert pixdims_and_primary_planes == {
+        Path("/path/to/file"): {"slot1": ([1.0, 2.0, 3.0], "CORONAL")}
+    }
 
 
-def test__get_remote_medical_file_transform_requirements_monai_saggital():
+def test__get_remote_medical_file_transform_requirements_monai_sagittal():
     """Test MONAI-handled medical slots with SAGGITAL plane"""
     mock_file = MagicMock(spec=DatasetItem)
     mock_file.slots = [
@@ -3892,11 +3896,13 @@ def test__get_remote_medical_file_transform_requirements_monai_saggital():
     ]
     mock_file.full_path = "/path/to/file"
     remote_files: List[DatasetItem] = [mock_file]
-    legacy_scaling, pixel_transform = _get_remote_medical_file_transform_requirements(
-        remote_files
+    legacy_scaling, pixdims_and_primary_planes = (
+        _get_remote_medical_file_transform_requirements(remote_files)
     )
     assert legacy_scaling == {}
-    assert pixel_transform == {"/path/to/file": {"slot1": [2.0, 3.0]}}
+    assert pixdims_and_primary_planes == {
+        Path("/path/to/file"): {"slot1": ([1.0, 2.0, 3.0], "SAGITTAL")}
+    }
 
 
 def test__get_remote_medical_file_transform_requirements_legacy_nifti():
@@ -3907,22 +3913,26 @@ def test__get_remote_medical_file_transform_requirements_legacy_nifti():
             "slot_name": "slot1",
             "metadata": {
                 "medical": {
-                    "affine": [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]
+                    "affine": [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]],
+                    "plane_map": {"slot1": "AXIAL"},
+                    "pixdims": [1.0, 2.0, 3.0],
                 }
             },
         }
     ]
     mock_file.full_path = "/path/to/file"
     remote_files: List[DatasetItem] = [mock_file]
-    legacy_scaling, pixel_transform = _get_remote_medical_file_transform_requirements(
-        remote_files
+    legacy_scaling, pixdims_and_primary_planes = (
+        _get_remote_medical_file_transform_requirements(remote_files)
     )
-    assert pixel_transform == {}
-    assert "/path/to/file" in legacy_scaling
-    assert "slot1" in legacy_scaling["/path/to/file"]
-    assert legacy_scaling["/path/to/file"]["slot1"].shape == (4, 4)
+    assert pixdims_and_primary_planes == {
+        Path("/path/to/file"): {"slot1": ([1.0, 2.0, 3.0], "AXIAL")}
+    }
+    assert Path("/path/to/file") in legacy_scaling
+    assert "slot1" in legacy_scaling[Path("/path/to/file")]
+    assert legacy_scaling[Path("/path/to/file")]["slot1"].shape == (4, 4)
     assert (
-        legacy_scaling["/path/to/file"]["slot1"]
+        legacy_scaling[Path("/path/to/file")]["slot1"]
         == np.array(
             [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]], dtype=np.float64
         )
@@ -3952,7 +3962,9 @@ def test__get_remote_medical_file_transform_requirements_mixed():
             "slot_name": "slot2",
             "metadata": {
                 "medical": {
-                    "affine": [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]
+                    "affine": [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]],
+                    "pixdims": [1.0, 2.0, 3.0],
+                    "plane_map": {"slot2": "AXIAL"},
                 }
             },
         }
@@ -3960,16 +3972,19 @@ def test__get_remote_medical_file_transform_requirements_mixed():
     mock_file2.full_path = "/path/to/file2"
 
     remote_files: List[DatasetItem] = [mock_file1, mock_file2]
-    legacy_scaling, pixel_transform = _get_remote_medical_file_transform_requirements(
-        remote_files
+    legacy_scaling, pixdims_and_primary_planes = (
+        _get_remote_medical_file_transform_requirements(remote_files)
     )
 
-    assert pixel_transform == {"/path/to/file1": {"slot1": [1.0, 2.0]}}
-    assert "/path/to/file2" in legacy_scaling
-    assert "slot2" in legacy_scaling["/path/to/file2"]
-    assert legacy_scaling["/path/to/file2"]["slot2"].shape == (4, 4)
+    assert pixdims_and_primary_planes == {
+        Path("/path/to/file1"): {"slot1": ([1.0, 2.0, 3.0], "AXIAL")},
+        Path("/path/to/file2"): {"slot2": ([1.0, 2.0, 3.0], "AXIAL")},
+    }
+    assert Path("/path/to/file2") in legacy_scaling
+    assert "slot2" in legacy_scaling[Path("/path/to/file2")]
+    assert legacy_scaling[Path("/path/to/file2")]["slot2"].shape == (4, 4)
     assert (
-        legacy_scaling["/path/to/file2"]["slot2"]
+        legacy_scaling[Path("/path/to/file2")]["slot2"]
         == np.array(
             [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]], dtype=np.float64
         )

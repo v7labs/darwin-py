@@ -3,7 +3,6 @@ import json as native_json
 import re
 from dataclasses import dataclass
 from enum import Enum
-from numbers import Number
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Tuple, Union
 
@@ -555,11 +554,33 @@ def _get_reoriented_nifti_image(
 
 
 def shift_polygon_coords(
-    polygon: List[Dict],
-    pixdim: List[Number],
+    polygon: List[Dict[str, float]],
+    pixdim: List[float],
     primary_plane: str,
     legacy: bool = False,
-) -> List:
+) -> List[Dict[str, float]]:
+    """
+    Shifts input polygon coordinates based on the primary plane and the pixdim of the volume
+    the polygon belongs to.
+
+    If the volume is a legacy volume, we perform isotropic scaling
+
+    Parameters
+    ----------
+    polygon : List[Dict[str, float]]
+        The polygon to be shifted
+    pixdim : List[float]
+        The (x, y, z) pixel dimensons of the image
+    primary_plane : str
+        The primary plane of the volume that the polygon belongs to
+    legacy : bool
+        Whether this polygon is being exported from a volume that requires legacy NifTI scaling
+
+    Returns
+    -------
+    List[Dict[str, Number]]
+        The shifted polygon
+    """
     if primary_plane == "AXIAL":
         pixdim = [pixdim[0], pixdim[1]]
     elif primary_plane == "CORONAL":
