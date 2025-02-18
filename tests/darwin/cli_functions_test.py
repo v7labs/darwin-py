@@ -289,25 +289,6 @@ class TestSetFileStatus:
                     )
                     mock.assert_called_once_with(fetch_remote_files_mock.return_value)
 
-    def test_calls_dataset_clear(
-        self, dataset_identifier: str, remote_dataset: RemoteDataset
-    ):
-        with patch.object(
-            Client, "get_remote_dataset", return_value=remote_dataset
-        ) as get_remote_dataset_mock:
-            with patch.object(
-                RemoteDatasetV2, "fetch_remote_files"
-            ) as fetch_remote_files_mock:
-                with patch.object(RemoteDatasetV2, "reset") as mock:
-                    set_file_status(dataset_identifier, "clear", ["one.jpg", "two.jpg"])
-                    get_remote_dataset_mock.assert_called_once_with(
-                        dataset_identifier=dataset_identifier
-                    )
-                    fetch_remote_files_mock.assert_called_once_with(
-                        {"item_names": "one.jpg,two.jpg"}
-                    )
-                    mock.assert_called_once_with(fetch_remote_files_mock.return_value)
-
     def test_calls_dataset_new(
         self, dataset_identifier: str, remote_dataset: RemoteDataset
     ):

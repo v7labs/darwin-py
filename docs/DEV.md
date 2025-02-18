@@ -51,6 +51,40 @@ To run end-to-end tests locally, copy `e2e_tests/.env.example` to `.env` and pop
 pytest e2e_tests
 ```
 
+### Code Formatting and Linting
+The project uses two main tools for code quality:
+
+1. **Black** - The uncompromising code formatter
+   - Automatically formats Python code to a consistent style
+   - Run locally before committing:
+   ```
+   black .
+   ```
+   - CI will check formatting with `black --check`
+
+2. **Ruff** - An extremely fast Python linter
+   - Enforces code style and catches potential errors
+   - Run locally:
+   ```
+   ruff check .
+   ```
+
+Both tools are automatically run in CI/CD pipelines for all Python files changed in pull requests. The workflow will:
+- Check code formatting with Black
+- Run Ruff linting checks
+- Fail the build if any issues are found
+
+To ensure your code passes CI checks, you can run these tools locally before pushing:
+```bash
+# Format code
+black .
+
+# Run linter
+ruff check .
+```
+
+For VS Code users, it's recommended to enable format-on-save with Black and install the Ruff extension for real-time linting feedback.
+
 ## Useful Aliases
 Aliases can be helpful for testing and development. Add them to your shell configuration file .bashrc .zshrc etc for ease of use and development
 ```

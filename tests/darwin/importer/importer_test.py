@@ -735,6 +735,55 @@ def test__get_annotation_data_video_annotation_with_attributes_that_become_empty
     assert result["frames"][4]["attributes"] == {"attributes": []}
 
 
+def test__get_annotation_data_video_annotation_does_not_wipe_sub_annotations_when_keyframe_is_true() -> (
+    None
+):
+    from darwin.importer.importer import _get_annotation_data
+
+    video_annotation_class = dt.AnnotationClass("video_class", "bounding_box")
+    video_annotation = dt.VideoAnnotation(video_annotation_class, {}, {}, [], False)
+    video_annotation.keyframes = {1: True, 2: False, 3: True}
+    video_annotation.frames = {
+        1: dt.Annotation(
+            annotation_class=video_annotation_class,
+            data={"x": 1, "y": 2, "w": 3, "h": 4},
+            subs=[
+                dt.SubAnnotation(
+                    annotation_type="attributes",
+                    data=["attribute_1", "attribute_2"],
+                )
+            ],
+            slot_names=[],
+        ),
+        2: dt.Annotation(
+            annotation_class=video_annotation_class,
+            data={"x": 1, "y": 2, "w": 3, "h": 4},
+            subs=[
+                dt.SubAnnotation(
+                    annotation_type="attributes",
+                    data=["attribute_1", "attribute_2"],
+                )
+            ],
+            slot_names=[],
+        ),
+        3: dt.Annotation(
+            annotation_class=video_annotation_class,
+            data={"x": 5, "y": 6, "w": 7, "h": 8},
+            subs=[
+                dt.SubAnnotation(
+                    annotation_type="attributes",
+                    data=["attribute_1", "attribute_2"],
+                )
+            ],
+            slot_names=[],
+        ),
+    }
+    attributes = {"video_class_id": {"attribute_1": "id_1", "attribute_2": "id_2"}}
+    result = _get_annotation_data(video_annotation, "video_class_id", attributes)
+    assert result["frames"][1]["attributes"] == {"attributes": ["id_1", "id_2"]}
+    assert result["frames"][3]["attributes"] == {"attributes": ["id_1", "id_2"]}
+
+
 def __expectation_factory(i: int, slot_names: List[str]) -> dt.Annotation:
     annotation = dt.Annotation(
         dt.AnnotationClass(f"class_{i}", f"TEST_TYPE_{i}"), {}, [], []
