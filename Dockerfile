@@ -1,5 +1,5 @@
-# Use an official Python runtime as a parent image
-FROM python:3.10-slim@sha256:8666a639a54acc810408e505e2c6b46b50834385701675ee177f578b3d2fdef9
+# Use Python bookworm image which includes many build dependencies
+FROM python:3.10-bookworm
 
 # Environment variables
 ARG YOUR_ENV
@@ -15,36 +15,9 @@ ENV YOUR_ENV=${YOUR_ENV:-development} \
     POETRY_NO_INTERACTION=1 \
     POETRY_VERSION=1.7.1
 
-# Install system dependencies and build tools
+# Install only the remaining necessary dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc \
-    make \
-    build-essential \
-    libffi-dev \
-    libssl-dev \
-    python3-dev \
-    curl \
-    wget \
-    zlib1g-dev \
-    libbz2-dev \
-    libreadline-dev \
-    libsqlite3-dev \
-    llvm \
-    libncurses5-dev \
-    libncursesw5-dev \
-    xz-utils \
-    tk-dev \
-    liblzma-dev \
-    python3-openssl \
-    git \
     && rm -rf /var/lib/apt/lists/*
-
-# Install FFmpeg
-RUN mkdir -p /usr/local/bin \
-    && cd /usr/local/bin \
-    && wget -O ffmpeg.tar.xz "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz" \
-    && tar -xf ffmpeg.tar.xz --strip-components=1 \
-    && rm ffmpeg.tar.xz
 
 # Install Poetry
 RUN curl -sSL https://install.python-poetry.org | python3 - \
