@@ -1,6 +1,8 @@
 {
     "name": "My Dev Container",
-    "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+    "build": {
+        "dockerfile": "../Dockerfile"
+    },
     "features": {},
     "customizations": {
         "vscode": {
@@ -15,7 +17,7 @@
             ]
         }
     },
-    "postCreateCommand": "bash .devcontainer/setup.sh",
+    // "postCreateCommand": "bash .devcontainer/setup.sh",
     "mounts": [
         "source=${localWorkspaceFolder},target=/workspace,type=bind"
     ]

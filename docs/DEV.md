@@ -3,9 +3,10 @@ This doesn't represent the only way to develop on darwin-py, but does represent 
 ## Devcontainer - One click approach
 Just use the devcontainer config, either in Github codespaces or in using the [VSCode extension](https://code.visualstudio.com/docs/devcontainers/tutorial). 
 
-NB the config is [here](../.devcontainer/devcontainer.json)
+NB the config is [here](../.devcontainer/devcontainer.json).
 
-Remember to activate the _venv_ after the container boots `source .venv/bin/activate`
+Once in the container you can run test with `pytest`    
+
 ## Manual setup
 ### Shell environment
 No requirement for any particular shell, [zsh](https://github.com/ohmyzsh/ohmyzsh/wiki/Installing-ZSH) + [oh my zsh](https://ohmyz.sh/) is a good setup commonly used, but whatever environment you use make sure to install the recommended alias's and path exports that the below systems require for your particular shell environment, particularly pertinent for poetry which has an added step that it prints to console but isn't included on the webpage. 
