@@ -1677,17 +1677,21 @@ def _handle_video_annotation_subs(annotation: dt.VideoAnnotation):
     Remove duplicate sub-annotations from the VideoAnnotation.annotation(s) to be imported.
     """
     last_subs = None
-    for _, _annotation in annotation.frames.items():
+    for frame_index, _annotation in annotation.frames.items():
         _annotation: dt.Annotation
         subs = []
         for sub in _annotation.subs:
-            if last_subs is not None and all(
-                any(
-                    last_sub.annotation_type == sub.annotation_type
-                    and last_sub.data == sub.data
-                    for last_sub in last_subs
+            if (
+                last_subs is not None
+                and all(
+                    any(
+                        last_sub.annotation_type == sub.annotation_type
+                        and last_sub.data == sub.data
+                        for last_sub in last_subs
+                    )
+                    for sub in _annotation.subs
                 )
-                for sub in _annotation.subs
+                and frame_index not in annotation.keyframes
             ):
                 # drop sub-annotation whenever we know it didn't change since last one
                 # which likely wouldn't create on backend side sub-annotation keyframe.
