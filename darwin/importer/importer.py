@@ -1691,7 +1691,7 @@ def _handle_video_annotation_subs(annotation: dt.VideoAnnotation):
                     )
                     for sub in _annotation.subs
                 )
-                and frame_index not in annotation.keyframes
+                and not annotation.keyframes[frame_index]
             ):
                 # drop sub-annotation whenever we know it didn't change since last one
                 # which likely wouldn't create on backend side sub-annotation keyframe.
