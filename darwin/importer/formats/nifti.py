@@ -12,12 +12,9 @@ from darwin.utils import attempt_decode
 console = Console()
 try:
     import cc3d
-    from nibabel.loadsave import load as nib_load
-    from nibabel.nifti1 import Nifti1Image
-    import nibabel.orientations as nib_orientations
-    from scipy.ndimage import zoom
+    import nibabel as nib
     import numpy as np
-    from numpy.typing import NDArray
+    from scipy.ndimage import zoom
 except ImportError:
     import_fail_string = r"""
     You must install darwin-py with pip install darwin-py\[medical]
@@ -53,7 +50,11 @@ def parse_path(
                     legacy: bool
                     affine: ndarray,
                     original_affine: ndarray,
+                    axial_flips: ndarray,
                     pixdims: List[float],
+                    height: int,
+                    width: int,
+                    num_frames: int, # Only present for sequence files
                     primary_plane: str
                 }
             }
@@ -62,7 +63,7 @@ def parse_path(
     Returns
     -------
     Optional[List[dt.AnnotationFile]]
-        Returns ``None`` if the given file is not in ``json`` format, or ``List[dt.AnnotationFile]]``
+        Returns ``None`` if the given file is not in ``json`` format, or ``List[dt.AnnotationFile]``
         otherwise.
     """
     if not isinstance(path, Path):
@@ -120,15 +121,12 @@ def _parse_nifti(
     remote_file_path: Path,
     remote_file_medical_metadata: Dict[Path, Dict[str, Any]] = {},
 ) -> dt.AnnotationFile:
-    img = nib_load(str(nifti_path))
-    if not isinstance(img, Nifti1Image):
-        img = Nifti1Image.from_image(img)
-
-    data_array = process_nifti(
-        img,
+    processed_nifti_img = process_nifti(
+        nib.load(nifti_path),
         remote_file_path=remote_file_path,
         remote_file_medical_metadata=remote_file_medical_metadata,
     )
+
     if remote_file_path in remote_file_medical_metadata:
         item_medical_metadata = remote_file_medical_metadata[remote_file_path]
         legacy = any(
@@ -143,7 +141,7 @@ def _parse_nifti(
         for class_name, class_idxs in processed_class_map.items():
             if class_name == "background":
                 continue
-            class_img = np.isin(img, class_idxs).astype(np.uint8)
+            class_img = np.isin(processed_nifti_img, class_idxs).astype(np.uint8)
             cc_img, num_labels = cc3d.connected_components(class_img, return_N=True)
             for instance_id in range(1, num_labels):
                 _video_annotations = get_polygon_video_annotations(
@@ -163,7 +161,7 @@ def _parse_nifti(
             if class_name == "background":
                 continue
             _video_annotations = get_polygon_video_annotations(
-                data_array,
+                processed_nifti_img,
                 class_idxs=class_idxs,
                 class_name=class_name,
                 slot_names=slot_names,
@@ -172,19 +170,19 @@ def _parse_nifti(
                 remote_file_path=remote_file_path,
                 legacy=legacy,
             )
-            if _video_annotations is not None:
-                video_annotations.extend(_video_annotations)
+            if _video_annotations:
+                video_annotations += _video_annotations
     elif mode == "mask":
         mask_annotations = get_mask_video_annotations(
-            data_array,
+            processed_nifti_img,
             processed_class_map,
             slot_names,
             remote_file_medical_metadata=remote_file_medical_metadata,
             remote_file_path=remote_file_path,
             isotropic=legacy,
         )
-        if mask_annotations is not None:
-            video_annotations.extend(mask_annotations)
+        if mask_annotations:
+            video_annotations += mask_annotations
 
     if mode in ["video", "instances"]:
         annotation_classes = {
@@ -600,11 +598,11 @@ def correct_nifti_header_if_necessary(img_nii):
 
 
 def process_nifti(
-    input_data: Nifti1Image,
+    input_data: nib.nifti1.Nifti1Image,
     ornt: Optional[List[List[float]]] = [[0.0, -1.0], [1.0, -1.0], [2.0, -1.0]],
     remote_file_path: Path = Path("/"),
     remote_file_medical_metadata: Dict[Path, Dict[str, Any]] = {},
-) -> NDArray:
+) -> np.ndarray:
     """
     Converts a NifTI object of any orientation to the passed ornt orientation.
     The default ornt is LPI.
@@ -631,28 +629,26 @@ def process_nifti(
             A dictionary mapping file paths to their medical metadata
 
     Returns:
-        data_array: pixel array with orientation ornt.
+        nib.nifti1.Nifti1Image
+        The reoriented NifTI object
     """
     img = correct_nifti_header_if_necessary(input_data)
-    orig_ax_codes = nib_orientations.aff2axcodes(img.affine)
-    orig_ornt = nib_orientations.axcodes2ornt(orig_ax_codes)
+    orig_ax_codes = nib.orientations.aff2axcodes(img.affine)
+    orig_ornt = nib.orientations.axcodes2ornt(orig_ax_codes)
     is_dicom = remote_file_path.suffix.lower() == ".dcm"
 
     if remote_file_path in remote_file_medical_metadata and is_dicom:
         file_metadata = remote_file_medical_metadata[remote_file_path]
         if file_metadata["legacy"]:
-            first_slot = next(iter([k for k in file_metadata.keys() if k != "legacy"]))
+            first_slot = next(iter(file_metadata))
             affine = file_metadata[first_slot]["affine"]
-            ax_codes = nib_orientations.aff2axcodes(affine)
-            ornt = nib_orientations.axcodes2ornt(ax_codes)
+            ax_codes = nib.orientations.aff2axcodes(affine)
+            ornt = nib.orientations.axcodes2ornt(ax_codes)
 
-    transform = nib_orientations.ornt_transform(
-        orig_ornt, cast(List[List[float]], ornt)
-    )
-    transform_int = [[int(x) for x in row] for row in transform]
-    reoriented_img = img.as_reoriented(transform_int)
-    data_array = reoriented_img.get_fdata()
-    return cast(NDArray, data_array)
+    transform = nib.orientations.ornt_transform(orig_ornt, ornt)
+    reoriented_img = img.as_reoriented(transform)
+    reoriented_img = reoriented_img.get_fdata()
+    return reoriented_img
 
 
 def convert_to_dense_rle(raster: np.ndarray) -> List[int]:

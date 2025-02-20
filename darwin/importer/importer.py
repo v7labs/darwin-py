@@ -1,6 +1,5 @@
 import concurrent.futures
 import uuid
-import json
 import copy
 from collections import defaultdict
 from logging import getLogger
@@ -21,6 +20,7 @@ from typing import (
     Union,
 )
 
+import json
 import numpy as np
 import nibabel as nib
 from darwin.datatypes import (
@@ -2526,73 +2526,80 @@ def _apply_axial_flips_to_annotations(
 ) -> List[dt.AnnotationFile]:
     for parsed_file in parsed_files:
         remote_file_path = Path(parsed_file.full_path)
+
         if remote_file_path in remote_file_medical_metadata:
             medical_metadata = remote_file_medical_metadata[remote_file_path]
+
             for annotation in parsed_file.annotations:
                 annotation_slot_name = annotation.slot_names[0]
                 if annotation_slot_name not in medical_metadata:
                     continue
+
                 slot_metadata = medical_metadata[annotation_slot_name]
                 if slot_metadata["legacy"]:
                     continue
+
                 axial_flips = slot_metadata["axial_flips"]
-                if axial_flips[0] == -1:
-                    if annotation.annotation_class.annotation_type == "raster_layer":
-                        annotation = _flip_raster_layer_in_x_or_y(
-                            annotation,
+                if isinstance(annotation, dt.VideoAnnotation):
+
+                    flipped_frames = {}
+                    for frame_idx, frame_annotation in annotation.frames.items():
+                        flipped_frames[frame_idx] = copy.deepcopy(frame_annotation)
+
+                    if axial_flips[0] == -1:
+                        for frame_idx, frame_annotation in flipped_frames.items():
+                            if (
+                                frame_annotation.annotation_class.annotation_type
+                                == "raster_layer"
+                            ):
+                                frame_annotation._flip_raster_layer_in_x_or_y(
+                                    width=slot_metadata["width"],
+                                    height=slot_metadata["height"],
+                                    axis=dt.CartesianAxis.X,
+                                )
+                            else:
+                                frame_annotation._flip_annotation_in_x_or_y(
+                                    axis_limit=slot_metadata["width"],
+                                    axis=dt.CartesianAxis.X,
+                                )
+
+                    annotation.frames = flipped_frames
+                    if axial_flips[1] == -1:
+                        for frame_idx, frame_annotation in flipped_frames.items():
+                            if (
+                                frame_annotation.annotation_class.annotation_type
+                                == "raster_layer"
+                            ):
+                                frame_annotation._flip_raster_layer_in_x_or_y(
+                                    width=slot_metadata["width"],
+                                    height=slot_metadata["height"],
+                                    axis=dt.CartesianAxis.Y,
+                                )
+                            else:
+                                frame_annotation._flip_annotation_in_x_or_y(
+                                    axis_limit=slot_metadata["height"],
+                                    axis=dt.CartesianAxis.Y,
+                                )
+
+                    annotation.frames = flipped_frames
+                    if axial_flips[2] == -1:
+                        annotation = _flip_annotation_in_z(
+                            annotation=annotation,
+                            num_frames=slot_metadata["num_frames"],
+                        )
+                else:
+                    if axial_flips[0] == -1:
+                        annotation._flip_annotation_in_x_or_y(
+                            axis_limit=slot_metadata["width"],
                             axis=dt.CartesianAxis.X,
-                            width=slot_metadata["width"],
-                            height=slot_metadata["height"],
                         )
-                    else:
-                        annotation = _flip_annotation_in_x_or_y(
-                            annotation, width=slot_metadata["width"]
-                        )
-                if axial_flips[1] == -1:
-                    if annotation.annotation_class.annotation_type == "raster_layer":
-                        annotation = _flip_raster_layer_in_x_or_y(
-                            annotation,
+                    if axial_flips[1] == -1:
+                        annotation._flip_annotation_in_x_or_y(
+                            axis_limit=slot_metadata["height"],
                             axis=dt.CartesianAxis.Y,
-                            width=slot_metadata["width"],
-                            height=slot_metadata["height"],
                         )
-                    else:
-                        annotation = _flip_annotation_in_x_or_y(
-                            annotation, height=slot_metadata["height"]
-                        )
-                if axial_flips[2] == -1:
-                    annotation = _flip_annotation_in_z(
-                        annotation, slot_metadata["num_frames"]
-                    )
+
     return parsed_files
-
-
-def _flip_annotation_in_x_or_y(
-    annotation: Union[dt.Annotation, dt.VideoAnnotation],
-    width: Optional[int] = None,
-    height: Optional[int] = None,
-) -> Union[dt.Annotation, dt.VideoAnnotation]:
-    if width is None and height is None:
-        raise ValueError("Either width or height must be provided")
-    if isinstance(annotation, dt.VideoAnnotation):
-        for _, frame_annotation in annotation.frames.items():
-            _flip_x_or_y(frame_annotation, width, height)
-
-    elif isinstance(annotation, dt.Annotation):
-        _flip_x_or_y(annotation, width, height)
-    return annotation
-
-
-def _flip_x_or_y(
-    annotation: dt.Annotation, width: Optional[int] = None, height: Optional[int] = None
-):
-    if width:
-        axis_limit = width
-        axis = dt.CartesianAxis.X
-    elif height:
-        axis_limit = height
-        axis = dt.CartesianAxis.Y
-    annotation._flip_annotation_in_x_or_y(axis_limit, axis)
 
 
 def _flip_annotation_in_z(
@@ -2613,18 +2620,4 @@ def _flip_annotation_in_z(
         annotation.segments = flipped_segments
         # NOTE: We haven't implemented flipping for `hidden_areas` because hidden areas
         # are not supported in slots containing medical data
-    return annotation
-
-
-def _flip_raster_layer_in_x_or_y(
-    annotation: dt.RasterLayer,
-    axis: dt.CartesianAxis,
-    width: int,
-    height: int,
-) -> dt.RasterLayer:
-    if isinstance(annotation, dt.VideoAnnotation):
-        for _, frame_annotation in annotation.frames.items():
-            frame_annotation._flip_raster_layer_in_x_or_y(width, height, axis)
-    else:
-        annotation._flip_raster_layer_in_x_or_y(width, height, axis)
     return annotation

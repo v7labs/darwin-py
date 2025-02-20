@@ -245,6 +245,14 @@ class Annotation:
         return None
 
     def _flip_annotation_in_x_or_y(self, axis_limit: int, axis: CartesianAxis):
+        """
+        Flips a coordinate-based annotation in either X or Y axis.
+
+        Parameters
+        ----------
+        axis_limit : int
+            The limit of the axis to flip along.
+        """
         annotation_type = (
             self.annotation_class.annotation_type
             if hasattr(self, "annotation_class")
@@ -315,33 +323,23 @@ class Annotation:
         2. Flipping the mask along the specified axis
         3. Re-encoding back to RLE format
         """
-        # Decode RLE to flat array
         dense_rle = self.data["dense_rle"]
         total_pixels = width * height
-
         mask = np.zeros(total_pixels, dtype=np.uint8)
         idx = 0
-
-        # Process RLE pairs (value, length)
         for i in range(0, len(dense_rle), 2):
             value = dense_rle[i]
             length = dense_rle[i + 1]
             mask[idx : idx + length] = value
             idx += length
 
-        # Reshape to 2D
         mask = mask.reshape(height, width)
-
-        # Perform flip
         if axis == CartesianAxis.X:
             mask = np.fliplr(mask)
         elif axis == CartesianAxis.Y:
             mask = np.flipud(mask)
 
-        # Flatten and convert back to RLE format
         mask = mask.ravel()
-
-        # Convert back to RLE format
         rle = []
         count = 1
         current = mask[0]
@@ -354,8 +352,6 @@ class Annotation:
                 current = bit
                 count = 1
         rle.extend([int(current), count])
-
-        # Update the annotation data
         self.data["dense_rle"] = rle
 
 
