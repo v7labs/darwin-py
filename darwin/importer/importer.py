@@ -2431,6 +2431,9 @@ def _get_remote_file_medical_metadata(
         - original_affine: The original affine matrix (if legacy)
         - axial_flips: A list of 3 values that are either 1 or -1. -1 indicates the axis is reversed.
         - pixdims: The (x, y, z) pixel dimensions
+        - height: The height of the file
+        - width: The width of the file
+        - num_frames: The number of frames in the file (only present for sequence files)
         - primary_plane: The primary plane of the medical image
 
     Parameters
@@ -2452,8 +2455,8 @@ def _get_remote_file_medical_metadata(
                     pixdims: List[float],
                     height: int,
                     width: int,
-                    num_frames: int, # Only present for sequence files
-                    primary_plane: str
+                    num_frames: int, (Only present for sequence files)
+                    primary_plane: str,
                 }
             }
         }
@@ -2583,10 +2586,11 @@ def _apply_axial_flips_to_annotations(
 
                     annotation.frames = flipped_frames
                     if axial_flips[2] == -1:
-                        annotation = _flip_annotation_in_z(
-                            annotation=annotation,
-                            num_frames=slot_metadata["num_frames"],
-                        )
+                        if isinstance(annotation, dt.VideoAnnotation):
+                            annotation = _flip_annotation_in_z(
+                                annotation=annotation,
+                                num_frames=slot_metadata["num_frames"],
+                            )
                 else:
                     if axial_flips[0] == -1:
                         annotation._flip_annotation_in_x_or_y(
@@ -2603,21 +2607,22 @@ def _apply_axial_flips_to_annotations(
 
 
 def _flip_annotation_in_z(
-    annotation: Union[dt.Annotation, dt.VideoAnnotation],
+    annotation: dt.VideoAnnotation,
     num_frames: int,
-) -> Union[dt.Annotation, dt.VideoAnnotation]:
-    if isinstance(annotation, dt.VideoAnnotation):
-        flipped_frames, flipped_keyframes = {}, {}
-        for frame_idx, frame_annotation in annotation.frames.items():
-            flipped_frame_idx = num_frames - frame_idx - 1
-            flipped_frames[flipped_frame_idx] = frame_annotation
-            flipped_keyframes[flipped_frame_idx] = annotation.keyframes[frame_idx]
-        segment_start = annotation.segments[0][0]
-        segment_end = annotation.segments[0][1]
-        flipped_segments = [[num_frames - segment_end, num_frames - segment_start]]
-        annotation.frames = flipped_frames
-        annotation.keyframes = flipped_keyframes
-        annotation.segments = flipped_segments
-        # NOTE: We haven't implemented flipping for `hidden_areas` because hidden areas
-        # are not supported in slots containing medical data
+) -> dt.VideoAnnotation:
+    flipped_frames, flipped_keyframes = {}, {}
+    for frame_idx, frame_annotation in annotation.frames.items():
+        flipped_frame_idx = num_frames - frame_idx - 1
+        flipped_frames[flipped_frame_idx] = frame_annotation
+    for frame_idx in annotation.keyframes:
+        flipped_frame_idx = num_frames - frame_idx - 1
+        flipped_keyframes[flipped_frame_idx] = annotation.keyframes[frame_idx]
+    segment_start = annotation.segments[0][0]
+    segment_end = annotation.segments[0][1]
+    flipped_segments = [[num_frames - segment_end, num_frames - segment_start]]
+    annotation.frames = flipped_frames
+    annotation.keyframes = flipped_keyframes
+    annotation.segments = flipped_segments
+    # NOTE: We haven't implemented flipping for `hidden_areas` because hidden areas
+    # are not supported in slots containing medical data
     return annotation
