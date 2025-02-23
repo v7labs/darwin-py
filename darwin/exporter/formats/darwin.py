@@ -20,6 +20,9 @@ def build_image_annotation(
     """
     Builds and returns a dictionary with the annotations present in the given file in Darwin v2 format.
 
+    Used in V7's internal infrastructure. To parse local annotation files,
+    it's highly recommended to use `darwin.utils.utils.parse_darwin_json` instead.
+
     Parameters
     ----------
     annotation_file: AnnotationFile
