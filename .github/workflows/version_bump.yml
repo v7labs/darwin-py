@@ -1,0 +1,75 @@
+name: Version Bump
+run-name: Version bump ${{ inputs.bump_type }}${{ inputs.test_mode && ' (TEST)' || '' }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump_type:
+        description: "Version bump type"
+        required: true
+        default: "patch"
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+      test_mode:
+        description: "Run in test mode (publishes to Test PyPI)"
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+
+jobs:
+  bump-version:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@v2.10.4
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5.4.0
+        with:
+          python-version: "3.9"
+
+      - name: Configure Git
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email github-actions[bot]@users.noreply.github.com
+
+      - name: Bump version
+        run: |
+          if [[ "${{ inputs.test_mode }}" == "true" ]]; then
+            TIMESTAMP=$(date +%Y%m%d%H%M%S)
+            echo "NEW_VERSION=0.0.0-test.${TIMESTAMP}" >> $GITHUB_ENV
+            echo "TAG_PREFIX=test-" >> $GITHUB_ENV
+            echo "BRANCH_NAME=test/version-bump" >> $GITHUB_ENV
+          else
+            python deploy/increase_version.py --${{ inputs.bump_type }}
+            NEW_VERSION=$(cat .version)
+            echo "NEW_VERSION=${NEW_VERSION}" >> $GITHUB_ENV
+            echo "TAG_PREFIX=v" >> $GITHUB_ENV
+            echo "BRANCH_NAME=master" >> $GITHUB_ENV
+          fi
+
+      - name: Commit and push changes
+        run: |
+          git add pyproject.toml darwin/__init__.py
+          git commit -m "Version bump to ${{ env.NEW_VERSION }}"
+          if [[ "${{ inputs.test_mode }}" == "true" ]]; then
+            git checkout -b ${BRANCH_NAME}
+          fi
+          git push origin HEAD:${BRANCH_NAME}
+
+      - name: Create and push tag
+        run: |
+          git tag -a "${TAG_PREFIX}${NEW_VERSION}" -m "bump version to ${TAG_PREFIX}${NEW_VERSION}"
+          git push origin "${TAG_PREFIX}${NEW_VERSION}"
