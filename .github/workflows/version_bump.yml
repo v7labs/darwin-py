@@ -70,7 +70,7 @@ jobs:
       - name: Bump version
         run: |
           python deploy/increase_version.py --${{ env.BUMP_TYPE }} --auto-confirm y
-          BASE_VERSION=$(grep -oP '(?<=^version = ")[^"]*' pyproject.toml)
+          BASE_VERSION=$(grep '__version__' darwin/version/__init__.py | cut -d '"' -f 2)  
 
           if [[ "${{ env.TEST_MODE }}" == "true" ]]; then
             TIMESTAMP=$(date +%Y%m%d%H%M%S)
