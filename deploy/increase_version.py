@@ -99,7 +99,7 @@ class Version:
 def confirm(question: str, auto_answer: str = None) -> bool:
     if auto_answer is not None:
         return auto_answer.lower() in ["y", "yes"]
-    
+
     while True:
         answer = input(f"{question} [y/n]: ").lower().strip()
         if answer in ["y", "yes"]:
@@ -345,7 +345,10 @@ def main() -> None:
     if new_version.was_changed() and (
         force_actions
         or cicd_mode
-        or confirm(f"Update version from {str(LOCAL_VERSION)} to {str(new_version)}?", args.auto_confirm)
+        or confirm(
+            f"Update version from {str(LOCAL_VERSION)} to {str(new_version)}?",
+            args.auto_confirm,
+        )
     ):
         _update_version(new_version)
         _update_pyproject_version(new_version)
