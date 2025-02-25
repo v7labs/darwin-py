@@ -24,8 +24,11 @@ jobs:
     name: Python Checks
     needs: get_changed_files
     if: needs.get_changed_files.outputs.python_changed_files != ''
+
     uses: ./.github/workflows/JOB_python_checks.yml
+
     with:
       files: ${{ needs.get_changed_files.outputs.python_changed_files }}
     permissions:
       contents: read
+
