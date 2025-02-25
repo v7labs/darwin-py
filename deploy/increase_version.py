@@ -96,7 +96,10 @@ class Version:
         return f"{self.major}.{self.minor}.{self.patch}"
 
 
-def confirm(question: str) -> bool:
+def confirm(question: str, auto_answer: str = None) -> bool:
+    if auto_answer is not None:
+        return auto_answer.lower() in ["y", "yes"]
+    
     while True:
         answer = input(f"{question} [y/n]: ").lower().strip()
         if answer in ["y", "yes"]:
@@ -245,7 +248,6 @@ def arguments() -> argparse.Namespace:
         action="store_true",
         help="run in CI/CD mode (no confirmation, assume failure unless --force specified)",
     )
-
     parser.add_argument(
         "-v",
         "--version",
@@ -267,6 +269,12 @@ def arguments() -> argparse.Namespace:
         "--new-version",
         type=str,
         help="set new version number (overrides -M, -m, -p)",
+    )
+    parser.add_argument(
+        "--auto-confirm",
+        type=str,
+        choices=["y", "n"],
+        help="Automatically confirm the action (y/n)",
     )
 
     return parser.parse_args()
@@ -337,7 +345,7 @@ def main() -> None:
     if new_version.was_changed() and (
         force_actions
         or cicd_mode
-        or confirm(f"Update version from {str(LOCAL_VERSION)} to {str(new_version)}?")
+        or confirm(f"Update version from {str(LOCAL_VERSION)} to {str(new_version)}?", args.auto_confirm)
     ):
         _update_version(new_version)
         _update_pyproject_version(new_version)

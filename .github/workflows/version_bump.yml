@@ -69,7 +69,7 @@ jobs:
 
       - name: Bump version
         run: |
-          python deploy/increase_version.py --${{ env.BUMP_TYPE }}
+          python deploy/increase_version.py --${{ env.BUMP_TYPE }} --auto-confirm y
           BASE_VERSION=$(cat .version)
 
           if [[ "${{ env.TEST_MODE }}" == "true" ]]; then
