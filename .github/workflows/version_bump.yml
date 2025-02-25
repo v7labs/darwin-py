@@ -97,6 +97,9 @@ jobs:
         run: |
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global user.name "GitHub Actions"
+          git fetch origin
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Commit and push changes
         if: ${{ env.TEST_MODE != 'true' }}
@@ -105,6 +108,8 @@ jobs:
           git add pyproject.toml darwin/__init__.py
           git commit -m "Version bump to ${{ env.NEW_VERSION }}"
           git push origin HEAD:${BRANCH_NAME}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create test branch
         if: ${{ env.TEST_MODE == 'true' }}
@@ -112,8 +117,12 @@ jobs:
           echo "Create test branch"
           git checkout -b ${BRANCH_NAME}
           git push origin ${BRANCH_NAME}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create and push tag
         run: |
           git tag -a "${TAG_PREFIX}${NEW_VERSION}" -m "bump version to ${TAG_PREFIX}${NEW_VERSION}"
           git push origin "${TAG_PREFIX}${NEW_VERSION}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
