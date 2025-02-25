@@ -1,6 +1,6 @@
 import tempfile
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 from zipfile import ZipFile
 
 import nibabel as nib
@@ -8,6 +8,11 @@ import numpy as np
 
 from darwin.exporter.exporter import darwin_to_dt_gen
 from darwin.exporter.formats import nifti
+from darwin.exporter.formats.nifti import (
+    populate_output_volumes_from_raster_layer,
+    Volume,
+)
+import darwin.datatypes as dt
 from tests.fixtures import *
 
 
@@ -241,3 +246,109 @@ def test_shift_polygon_coords_legacy():
     result = nifti.shift_polygon_coords(polygon, pixdim, "AXIAL", legacy=True)
     expected = [{"x": 20.0, "y": 10.0}, {"x": 40.0, "y": 30.0}, {"x": 60.0, "y": 50.0}]
     assert result == expected
+
+
+def test_global_mask_id_mapping():
+    """
+    Test that `populate_output_volumes_from_raster_layer` creates a global mapping
+    for mask ids when the same local id is used for different mask annotations across frames.
+    This verifies that mask annotations with the same local ID but from different frames
+    are treated as different annotations.
+    """
+    annotation = MagicMock(spec=dt.Annotation)
+    annotation.slot_names = ["slot1"]
+
+    # Set up frames with overlapping local IDs but different mask_ids
+    frame0_data = MagicMock()
+    frame0_data.data = {
+        "dense_rle": [
+            0,
+            9,
+            1,
+            1,
+            0,
+            90,
+        ],
+        "mask_annotation_ids_mapping": {"mask_id_1": 1},
+    }
+
+    frame1_data = MagicMock()
+    frame1_data.data = {
+        "dense_rle": [
+            0,
+            8,
+            1,
+            1,
+            2,
+            1,
+            0,
+            90,
+        ],
+        "mask_annotation_ids_mapping": {"mask_id_2": 1, "mask_id_3": 2},
+    }
+
+    annotation.frames = {0: frame0_data, 1: frame1_data}
+    slot = MagicMock()
+    slot.metadata = {
+        "SeriesInstanceUID": "test_series_uid",
+        "shape": [1, 10, 10, 2],
+    }
+    slot.width = 10
+    slot.height = 10
+    slot_map = {"slot1": slot}
+    mask_id_to_classname = {
+        "mask_id_1": "class1",
+        "mask_id_2": "class2",
+        "mask_id_3": "class3",
+    }
+
+    class_volume1 = MagicMock(spec=Volume)
+    class_volume1.pixel_array = np.zeros((10, 10, 2))
+    class_volume2 = MagicMock(spec=Volume)
+    class_volume2.pixel_array = np.zeros((10, 10, 2))
+    class_volume3 = MagicMock(spec=Volume)
+    class_volume3.pixel_array = np.zeros((10, 10, 2))
+    output_volumes = {
+        "test_series_uid": {
+            "class1": class_volume1,
+            "class2": class_volume2,
+            "class3": class_volume3,
+        }
+    }
+
+    with patch("darwin.exporter.formats.nifti.decode_rle") as mock_decode_rle:
+        mask_2d_frame0 = np.zeros((10, 10), dtype=np.uint8)
+        mask_2d_frame0[0, 0] = 1
+
+        mask_2d_frame1 = np.zeros((10, 10), dtype=np.uint8)
+        mask_2d_frame1[1, 1] = 1
+        mask_2d_frame1[2, 2] = 2
+
+        mock_decode_rle.side_effect = [mask_2d_frame0, mask_2d_frame1]
+
+        _ = populate_output_volumes_from_raster_layer(
+            annotation=annotation,
+            mask_id_to_classname=mask_id_to_classname,
+            slot_map=slot_map,
+            output_volumes=output_volumes,
+            primary_plane="AXIAL",
+        )
+
+        # Verify results
+        # Check that class1 (mask_id_1) is in frame 0 at position (0,0)
+        assert class_volume1.pixel_array[0, 0, 0] == 1
+        assert class_volume1.pixel_array[1, 1, 1] == 0  # Should not appear in frame 1
+
+        # Check that class2 (mask_id_2) is in frame 1 at position (1,1) but not in frame 0
+        assert class_volume2.pixel_array[0, 0, 0] == 0  # Should not appear in frame 0
+        assert class_volume2.pixel_array[1, 1, 1] == 1
+
+        # Check that class3 (mask_id_3) is in frame 1 at position (2,2) but not in frame 0
+        assert class_volume3.pixel_array[0, 0, 0] == 0  # Should not appear in frame 0
+        assert class_volume3.pixel_array[2, 2, 1] == 1
+
+        # Check that no cross-contamination happened due to the shared local IDs
+        # If the bug exists, class2 would appear in frame 0 because it shares local ID 1 with class1
+        assert np.sum(class_volume1.pixel_array[:, :, 1]) == 0  # class1 only in frame 0
+        assert np.sum(class_volume2.pixel_array[:, :, 0]) == 0  # class2 only in frame 1
+        assert np.sum(class_volume3.pixel_array[:, :, 0]) == 0  # class3 only in frame 1
