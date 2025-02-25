@@ -42,10 +42,18 @@ jobs:
         with:
           python-version: "3.9"
 
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install requests toml validate-pyproject poetry pytest
+      - name: Install dependencies with retry
+        uses: nick-invision/retry@7152eba30c6575329ac0576536151aca5a72780e
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: |
+            bash -c "pip install poetry pytest && \
+                     poetry install --no-interaction --no-root -vvv --all-extras && \
+                     poetry install --no-interaction --no-root --all-extras -vvv && \
+                     pip install wheel && \
+                     pip install --upgrade setuptools && \
+                     pip install --editable '.[test,ml,medical,dev, ocv]'"
 
       - name: Set bump type and test mode
         run: |
