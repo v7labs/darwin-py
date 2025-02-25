@@ -73,12 +73,3 @@ jobs:
         run: |
           git tag -a "${TAG_PREFIX}${NEW_VERSION}" -m "bump version to ${TAG_PREFIX}${NEW_VERSION}"
           git push origin "${TAG_PREFIX}${NEW_VERSION}"
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: ${{ env.TAG_PREFIX }}${{ env.NEW_VERSION }}
-          name: ${{ env.TAG_PREFIX }}${{ env.NEW_VERSION }}
-          generate_release_notes: true
-          draft: false
-          prerelease: ${{ inputs.test_mode }}
