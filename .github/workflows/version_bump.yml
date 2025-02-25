@@ -40,11 +40,6 @@ jobs:
         with:
           python-version: "3.9"
 
-      - name: Setup Poetry
-        uses: abatilo/actions-poetry@0dd19c9498c3dc8728967849d0d2eae428a8a3d8
-        with:
-          poetry-version: "1.3.1"
-
       - name: Configure Git
         run: |
           git config user.name github-actions[bot]
@@ -54,15 +49,12 @@ jobs:
         run: |
           if [[ "${{ inputs.test_mode }}" == "true" ]]; then
             TIMESTAMP=$(date +%Y%m%d%H%M%S)
-            TEST_VERSION="0.0.0-test.${TIMESTAMP}"
-            poetry version ${TEST_VERSION}
-            echo "NEW_VERSION=${TEST_VERSION}" >> $GITHUB_ENV
+            echo "NEW_VERSION=0.0.0-test.${TIMESTAMP}" >> $GITHUB_ENV
             echo "TAG_PREFIX=test-" >> $GITHUB_ENV
             echo "BRANCH_NAME=test/version-bump" >> $GITHUB_ENV
           else
-            CURRENT_VERSION=$(poetry version -s)
-            poetry version ${{ inputs.bump_type }}
-            NEW_VERSION=$(poetry version -s)
+            python deploy/increase_version.py --${{ inputs.bump_type }}
+            NEW_VERSION=$(cat .version)
             echo "NEW_VERSION=${NEW_VERSION}" >> $GITHUB_ENV
             echo "TAG_PREFIX=v" >> $GITHUB_ENV
             echo "BRANCH_NAME=master" >> $GITHUB_ENV
@@ -70,8 +62,8 @@ jobs:
 
       - name: Commit and push changes
         run: |
-          git add pyproject.toml
-          git commit -m "Version bump to ${TAG_PREFIX}${NEW_VERSION}"
+          git add pyproject.toml darwin/__init__.py
+          git commit -m "Version bump to ${{ env.NEW_VERSION }}"
           if [[ "${{ inputs.test_mode }}" == "true" ]]; then
             git checkout -b ${BRANCH_NAME}
           fi
@@ -79,7 +71,7 @@ jobs:
 
       - name: Create and push tag
         run: |
-          git tag -a "${TAG_PREFIX}${NEW_VERSION}" -m "Release version ${NEW_VERSION}"
+          git tag -a "${TAG_PREFIX}${NEW_VERSION}" -m "bump version to ${TAG_PREFIX}${NEW_VERSION}"
           git push origin "${TAG_PREFIX}${NEW_VERSION}"
 
       - name: Create GitHub Release
