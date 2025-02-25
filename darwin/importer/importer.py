@@ -1986,8 +1986,6 @@ def _import_annotations(
     payload["overwrite"] = _get_overwrite_value(append)
 
     try:
-        console = Console(theme=_console_theme())
-        console.print(f"### Payload {payload}", style="info")
         dataset.import_annotation(id, payload=payload)
     except RequestEntitySizeExceeded:
         logger.warning(

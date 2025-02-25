@@ -109,6 +109,13 @@
               "color": "rgba(0,255,85,1.0)"
             }
           ]
+        },
+        {
+          "name": "sec-lvl-text",
+          "type": "text",
+          "description": "",
+          "required": false,
+          "property_values": []
         }
       ],
       "sub_types_settings": {
