@@ -83,7 +83,7 @@ jobs:
             NEW_VERSION="${BASE_VERSION}-test.${TIMESTAMP}"
             echo $NEW_VERSION
             TAG_PREFIX="test-"
-            BRANCH_NAME="test/version-bump"
+            BRANCH_NAME="test/version-bump-${NEW_VERSION}"
           else
             NEW_VERSION="${BASE_VERSION}"
             TAG_PREFIX="v"
@@ -97,7 +97,6 @@ jobs:
         run: |
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global user.name "GitHub Actions"
-          git fetch origin
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
