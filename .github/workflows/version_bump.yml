@@ -75,11 +75,13 @@ jobs:
           if [[ "${{ env.TEST_MODE }}" == "true" ]]; then
             TIMESTAMP=$(date +%Y%m%d%H%M%S)
             TEST_VERSION="${BASE_VERSION}-test.${TIMESTAMP}"
+            echo "Adding test suffix"
             # Update version in pyproject.toml and in __init__.py
             awk -v new_version="$TEST_VERSION" '/^version = / {$0 = "version = \"" new_version "\""} 1' pyproject.toml > pyproject.tmp && mv pyproject.tmp pyproject.toml
             awk -v new_version="$TEST_VERSION" '/^__version__ = / {$0 = "__version__ = \"" new_version "\""} 1' darwin/__init__.py > darwin/__init__.tmp && mv darwin/__init__.tmp darwin/__init__.py
 
             NEW_VERSION="${BASE_VERSION}-test.${TIMESTAMP}"
+            echo $NEW_VERSION
             TAG_PREFIX="test-"
             BRANCH_NAME="test/version-bump"
           else
@@ -94,6 +96,7 @@ jobs:
       - name: Commit and push changes
         if: ${{ env.TEST_MODE != 'true' }}
         run: |
+          echo "Commit and push version changes"
           git add pyproject.toml darwin/__init__.py
           git commit -m "Version bump to ${{ env.NEW_VERSION }}"
           git push origin HEAD:${BRANCH_NAME}
@@ -101,6 +104,7 @@ jobs:
       - name: Create test branch
         if: ${{ env.TEST_MODE == 'true' }}
         run: |
+          echo "Create test branch"
           git checkout -b ${BRANCH_NAME}
           git push origin ${BRANCH_NAME}
 
