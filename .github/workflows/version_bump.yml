@@ -82,11 +82,3 @@ jobs:
           generate_release_notes: true
           draft: false
           prerelease: ${{ inputs.test_mode }}
-
-      - name: Notify Slack
-        uses: ./.github/workflows/JOB_slack_message.yml
-        with:
-          icon: ":arrows_counterclockwise:"
-          message: |
-            ${{ inputs.test_mode && '[TEST] ' || '' }}Version ${{ env.TAG_PREFIX }}${{ env.NEW_VERSION }} has been bumped and tagged
-            Type: ${{ inputs.bump_type }}
