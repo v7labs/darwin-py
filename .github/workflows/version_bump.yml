@@ -47,27 +47,39 @@ jobs:
 
       - name: Bump version
         run: |
+          python deploy/increase_version.py --${{ inputs.bump_type }}
+          BASE_VERSION=$(cat .version)
+
           if [[ "${{ inputs.test_mode }}" == "true" ]]; then
             TIMESTAMP=$(date +%Y%m%d%H%M%S)
-            echo "NEW_VERSION=0.0.0-test.${TIMESTAMP}" >> $GITHUB_ENV
-            echo "TAG_PREFIX=test-" >> $GITHUB_ENV
-            echo "BRANCH_NAME=test/version-bump" >> $GITHUB_ENV
+            TEST_VERSION="${BASE_VERSION}-test.${TIMESTAMP}"
+            # Update version in pyproject.toml and __init__.py
+            sed -i "s/^version = .*/version = \"${TEST_VERSION}\"/" pyproject.toml
+            sed -i "s/__version__ = .*/__version__ = \"${TEST_VERSION}\"/" darwin/__init__.py
+            NEW_VERSION="${BASE_VERSION}-test.${TIMESTAMP}"
+            TAG_PREFIX="test-"
+            BRANCH_NAME="test/version-bump"
           else
-            python deploy/increase_version.py --${{ inputs.bump_type }}
-            NEW_VERSION=$(cat .version)
-            echo "NEW_VERSION=${NEW_VERSION}" >> $GITHUB_ENV
-            echo "TAG_PREFIX=v" >> $GITHUB_ENV
-            echo "BRANCH_NAME=master" >> $GITHUB_ENV
+            NEW_VERSION="${BASE_VERSION}"
+            TAG_PREFIX="v"
+            BRANCH_NAME="master"
           fi
+          echo "NEW_VERSION=${NEW_VERSION}" >> $GITHUB_ENV
+          echo "TAG_PREFIX=${TAG_PREFIX}" >> $GITHUB_ENV
+          echo "BRANCH_NAME=${BRANCH_NAME}" >> $GITHUB_ENV
 
       - name: Commit and push changes
+        if: ${{ inputs.test_mode != 'true' }}
         run: |
           git add pyproject.toml darwin/__init__.py
           git commit -m "Version bump to ${{ env.NEW_VERSION }}"
-          if [[ "${{ inputs.test_mode }}" == "true" ]]; then
-            git checkout -b ${BRANCH_NAME}
-          fi
           git push origin HEAD:${BRANCH_NAME}
+
+      - name: Create test branch
+        if: ${{ inputs.test_mode == 'true' }}
+        run: |
+          git checkout -b ${BRANCH_NAME}
+          git push origin ${BRANCH_NAME}
 
       - name: Create and push tag
         run: |

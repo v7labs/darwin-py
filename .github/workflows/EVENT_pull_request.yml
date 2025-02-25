@@ -20,30 +20,15 @@ jobs:
     permissions:
       contents: read
 
-  format:
-    name: Check format of python
+  python_checks:
+    name: Python Checks
     needs: get_changed_files
     if: needs.get_changed_files.outputs.python_changed_files != ''
-    uses: ./.github/workflows/JOB_format.yml
+
+    uses: ./.github/workflows/JOB_python_checks.yml
+
     with:
       files: ${{ needs.get_changed_files.outputs.python_changed_files }}
     permissions:
       contents: read
 
-  lint:
-    name: Lint python
-    needs: get_changed_files
-    if: needs.get_changed_files.outputs.python_changed_files != ''
-    uses: ./.github/workflows/JOB_lint.yml
-    with:
-      files: ${{ needs.get_changed_files.outputs.python_changed_files }}
-    permissions:
-      contents: read
-
-  run_tests:
-    name: Run tests
-    needs: get_changed_files
-    if: needs.get_changed_files.outputs.python_changed_files != ''
-    uses: ./.github/workflows/JOB_tests.yml
-    permissions:
-      contents: read
