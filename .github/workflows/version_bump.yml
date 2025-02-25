@@ -1,5 +1,5 @@
 name: Version Bump
-run-name: Version bump ${{ inputs.bump_type }}${{ inputs.test_mode && ' (TEST)' || '' }}
+run-name: Version bump ${{ github.event_name == 'workflow_dispatch' && inputs.bump_type || 'patch' }}${{ github.event_name == 'workflow_dispatch' && inputs.test_mode && ' (TEST)' || '' }}
 
 on:
   workflow_dispatch:
@@ -18,6 +18,8 @@ on:
         required: true
         default: false
         type: boolean
+  pull_request:
+    types: [opened, synchronize, reopened]
 
 permissions:
   contents: write
@@ -40,17 +42,29 @@ jobs:
         with:
           python-version: "3.9"
 
-      - name: Configure Git
+      - name: Install dependencies
         run: |
-          git config user.name github-actions[bot]
-          git config user.email github-actions[bot]@users.noreply.github.com
+          python -m pip install --upgrade pip
+          pip install requests
+
+      - name: Set bump type and test mode
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            BUMP_TYPE="${{ inputs.bump_type }}"
+            TEST_MODE="${{ inputs.test_mode }}"
+          else
+            BUMP_TYPE="patch"  # Default to "patch" for pull requests
+            TEST_MODE="true"    # Always run in test mode for pull requests
+          fi
+          echo "BUMP_TYPE=${BUMP_TYPE}" >> $GITHUB_ENV
+          echo "TEST_MODE=${TEST_MODE}" >> $GITHUB_ENV
 
       - name: Bump version
         run: |
-          python deploy/increase_version.py --${{ inputs.bump_type }}
+          python deploy/increase_version.py --${{ env.BUMP_TYPE }}
           BASE_VERSION=$(cat .version)
 
-          if [[ "${{ inputs.test_mode }}" == "true" ]]; then
+          if [[ "${{ env.TEST_MODE }}" == "true" ]]; then
             TIMESTAMP=$(date +%Y%m%d%H%M%S)
             TEST_VERSION="${BASE_VERSION}-test.${TIMESTAMP}"
             # Update version in pyproject.toml and __init__.py
@@ -69,14 +83,14 @@ jobs:
           echo "BRANCH_NAME=${BRANCH_NAME}" >> $GITHUB_ENV
 
       - name: Commit and push changes
-        if: ${{ inputs.test_mode != 'true' }}
+        if: ${{ env.TEST_MODE != 'true' }}
         run: |
           git add pyproject.toml darwin/__init__.py
           git commit -m "Version bump to ${{ env.NEW_VERSION }}"
           git push origin HEAD:${BRANCH_NAME}
 
       - name: Create test branch
-        if: ${{ inputs.test_mode == 'true' }}
+        if: ${{ env.TEST_MODE == 'true' }}
         run: |
           git checkout -b ${BRANCH_NAME}
           git push origin ${BRANCH_NAME}
