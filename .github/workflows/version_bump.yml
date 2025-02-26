@@ -84,7 +84,7 @@ jobs:
             awk -v new_version="$TEST_VERSION" '/^__version__ = / {$0 = "__version__ = \"" new_version "\""} 1' darwin/__init__.py > darwin/__init__.tmp && mv darwin/__init__.tmp darwin/__init__.py
 
 
-            BRANCH_NAME="${TEST_VERSION}"
+            BRANCH_NAME="${TAG_PREFIX}-branch-${NEW_VERSION}"
           else
             NEW_VERSION="${BASE_VERSION}"
             TAG_PREFIX="v"
