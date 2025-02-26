@@ -1,5 +1,5 @@
-name: Version Bump
-run-name: Version bump ${{ github.event_name == 'workflow_dispatch' && inputs.bump_type || 'patch' }}${{ github.event_name == 'workflow_dispatch' && inputs.test_mode && ' (TEST)' || '' }}
+name: Version Bump and Release
+run-name: Version bump and release ${{ github.event_name == 'workflow_dispatch' && inputs.bump_type || 'patch' }}${{ github.event_name == 'workflow_dispatch' && inputs.test_mode && ' (TEST)' || '' }}
 
 on:
   workflow_dispatch:
@@ -125,3 +125,13 @@ jobs:
           git push origin "${TAG_PREFIX}${NEW_VERSION}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create release
+        uses: actions/create-release@0cb9c9b65d5d1901c1f53e5e66eaf4afd303e70e # v1.1.4
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }} # Use the tag created
+          release_name: ${{ github.ref }}
+          draft: true
+          prerelease: false
