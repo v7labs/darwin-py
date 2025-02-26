@@ -189,6 +189,11 @@
           "frame_index": 0,
           "name": "single_select-1",
           "value": "2"
+        },
+        {
+          "frame_index": 0,
+          "name": "sec-lvl-text",
+          "value": "Section text test"
         }
       ],
       "slot_names": [

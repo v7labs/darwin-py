@@ -623,6 +623,14 @@ def _import_properties(
                     t_prop: FullProperty = team_properties_annotation_lookup[
                         (a_prop.name, annotation_class_id)
                     ]
+                    if t_prop.type == "text":
+                        set_text_property_value(
+                            annotation_property_map,
+                            annotation_id,
+                            a_prop,
+                            t_prop,
+                        )
+                        continue
 
                     # if property value is None, update annotation_property_map with empty set
                     if a_prop.value is None:
@@ -759,14 +767,15 @@ def _import_properties(
                 continue
 
             # check if property value is different in m_prop (.v7/metadata.json) options
-            for m_prop_option in m_prop_options:
-                if m_prop_option.get("value") == a_prop.value:
-                    break
-            else:
-                if a_prop.value:
-                    raise ValueError(
-                        f"Annotation: '{annotation_name}' -> Property '{a_prop.value}' not found in .v7/metadata.json, found: {m_prop.property_values}"
-                    )
+            if m_prop.type != "text":
+                for m_prop_option in m_prop_options:
+                    if m_prop_option.get("value") == a_prop.value:
+                        break
+                else:
+                    if a_prop.value:
+                        raise ValueError(
+                            f"Annotation: '{annotation_name}' -> Property '{a_prop.value}' not found in .v7/metadata.json, found: {m_prop.property_values}"
+                        )
 
             # get team property
             t_prop: FullProperty = team_properties_annotation_lookup[
@@ -782,43 +791,53 @@ def _import_properties(
                 continue
 
             # check if property value is different in t_prop (team) options
-            for t_prop_val in t_prop.property_values or []:
-                if t_prop_val.value == a_prop.value:
-                    break
-            else:
-                # if it is, update it
-                full_property = FullProperty(
-                    id=t_prop.id,
-                    name=a_prop.name,
-                    type=m_prop_type,
-                    required=m_prop.required,
-                    description=m_prop.description
-                    or "property-updated-during-annotation-import",
-                    slug=client.default_team,
-                    annotation_class_id=int(annotation_class_id),
-                    property_values=[
-                        PropertyValue(
-                            value=a_prop.value,
-                            color=m_prop_option.get("color"),  # type: ignore
-                        )
-                    ],
-                    granularity=t_prop.granularity,
-                )
-                # Don't attempt the same propery update multiple times
-                if (
-                    full_property
-                    not in annotation_and_section_level_properties_to_update
-                ):
-                    annotation_and_section_level_properties_to_update.append(
-                        full_property
+            if t_prop.type != "text" and t_prop.granularity in [
+                "section",
+                "annotation",
+            ]:
+                for t_prop_val in t_prop.property_values or []:
+                    if t_prop_val.value == a_prop.value:
+                        break
+                else:
+                    # if it is, update it
+                    full_property = FullProperty(
+                        id=t_prop.id,
+                        name=a_prop.name,
+                        type=m_prop_type,
+                        required=m_prop.required,
+                        description=m_prop.description
+                        or "property-updated-during-annotation-import",
+                        slug=client.default_team,
+                        annotation_class_id=int(annotation_class_id),
+                        property_values=[
+                            PropertyValue(
+                                value=a_prop.value,
+                                color=m_prop_option.get("color"),  # type: ignore
+                            )
+                        ],
+                        granularity=t_prop.granularity,
                     )
-                continue
+                    # Don't attempt the same propery update multiple times
+                    if (
+                        full_property
+                        not in annotation_and_section_level_properties_to_update
+                    ):
+                        annotation_and_section_level_properties_to_update.append(
+                            full_property
+                        )
+                    continue
 
             assert t_prop.id is not None
             assert t_prop_val.id is not None
-            annotation_property_map[annotation_id][str(a_prop.frame_index)][
-                t_prop.id
-            ].add(t_prop_val.id)
+
+            if t_prop.type == "text":
+                set_text_property_value(
+                    annotation_property_map, annotation_id, a_prop, t_prop
+                )
+            else:
+                annotation_property_map[annotation_id][str(a_prop.frame_index)][
+                    t_prop.id
+                ].add(t_prop_val.id)
 
     # Create/Update team item properties based on metadata
     (
@@ -998,12 +1017,17 @@ def _import_properties(
                             ] = set()
                             break
 
-                    for prop_val in prop.property_values or []:
-                        if prop_val.value == a_prop.value:
-                            annotation_property_map[annotation_id][frame_index][
-                                prop.id
-                            ].add(prop_val.id)
-                            break
+                    if prop.type == "text":
+                        set_text_property_value(
+                            annotation_property_map, annotation_id, a_prop, prop
+                        )
+                    else:
+                        for prop_val in prop.property_values or []:
+                            if prop_val.value == a_prop.value:
+                                annotation_property_map[annotation_id][frame_index][
+                                    prop.id
+                                ].add(prop_val.id)
+                                break
                     break
     _assign_item_properties_to_dataset(
         item_properties, team_item_properties_lookup, client, dataset, console
@@ -2488,3 +2512,13 @@ def slot_is_medical(slot: Dict[str, Any]) -> bool:
 
 def slot_is_handled_by_monai(slot: Dict[str, Any]) -> bool:
     return slot.get("metadata", {}).get("medical", {}).get("handler") == "MONAI"
+
+
+def set_text_property_value(annotation_property_map, annotation_id, a_prop, t_prop):
+    if a_prop.value == "":
+        # here we will remove the property value
+        annotation_property_map[annotation_id][str(a_prop.frame_index)][t_prop.id] = []
+    else:
+        annotation_property_map[annotation_id][str(a_prop.frame_index)][t_prop.id] = [
+            {"text": a_prop.value}
+        ]

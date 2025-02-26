@@ -1,5 +1,7 @@
 from pathlib import Path
 
+from cv2 import exp
+
 
 from e2e_tests.helpers import (
     assert_cli,
@@ -137,6 +139,8 @@ def assert_same_annotation_properties(
         actual_properties = actual_annotation.properties
         assert actual_properties is not None
         for expected_property in expected_properties:
+            if expected_property.value == "":
+                expected_property.value = None
             assert expected_property in actual_properties
 
 
