@@ -37,6 +37,7 @@ from darwin.importer.importer import (
     _split_payloads,
     _get_remote_files_targeted_by_import,
     _get_remote_file_medical_metadata,
+    _get_slot_axial_flips,
     slot_is_medical,
     slot_is_handled_by_monai,
     MAX_URL_LENGTH,
@@ -4018,7 +4019,7 @@ def test__get_remote_file_medical_metadata_axial_flips(base_medical_metadata):
         ),
     ]
 
-    for name, original_affine, expected_flips in test_cases:
+    for _, original_affine, expected_flips in test_cases:
         medical_metadata = {**base_medical_metadata}
         medical_metadata.update(
             {
@@ -4127,3 +4128,128 @@ def assert_metadata_matches(
     assert slot_metadata["height"] == expected_slot_metadata["height"]
     assert slot_metadata["legacy"] == expected_slot_metadata["legacy"]
     assert slot_metadata["pixdims"] == expected_slot_metadata["pixdims"]
+
+
+def test_get_slot_axial_flips():
+    """Test that get_slot_axial_flips correctly calculates the axial flips for different planes and transformations"""
+
+    # Identity matrix as a baseline (no flips)
+    identity = [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]
+    test_cases = [
+        # Test name, affine, original_affine, primary_plane, expected_flips
+        (
+            "no_flip_axial",
+            identity,
+            identity,
+            "AXIAL",
+            [1, 1, 1],
+        ),
+        (
+            "x_flip_axial",
+            identity,
+            [[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]],
+            "AXIAL",
+            [-1, 1, 1],
+        ),
+        (
+            "y_flip_axial",
+            identity,
+            [[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]],
+            "AXIAL",
+            [1, -1, 1],
+        ),
+        (
+            "z_flip_axial",
+            identity,
+            [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]],
+            "AXIAL",
+            [1, 1, -1],
+        ),
+        (
+            "all_flip_axial",
+            identity,
+            [[-1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]],
+            "AXIAL",
+            [-1, -1, -1],
+        ),
+        # CORONAL plane tests
+        (
+            "no_flip_coronal",
+            identity,
+            identity,
+            "CORONAL",
+            [1, 1, 1],
+        ),
+        (
+            "x_flip_coronal",
+            identity,
+            [[-1, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 0, 0, 1]],
+            "CORONAL",
+            [-1, 1, 1],
+        ),
+        (
+            "y_flip_coronal",
+            identity,
+            [[1, 0, 0, 0], [0, 0, -1, 0], [0, 1, 0, 0], [0, 0, 0, 1]],
+            "CORONAL",
+            [1, -1, 1],
+        ),
+        (
+            "z_flip_coronal",
+            identity,
+            [[1, 0, 0, 0], [0, 0, 1, 0], [0, -1, 0, 0], [0, 0, 0, 1]],
+            "CORONAL",
+            [1, 1, -1],
+        ),
+        (
+            "all_flip_coronal",
+            identity,
+            [[-1, 0, 0, 0], [0, 0, -1, 0], [0, -1, 0, 0], [0, 0, 0, 1]],
+            "CORONAL",
+            [-1, -1, -1],
+        ),
+        # SAGITTAL plane tests
+        (
+            "no_flip_sagittal",
+            identity,
+            identity,
+            "SAGITTAL",
+            [1, 1, 1],
+        ),
+        (
+            "x_flip_sagittal",
+            identity,
+            [[0, 0, -1, 0], [1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 1]],
+            "SAGITTAL",
+            [-1, 1, 1],
+        ),
+        (
+            "y_flip_sagittal",
+            identity,
+            [[0, 0, 1, 0], [-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 1]],
+            "SAGITTAL",
+            [1, -1, 1],
+        ),
+        (
+            "z_flip_sagittal",
+            identity,
+            [[0, 0, 1, 0], [1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 0, 1]],
+            "SAGITTAL",
+            [1, 1, -1],
+        ),
+        (
+            "all_flip_sagittal",
+            identity,
+            [[0, 0, -1, 0], [-1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 0, 1]],
+            "SAGITTAL",
+            [-1, -1, -1],
+        ),
+    ]
+
+    for name, affine, original_affine, primary_plane, expected_flips in test_cases:
+        affine_np = np.array(affine)
+        original_affine_np = np.array(original_affine)  # Call the function
+        result = _get_slot_axial_flips(affine_np, original_affine_np, primary_plane)
+        assert (
+            result == expected_flips
+        ), f"Test case '{name}' failed. Expected {expected_flips}, got {result}"

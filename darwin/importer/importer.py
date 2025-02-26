@@ -2496,12 +2496,10 @@ def _get_remote_file_medical_metadata(
                 axial_flips = [1, 1, 1]
                 primary_plane = "AXIAL"
             else:
-                ax_codes = nib.orientations.aff2axcodes(affine)
-                original_ax_codes = nib.orientations.aff2axcodes(original_affine)
-                ornt = nib.orientations.axcodes2ornt(ax_codes)
-                original_ornt = nib.orientations.axcodes2ornt(original_ax_codes)
-                axial_flips = nib.orientations.ornt_transform(original_ornt, ornt)[:, 1]
                 primary_plane = slot["metadata"]["medical"]["plane_map"][slot_name]
+                axial_flips = _get_slot_axial_flips(
+                    affine, original_affine, primary_plane
+                )
 
             slot_metadata.update(
                 {"axial_flips": axial_flips, "primary_plane": primary_plane}
@@ -2521,6 +2519,65 @@ def slot_is_medical(slot: Dict[str, Any]) -> bool:
 
 def slot_is_handled_by_monai(slot: Dict[str, Any]) -> bool:
     return slot.get("metadata", {}).get("medical", {}).get("handler") == "MONAI"
+
+
+def _get_slot_axial_flips(
+    affine: np.ndarray, original_affine: np.ndarray, primary_plane: str
+) -> List[int]:
+    """
+    Returns a list of 3 values that are either 1 or -1.
+    -1 indicates that the corresponding slot axis was mirrored on upload.
+
+    Takes the primary plane of the slot into account, since re-orienting medical files to
+    `LPI` will result in axial re-ordering for coronally and sagitally oriented files:
+    - Axially acquired files axial codes are ordered: L/R, P/A, I/S
+    - Coronally acquired files axial codes are ordered: L/R, I/S, P/A
+    - Sagittally acquired files axial codes are ordered: I/S, L/R, P/A
+
+    Therefore:
+    - Re-orienting coronally acquired files to `LPI` results in the following axial reordering:
+        - 1st axial code stays the same
+        - 2nd axial code becomes the 3rd
+        - 3rd axial code becomes the 2nd
+    - Re-orienting sagittally acquired files to `LPI` results in the following axial reordering:
+        - 1st axial code becomes the 3rd
+        - 2nd axial code becomes the 1st
+        - 3rd axial code becomes the 2nd
+
+    This function applies this reordering to the axial flips.
+
+    Parameters
+    ----------
+    affine: np.ndarray
+        The affine matrix of the uploaded image
+    original_affine: np.ndarray
+        The original affine matrix of the image
+    primary_plane: str
+        The primary plane of the image
+
+    Returns
+    -------
+    List[int]
+        A list of 3 values that are either 1 or -1.
+    """
+    ax_codes = nib.orientations.aff2axcodes(affine)
+    original_ax_codes = nib.orientations.aff2axcodes(original_affine)
+    ornt = nib.orientations.axcodes2ornt(ax_codes)
+    original_ornt = nib.orientations.axcodes2ornt(original_ax_codes)
+    axial_flips = list(nib.orientations.ornt_transform(original_ornt, ornt)[:, 1])
+    if primary_plane == "CORONAL":
+        axial_flips[0], axial_flips[1], axial_flips[2] = (
+            axial_flips[0],
+            axial_flips[2],
+            axial_flips[1],
+        )
+    elif primary_plane == "SAGITTAL":
+        axial_flips[0], axial_flips[1], axial_flips[2] = (
+            axial_flips[2],
+            axial_flips[0],
+            axial_flips[1],
+        )
+    return axial_flips
 
 
 def _apply_axial_flips_to_annotations(
