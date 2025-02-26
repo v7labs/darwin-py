@@ -74,15 +74,16 @@ jobs:
 
           if [[ "${{ env.TEST_MODE }}" == "true" ]]; then
             TIMESTAMP=$(date +%Y%m%d%H%M%S)
-            TEST_VERSION="${BASE_VERSION}-test.${TIMESTAMP}"
+            
+            TAG_PREFIX="test-"
+            NEW_VERSION="${BASE_VERSION}.${TIMESTAMP}"
+            TEST_VERSION="${TAG_PREFIX}${NEW_VERSION}"
             echo "Adding test suffix"
             # Update version in pyproject.toml and in __init__.py
             awk -v new_version="$TEST_VERSION" '/^version = / {$0 = "version = \"" new_version "\""} 1' pyproject.toml > pyproject.tmp && mv pyproject.tmp pyproject.toml
             awk -v new_version="$TEST_VERSION" '/^__version__ = / {$0 = "__version__ = \"" new_version "\""} 1' darwin/__init__.py > darwin/__init__.tmp && mv darwin/__init__.tmp darwin/__init__.py
 
-            NEW_VERSION="${BASE_VERSION}.${TIMESTAMP}"
-            echo $NEW_VERSION
-            TAG_PREFIX="test-"
+
             BRANCH_NAME="test/version-bump-${NEW_VERSION}"
           else
             NEW_VERSION="${BASE_VERSION}"
