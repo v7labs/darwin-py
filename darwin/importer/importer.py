@@ -624,9 +624,12 @@ def _import_properties(
                         (a_prop.name, annotation_class_id)
                     ]
                     if t_prop.type == "text":
-                        annotation_property_map[annotation_id][str(a_prop.frame_index)][
-                            t_prop.id
-                        ] = [{"text": a_prop.value}]
+                        set_text_property_value(
+                            annotation_property_map,
+                            annotation_id,
+                            a_prop,
+                            t_prop,
+                        )
                         continue
 
                     # if property value is None, update annotation_property_map with empty set
@@ -764,10 +767,7 @@ def _import_properties(
                 continue
 
             # check if property value is different in m_prop (.v7/metadata.json) options
-            if m_prop.type != "text" and m_prop.granularity in [
-                "section",
-                "annotation",
-            ]:
+            if m_prop.type != "text":
                 for m_prop_option in m_prop_options:
                     if m_prop_option.get("value") == a_prop.value:
                         break
@@ -831,9 +831,9 @@ def _import_properties(
             assert t_prop_val.id is not None
 
             if t_prop.type == "text":
-                annotation_property_map[annotation_id][str(a_prop.frame_index)][
-                    t_prop.id
-                ] = [{"text": a_prop.value}]
+                set_text_property_value(
+                    annotation_property_map, annotation_id, a_prop, t_prop
+                )
             else:
                 annotation_property_map[annotation_id][str(a_prop.frame_index)][
                     t_prop.id
@@ -1018,9 +1018,9 @@ def _import_properties(
                             break
 
                     if prop.type == "text":
-                        annotation_property_map[annotation_id][frame_index][prop.id] = [
-                            {"text": a_prop.value}
-                        ]
+                        set_text_property_value(
+                            annotation_property_map, annotation_id, a_prop, prop
+                        )
                     else:
                         for prop_val in prop.property_values or []:
                             if prop_val.value == a_prop.value:
@@ -2512,3 +2512,13 @@ def slot_is_medical(slot: Dict[str, Any]) -> bool:
 
 def slot_is_handled_by_monai(slot: Dict[str, Any]) -> bool:
     return slot.get("metadata", {}).get("medical", {}).get("handler") == "MONAI"
+
+
+def set_text_property_value(annotation_property_map, annotation_id, a_prop, t_prop):
+    if a_prop.value == "":
+        # here we will remove the property value
+        annotation_property_map[annotation_id][str(a_prop.frame_index)][t_prop.id] = []
+    else:
+        annotation_property_map[annotation_id][str(a_prop.frame_index)][t_prop.id] = [
+            {"text": a_prop.value}
+        ]
