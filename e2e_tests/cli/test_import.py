@@ -1,8 +1,4 @@
 from pathlib import Path
-
-from cv2 import exp
-
-
 from e2e_tests.helpers import (
     assert_cli,
     run_cli_command,
