@@ -18,6 +18,10 @@ on:
         required: true
         default: false
         type: boolean
+      commit_sha:
+        description: "Specific commit SHA to start from (optional)"
+        required: false
+        type: string
   pull_request:
     types: [opened, synchronize, reopened]
 
@@ -60,15 +64,21 @@ jobs:
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
             BUMP_TYPE="${{ inputs.bump_type }}"
             TEST_MODE="${{ inputs.test_mode }}"
+            COMMIT_SHA="${{ inputs.commit_sha }}"
           else
             BUMP_TYPE="patch"  # Default to "patch" for pull requests
             TEST_MODE="true"    # Always run in test mode for pull requests
+            COMMIT_SHA=""
           fi
           echo "BUMP_TYPE=${BUMP_TYPE}" >> $GITHUB_ENV
           echo "TEST_MODE=${TEST_MODE}" >> $GITHUB_ENV
+          echo "COMMIT_SHA=${COMMIT_SHA}" >> $GITHUB_ENV
 
       - name: Bump version
         run: |
+          if [ -n "${{ env.COMMIT_SHA }}" ]; then
+            git checkout ${{ env.COMMIT_SHA }}
+          fi
           python deploy/increase_version.py --${{ env.BUMP_TYPE }} --auto-confirm y
           BASE_VERSION=$(grep '__version__' darwin/version/__init__.py | cut -d '"' -f 2)  
 
@@ -83,8 +93,7 @@ jobs:
             awk -v new_version="$TEST_VERSION" '/^version = / {$0 = "version = \"" new_version "\""} 1' pyproject.toml > pyproject.tmp && mv pyproject.tmp pyproject.toml
             awk -v new_version="$TEST_VERSION" '/^__version__ = / {$0 = "__version__ = \"" new_version "\""} 1' darwin/__init__.py > darwin/__init__.tmp && mv darwin/__init__.tmp darwin/__init__.py
 
-
-            BRANCH_NAME="${TAG_PREFIX}-branch-${NEW_VERSION}"
+            BRANCH_NAME="${TAG_PREFIX}branch-${NEW_VERSION}"
           else
             NEW_VERSION="${BASE_VERSION}"
             TAG_PREFIX="v"
