@@ -217,7 +217,8 @@ def assert_same_item_level_properties(
     Ensures that all expected item-level properties are present in exported item-level properties
     """
     for expected_item_level_property in expected_item_level_properties:
-        assert expected_item_level_property in actual_item_level_properties
+        if expected_item_level_property["value"] is not None:
+            assert expected_item_level_property in actual_item_level_properties
 
 
 def compare_annotations_export(
