@@ -457,6 +457,7 @@ def _serialize_item_level_properties(
     _, team_item_properties_lookup = _get_team_properties_annotation_lookup(
         client, dataset.team
     )
+    # We will skip text item properties that have value null
     for item_property_value in item_property_values:
         item_property = team_item_properties_lookup[item_property_value["name"]]
         item_property_id = item_property.id
@@ -473,24 +474,30 @@ def _serialize_item_level_properties(
                 None,
             )
             value = {"id": item_property_value_id}
-        elif item_property.type == "text":
+            append_property = True
+        elif item_property.type == "text" and item_property_value["value"] is not None:
             value = {"text": item_property_value["value"]}
-        actors: List[dt.DictFreeForm] = []
-        actors.extend(
-            _handle_annotators(
-                import_annotators, item_property_value=item_property_value
+            append_property = True
+        else:
+            append_property = False
+        if append_property:
+            actors: List[dt.DictFreeForm] = []
+            actors.extend(
+                _handle_annotators(
+                    import_annotators, item_property_value=item_property_value
+                )
             )
-        )
-        actors.extend(
-            _handle_reviewers(import_reviewers, item_property_value=item_property_value)
-        )
-        serialized_item_level_properties.append(
-            {
-                "actors": actors,
-                "property_id": item_property_id,
-                "value": value,
-            }
-        )
+
+            actors.extend(
+                _handle_reviewers(import_reviewers, item_property_value=item_property_value)
+            )
+            serialized_item_level_properties.append(
+                {
+                    "actors": actors,
+                    "property_id": item_property_id,
+                    "value": value,
+                }
+            )
 
     return serialized_item_level_properties
 
