@@ -489,7 +489,9 @@ def _serialize_item_level_properties(
             )
 
             actors.extend(
-                _handle_reviewers(import_reviewers, item_property_value=item_property_value)
+                _handle_reviewers(
+                    import_reviewers, item_property_value=item_property_value
+                )
             )
             serialized_item_level_properties.append(
                 {
