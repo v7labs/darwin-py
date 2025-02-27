@@ -3,7 +3,7 @@ import random
 import string
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import List, Literal, Optional, Dict
+from typing import List, Literal, Optional, Dict, Any
 
 import numpy as np
 import pytest
@@ -183,6 +183,7 @@ def create_annotation_class(
     fixed_name: bool = False,
     subtypes: bool = False,
     properties: bool = False,
+    run_prefix: str = "",
 ) -> E2EAnnotationClass:
     """
     Create a randomised new annotation class, and return its minimal info for reference
@@ -199,6 +200,8 @@ def create_annotation_class(
         Whether or not to enable all possible sub-annotation types for the class
     properties : bool
         Whether ot not to add single & multi-select properties to the class with some values
+    run_prefix : str
+        Unique prefix for this test run
     Returns
     -------
     E2EAnnotationClass
@@ -206,8 +209,11 @@ def create_annotation_class(
     """
     team_slug = config.team_slug
 
-    if not fixed_name:
-        name = f"{name}_{generate_random_string(4)}_annotation_class"
+    if run_prefix and fixed_name:
+        name = f"{run_prefix}_{name}"
+    elif not fixed_name:
+        name = f"{run_prefix}_{name}_{generate_random_string(4)}_annotation_class"
+
     host, api_key = config.server, config.api_key
     url = f"{host}/api/teams/{team_slug}/annotation_classes"
     annotation_types = (
@@ -254,7 +260,7 @@ def create_annotation_class(
 
 
 def create_item_level_property(
-    name: str, item_level_property_type: str, config: ConfigValues
+    name: str, item_level_property_type: str, config: ConfigValues, run_prefix: str = ""
 ) -> E2EItemLevelProperty:
     """
     Creates a single item-level property and returns a corresponding E2EItemLevelProperty
@@ -267,6 +273,8 @@ def create_item_level_property(
         The type of item-level property to create. Must be `single_select` or `multi_select`
     config : ConfigValues
         The config values to use
+    run_prefix : str
+        Unique prefix for this test run
 
     Returns
     -------
@@ -280,8 +288,10 @@ def create_item_level_property(
         "content-type": "application/json",
         "Authorization": f"ApiKey {config.api_key}",
     }
-    payload = {
-        "name": name,
+
+    prefixed_name = f"{run_prefix}_{name}"
+    payload: Dict[str, Any] = {
+        "name": prefixed_name,
         "type": item_level_property_type,
         "granularity": "item",
     }
@@ -514,7 +524,9 @@ def setup_datasets(config: ConfigValues) -> List[E2EDataset]:
         return datasets
 
 
-def setup_annotation_classes(config: ConfigValues) -> List[E2EAnnotationClass]:
+def setup_annotation_classes(
+    config: ConfigValues, run_prefix: str = ""
+) -> List[E2EAnnotationClass]:
     """
     Setup annotation classes for end to end test runs
 
@@ -522,12 +534,16 @@ def setup_annotation_classes(config: ConfigValues) -> List[E2EAnnotationClass]:
     ----------
     config : ConfigValues
         The config values to use
+    run_prefix : str
+        Unique prefix for this test run's resources
 
     Returns
     -------
     List[E2EAnnotationClass]
         The minimum info about the created annotation classes
     """
+    if not run_prefix:
+        run_prefix = f"test_{generate_random_string(6)}"
 
     annotation_classes: List[E2EAnnotationClass] = []
 
@@ -546,22 +562,24 @@ def setup_annotation_classes(config: ConfigValues) -> List[E2EAnnotationClass]:
         for annotation_class_type in annotation_class_types:
             try:
                 basic_annotation_class = create_annotation_class(
-                    f"test_{annotation_class_type}_basic",
+                    f"{annotation_class_type}_basic",
                     annotation_class_type,
                     config,
                     fixed_name=True,
+                    run_prefix=run_prefix,
                 )
                 annotation_classes.append(basic_annotation_class)
             except DataAlreadyExists:
                 pass
             try:
                 annotation_class_with_subtypes_and_properties = create_annotation_class(
-                    f"test_{annotation_class_type}_with_subtypes_and_properties",
+                    f"{annotation_class_type}_with_subtypes_and_properties",
                     annotation_class_type,
                     config,
                     fixed_name=True,
                     subtypes=True,
                     properties=True,
+                    run_prefix=run_prefix,
                 )
                 annotation_classes.append(annotation_class_with_subtypes_and_properties)
             except DataAlreadyExists:
@@ -577,7 +595,9 @@ def setup_annotation_classes(config: ConfigValues) -> List[E2EAnnotationClass]:
     return annotation_classes
 
 
-def setup_item_level_properties(config: ConfigValues) -> List[E2EItemLevelProperty]:
+def setup_item_level_properties(
+    config: ConfigValues, run_prefix: str = ""
+) -> List[E2EItemLevelProperty]:
     """
     Setup item-level properties for end to end test runs
 
@@ -585,12 +605,17 @@ def setup_item_level_properties(config: ConfigValues) -> List[E2EItemLevelProper
     ----------
     config : ConfigValues
         The config values to use
+    run_prefix : str
+        Unique prefix for this test run's resources
 
     Returns
     -------
     List[E2EItemLevelProperty]
         The minimal info about the created item-level properties
     """
+    if not run_prefix:
+        run_prefix = f"test_{generate_random_string(6)}"
+
     item_level_properties: List[E2EItemLevelProperty] = []
 
     print("Setting up item-level properties")
@@ -599,9 +624,10 @@ def setup_item_level_properties(config: ConfigValues) -> List[E2EItemLevelProper
         for item_level_property_type in item_level_property_types:
             try:
                 item_level_property = create_item_level_property(
-                    f"test_item_level_property_{item_level_property_type}",
+                    f"item_level_property_{item_level_property_type}",
                     item_level_property_type=item_level_property_type,
                     config=config,
+                    run_prefix=run_prefix,
                 )
                 item_level_properties.append(item_level_property)
             except DataAlreadyExists:
@@ -735,10 +761,26 @@ def delete_general_datasets(config: ConfigValues) -> List:
 
 
 def teardown_annotation_classes(
-    config: ConfigValues, annotation_classes: List[E2EAnnotationClass]
+    config: ConfigValues,
+    annotation_classes: List[E2EAnnotationClass],
+    run_prefix: Optional[str] = None,
 ) -> None:
+    """
+    Delete annotation classes created during the test run
+
+    Parameters
+    ----------
+    config : ConfigValues
+        The config values to use
+    annotation_classes : List[E2EAnnotationClass]
+        The annotation classes to delete
+    run_prefix : Optional[str]
+        The unique prefix used to create resources for this test run
+    """
     for annotation_class in annotation_classes:
         delete_annotation_class(str(annotation_class.id), config)
+
+    # Only delete annotation classes that match the name pattern of this test run
     team_slug = config.team_slug
     host = config.server
     response = api_call(
@@ -746,28 +788,62 @@ def teardown_annotation_classes(
     )
     all_annotations = response.json()["annotation_classes"]
     for annotation_class in all_annotations:
-        if annotation_class["name"].startswith("test_") or annotation_class[
-            "name"
-        ].startswith("new_"):
+        # Only delete annotation classes that belong to this test run
+        name = annotation_class["name"]
+        if run_prefix and name.startswith(f"{run_prefix}_"):
             delete_annotation_class(annotation_class["id"], config)
+        # For backward compatibility, also try to identify classes by comparing prefixes
+        elif name.startswith("test_") and "_" in name:
+            prefix = name.split("_")[1]
+            # Check if this is from the current test run by checking if any of our annotation classes share the same prefix
+            if any(ac.name.startswith(f"test_{prefix}_") for ac in annotation_classes):
+                delete_annotation_class(annotation_class["id"], config)
 
 
 def teardown_item_level_properties(
-    config: ConfigValues, item_level_properties: List[E2EItemLevelProperty]
+    config: ConfigValues,
+    item_level_properties: List[E2EItemLevelProperty],
+    run_prefix: Optional[str] = None,
 ) -> None:
+    """
+    Delete item-level properties created during the test run
+
+    Parameters
+    ----------
+    config : ConfigValues
+        The config values to use
+    item_level_properties : List[E2EItemLevelProperty]
+        The item-level properties to delete
+    run_prefix : Optional[str]
+        The unique prefix used to create resources for this test run
+    """
+    # Delete specific item-level properties from this test run
     for item_level_property in item_level_properties:
         delete_item_level_property(str(item_level_property.id), config)
+
+    # Only delete item-level properties that match the name pattern of this test run
     team_slug = config.team_slug
     host = config.server
     response = api_call(
         "get", f"{host}/api/v2/teams/{team_slug}/properties", None, config.api_key
     )
     all_properties = response.json()["properties"]
-    all_item_level_properties = (
-        all_properties  # Code to filter response for item-level properties
-    )
+    # Filter for item-level properties
+    all_item_level_properties = [
+        p for p in all_properties if p.get("granularity") == "item"
+    ]
+
     for item_level_property in all_item_level_properties:
-        if item_level_property["name"].startswith("test_") or item_level_property[
-            "name"
-        ].startswith("new_"):
+        # Only delete item-level properties that belong to this test run
+        name = item_level_property["name"]
+        if run_prefix and name.startswith(f"{run_prefix}_"):
             delete_item_level_property(item_level_property["id"], config)
+        # For backward compatibility, also try to identify properties by comparing prefixes
+        elif name.startswith("test_") and "_" in name:
+            prefix = name.split("_")[1]
+            # Check if this is from the current test run by checking if any of our properties share the same prefix
+            if any(
+                prop.name.startswith(f"test_{prefix}_")
+                for prop in item_level_properties
+            ):
+                delete_item_level_property(item_level_property["id"], config)
