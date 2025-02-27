@@ -1,0 +1,24 @@
+name: Python Checks
+on:
+  workflow_call:
+    inputs:
+      files:
+        required: true
+        type: string
+
+jobs:
+  format:
+    name: Check format
+    uses: ./.github/workflows/JOB_format.yml
+    with:
+      files: ${{ inputs.files }}
+
+  lint:
+    name: Lint
+    uses: ./.github/workflows/JOB_lint.yml
+    with:
+      files: ${{ inputs.files }}
+
+  run_tests:
+    name: Run tests
+    uses: ./.github/workflows/JOB_tests.yml

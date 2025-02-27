@@ -406,7 +406,7 @@ def populate_output_volumes_from_polygons(
 
 
 def populate_output_volumes_from_raster_layer(
-    annotation: dt.Annotation,
+    annotation: Union[dt.Annotation, dt.VideoAnnotation],
     mask_id_to_classname: Dict,
     slot_map: Dict,
     output_volumes: Dict,
@@ -439,31 +439,61 @@ def populate_output_volumes_from_raster_layer(
     )
     volume = output_volumes.get(series_instance_uid)
     frames = annotation.frames
-    mask_annotation_ids_mapping = {}
+
+    # Create a global mapping to ensure unique integer IDs across frames
+    # This is required because backend treats each frame independently
+    # and we need to ensure that the same mask ID maps to the same class
+    # across all frames
+    global_mask_annotation_ids_mapping = {}
+    next_global_id = 1
+
+    # First pass: build the global mapping
+    for frame_idx in sorted(frames.keys()):
+        frame_data = frames[frame_idx].data
+        frame_mapping = frame_data.get("mask_annotation_ids_mapping", {})
+
+        for mask_id in frame_mapping:
+            if mask_id not in global_mask_annotation_ids_mapping:
+                global_mask_annotation_ids_mapping[mask_id] = next_global_id
+                next_global_id += 1
+
+    # Initialize multilabel volume
     multilabel_volume = np.zeros(slot.metadata["shape"][1:])
+
+    # Second pass: populate the multilabel volume using the global mapping
     for frame_idx in sorted(frames.keys()):
         frame_idx = int(frame_idx)
         frame_data = annotation.frames[frame_idx]
         dense_rle = frame_data.data["dense_rle"]
         mask_2d = decode_rle(dense_rle, slot.width, slot.height)
+
+        # Convert the mask_2d using the global mapping
+        converted_mask_2d = np.zeros_like(mask_2d)
+        local_mapping = frame_data.data["mask_annotation_ids_mapping"]
+
+        for mask_id, local_id in local_mapping.items():
+            global_id = global_mask_annotation_ids_mapping[mask_id]
+            converted_mask_2d[mask_2d == int(local_id)] = global_id
+
+        # Place the converted mask into the multilabel volume
         if primary_plane == "AXIAL":
-            multilabel_volume[:, :, frame_idx] = mask_2d.T
+            multilabel_volume[:, :, frame_idx] = converted_mask_2d.T
         elif primary_plane == "CORONAL":
-            multilabel_volume[:, frame_idx, :] = mask_2d.T
+            multilabel_volume[:, frame_idx, :] = converted_mask_2d.T
         elif primary_plane == "SAGITTAL":
-            multilabel_volume[frame_idx, :, :] = mask_2d.T
-        mask_annotation_ids_mapping.update(
-            frame_data.data["mask_annotation_ids_mapping"]
-        )
+            multilabel_volume[frame_idx, :, :] = converted_mask_2d.T
+
     # Now we convert this multilabel array into this dictionary of output volumes
     # in order to re-use the write_output_volume_to_disk function.
     for mask_id, class_name in mask_id_to_classname.items():
-        volume = output_volumes[series_instance_uid]
-        mask_int_id = mask_annotation_ids_mapping[mask_id]
-        # We want to create a binary mask for each class
-        volume[class_name].pixel_array = np.where(
-            multilabel_volume == int(mask_int_id), 1, volume[class_name].pixel_array
-        )
+        if mask_id in global_mask_annotation_ids_mapping:
+            volume = output_volumes[series_instance_uid]
+            global_id = global_mask_annotation_ids_mapping[mask_id]
+            # We want to create a binary mask for each class
+            volume[class_name].pixel_array = np.where(
+                multilabel_volume == global_id, 1, volume[class_name].pixel_array
+            )
+
     return volume
 
 
