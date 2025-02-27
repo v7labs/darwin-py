@@ -107,7 +107,7 @@
         {
           "frame_index": "global",
           "name": "annotation-text-1",
-          "value": ""
+          "value": null
         }
       ],
       "slot_names": [

@@ -791,10 +791,7 @@ def _import_properties(
                 continue
 
             # check if property value is different in t_prop (team) options
-            if t_prop.type != "text" and t_prop.granularity in [
-                "section",
-                "annotation",
-            ]:
+            if t_prop.type != "text":
                 for t_prop_val in t_prop.property_values or []:
                     if t_prop_val.value == a_prop.value:
                         break
@@ -828,13 +825,13 @@ def _import_properties(
                     continue
 
             assert t_prop.id is not None
-            assert t_prop_val.id is not None
 
             if t_prop.type == "text":
                 set_text_property_value(
                     annotation_property_map, annotation_id, a_prop, t_prop
                 )
             else:
+                assert t_prop_val.id is not None
                 annotation_property_map[annotation_id][str(a_prop.frame_index)][
                     t_prop.id
                 ].add(t_prop_val.id)
@@ -2515,7 +2512,7 @@ def slot_is_handled_by_monai(slot: Dict[str, Any]) -> bool:
 
 
 def set_text_property_value(annotation_property_map, annotation_id, a_prop, t_prop):
-    if a_prop.value == "":
+    if a_prop.value is None:
         # here we will remove the property value
         annotation_property_map[annotation_id][str(a_prop.frame_index)][t_prop.id] = []
     else:
