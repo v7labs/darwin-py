@@ -220,6 +220,11 @@
           "frame_index": 0,
           "name": "single_select-1",
           "value": "2"
+        },
+        {
+          "frame_index": "global",
+          "name": "annotation-text-1",
+          "value": "Annotation test"
         }
       ],
       "slot_names": [
