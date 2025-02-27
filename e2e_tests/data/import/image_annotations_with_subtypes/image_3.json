@@ -62,6 +62,11 @@
           "frame_index": 0,
           "name": "single_select-1",
           "value": "1"
+        },
+        {
+          "frame_index": 0,
+          "name": "section-text-1",
+          "value": "Section test"
         }
       ],
       "slot_names": [
@@ -93,6 +98,11 @@
           "frame_index": 0,
           "name": "single_select-1",
           "value": "1"
+        },
+        {
+          "frame_index": 0,
+          "name": "section-text-1",
+          "value": "Section test"
         }
       ],
       "slot_names": [
@@ -122,6 +132,11 @@
           "frame_index": 0,
           "name": "multi_select-1",
           "value": "2"
+        },
+        {
+          "frame_index": "global",
+          "name": "annotation-text-1",
+          "value": "Annotation test"
         }
       ],
       "slot_names": [

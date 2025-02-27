@@ -147,6 +147,16 @@
           "frame_index": 1,
           "name": "single_select-1",
           "value": "2"
+        },
+        {
+          "frame_index": 1,
+          "name": "section-text-1",
+          "value": "Section test 1"
+        },
+        {
+          "frame_index": "global",
+          "name": "annotation-text-1",
+          "value": "Annotation test"
         }
       ],
       "ranges": [
@@ -293,6 +303,11 @@
           "frame_index": 8,
           "name": "single_select-1",
           "value": "2"
+        },
+        {
+          "frame_index": 8,
+          "name": "section-text-1",
+          "value": "Section test 8"
         }
       ],
       "ranges": [
@@ -599,6 +614,11 @@
           "frame_index": 5,
           "name": "single_select-1",
           "value": "2"
+        },
+        {
+          "frame_index": 5,
+          "name": "section-text-1",
+          "value": "Section test 5"
         }
       ],
       "ranges": [
