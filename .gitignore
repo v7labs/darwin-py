@@ -168,6 +168,7 @@ test_output_*
 !darwin/future/tests/data
 # scripts
 test.py
+run.py
 
 # pyenv
 .python-version
