@@ -22,8 +22,6 @@ on:
         description: "Specific commit SHA to start from (optional)"
         required: false
         type: string
-  pull_request:
-    types: [opened, synchronize, reopened]
 
 permissions:
   contents: write
@@ -97,7 +95,7 @@ jobs:
           else
             NEW_VERSION="${BASE_VERSION}"
             TAG_PREFIX="v"
-            BRANCH_NAME="master"
+            BRANCH_NAME="release-${TAG_PREFIX}${NEW_VERSION}"
           fi
           echo "NEW_VERSION=${NEW_VERSION}" >> $GITHUB_ENV
           echo "TAG_PREFIX=${TAG_PREFIX}" >> $GITHUB_ENV
@@ -110,24 +108,36 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Commit and push changes
-        if: ${{ env.TEST_MODE != 'true' }}
+      - name: Create branch and commit changes
         run: |
-          echo "Commit and push version changes"
+          echo "Creating branch ${BRANCH_NAME}"
+          git checkout -b ${BRANCH_NAME}
           git add pyproject.toml darwin/__init__.py
           git commit -m "Version bump to ${{ env.TAG_PREFIX}}${{ env.NEW_VERSION }}"
-          git push origin HEAD:${BRANCH_NAME}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Create test branch
-        if: ${{ env.TEST_MODE == 'true' }}
-        run: |
-          echo "Create test branch"
-          git checkout -b ${BRANCH_NAME}
           git push origin ${BRANCH_NAME}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create pull request to master
+        if: ${{ env.TEST_MODE != 'true' }}
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          base: master
+          head: ${{ env.BRANCH_NAME }}
+          title: "Version bump to ${{ env.TAG_PREFIX}}${{ env.NEW_VERSION }}"
+          body: |
+            This PR contains version bump changes for release ${{ env.TAG_PREFIX}}${{ env.NEW_VERSION }}.
+
+            Changes:
+            - Updated version in pyproject.toml
+            - Updated version in darwin/__init__.py
+
+            This PR was automatically created by the version bump workflow.
+          labels: |
+            automated-pr
+            version-bump
+          draft: false
 
       - name: Create and push tag
         run: |
@@ -135,7 +145,6 @@ jobs:
           git push origin "${TAG_PREFIX}${NEW_VERSION}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Create release
         uses: actions/create-release@0cb9c9b65d5d1901c1f53e5e66eaf4afd303e70e # v1.1.4
         env:
