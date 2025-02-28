@@ -457,9 +457,11 @@ def _serialize_item_level_properties(
     _, team_item_properties_lookup = _get_team_properties_annotation_lookup(
         client, dataset.team
     )
+    # We will skip text item properties that have value null
     for item_property_value in item_property_values:
         item_property = team_item_properties_lookup[item_property_value["name"]]
         item_property_id = item_property.id
+        value = None
         if (
             item_property.type == "single_select"
             or item_property.type == "multi_select"
@@ -472,25 +474,30 @@ def _serialize_item_level_properties(
                 ),
                 None,
             )
-            value = {"id": item_property_value_id}
-        elif item_property.type == "text":
+            if item_property_value_id is not None:
+                value = {"id": item_property_value_id}
+        elif item_property.type == "text" and item_property_value["value"] is not None:
             value = {"text": item_property_value["value"]}
-        actors: List[dt.DictFreeForm] = []
-        actors.extend(
-            _handle_annotators(
-                import_annotators, item_property_value=item_property_value
+        if value is not None:
+            actors: List[dt.DictFreeForm] = []
+            actors.extend(
+                _handle_annotators(
+                    import_annotators, item_property_value=item_property_value
+                )
             )
-        )
-        actors.extend(
-            _handle_reviewers(import_reviewers, item_property_value=item_property_value)
-        )
-        serialized_item_level_properties.append(
-            {
-                "actors": actors,
-                "property_id": item_property_id,
-                "value": value,
-            }
-        )
+
+            actors.extend(
+                _handle_reviewers(
+                    import_reviewers, item_property_value=item_property_value
+                )
+            )
+            serialized_item_level_properties.append(
+                {
+                    "actors": actors,
+                    "property_id": item_property_id,
+                    "value": value,
+                }
+            )
 
     return serialized_item_level_properties
 
@@ -623,6 +630,14 @@ def _import_properties(
                     t_prop: FullProperty = team_properties_annotation_lookup[
                         (a_prop.name, annotation_class_id)
                     ]
+                    if t_prop.type == "text":
+                        set_text_property_value(
+                            annotation_property_map,
+                            annotation_id,
+                            a_prop,
+                            t_prop,
+                        )
+                        continue
 
                     # if property value is None, update annotation_property_map with empty set
                     if a_prop.value is None:
@@ -759,14 +774,15 @@ def _import_properties(
                 continue
 
             # check if property value is different in m_prop (.v7/metadata.json) options
-            for m_prop_option in m_prop_options:
-                if m_prop_option.get("value") == a_prop.value:
-                    break
-            else:
-                if a_prop.value:
-                    raise ValueError(
-                        f"Annotation: '{annotation_name}' -> Property '{a_prop.value}' not found in .v7/metadata.json, found: {m_prop.property_values}"
-                    )
+            if m_prop.type != "text":
+                for m_prop_option in m_prop_options:
+                    if m_prop_option.get("value") == a_prop.value:
+                        break
+                else:
+                    if a_prop.value:
+                        raise ValueError(
+                            f"Annotation: '{annotation_name}' -> Property '{a_prop.value}' not found in .v7/metadata.json, found: {m_prop.property_values}"
+                        )
 
             # get team property
             t_prop: FullProperty = team_properties_annotation_lookup[
@@ -782,43 +798,50 @@ def _import_properties(
                 continue
 
             # check if property value is different in t_prop (team) options
-            for t_prop_val in t_prop.property_values or []:
-                if t_prop_val.value == a_prop.value:
-                    break
-            else:
-                # if it is, update it
-                full_property = FullProperty(
-                    id=t_prop.id,
-                    name=a_prop.name,
-                    type=m_prop_type,
-                    required=m_prop.required,
-                    description=m_prop.description
-                    or "property-updated-during-annotation-import",
-                    slug=client.default_team,
-                    annotation_class_id=int(annotation_class_id),
-                    property_values=[
-                        PropertyValue(
-                            value=a_prop.value,
-                            color=m_prop_option.get("color"),  # type: ignore
-                        )
-                    ],
-                    granularity=t_prop.granularity,
-                )
-                # Don't attempt the same propery update multiple times
-                if (
-                    full_property
-                    not in annotation_and_section_level_properties_to_update
-                ):
-                    annotation_and_section_level_properties_to_update.append(
-                        full_property
+            if t_prop.type != "text":
+                for t_prop_val in t_prop.property_values or []:
+                    if t_prop_val.value == a_prop.value:
+                        break
+                else:
+                    # if it is, update it
+                    full_property = FullProperty(
+                        id=t_prop.id,
+                        name=a_prop.name,
+                        type=m_prop_type,
+                        required=m_prop.required,
+                        description=m_prop.description
+                        or "property-updated-during-annotation-import",
+                        slug=client.default_team,
+                        annotation_class_id=int(annotation_class_id),
+                        property_values=[
+                            PropertyValue(
+                                value=a_prop.value,
+                                color=m_prop_option.get("color"),  # type: ignore
+                            )
+                        ],
+                        granularity=t_prop.granularity,
                     )
-                continue
+                    # Don't attempt the same propery update multiple times
+                    if (
+                        full_property
+                        not in annotation_and_section_level_properties_to_update
+                    ):
+                        annotation_and_section_level_properties_to_update.append(
+                            full_property
+                        )
+                    continue
 
             assert t_prop.id is not None
-            assert t_prop_val.id is not None
-            annotation_property_map[annotation_id][str(a_prop.frame_index)][
-                t_prop.id
-            ].add(t_prop_val.id)
+
+            if t_prop.type == "text":
+                set_text_property_value(
+                    annotation_property_map, annotation_id, a_prop, t_prop
+                )
+            else:
+                assert t_prop_val.id is not None
+                annotation_property_map[annotation_id][str(a_prop.frame_index)][
+                    t_prop.id
+                ].add(t_prop_val.id)
 
     # Create/Update team item properties based on metadata
     (
@@ -998,12 +1021,17 @@ def _import_properties(
                             ] = set()
                             break
 
-                    for prop_val in prop.property_values or []:
-                        if prop_val.value == a_prop.value:
-                            annotation_property_map[annotation_id][frame_index][
-                                prop.id
-                            ].add(prop_val.id)
-                            break
+                    if prop.type == "text":
+                        set_text_property_value(
+                            annotation_property_map, annotation_id, a_prop, prop
+                        )
+                    else:
+                        for prop_val in prop.property_values or []:
+                            if prop_val.value == a_prop.value:
+                                annotation_property_map[annotation_id][frame_index][
+                                    prop.id
+                                ].add(prop_val.id)
+                                break
                     break
     _assign_item_properties_to_dataset(
         item_properties, team_item_properties_lookup, client, dataset, console
@@ -2488,3 +2516,13 @@ def slot_is_medical(slot: Dict[str, Any]) -> bool:
 
 def slot_is_handled_by_monai(slot: Dict[str, Any]) -> bool:
     return slot.get("metadata", {}).get("medical", {}).get("handler") == "MONAI"
+
+
+def set_text_property_value(annotation_property_map, annotation_id, a_prop, t_prop):
+    if a_prop.value is None:
+        # here we will remove the property value
+        annotation_property_map[annotation_id][str(a_prop.frame_index)][t_prop.id] = []
+    else:
+        annotation_property_map[annotation_id][str(a_prop.frame_index)][t_prop.id] = [
+            {"text": a_prop.value}
+        ]
