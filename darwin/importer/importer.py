@@ -2565,6 +2565,9 @@ def _get_slot_axial_flips(
     ornt = nib.orientations.axcodes2ornt(ax_codes)
     original_ornt = nib.orientations.axcodes2ornt(original_ax_codes)
     axial_flips = list(nib.orientations.ornt_transform(original_ornt, ornt)[:, 1])
+
+    # These mappins don't always hold true. Instead, ornt indices map to letter pairings
+
     if primary_plane == "CORONAL":
         axial_flips[0], axial_flips[1], axial_flips[2] = (
             axial_flips[0],
