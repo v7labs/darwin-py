@@ -594,6 +594,10 @@
     {
       "name": "new_item_level_property_text",
       "value": "sample text"
+    },
+    {
+      "name": "test_same_name_text",
+      "value": null
     }
   ]
 }
