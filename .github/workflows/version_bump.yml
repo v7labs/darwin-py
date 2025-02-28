@@ -120,11 +120,11 @@ jobs:
 
       - name: Create pull request to master
         if: ${{ env.TEST_MODE != 'true' }}
-        uses: peter-evans/create-pull-request@v5
+        uses: peter-evans/create-pull-request@v7
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           base: master
-          head: ${{ env.BRANCH_NAME }}
+          branch: ${{ env.BRANCH_NAME }}
           title: "Version bump to ${{ env.TAG_PREFIX}}${{ env.NEW_VERSION }}"
           body: |
             This PR contains version bump changes for release ${{ env.TAG_PREFIX}}${{ env.NEW_VERSION }}.
