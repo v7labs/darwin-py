@@ -112,7 +112,7 @@ jobs:
         run: |
           echo "Creating branch ${BRANCH_NAME}"
           git checkout -b ${BRANCH_NAME}
-          git add pyproject.toml darwin/__init__.py
+          git add pyproject.toml darwin/version/__init__.py 
           git commit -m "Version bump to ${{ env.TAG_PREFIX}}${{ env.NEW_VERSION }}"
           git push origin ${BRANCH_NAME}
         env:
