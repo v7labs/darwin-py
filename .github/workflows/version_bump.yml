@@ -22,8 +22,6 @@ on:
         description: "Specific commit SHA to start from (optional)"
         required: false
         type: string
-  pull_request:
-    types: [opened, synchronize, reopened]
 
 permissions:
   contents: write
