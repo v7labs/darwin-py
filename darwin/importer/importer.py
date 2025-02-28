@@ -461,6 +461,7 @@ def _serialize_item_level_properties(
     for item_property_value in item_property_values:
         item_property = team_item_properties_lookup[item_property_value["name"]]
         item_property_id = item_property.id
+        value = None
         if (
             item_property.type == "single_select"
             or item_property.type == "multi_select"
@@ -473,14 +474,11 @@ def _serialize_item_level_properties(
                 ),
                 None,
             )
-            value = {"id": item_property_value_id}
-            append_property = True
+            if item_property_value_id is not None:
+                value = {"id": item_property_value_id}
         elif item_property.type == "text" and item_property_value["value"] is not None:
             value = {"text": item_property_value["value"]}
-            append_property = True
-        else:
-            append_property = False
-        if append_property:
+        if value is not None:
             actors: List[dt.DictFreeForm] = []
             actors.extend(
                 _handle_annotators(
