@@ -89,7 +89,7 @@ jobs:
             echo "Adding test suffix"
             # Update version in pyproject.toml and in __init__.py
             awk -v new_version="$TEST_VERSION" '/^version = / {$0 = "version = \"" new_version "\""} 1' pyproject.toml > pyproject.tmp && mv pyproject.tmp pyproject.toml
-            awk -v new_version="$TEST_VERSION" '/^__version__ = / {$0 = "__version__ = \"" new_version "\""} 1' darwin/__init__.py > darwin/__init__.tmp && mv darwin/__init__.tmp darwin/__init__.py
+            awk -v new_version="$TEST_VERSION" '/^__version__ = / {$0 = "__version__ = \"" new_version "\""} 1' darwin/version/__init__.py > darwin/version/__init__.tmp && mv darwin/version/__init__.tmp darwin/version/__init__.py
 
             BRANCH_NAME="${TAG_PREFIX}branch-${NEW_VERSION}"
           else
@@ -109,6 +109,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create branch and commit changes
+        if: ${{ env.TEST_MODE == 'true' }}
         run: |
           echo "Creating branch ${BRANCH_NAME}"
           git checkout -b ${BRANCH_NAME}
