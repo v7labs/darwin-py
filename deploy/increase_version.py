@@ -82,10 +82,13 @@ class Version:
 
     def increment_major(self) -> None:
         self.major += 1
+        self.minor = 0
+        self.patch = 0
         self._changed = True
 
     def increment_minor(self) -> None:
         self.minor += 1
+        self.patch = 0
         self._changed = True
 
     def increment_patch(self) -> None:

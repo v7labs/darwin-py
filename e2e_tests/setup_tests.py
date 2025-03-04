@@ -97,6 +97,19 @@ def add_properties_to_class(
         "content-type": "application/json",
         "Authorization": f"ApiKey {config.api_key}",
     }
+    # setup text properties
+    for text_granularity in ["annotation", "section"]:
+        payload = {
+            "name": f"{text_granularity}-text-1",
+            "type": "text",
+            "required": False,
+            "annotation_class_id": annotation_class_info["id"],
+            "description": f"Description for a text property on {text_granularity} level",
+            "granularity": f"{text_granularity}",
+            "property_values": [],
+        }
+        requests.post(url, json=payload, headers=headers)
+
     for property_type in ["single_select", "multi_select"]:
         payload = {
             "required": False,

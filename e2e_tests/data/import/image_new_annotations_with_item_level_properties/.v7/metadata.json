@@ -52,6 +52,13 @@
               "color": "rgba(255,199,0,1.0)"
             }
           ]
+        },
+        {
+          "name": "test_same_name_text",
+          "type": "text",
+          "description": "",
+          "required": false,
+          "property_values": []
         }
       ],
       "sub_types_settings": {
@@ -92,6 +99,14 @@
     },
     {
       "name": "new_item_level_property_text",
+      "type": "text",
+      "description": "",
+      "required": false,
+      "property_values": [],
+      "granularity": "item"
+    },
+    {
+      "name": "test_same_name_text",
       "type": "text",
       "description": "",
       "required": false,
