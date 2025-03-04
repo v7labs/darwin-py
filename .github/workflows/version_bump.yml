@@ -22,9 +22,14 @@ on:
         description: "Specific commit SHA to start from (optional)"
         required: false
         type: string
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches:
+      - master
 
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
   bump-version:
@@ -120,16 +125,10 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create pull request to master and auto-merge
-        if: ${{ env.TEST_MODE != 'true' }}
-        run: |
-          # Install GitHub CLI
-          curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
-          echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
-          sudo apt update
-          sudo apt install gh
-          
+        # if: ${{ env.TEST_MODE != 'true' }}
+        run: |     
           # Authenticate GitHub CLI
-          echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
+          gh auth login --with-token < ${{ env.GITHUB_TOKEN }}
           
           # Create PR
           gh pr create \
