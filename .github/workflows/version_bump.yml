@@ -114,7 +114,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create branch and commit changes
-        if: ${{ env.TEST_MODE == 'true' }}
+        # if: ${{ env.TEST_MODE == 'true' }}
         run: |
           echo "Creating branch ${BRANCH_NAME}"
           git checkout -b ${BRANCH_NAME}
@@ -126,10 +126,10 @@ jobs:
 
       - name: Create pull request to master and auto-merge
         # if: ${{ env.TEST_MODE != 'true' }}
-        run: |     
+        run: |
           # Authenticate GitHub CLI
-          gh auth login --with-token < ${{ env.GITHUB_TOKEN }}
-          
+          echo "${{ env.GITHUB_TOKEN }}" | gh auth login --with-token
+
           # Create PR
           gh pr create \
             --base master \
@@ -143,10 +143,10 @@ jobs:
 
             This PR was automatically created by the version bump workflow." \
             --label "automated-pr,version-bump"
-          
+
           # Get PR number
           PR_NUMBER=$(gh pr list --head ${{ env.BRANCH_NAME }} --json number -q '.[0].number')
-          
+
           # Enable auto-merge
           gh pr merge $PR_NUMBER --auto --merge
         env:
