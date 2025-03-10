@@ -128,7 +128,7 @@ jobs:
         # if: ${{ env.TEST_MODE != 'true' }}
         run: |
           # Authenticate GitHub CLI
-          echo "${{ env.GITHUB_TOKEN }}" | gh auth login --with-token
+          echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
 
           # Create PR
           gh pr create \
@@ -149,8 +149,6 @@ jobs:
 
           # Enable auto-merge
           gh pr merge $PR_NUMBER --auto --merge
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create and push tag
         run: |
