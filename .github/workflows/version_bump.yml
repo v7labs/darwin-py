@@ -22,9 +22,14 @@ on:
         description: "Specific commit SHA to start from (optional)"
         required: false
         type: string
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches:
+      - master
 
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
   bump-version:
@@ -109,7 +114,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create branch and commit changes
-        if: ${{ env.TEST_MODE == 'true' }}
+        # if: ${{ env.TEST_MODE == 'true' }}
         run: |
           echo "Creating branch ${BRANCH_NAME}"
           git checkout -b ${BRANCH_NAME}
@@ -120,38 +125,27 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create pull request to master and auto-merge
-        if: ${{ env.TEST_MODE != 'true' }}
+        # if: ${{ env.TEST_MODE != 'true' }}
         run: |
-          # Install GitHub CLI
-          curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
-          echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
-          sudo apt update
-          sudo apt install gh
-          
           # Authenticate GitHub CLI
           echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
-          
+
           # Create PR
           gh pr create \
             --base master \
             --head ${{ env.BRANCH_NAME }} \
             --title "Version bump to ${{ env.TAG_PREFIX}}${{ env.NEW_VERSION }}" \
-            --body "This PR contains version bump changes for release ${{ env.TAG_PREFIX}}${{ env.NEW_VERSION }}.
+            --body "This PR contains version bump changes for release ${{ env.TAG_PREFIX}}${{ env.NEW_VERSION }}."
 
             Changes:
             - Updated version in pyproject.toml
             - Updated version in darwin/version/__init__.py
 
-            This PR was automatically created by the version bump workflow." \
-            --label "automated-pr,version-bump"
-          
           # Get PR number
           PR_NUMBER=$(gh pr list --head ${{ env.BRANCH_NAME }} --json number -q '.[0].number')
-          
+
           # Enable auto-merge
           gh pr merge $PR_NUMBER --auto --merge
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create and push tag
         run: |
