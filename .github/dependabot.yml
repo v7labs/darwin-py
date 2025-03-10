@@ -10,7 +10,8 @@ updates:
           - '*'
     reviewers:
       - "saurbhc"
-      - "JBWilkie"
+      - "umbertoDifa"
+      - "aleksandar-ivic"
     open-pull-requests-limit: 1
     labels:
       - "github-actions-updates"
@@ -30,7 +31,8 @@ updates:
           - '*'
     reviewers:
       - "saurbhc"
-      - "JBWilkie"
+      - "umbertoDifa"
+      - "aleksandar-ivic"
     open-pull-requests-limit: 1
     labels:
       - "dependencies"
