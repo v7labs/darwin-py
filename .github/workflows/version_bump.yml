@@ -141,9 +141,6 @@ jobs:
             - Updated version in pyproject.toml
             - Updated version in darwin/version/__init__.py
 
-            This PR was automatically created by the version bump workflow." \
-            --label "automated-pr,version-bump"
-
           # Get PR number
           PR_NUMBER=$(gh pr list --head ${{ env.BRANCH_NAME }} --json number -q '.[0].number')
 
