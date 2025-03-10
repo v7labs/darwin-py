@@ -13,7 +13,7 @@ license = "MIT"
 name = "darwin-py"
 readme = "README.md"
 repository = "https://github.com/v7labs/darwin-py"
-version = "1.2.1"
+version = "test-1.2.2.20250310135953"
 [[tool.poetry.packages]]
 include = "darwin"
 
@@ -99,82 +99,82 @@ select = [ "E", "F", "C",]
 [tool.poetry.dependencies.nibabel]
 optional = true
 python = ">=3.9"
-version = "^5.0.0"
+version = "test-1.2.2.20250310135953"
 
 [tool.poetry.dependencies.connected-components-3d]
 optional = true
-version = "^3.10.3"
+version = "test-1.2.2.20250310135953"
 
 [tool.poetry.dependencies.scikit-learn]
 optional = true
 python = ">=3.9,<3.13"
-version = "^1.5.0"
+version = "test-1.2.2.20250310135953"
 
 [tool.poetry.dependencies.scipy]
 optional = true
 python = ">=3.9,<3.13"
-version = "^1.13.1"
+version = "test-1.2.2.20250310135953"
 
 [tool.poetry.dependencies.albumentations]
 optional = true
 python = ">=3.9,<3.13"
-version = "^1.4.21"
+version = "test-1.2.2.20250310135953"
 
 [tool.poetry.dependencies.torch]
 optional = true
-version = "^2.5.1"
+version = "test-1.2.2.20250310135953"
 
 [tool.poetry.dependencies.torchvision]
 optional = true
-version = "^0.20.1"
+version = "test-1.2.2.20250310135953"
 
 [tool.poetry.dependencies.black]
 optional = true
-version = "^24.4.2"
+version = "test-1.2.2.20250310135953"
 
 [tool.poetry.dependencies.isort]
 optional = true
-version = "^5.11.4"
+version = "test-1.2.2.20250310135953"
 
 [tool.poetry.dependencies.mypy]
 optional = true
 python = ">=3.9"
-version = "^1.5"
+version = "test-1.2.2.20250310135953"
 
 [tool.poetry.dependencies.responses]
 optional = true
-version = "^0.25.0"
+version = "test-1.2.2.20250310135953"
 
 [tool.poetry.dependencies.pytest]
 optional = true
-version = "^7.2.1"
+version = "test-1.2.2.20250310135953"
 
 [tool.poetry.dependencies.debugpy]
 optional = true
-version = "^1.8.1"
+version = "test-1.2.2.20250310135953"
 
 [tool.poetry.dependencies.mpire]
-version = "^2.7.0"
+version = "test-1.2.2.20250310135953"
 
 [tool.poetry.dependencies.python-dotenv]
 python = ">3.9,<3.13"
-version = "^1.0.0"
+version = "test-1.2.2.20250310135953"
 
 [tool.poetry.dependencies.opencv-python-headless]
 optional = true
-version = "4.11.0.86"
+version = "test-1.2.2.20250310135953"
 
 [tool.poetry.dependencies.pytest-rerunfailures]
 optional = true
-version = "^12.0"
+version = "test-1.2.2.20250310135953"
 
 [tool.poetry.dependencies.ruff]
 optional = true
-version = ">=0.4.7,<0.10.0"
+version = "test-1.2.2.20250310135953"
 
 [tool.poetry.dependencies.validate-pyproject]
 optional = true
-version = ">=0.15,<0.24"
+version = "test-1.2.2.20250310135953"
 
 [tool.ruff.lint.per-file-ignores]
 "**/{tests,docs,tools}/*" = [ "E402", "F403",]
