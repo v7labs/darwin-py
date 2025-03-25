@@ -1,7 +1,7 @@
 import concurrent.futures
-import uuid
-import json
 import copy
+import json
+import uuid
 from collections import defaultdict
 from logging import getLogger
 from multiprocessing import cpu_count
@@ -21,19 +21,18 @@ from typing import (
     Union,
 )
 
-
 from darwin.datatypes import (
     AnnotationFile,
     Property,
-    parse_property_classes,
     PropertyClass,
+    parse_property_classes,
 )
 from darwin.future.data_objects.properties import (
     FullProperty,
+    PropertyGranularity,
     PropertyType,
     PropertyValue,
     SelectedProperty,
-    PropertyGranularity,
 )
 from darwin.item import DatasetItem
 from darwin.path_utils import is_properties_enabled, parse_metadata
@@ -1299,7 +1298,7 @@ def import_annotations(  # noqa: C901
     (
         legacy_remote_file_slot_affine_maps,
         pixdims_and_primary_planes,
-    ) = _get_remote_medical_file_transform_requirements(remote_files_targeted_by_import)
+    ) = _get_remote_medical_file_transform_requirements(remote_files_targeted_by_import, console)
 
     if importer.__module__ == "darwin.importer.formats.nifti":
         maybe_parsed_files: Optional[Iterable[dt.AnnotationFile]] = _find_and_parse(
@@ -2452,7 +2451,7 @@ def _get_remote_files_targeted_by_import(
 
 
 def _get_remote_medical_file_transform_requirements(
-    remote_files_targeted_by_import: List[DatasetItem],
+    remote_files_targeted_by_import: List[DatasetItem], console: Console
 ) -> Tuple[Dict[Path, Dict[str, Any]], Dict[Path, Dict[Path, Tuple[List[float], str]]]]:
     """
     This function parses the remote files targeted by the import. If the remote file is
@@ -2488,13 +2487,50 @@ def _get_remote_medical_file_transform_requirements(
             if not slot_is_medical(slot):
                 continue
             slot_name = slot["slot_name"]
-            primary_plane = slot["metadata"]["medical"]["plane_map"][slot_name]
-            pixdims = [float(dim) for dim in slot["metadata"]["medical"]["pixdims"]]
-            slot_pixdim_primary_plane_map[slot_name] = (pixdims, primary_plane)
-            if not slot_is_handled_by_monai(slot):
-                slot_affine_map[slot["slot_name"]] = np.array(
-                    slot["metadata"]["medical"]["affine"], dtype=np.float64
+            medical_metadata = slot["metadata"]["medical"]
+
+            # Handle missing plane_map or slot_name in plane_map
+            try:
+                primary_plane = medical_metadata["plane_map"][slot_name]
+            except (KeyError, TypeError):
+                console.print(
+                    f"Missing plane_map for slot {slot_name} in file {remote_file.full_path}",
+                    style="warning",
                 )
+                continue
+
+            # Handle missing or invalid pixdims
+            try:
+                raw_pixdims = medical_metadata.get("pixdims")
+                if not raw_pixdims:
+                    console.print(
+                        f"Missing pixdims for slot {slot_name} in file {remote_file.full_path}",
+                        style="warning",
+                    )
+                    continue
+                parsed_pixdims = [float(dim) for dim in raw_pixdims]
+            except (ValueError, TypeError):
+                console.print(
+                    f"Invalid pixdims format for slot {slot_name} in file {remote_file.full_path}",
+                    style="warning",
+                )
+                continue
+
+            slot_pixdim_primary_plane_map[slot_name] = (parsed_pixdims, primary_plane)
+            if not slot_is_handled_by_monai(slot):
+                try:
+                    affine = medical_metadata.get("affine")
+                    if affine:
+                        slot_affine_map[slot["slot_name"]] = np.array(
+                            affine, dtype=np.float64
+                        )
+                except (ValueError, TypeError):
+                    console.print(
+                        f"Invalid affine matrix format for slot {slot_name} in file {remote_file.full_path}",
+                        style="warning",
+                    )
+                    continue
+
         if slot_pixdim_primary_plane_map:
             pixdims_and_primary_planes[Path(remote_file.full_path)] = (
                 slot_pixdim_primary_plane_map
@@ -2504,10 +2540,7 @@ def _get_remote_medical_file_transform_requirements(
                 slot_affine_map
             )
 
-    return (
-        legacy_remote_file_slot_affine_map,
-        pixdims_and_primary_planes,
-    )
+    return legacy_remote_file_slot_affine_map, pixdims_and_primary_planes
 
 
 def slot_is_medical(slot: Dict[str, Any]) -> bool:
