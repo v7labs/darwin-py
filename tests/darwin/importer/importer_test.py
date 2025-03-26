@@ -36,7 +36,10 @@ from darwin.importer.importer import (
     _import_properties,
     _is_skeleton_class,
     _overwrite_warning,
+    _parse_affine,
     _parse_empty_masks,
+    _parse_pixdims,
+    _parse_plane_map,
     _resolve_annotation_classes,
     _serialize_item_level_properties,
     _split_payloads,
@@ -4049,26 +4052,6 @@ def test__get_remote_medical_file_transform_requirements_mixed():
     ).all()
 
 
-def test_slot_is_medical():
-    """
-    Test that slot_is_medical returns True if the slot has medical metadata
-    """
-    medical_slot = {"metadata": {"medical": {}}}
-    non_medical_slot = {"metadata": {}}
-    assert slot_is_medical(medical_slot) is True
-    assert slot_is_medical(non_medical_slot) is False
-
-
-def test_slot_is_handled_by_monai():
-    """
-    Test that slot_is_handled_by_monai returns True if the slot has MONAI handler
-    """
-    monai_slot = {"metadata": {"medical": {"handler": "MONAI"}}}
-    non_monai_slot = {"metadata": {"medical": {}}}
-    assert slot_is_handled_by_monai(monai_slot) is True
-    assert slot_is_handled_by_monai(non_monai_slot) is False
-
-
 def test__get_remote_medical_file_transform_requirements_missing_plane_map():
     """Test handling of missing plane_map in medical metadata"""
     mock_file = MagicMock(spec=DatasetItem)
@@ -4262,3 +4245,126 @@ def test__get_remote_medical_file_transform_requirements_multiple_slots_partial_
         "Invalid pixdims format for slot invalid_slot in file /path/to/invalid_file",
         style="warning",
     )
+
+
+@pytest.fixture
+def valid_medical_metadata():
+    return {
+        "plane_map": {"slot1": "axial"},
+        "pixdims": ["1.0", "2.0", "3.0"],
+        "affine": [
+            [1.0, 0.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0, 0.0],
+            [0.0, 0.0, 1.0, 0.0],
+            [0.0, 0.0, 0.0, 1.0],
+        ],
+    }
+
+
+def test_parse_plane_map_valid(valid_medical_metadata):
+    mock_console = MagicMock(spec=Console)
+    result = _parse_plane_map(
+        valid_medical_metadata, "slot1", "test/file.nii", mock_console
+    )
+    assert result == "axial"
+
+
+def test_parse_plane_map_missing_plane_map():
+    mock_console = MagicMock(spec=Console)
+    result = _parse_plane_map({}, "slot1", "test/file.nii", mock_console)
+    assert result is None
+
+
+def test_parse_plane_map_invalid_type():
+    mock_console = MagicMock(spec=Console)
+    result = _parse_plane_map(
+        {"plane_map": "not_a_dict"}, "slot1", "test/file.nii", mock_console
+    )
+    assert result is None
+
+
+def test_parse_plane_map_missing_slot():
+    mock_console = MagicMock(spec=Console)
+    result = _parse_plane_map(
+        {"plane_map": {"other_slot": "axial"}}, "slot1", "test/file.nii", mock_console
+    )
+    assert result is None
+
+
+def test_parse_pixdims_valid(valid_medical_metadata):
+    mock_console = MagicMock(spec=Console)
+    result = _parse_pixdims(
+        valid_medical_metadata, "slot1", "test/file.nii", mock_console
+    )
+    assert result == [1.0, 2.0, 3.0]
+
+
+def test_parse_pixdims_missing():
+    mock_console = MagicMock(spec=Console)
+    result = _parse_pixdims({}, "slot1", "test/file.nii", mock_console)
+    assert result is None
+
+
+def test_parse_pixdims_empty():
+    mock_console = MagicMock(spec=Console)
+    result = _parse_pixdims({"pixdims": []}, "slot1", "test/file.nii", mock_console)
+    assert result is None
+
+
+def test_parse_pixdims_invalid_values():
+    mock_console = MagicMock(spec=Console)
+    result = _parse_pixdims(
+        {"pixdims": ["not", "valid", "numbers"]}, "slot1", "test/file.nii", mock_console
+    )
+    assert result is None
+
+
+def test_parse_affine_valid(valid_medical_metadata):
+    mock_console = MagicMock(spec=Console)
+    result = _parse_affine(
+        valid_medical_metadata, "slot1", "test/file.nii", mock_console
+    )
+    expected = np.array(
+        [
+            [1.0, 0.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0, 0.0],
+            [0.0, 0.0, 1.0, 0.0],
+            [0.0, 0.0, 0.0, 1.0],
+        ]
+    )
+    assert np.array_equal(result, expected)
+
+
+def test_parse_affine_missing():
+    mock_console = MagicMock(spec=Console)
+    result = _parse_affine({}, "slot1", "test/file.nii", mock_console)
+    assert result is None
+
+
+def test_parse_affine_invalid_values():
+    mock_console = MagicMock(spec=Console)
+    invalid_affine = {"affine": "not_a_matrix"}
+    result = _parse_affine(invalid_affine, "slot1", "test/file.nii", mock_console)
+    assert result is None
+
+
+def test_slot_is_medical():
+    medical_slot = {"metadata": {"medical": {"some": "data"}}}
+    non_medical_slot = {"metadata": {}}
+    empty_slot = {}
+
+    assert slot_is_medical(medical_slot) is True
+    assert slot_is_medical(non_medical_slot) is False
+    assert slot_is_medical(empty_slot) is False
+
+
+def test_slot_is_handled_by_monai():
+    monai_slot = {"metadata": {"medical": {"handler": "MONAI"}}}
+    non_monai_slot = {"metadata": {"medical": {"handler": "other"}}}
+    no_handler_slot = {"metadata": {"medical": {}}}
+    empty_slot = {}
+
+    assert slot_is_handled_by_monai(monai_slot) is True
+    assert slot_is_handled_by_monai(non_monai_slot) is False
+    assert slot_is_handled_by_monai(no_handler_slot) is False
+    assert slot_is_handled_by_monai(empty_slot) is False
