@@ -1298,7 +1298,9 @@ def import_annotations(  # noqa: C901
     (
         legacy_remote_file_slot_affine_maps,
         pixdims_and_primary_planes,
-    ) = _get_remote_medical_file_transform_requirements(remote_files_targeted_by_import, console)
+    ) = _get_remote_medical_file_transform_requirements(
+        remote_files_targeted_by_import, console
+    )
 
     if importer.__module__ == "darwin.importer.formats.nifti":
         maybe_parsed_files: Optional[Iterable[dt.AnnotationFile]] = _find_and_parse(
