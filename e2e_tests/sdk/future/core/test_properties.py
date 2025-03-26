@@ -12,18 +12,21 @@ from darwin.future.core.properties.get import (
 )
 from darwin.future.core.properties.update import update_property, update_property_value
 from darwin.future.data_objects.properties import FullProperty, PropertyValue
-from e2e_tests.objects import ConfigValues, E2EAnnotationClass
-from e2e_tests.setup_tests import create_annotation_class
+from e2e_tests.fixtures.class_management import create_annotation_class
+from e2e_tests.logger_config import logger
+from e2e_tests.objects import ConfigValues, E2EAnnotationClass, TeamConfigValues
 
 
 @pytest.fixture
-def base_config(tmpdir: str) -> DarwinConfig:
+def base_config(isolated_team: TeamConfigValues, tmpdir: str) -> DarwinConfig:
+    # this is a bit of a hack, but it's the easiest way to get the config values
     config = pytest.config_values
     assert config is not None
     assert isinstance(config, ConfigValues)
     server = config.server
-    api_key = config.api_key
-    team_slug = config.team_slug
+
+    api_key = isolated_team.api_key
+    team_slug = isolated_team.team_slug
     return DarwinConfig(
         api_key=api_key,
         base_url=server,
@@ -63,43 +66,53 @@ def base_property_to_create() -> FullProperty:
     )
 
 
-def helper_create_annotation(name: str) -> Tuple[ConfigValues, E2EAnnotationClass]:
+def helper_create_annotation(
+    name: str, isolated_team: TeamConfigValues
+) -> Tuple[ConfigValues, E2EAnnotationClass]:
     config = pytest.config_values
     assert config is not None
     assert isinstance(config, ConfigValues)
-    return config, create_annotation_class(name, "polygon", config)
+    return config, create_annotation_class(name, "polygon", config, isolated_team)
 
 
 def test_create_property(
-    base_client: ClientCore, base_property_to_create: FullProperty
+    base_client: ClientCore,
+    base_property_to_create: FullProperty,
+    isolated_team: TeamConfigValues,
 ) -> None:
-    config, new_annotation_class = helper_create_annotation("test_for_create_property")
-
+    logger.info("test_create_property")
+    config, new_annotation_class = helper_create_annotation(
+        "test_for_create_property", isolated_team
+    )
     # Actual test
     base_property_to_create.annotation_class_id = new_annotation_class.id
     output = create_property(
-        base_client, base_property_to_create, team_slug=config.team_slug
+        base_client, base_property_to_create, team_slug=isolated_team.team_slug
     )
     assert isinstance(output, FullProperty)
 
 
 def test_get_team_properties(
-    base_client: ClientCore, base_property_to_create: FullProperty
+    base_client: ClientCore,
+    base_property_to_create: FullProperty,
+    isolated_team: TeamConfigValues,
 ) -> None:
-    config, new_annotation_class = helper_create_annotation("test_for_get_properties")
+    config, new_annotation_class = helper_create_annotation(
+        "test_for_get_properties", isolated_team
+    )
 
     # Create a base property to use for the test
     # TODO: replace this with a fixture to isolate the test
     base_property_to_create.annotation_class_id = new_annotation_class.id
     output = create_property(
-        base_client, base_property_to_create, team_slug=config.team_slug
+        base_client, base_property_to_create, team_slug=isolated_team.team_slug
     )
     output.property_values = (
         None  # the base get_team_properties doesn't include property_values
     )
     assert isinstance(output, FullProperty)
 
-    properties = get_team_properties(base_client, team_slug=config.team_slug)
+    properties = get_team_properties(base_client, team_slug=isolated_team.team_slug)
     assert isinstance(properties, list)
     assert all(isinstance(property, FullProperty) for property in properties)
     assert len(properties) > 0
@@ -111,21 +124,25 @@ def test_get_team_properties(
 
 
 def test_get_team_full_properties(
-    base_client: ClientCore, base_property_to_create: FullProperty
+    base_client: ClientCore,
+    base_property_to_create: FullProperty,
+    isolated_team: TeamConfigValues,
 ) -> None:
     config, new_annotation_class = helper_create_annotation(
-        "test_for_get_full_properties"
+        "test_for_get_full_properties", isolated_team
     )
 
     # Create a base property to use for the test
     # TODO: replace this with a fixture to isolate the test
     base_property_to_create.annotation_class_id = new_annotation_class.id
     output = create_property(
-        base_client, base_property_to_create, team_slug=config.team_slug
+        base_client, base_property_to_create, team_slug=isolated_team.team_slug
     )
     assert isinstance(output, FullProperty)
 
-    properties = get_team_full_properties(base_client, team_slug=config.team_slug)
+    properties = get_team_full_properties(
+        base_client, team_slug=isolated_team.team_slug
+    )
     assert isinstance(properties, list)
     assert all(isinstance(property, FullProperty) for property in properties)
     assert len(properties) > 0
@@ -137,36 +154,42 @@ def test_get_team_full_properties(
 
 
 def test_get_property_by_id(
-    base_client: ClientCore, base_property_to_create: FullProperty
+    base_client: ClientCore,
+    base_property_to_create: FullProperty,
+    isolated_team: TeamConfigValues,
 ) -> None:
     config, new_annotation_class = helper_create_annotation(
-        "test_for_get_property_by_id"
+        "test_for_get_property_by_id", isolated_team
     )
 
     # Create a base property to use for the test
     # TODO: replace this with a fixture to isolate the test
     base_property_to_create.annotation_class_id = new_annotation_class.id
     output = create_property(
-        base_client, base_property_to_create, team_slug=config.team_slug
+        base_client, base_property_to_create, team_slug=isolated_team.team_slug
     )
     assert isinstance(output, FullProperty)
     assert output.id is not None
 
-    prop = get_property_by_id(base_client, output.id, team_slug=config.team_slug)
+    prop = get_property_by_id(base_client, output.id, team_slug=isolated_team.team_slug)
     assert isinstance(prop, FullProperty)
     assert output == prop
 
 
 def test_update_property(
-    base_client: ClientCore, base_property_to_create: FullProperty
+    base_client: ClientCore,
+    base_property_to_create: FullProperty,
+    isolated_team: TeamConfigValues,
 ) -> None:
-    config, new_annotation_class = helper_create_annotation("test_for_update_property")
+    config, new_annotation_class = helper_create_annotation(
+        "test_for_update_property", isolated_team
+    )
 
     # Create a base property to use for the test
     # TODO: replace this with a fixture to isolate the test
     base_property_to_create.annotation_class_id = new_annotation_class.id
     output = create_property(
-        base_client, base_property_to_create, team_slug=config.team_slug
+        base_client, base_property_to_create, team_slug=isolated_team.team_slug
     )
     assert isinstance(output, FullProperty)
     assert output.id is not None
@@ -174,7 +197,7 @@ def test_update_property(
     assert output.property_values is not None
     output.property_values[0].value = "new_value"
     # default behaviour for update endpoint is to append the new value to the existing values
-    new_output = update_property(base_client, output, team_slug=config.team_slug)
+    new_output = update_property(base_client, output, team_slug=isolated_team.team_slug)
     assert isinstance(new_output, FullProperty)
     assert new_output.property_values is not None
     assert len(new_output.property_values) == 2
@@ -182,17 +205,19 @@ def test_update_property(
 
 
 def test_update_property_value(
-    base_client: ClientCore, base_property_to_create: FullProperty
+    base_client: ClientCore,
+    base_property_to_create: FullProperty,
+    isolated_team: TeamConfigValues,
 ) -> None:
     config, new_annotation_class = helper_create_annotation(
-        "test_for_update_property_value"
+        "test_for_update_property_value", isolated_team
     )
 
     # Create a base property to use for the test
     # TODO: replace this with a fixture to isolate the test
     base_property_to_create.annotation_class_id = new_annotation_class.id
     output = create_property(
-        base_client, base_property_to_create, team_slug=config.team_slug
+        base_client, base_property_to_create, team_slug=isolated_team.team_slug
     )
     assert isinstance(output, FullProperty)
     assert output.id is not None
@@ -202,7 +227,7 @@ def test_update_property_value(
     pv = output.property_values[0]
     pv.value = "new_value"
     new_output = update_property_value(
-        base_client, pv, item_id=id, team_slug=config.team_slug
+        base_client, pv, item_id=id, team_slug=isolated_team.team_slug
     )
     assert isinstance(new_output, PropertyValue)
     assert pv == new_output

@@ -7,9 +7,13 @@ from typing import Generator
 
 import pytest
 
-from e2e_tests.helpers import assert_cli, run_cli_command, new_dataset  # noqa: F401
-from e2e_tests.objects import ConfigValues, E2EDataset, E2EItem
-from e2e_tests.setup_tests import api_call, create_random_image
+from e2e_tests.helpers import (  # noqa: F401
+    api_call,
+    assert_cli,
+    create_random_image,
+    run_cli_command,
+)
+from e2e_tests.objects import ConfigValues, E2EDataset, E2EItem, TeamConfigValues
 
 
 @pytest.fixture
@@ -96,52 +100,55 @@ def test_darwin_import(local_dataset_with_annotations: E2EDataset) -> None:
     )
     assert_cli(result, 0)
     result = run_cli_command(
-        f"darwin dataset import {local_dataset_with_annotations.name} darwin {Path(local_dataset_with_annotations.directory) / 'annotations'}",
-        yes=True,
+        f"darwin dataset import {local_dataset_with_annotations.name} darwin {Path(local_dataset_with_annotations.directory) / 'annotations'} --yes",
     )
     assert_cli(result, 0)
 
 
 def test_darwin_export(
-    local_dataset_with_annotations: E2EDataset, config_values: ConfigValues
+    isolated_team: TeamConfigValues,
+    config_values: ConfigValues,
+    local_dataset_with_annotations: E2EDataset,
 ) -> None:
     """
-    Test exporting a dataset via the darwin cli, dataset created via fixture with annotations added to objects
+    Test exporting a dataset via the darwin cli, dataset created via fixture with annotations added to objects.
     """
+
     assert local_dataset_with_annotations.id is not None
     assert local_dataset_with_annotations.name is not None
     assert local_dataset_with_annotations.directory is not None
+
     result = run_cli_command(
-        f"darwin dataset push {local_dataset_with_annotations.name} {local_dataset_with_annotations.directory}"
+        f"darwin team {isolated_team.team_slug} && darwin dataset push {local_dataset_with_annotations.name} {local_dataset_with_annotations.directory}"
     )
     assert_cli(result, 0)
+
     result = run_cli_command(
-        f"darwin dataset import {local_dataset_with_annotations.name} darwin {Path(local_dataset_with_annotations.directory) / 'annotations'}",
-        yes=True,
+        f"darwin team {isolated_team.team_slug} && darwin dataset import {local_dataset_with_annotations.name} darwin {Path(local_dataset_with_annotations.directory) / 'annotations'} --yes",
     )
     assert_cli(result, 0)
 
     # Get class ids as export either needs a workflow and complete annotations or the class ids
-    url = f"{config_values.server}/api/teams/{config_values.team_slug}/annotation_classes?include_tags=true"
-    response = api_call("get", url, None, config_values.api_key)
+    url = f"{config_values.server}/api/teams/{isolated_team.team_slug}/annotation_classes?include_tags=true"
+    response = api_call("get", url, None, isolated_team.api_key)
     if not response.ok:
         raise Exception(f"Failed to get annotation classes: {response.text}")
+
     classes = response.json()["annotation_classes"]
     class_ids = [c["id"] for c in classes]
     class_str = " ".join([str(c) for c in class_ids])
-    # Test darwin export
+
     result = run_cli_command(
-        f"darwin dataset export {local_dataset_with_annotations.name} test_darwin_export --class-ids {class_str}"
+        f"darwin team {isolated_team.team_slug} && darwin dataset export {local_dataset_with_annotations.name} test_darwin_export --class-ids {class_str}"
     )
     assert_cli(result, 0, in_stdout="successfully exported")
+
     result = run_cli_command(
-        f"darwin dataset releases {local_dataset_with_annotations.name}"
+        f"darwin team {isolated_team.team_slug} && darwin dataset releases {local_dataset_with_annotations.name}"
     )
     assert_cli(
         result, 0, in_stdout="No available releases, export one first", inverse=True
     )
-    # Check that a release is there via inverse, the CLI will truncate outputs and pass/fail is not clear
-    # if we check for release name
 
 
 def test_delete(local_dataset: E2EDataset) -> None:
@@ -150,13 +157,11 @@ def test_delete(local_dataset: E2EDataset) -> None:
     """
     assert local_dataset.id is not None
     assert local_dataset.name is not None
-    result = run_cli_command(f"darwin dataset remove {local_dataset.name}", yes=True)
+    result = run_cli_command(f"yes Y | darwin dataset remove {local_dataset.name}")
     assert_cli(result, 0)
-    # Check that the dataset is gone, if so, remove from pytest object so it doesn't get deleted again
-    # and cause a failure on teardown
+    # Check that the dataset is gone
     result = run_cli_command(f"darwin dataset files {local_dataset.name}")
     assert_cli(result, 1, in_stdout="Error: No dataset with")
-    pytest.datasets.remove(local_dataset)  # type: ignore
 
 
 if __name__ == "__main__":

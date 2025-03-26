@@ -1,11 +1,13 @@
 from pathlib import Path
 
 from e2e_tests.helpers import assert_cli, run_cli_command, export_release
-from e2e_tests.objects import E2EDataset, ConfigValues
+from e2e_tests.objects import E2EDataset, ConfigValues, TeamConfigValues
 
 
 def test_pull_with_remote_folder_structure(
-    local_dataset: E2EDataset, config_values: ConfigValues
+    local_dataset: E2EDataset,
+    config_values: ConfigValues,
+    isolated_team: TeamConfigValues,
 ):
     """
     Test pulling a dataset release with default arguments.
@@ -13,7 +15,7 @@ def test_pull_with_remote_folder_structure(
     The remote directory structure should be recreated locally.
     """
     pull_dir = Path(
-        f"{Path.home()}/.darwin/datasets/{config_values.team_slug}/{local_dataset.slug}/images"
+        f"{Path.home()}/.darwin/datasets/{isolated_team.team_slug}/{local_dataset.slug}/images"
     )
     expected_filepaths = [
         f"{pull_dir}/image_1.jpg",
@@ -27,8 +29,10 @@ def test_pull_with_remote_folder_structure(
     ]
     item_type = "single_slotted"
     annotation_format = "darwin"
-    local_dataset.register_read_only_items(config_values, item_type)
-    release = export_release(annotation_format, local_dataset, config_values)
+    local_dataset.register_read_only_items(config_values, isolated_team, item_type)
+    release = export_release(
+        annotation_format, local_dataset, config_values, isolated_team
+    )
     result = run_cli_command(f"darwin dataset pull {local_dataset.name}:{release.name}")
     assert_cli(result, 0)
     all_filepaths = list(pull_dir.rglob("*"))

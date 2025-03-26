@@ -1,25 +1,30 @@
-from pathlib import Path
-
-
-from e2e_tests.helpers import (
-    assert_cli,
-    run_cli_command,
-    export_release,
-    delete_annotation_uuids,
-    list_items,
-)
-from e2e_tests.objects import E2EDataset, ConfigValues
+import importlib
 import tempfile
 import zipfile
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
+
 import darwin.datatypes as dt
-import importlib
-from typing import List, Dict, Optional, Union, Tuple, Any, Sequence
+from e2e_tests.fixtures.class_management import (
+    setup_annotation_classes,
+    setup_item_level_properties,
+)
+from e2e_tests.helpers import (
+    assert_cli,
+    delete_annotation_uuids,
+    export_release,
+    list_items,
+    run_cli_command,
+)
+from e2e_tests.logger_config import logger
+from e2e_tests.objects import ConfigValues, E2EDataset, TeamConfigValues
 
 
 def compare_local_annotations_with_uploaded_annotations(
     annotation_format: str,
     local_dataset: E2EDataset,
     config_values: ConfigValues,
+    isolated_team: TeamConfigValues,
 ) -> None:
     """
     Checks that every annotation uploaded to every item of the given `local_dataset` is
@@ -33,7 +38,9 @@ def compare_local_annotations_with_uploaded_annotations(
     }
     video_formats = ["csv_tags_video"]
     expected_annotation_type = expected_annotation_types[annotation_format]
-    all_item_annotations, _, _ = local_dataset.get_annotation_data(config_values)
+    all_item_annotations, _, _ = local_dataset.get_annotation_data(
+        config_values, isolated_team
+    )
     for item in local_dataset.items:
         item_name = item.name
         item_annotations = all_item_annotations[item_name]
@@ -82,7 +89,7 @@ def find_matching_actual_annotation(
             (
                 annotation
                 for annotation in actual_annotations
-                if annotation.data == expected_annotation_data
+                if annotation.data == expected_annotation_data  # type: ignore
                 and annotation.annotation_class.annotation_type
                 == expected_annotation_type
             ),
@@ -95,7 +102,7 @@ def find_matching_actual_annotation(
             (
                 annotation
                 for annotation in actual_annotations
-                if annotation.frames == expected_annotation_frame_data
+                if annotation.frames == expected_annotation_frame_data  # type: ignore
                 and annotation.annotation_class.annotation_type
                 == expected_annotation_type
             )
@@ -141,21 +148,25 @@ def assert_same_annotation_properties(
 
 
 def get_base_slot_name_of_item(
-    config_values: ConfigValues, dataset_id: int, item_name: str
+    config_values: ConfigValues,
+    isolated_team: TeamConfigValues,
+    dataset_id: int,
+    item_name: str,
 ) -> str:
     """
     Returns the base slot name for the item with the given name in a specific `E2EDataset`.
     The base slot is always the first listed slot
     """
     items = list_items(
-        config_values.api_key,
+        isolated_team.api_key,
         dataset_id,
-        config_values.team_slug,
+        isolated_team.team_slug,
         config_values.server,
     )
     for item in items:
         if item["name"] == item_name:
             return item["slots"][0]["slot_name"]
+    raise Exception(f"Item {item_name} not found in dataset {dataset_id}")
 
 
 def parse_expected_and_actual_annotations(
@@ -295,6 +306,7 @@ def compare_annotations_export(
 def run_import_test(
     local_dataset: E2EDataset,
     config_values: ConfigValues,
+    isolated_team: TeamConfigValues,
     item_type: str,
     annotations_subdir: str,
     annotation_format: Optional[str] = "darwin",
@@ -303,14 +315,13 @@ def run_import_test(
     item_name: Optional[str] = None,
     additional_flags: str = "",
     exit_code: int = 0,
-    expect_warning: Optional[str] = None,
     expect_error: Optional[str] = None,
 ) -> None:
     """
     Helper function to run import tests for different item types and annotation configurations.
     """
     local_dataset.register_read_only_items(
-        config_values, item_type, files_in_flat_structure
+        config_values, isolated_team, item_type, files_in_flat_structure
     )
     expected_annotations_dir = (
         Path(__file__).parents[1] / "data" / "import" / annotations_subdir
@@ -320,21 +331,20 @@ def run_import_test(
     )
     assert_cli(result, exit_code)
 
-    if expect_warning:
-        assert expect_warning in result.stdout
-
     if expect_error:
         assert expect_error in result.stdout
         return
 
     if export_only:
         compare_local_annotations_with_uploaded_annotations(
-            annotation_format, local_dataset, config_values  # type: ignore
+            annotation_format, local_dataset, config_values, isolated_team  # type: ignore
         )
         return
 
     base_slot = (
-        get_base_slot_name_of_item(config_values, local_dataset.id, item_name)
+        get_base_slot_name_of_item(
+            config_values, isolated_team, local_dataset.id, item_name
+        )
         if item_name
         else None
     )
@@ -344,6 +354,7 @@ def run_import_test(
             annotation_format,  # type: ignore
             local_dataset,
             config_values,
+            isolated_team,
         )
         release.download_zip(actual_annotations_dir / "dataset.zip")
         compare_annotations_export(
@@ -356,33 +367,53 @@ def run_import_test(
 
 
 def test_import_annotations_without_subtypes_to_images(
-    local_dataset: E2EDataset, config_values: ConfigValues
+    local_dataset: E2EDataset,
+    config_values: ConfigValues,
+    isolated_team: TeamConfigValues,
 ) -> None:
+    # Create classes to ensure they exist before importing annotations
+    # NB. We should have an alter-ego test that ensures that import works also when classes do not exist by looking at the .v7/metadata.json file
+    setup_annotation_classes(config_values, isolated_team)
+
     run_import_test(
         local_dataset,
         config_values,
+        isolated_team,
         item_type="single_slotted",
         annotations_subdir="image_annotations_without_subtypes",
+        additional_flags="--yes",
     )
 
 
 def test_import_annotations_with_subtypes_to_images(
-    local_dataset: E2EDataset, config_values: ConfigValues
+    local_dataset: E2EDataset,
+    config_values: ConfigValues,
+    isolated_team: TeamConfigValues,
 ) -> None:
+    # Create classes to ensure they exist before importing annotations
+    # NB. We should have an alter-ego test that ensures that import works also when classes do not exist by looking at the .v7/metadata.json file
+    setup_annotation_classes(config_values, isolated_team)
     run_import_test(
         local_dataset,
         config_values,
+        isolated_team,
         item_type="single_slotted",
         annotations_subdir="image_annotations_with_subtypes",
     )
 
 
 def test_annotation_classes_are_created_on_import(
-    local_dataset: E2EDataset, config_values: ConfigValues
+    local_dataset: E2EDataset,
+    config_values: ConfigValues,
+    isolated_team: TeamConfigValues,
 ) -> None:
+    # Create classes to ensure they exist before importing annotations
+    # NB. We should have an alter-ego test that ensures that import works also when classes do not exist by looking at the .v7/metadata.json file
+    setup_annotation_classes(config_values, isolated_team)
     run_import_test(
         local_dataset,
         config_values,
+        isolated_team,
         item_type="single_slotted",
         annotations_subdir="image_annotations_without_subtypes",
         additional_flags="--yes",
@@ -390,11 +421,14 @@ def test_annotation_classes_are_created_on_import(
 
 
 def test_annotation_classes_are_created_with_properties_on_import(
-    local_dataset: E2EDataset, config_values: ConfigValues
+    local_dataset: E2EDataset,
+    config_values: ConfigValues,
+    isolated_team: TeamConfigValues,
 ) -> None:
     run_import_test(
         local_dataset,
         config_values,
+        isolated_team,
         item_type="single_slotted",
         annotations_subdir="image_new_annotations_with_properties",
         additional_flags="--yes",
@@ -402,44 +436,70 @@ def test_annotation_classes_are_created_with_properties_on_import(
 
 
 def test_import_existing_item_level_properties(
-    local_dataset: E2EDataset, config_values: ConfigValues
+    local_dataset: E2EDataset,
+    config_values: ConfigValues,
+    isolated_team: TeamConfigValues,
 ) -> None:
+    # Create item-level properties to ensure they exist before importing annotations
+    # NB. We should have an alter-ego test that ensures that import works also when properties do not exist by looking at the .v7/metadata.json file
+    setup_annotation_classes(config_values, isolated_team)
+    setup_item_level_properties(config_values, isolated_team)
     run_import_test(
         local_dataset,
         config_values,
+        isolated_team,
         item_type="single_slotted",
         annotations_subdir="image_annotations_with_item_level_properties",
     )
 
 
 def test_item_level_properties_can_be_imported_without_annotations(
-    local_dataset: E2EDataset, config_values: ConfigValues
+    local_dataset: E2EDataset,
+    config_values: ConfigValues,
+    isolated_team: TeamConfigValues,
 ) -> None:
+    # Create item-level properties to ensure they exist before importing annotations
+    # NB. We should have an alter-ego test that ensures that import works also when properties do not exist by looking at the .v7/metadata.json file
+    setup_item_level_properties(config_values, isolated_team)
     run_import_test(
         local_dataset,
         config_values,
+        isolated_team,
         item_type="single_slotted",
         annotations_subdir="image_annotations_item_level_properties_no_annotations",
     )
 
 
 def test_item_level_property_classes_are_created_on_import(
-    local_dataset: E2EDataset, config_values: ConfigValues
+    local_dataset: E2EDataset,
+    config_values: ConfigValues,
+    isolated_team: TeamConfigValues,
 ) -> None:
+    # # Create classes and item_level_properties to ensure they exist before importing annotations
+    # # NB. We should have an alter-ego test that ensures that import works also when classes do not exist by looking at the .v7/metadata.json file
+    setup_annotation_classes(config_values, isolated_team)
+    setup_item_level_properties(config_values, isolated_team)
     run_import_test(
         local_dataset,
         config_values,
+        isolated_team,
         item_type="single_slotted",
         annotations_subdir="image_new_annotations_with_item_level_properties",
     )
 
 
 def test_appending_annotations(
-    local_dataset: E2EDataset, config_values: ConfigValues
+    local_dataset: E2EDataset,
+    config_values: ConfigValues,
+    isolated_team: TeamConfigValues,
 ) -> None:
+    # Create classes to ensure they exist before importing annotations
+    # NB. We should have an alter-ego test that ensures that import works also when classes do not exist by looking at the .v7/metadata.json file
+    setup_annotation_classes(config_values, isolated_team)
     run_import_test(
         local_dataset,
         config_values,
+        isolated_team,
         item_type="single_slotted",
         annotations_subdir="image_annotations_split_in_two_files",
         additional_flags="--append",
@@ -447,17 +507,24 @@ def test_appending_annotations(
 
 
 def test_overwriting_annotations(
-    local_dataset: E2EDataset, config_values: ConfigValues
+    local_dataset: E2EDataset,
+    config_values: ConfigValues,
+    isolated_team: TeamConfigValues,
 ) -> None:
+    # Create classes to ensure they exist before importing annotations
+    # NB. We should have an alter-ego test that ensures that import works also when classes do not exist by looking at the .v7/metadata.json file
+    setup_annotation_classes(config_values, isolated_team)
     run_import_test(
         local_dataset,
         config_values,
+        isolated_team,
         item_type="single_slotted",
         annotations_subdir="image_annotations_without_subtypes",
     )
     run_import_test(
         local_dataset,
         config_values,
+        isolated_team,
         item_type="single_slotted",
         annotations_subdir="image_annotations_without_subtypes",
         additional_flags="--overwrite",
@@ -465,162 +532,217 @@ def test_overwriting_annotations(
 
 
 def test_annotation_overwrite_warning(
-    local_dataset: E2EDataset, config_values: ConfigValues
+    local_dataset: E2EDataset,
+    config_values: ConfigValues,
+    isolated_team: TeamConfigValues,
 ) -> None:
-    # 1st import to create annotations
-    local_dataset.register_read_only_items(config_values)
+    # Create classes to ensure they exist before importing annotations
+    # NB. We should have an alter-ego test that ensures that import works also when classes do not exist by looking at the .v7/metadata.json file
+    setup_annotation_classes(config_values, isolated_team)
+
     annotations_subdir = "image_annotations_without_subtypes"
     expected_annotations_dir = (
         Path(__file__).parents[1] / "data" / "import" / annotations_subdir
     )
-    run_cli_command(
-        f"darwin dataset import {local_dataset.name} darwin {expected_annotations_dir}"
-    )
 
-    # Run the 2nd import to trigger the overwrite warning
+    # Run the 1st import to create annotations
     run_import_test(
         local_dataset,
         config_values,
+        isolated_team,
         item_type="single_slotted",
         annotations_subdir="image_annotations_without_subtypes",
-        expect_warning="will be overwritten",
-        exit_code=255,
     )
+    # Run the 2nd import to trigger the overwrite warning
+    result = run_cli_command(
+        f"yes N | darwin dataset import {local_dataset.name} darwin {expected_annotations_dir}"
+    )
+    assert_cli(result, 0)
+    assert "will be overwritten" in result.stdout
 
 
 def test_import_annotations_to_multi_slotted_item_without_slots_defined(
-    local_dataset: E2EDataset, config_values: ConfigValues
+    local_dataset: E2EDataset,
+    config_values: ConfigValues,
+    isolated_team: TeamConfigValues,
 ) -> None:
     run_import_test(
         local_dataset,
         config_values,
+        isolated_team,
         item_type="multi_slotted",
         item_name="multi_slotted_item",
         annotations_subdir="multi_slotted_annotations_without_slots_defined",
+        additional_flags="--yes",
     )
 
 
 def test_import_annotations_to_multi_slotted_item_with_slots_defined(
-    local_dataset: E2EDataset, config_values: ConfigValues
+    local_dataset: E2EDataset,
+    config_values: ConfigValues,
+    isolated_team: TeamConfigValues,
 ) -> None:
     run_import_test(
         local_dataset,
         config_values,
+        isolated_team,
         item_type="multi_slotted",
         item_name="multi_slotted_item",
         annotations_subdir="multi_slotted_annotations_with_slots_defined",
+        additional_flags="--yes",
     )
 
 
 def test_import_annotations_to_multi_channel_item_without_slots_defined(
-    local_dataset: E2EDataset, config_values: ConfigValues
+    local_dataset: E2EDataset,
+    config_values: ConfigValues,
+    isolated_team: TeamConfigValues,
 ) -> None:
     run_import_test(
         local_dataset,
         config_values,
+        isolated_team,
         item_type="multi_channel",
         item_name="multi_channel_item",
         annotations_subdir="multi_channel_annotations_without_slots_defined",
+        additional_flags="--yes",
     )
 
 
 def test_import_annotations_to_multi_channel_item_with_slots_defined(
-    local_dataset: E2EDataset, config_values: ConfigValues
+    local_dataset: E2EDataset,
+    config_values: ConfigValues,
+    isolated_team: TeamConfigValues,
 ) -> None:
     run_import_test(
         local_dataset,
         config_values,
+        isolated_team,
         item_type="multi_channel",
         item_name="multi_channel_item",
         annotations_subdir="multi_channel_annotations_with_slots_defined",
+        additional_flags="--yes",
     )
 
 
 def test_import_annotations_to_multi_channel_item_non_base_slot(
-    local_dataset: E2EDataset, config_values: ConfigValues
+    local_dataset: E2EDataset,
+    config_values: ConfigValues,
+    isolated_team: TeamConfigValues,
 ) -> None:
     run_import_test(
         local_dataset,
         config_values,
+        isolated_team,
         item_type="multi_channel",
         item_name="multi_channel_item",
         annotations_subdir="multi_channel_annotations_aligned_with_non_base_slot",
         expect_error="WARNING: 1 file(s) have the following blocking issues and will not be imported",
+        additional_flags="--yes",
     )
 
 
 def test_import_basic_annotations_to_videos(
-    local_dataset: E2EDataset, config_values: ConfigValues
+    local_dataset: E2EDataset,
+    config_values: ConfigValues,
+    isolated_team: TeamConfigValues,
 ) -> None:
+    setup_annotation_classes(config_values, isolated_team)
     run_import_test(
         local_dataset,
         config_values,
+        isolated_team,
         item_type="single_slotted_video",
         annotations_subdir="video_annotations_without_subtypes",
+        additional_flags="--yes",
     )
 
 
 def test_import_annotations_with_subtypes_to_videos(
-    local_dataset: E2EDataset, config_values: ConfigValues
+    local_dataset: E2EDataset,
+    config_values: ConfigValues,
+    isolated_team: TeamConfigValues,
 ) -> None:
+    # Create classes to ensure they exist before importing annotations
+    # NB. We should have an alter-ego test that ensures that import works also when classes do not exist by looking at the .v7/metadata.json file
+    setup_annotation_classes(config_values, isolated_team)
+
     run_import_test(
         local_dataset,
         config_values,
+        isolated_team,
         item_type="single_slotted_video",
         annotations_subdir="video_annotations_with_subtypes",
+        additional_flags="--yes",
     )
 
 
 def test_importing_coco_annotations(
-    local_dataset: E2EDataset, config_values: ConfigValues
+    local_dataset: E2EDataset,
+    config_values: ConfigValues,
+    isolated_team: TeamConfigValues,
 ) -> None:
     annotation_format = "coco"
     run_import_test(
         local_dataset,
         config_values,
+        isolated_team,
         item_type="single_slotted",
         annotations_subdir="coco_annotations",
         annotation_format=annotation_format,
         files_in_flat_structure=True,
+        additional_flags="--yes",
     )
 
 
 def test_importing_csv_tags_annotations(
-    local_dataset: E2EDataset, config_values: ConfigValues
+    local_dataset: E2EDataset,
+    config_values: ConfigValues,
+    isolated_team: TeamConfigValues,
 ) -> None:
     annotation_format = "csv_tags"
     run_import_test(
         local_dataset,
         config_values,
+        isolated_team,
         item_type="single_slotted",
         annotations_subdir="csv_tag_annotations",
         annotation_format=annotation_format,
         export_only=True,
+        additional_flags="--yes",
     )
 
 
 def test_importing_csv_tags_video_annotations(
-    local_dataset: E2EDataset, config_values: ConfigValues
+    local_dataset: E2EDataset,
+    config_values: ConfigValues,
+    isolated_team: TeamConfigValues,
 ) -> None:
     annotation_format = "csv_tags_video"
     run_import_test(
         local_dataset,
         config_values,
+        isolated_team,
         item_type="single_slotted_video",
         annotations_subdir="csv_tag_video_annotations",
         annotation_format=annotation_format,
         export_only=True,
+        additional_flags="--yes",
     )
 
 
 def test_importing_pascal_voc_annotations(
-    local_dataset: E2EDataset, config_values: ConfigValues
+    local_dataset: E2EDataset,
+    config_values: ConfigValues,
+    isolated_team: TeamConfigValues,
 ) -> None:
     annotation_format = "pascal_voc"
     run_import_test(
         local_dataset,
         config_values,
+        isolated_team,
         item_type="single_slotted",
         annotations_subdir="pascal_voc_annotations",
         annotation_format=annotation_format,
+        additional_flags="--yes",
     )

@@ -1,25 +1,22 @@
+import tempfile
 from os import environ
 from os.path import dirname, join
 from pathlib import Path
 from time import sleep
-from typing import List, Generator
+from typing import Generator, List, Tuple
 
 import dotenv
 import pytest
-import tempfile
 
 from darwin.future.data_objects.typing import UnknownType
 from e2e_tests.exceptions import E2EEnvironmentVariableNotSet
-from e2e_tests.objects import ConfigValues, E2EDataset
-from e2e_tests.helpers import new_dataset  # noqa: F401
-from e2e_tests.setup_tests import (
-    setup_annotation_classes,
-    setup_datasets,
-    teardown_annotation_classes,
-    setup_item_level_properties,
-    teardown_item_level_properties,
-    teardown_tests,
+from e2e_tests.fixtures.team_management import (
+    create_isolated_team,
+    delete_isolated_team,
 )
+from e2e_tests.helpers import assert_cli, new_dataset, run_cli_command  # noqa: F401
+from e2e_tests.logger_config import logger
+from e2e_tests.objects import ConfigValues, E2EDataset, TeamConfigValues
 
 
 def pytest_configure(config: pytest.Config) -> None:
@@ -36,7 +33,6 @@ def pytest_sessionstart(session: pytest.Session) -> None:
 
     server = environ.get("E2E_ENVIRONMENT")
     api_key = environ.get("E2E_API_KEY")
-    team_slug = environ.get("E2E_TEAM")
 
     if server is None:
         raise E2EEnvironmentVariableNotSet("E2E_ENVIRONMENT")
@@ -44,72 +40,29 @@ def pytest_sessionstart(session: pytest.Session) -> None:
     if api_key is None:
         raise E2EEnvironmentVariableNotSet("E2E_API_KEY")
 
-    if team_slug is None:
-        raise E2EEnvironmentVariableNotSet("E2E_TEAM")
-
     if not isinstance(session.config.cache, pytest.Cache):
         raise TypeError("Pytest caching is not enabled, but E2E tests require it")
 
-    session.config.cache.set("server", server)
-    session.config.cache.set("api_key", api_key)
-    session.config.cache.set("team_slug", team_slug)
+    session.config.cache.set("server", server)  # TODO needed?
+    session.config.cache.set("superadmin_api_key", api_key)
 
-    config = ConfigValues(server=server, api_key=api_key, team_slug=team_slug)
-    datasets = setup_datasets(config)
-    # Ensure that there are no annotation classes or item-level properties before running tests
-    teardown_annotation_classes(config, [])
-    teardown_item_level_properties(config, [])
-    annotation_classes = setup_annotation_classes(config)
-    item_level_properties = setup_item_level_properties(config)
-    # pytest.datasets = datasets
-    setattr(pytest, "datasets", datasets)
-    setattr(pytest, "annotation_classes", annotation_classes)
-    setattr(pytest, "item_level_properties", item_level_properties)
+    # Create base config without team_slug
+    config = ConfigValues(server=server, superadmin_api_key=api_key)
+
+    # Store the base config for tests to use
     setattr(pytest, "config_values", config)
+
     # Set the environment variables for running CLI arguments
     environ["DARWIN_BASE_URL"] = server
-    environ["DARWIN_TEAM"] = team_slug
-    environ["DARWIN_API_KEY"] = api_key
-
-    print("Sleeping for 10 seconds to allow the server to catch up")
-    sleep(10)
 
 
 def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
     if not isinstance(session.config.cache, pytest.Cache):
         raise TypeError("Pytest caching is not enabled, but E2E tests require it")
 
-    datasets = pytest.datasets
-    if datasets is None:
-        raise ValueError("Datasets were not created, so could not tear them down")
-    annotation_classes = pytest.annotation_classes
-    if annotation_classes is None:
-        raise ValueError(
-            "Annotation classes were not created, so could not tear them down"
-        )
-    item_level_properties = pytest.item_level_properties
-    if item_level_properties is None:
-        raise ValueError(
-            "Item-level properties were not created, so could not tear them down"
-        )
-
-    server = session.config.cache.get("server", None)
-    api_key = session.config.cache.get("api_key", None)
-    team = session.config.cache.get("team_slug", None)
-
-    if server is None or api_key is None or team is None:
-        raise ValueError("E2E environment variables were not cached")
-
-    del environ["DARWIN_BASE_URL"]
-    del environ["DARWIN_TEAM"]
-    del environ["DARWIN_API_KEY"]
-
-    config = ConfigValues(server=server, api_key=api_key, team_slug=team)
-    assert isinstance(datasets, List)
-    teardown_tests(config, datasets)
-    assert isinstance(annotation_classes, List)
-    teardown_annotation_classes(config, annotation_classes)
-    teardown_item_level_properties(config, item_level_properties)
+    # Clean up environment variables
+    if "DARWIN_BASE_URL" in environ:
+        del environ["DARWIN_BASE_URL"]
 
 
 @pytest.fixture(
@@ -122,8 +75,7 @@ def config_values(request: UnknownType) -> ConfigValues:
         raise TypeError("Pytest caching is not enabled, but E2E tests require it")
 
     server = session.config.cache.get("server", None)
-    api_key = session.config.cache.get("api_key", None)
-    team = session.config.cache.get("team_slug", None)
+    api_key = session.config.cache.get("superadmin_api_key", None)
 
     if server is None:
         raise ValueError("E2E_ENVIRONMENT is not set")
@@ -131,10 +83,7 @@ def config_values(request: UnknownType) -> ConfigValues:
     if api_key is None:
         raise ValueError("E2E_API_KEY is not set")
 
-    if team is None:
-        raise ValueError("E2E_TEAM is not set")
-
-    return ConfigValues(server=server, api_key=api_key, team_slug=team)
+    return ConfigValues(server=server, superadmin_api_key=api_key)
 
 
 @pytest.fixture
@@ -144,3 +93,60 @@ def local_dataset(
     with tempfile.TemporaryDirectory() as temp_directory:
         new_dataset.directory = temp_directory
         yield new_dataset
+
+
+@pytest.fixture
+def isolated_team(
+    request: pytest.FixtureRequest, config_values: ConfigValues
+) -> Generator[TeamConfigValues, None, None]:
+    """
+    Create an isolated team for a test and clean it up afterward
+
+    Returns
+    -------
+    Generator[TeamConfigValues, None, None]
+        Team configuration for the isolated team
+    """
+    team_data = None
+
+    try:
+        team_data = create_isolated_team(config_values)
+
+        # Create a temporary directory for darwin datasets
+
+        logger.info("Authenticating team in darwinpy")
+        result = run_cli_command(
+            f"yes N | darwin authenticate --api_key {team_data['api_key']} --datasets_dir ~/.darwin/datasets"
+        )  # do not make team default
+        assert_cli(result, 0)
+
+        # Create a team config with the isolated team details
+        team_config = TeamConfigValues(
+            api_key=team_data["api_key"],
+            team_slug=team_data["slug"],
+            team_id=team_data["id"],
+        )
+
+        def cleanup():
+            """Ensure team is deleted even if test fails"""
+            if team_data:
+                try:
+                    delete_isolated_team(team_config, config_values)
+                except Exception as e:
+                    logger.warning(
+                        f"Warning: Failed to cleanup team {team_config.team_id}: {str(e)}"
+                    )
+
+        # Register the cleanup function to run even if test fails
+        request.addfinalizer(cleanup)
+
+        yield team_config
+
+    except Exception as e:
+        # If team creation fails, ensure we try to clean up if team was partially created
+        if team_data:
+            try:
+                delete_isolated_team(team_config, config_values)
+            except:
+                pass  # Already in an error state, just continue with original error
+        raise  # Re-raise the original exception

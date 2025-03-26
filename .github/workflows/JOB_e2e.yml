@@ -8,19 +8,27 @@ on:
     - cron: "0 8 * * mon-fri"
   workflow_dispatch:
   pull_request:
-    paths:
-      - "e2e_tests/**"
+    types: [opened, synchronize, reopened, labeled]
+
   workflow_call:
     secrets:
       E2E_API_KEY:
         required: true
       E2E_ENVIRONMENT:
         required: true
-      E2E_TEAM:
+      E2E_STORAGE_NAME:
         required: true
+      E2E_STORAGE_REGION:
+        required: true
+      E2E_STORAGE_BUCKET:
+        required: true
+
 jobs:
   e2e:
     name: End to End Testing
+    if: |
+      github.event_name != 'pull_request' ||
+      (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'run_e2e'))
     permissions:
       contents: read
     strategy:
@@ -64,7 +72,9 @@ jobs:
         env:
           E2E_API_KEY: ${{ secrets.E2E_API_KEY }}
           E2E_ENVIRONMENT: ${{ secrets.E2E_ENVIRONMENT }}
-          E2E_TEAM: ${{ secrets.E2E_TEAM }}
+          E2E_STORAGE_NAME: ${{ secrets.E2E_STORAGE_NAME }}
+          E2E_STORAGE_REGION: ${{ secrets.E2E_STORAGE_REGION }}
+          E2E_STORAGE_BUCKET: ${{ secrets.E2E_STORAGE_BUCKET }}
 
   slack-notifier:
     name: Slack Notifier Bot

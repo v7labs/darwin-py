@@ -3,7 +3,7 @@ import shutil
 from pathlib import Path
 
 from e2e_tests.helpers import assert_cli, run_cli_command, export_release
-from e2e_tests.objects import E2EDataset, ConfigValues
+from e2e_tests.objects import E2EDataset, ConfigValues, TeamConfigValues
 from e2e_tests.cli.test_import import compare_annotations_export
 from e2e_tests.cli.test_push import extract_and_push
 
@@ -27,6 +27,7 @@ def copy_files_to_flat_directory(source_dir, target_dir):
 
 
 def test_full_cycle_images(
+    isolated_team: TeamConfigValues,
     local_dataset: E2EDataset,
     config_values: ConfigValues,
 ):
@@ -48,7 +49,7 @@ def test_full_cycle_images(
     first_release_name = "first_release"
     second_release_name = "second_release"
     pull_dir = Path(
-        f"{Path.home()}/.darwin/datasets/{config_values.team_slug}/{local_dataset.slug}"
+        f"{Path.home()}/.darwin/datasets/{isolated_team.team_slug}/{local_dataset.slug}"
     )
     annotations_import_dir = (
         Path(__file__).parents[1]
@@ -68,15 +69,19 @@ def test_full_cycle_images(
     ]
 
     # Populate the dataset with items and annotations
-    local_dataset.register_read_only_items(config_values, item_type)
+    local_dataset.register_read_only_items(config_values, isolated_team, item_type)
     result = run_cli_command(
-        f"darwin dataset import {local_dataset.name} {annotation_format} {annotations_import_dir}"
+        f"darwin dataset import {local_dataset.name} {annotation_format} {annotations_import_dir} --yes"
     )
     assert_cli(result, 0)
 
     # Pull a first release of the dataset
     original_release = export_release(
-        annotation_format, local_dataset, config_values, release_name=first_release_name
+        annotation_format,
+        local_dataset,
+        config_values,
+        isolated_team,
+        release_name=first_release_name,
     )
     result = run_cli_command(
         f"darwin dataset pull {local_dataset.name}:{original_release.name}"
@@ -84,7 +89,7 @@ def test_full_cycle_images(
     assert_cli(result, 0)
 
     # Delete all items in the dataset
-    local_dataset.delete_items(config_values)
+    local_dataset.delete_items(config_values, isolated_team)
 
     # Push and import the pulled files and annotations to the dataset
     result = run_cli_command(
@@ -92,7 +97,7 @@ def test_full_cycle_images(
     )
     assert_cli(result, 0)
     result = run_cli_command(
-        f"darwin dataset import {local_dataset.name} {annotation_format} {pull_dir}/releases/{first_release_name}/annotations"
+        f"darwin dataset import {local_dataset.name} {annotation_format} {pull_dir}/releases/{first_release_name}/annotations --yes"
     )
     assert_cli(result, 0)
 
@@ -104,6 +109,7 @@ def test_full_cycle_images(
         annotation_format,
         local_dataset,
         config_values,
+        isolated_team,
         release_name=second_release_name,
     )
     result = run_cli_command(
@@ -126,6 +132,7 @@ def test_full_cycle_images(
 
 
 def test_full_cycle_video(
+    isolated_team: TeamConfigValues,
     local_dataset: E2EDataset,
     config_values: ConfigValues,
 ):
@@ -149,7 +156,7 @@ def test_full_cycle_video(
     zipped_video_dir = "25_frame_video"
     push_dir = Path(__file__).parents[1] / "data" / "push" / f"{zipped_video_dir}.zip"
     pull_dir = Path(
-        f"{Path.home()}/.darwin/datasets/{config_values.team_slug}/{local_dataset.slug}"
+        f"{Path.home()}/.darwin/datasets/{isolated_team.team_slug}/{local_dataset.slug}"
     )
     annotations_import_dir = (
         Path(__file__).parents[1] / "data" / "import" / "video_annotations_small_video"
@@ -159,17 +166,23 @@ def test_full_cycle_video(
     ]
 
     # Push a video to the dataset
-    extract_and_push(push_dir, local_dataset, config_values, zipped_video_dir)
+    extract_and_push(
+        push_dir, local_dataset, config_values, isolated_team, zipped_video_dir
+    )
 
     # Upload annotations to the dataset
     result = run_cli_command(
-        f"darwin dataset import {local_dataset.name} {annotation_format} {annotations_import_dir}"
+        f"darwin dataset import {local_dataset.name} {annotation_format} {annotations_import_dir} --yes"
     )
     assert_cli(result, 0)
 
     # Pull a first release of the dataset
     original_release = export_release(
-        annotation_format, local_dataset, config_values, release_name=first_release_name
+        annotation_format,
+        local_dataset,
+        config_values,
+        isolated_team,
+        release_name=first_release_name,
     )
     result = run_cli_command(
         f"darwin dataset pull {local_dataset.name}:{original_release.name}"
@@ -177,7 +190,7 @@ def test_full_cycle_video(
     assert_cli(result, 0)
 
     # Delete all items in the dataset
-    local_dataset.delete_items(config_values)
+    local_dataset.delete_items(config_values, isolated_team)
 
     # Push and import the pulled files and annotations to the dataset
     result = run_cli_command(
@@ -185,7 +198,7 @@ def test_full_cycle_video(
     )
     assert_cli(result, 0)
     result = run_cli_command(
-        f"darwin dataset import {local_dataset.name} {annotation_format} {pull_dir}/releases/{first_release_name}/annotations"
+        f"darwin dataset import {local_dataset.name} {annotation_format} {pull_dir}/releases/{first_release_name}/annotations --yes"
     )
     assert_cli(result, 0)
 
@@ -197,6 +210,7 @@ def test_full_cycle_video(
         annotation_format,
         local_dataset,
         config_values,
+        isolated_team,
         release_name=second_release_name,
     )
     result = run_cli_command(
@@ -219,6 +233,7 @@ def test_full_cycle_video(
 
 
 def test_full_cycle_multi_slotted_item(
+    isolated_team: TeamConfigValues,
     local_dataset: E2EDataset,
     config_values: ConfigValues,
 ):
@@ -240,7 +255,7 @@ def test_full_cycle_multi_slotted_item(
     first_release_name = "first_release"
     second_release_name = "second_release"
     pull_dir = Path(
-        f"{Path.home()}/.darwin/datasets/{config_values.team_slug}/{local_dataset.slug}"
+        f"{Path.home()}/.darwin/datasets/{isolated_team.team_slug}/{local_dataset.slug}"
     )
     annotations_import_dir = (
         Path(__file__).parents[1]
@@ -255,15 +270,19 @@ def test_full_cycle_multi_slotted_item(
     ]
 
     # Populate the dataset with items and annotations
-    local_dataset.register_read_only_items(config_values, item_type)
+    local_dataset.register_read_only_items(config_values, isolated_team, item_type)
     result = run_cli_command(
-        f"darwin dataset import {local_dataset.name} {annotation_format} {annotations_import_dir}"
+        f"darwin team {isolated_team.team_slug} && darwin dataset import {local_dataset.name} {annotation_format} {annotations_import_dir} --yes"
     )
     assert_cli(result, 0)
 
     # Pull a first release of the dataset
     original_release = export_release(
-        annotation_format, local_dataset, config_values, release_name=first_release_name
+        annotation_format,
+        local_dataset,
+        config_values,
+        isolated_team,
+        release_name=first_release_name,
     )
     result = run_cli_command(
         f"darwin dataset pull {local_dataset.name}:{original_release.name}"
@@ -271,7 +290,7 @@ def test_full_cycle_multi_slotted_item(
     assert_cli(result, 0)
 
     # Delete all items in the dataset
-    local_dataset.delete_items(config_values)
+    local_dataset.delete_items(config_values, isolated_team)
 
     # Create a temporary directory for pushing files
     tmp_push_dir = f"{pull_dir}/multi_slotted_item"
@@ -283,7 +302,7 @@ def test_full_cycle_multi_slotted_item(
     )
     assert_cli(result, 0)
     result = run_cli_command(
-        f"darwin dataset import {local_dataset.name} {annotation_format} {pull_dir}/releases/{first_release_name}/annotations"
+        f"darwin dataset import {local_dataset.name} {annotation_format} {pull_dir}/releases/{first_release_name}/annotations --yes"
     )
     assert_cli(result, 0)
 
@@ -295,6 +314,7 @@ def test_full_cycle_multi_slotted_item(
         annotation_format,
         local_dataset,
         config_values,
+        isolated_team,
         release_name=second_release_name,
     )
     result = run_cli_command(
@@ -317,6 +337,7 @@ def test_full_cycle_multi_slotted_item(
 
 
 def test_full_cycle_multi_channel_item(
+    isolated_team: TeamConfigValues,
     local_dataset: E2EDataset,
     config_values: ConfigValues,
 ):
@@ -338,7 +359,7 @@ def test_full_cycle_multi_channel_item(
     first_release_name = "first_release"
     second_release_name = "second_release"
     pull_dir = Path(
-        f"{Path.home()}/.darwin/datasets/{config_values.team_slug}/{local_dataset.slug}"
+        f"{Path.home()}/.darwin/datasets/{isolated_team.team_slug}/{local_dataset.slug}"
     )
     annotations_import_dir = (
         Path(__file__).parents[1]
@@ -353,15 +374,19 @@ def test_full_cycle_multi_channel_item(
     ]
 
     # Populate the dataset with items and annotations
-    local_dataset.register_read_only_items(config_values, item_type)
+    local_dataset.register_read_only_items(config_values, isolated_team, item_type)
     result = run_cli_command(
-        f"darwin dataset import {local_dataset.name} {annotation_format} {annotations_import_dir}"
+        f"darwin dataset import {local_dataset.name} {annotation_format} {annotations_import_dir} --yes"
     )
     assert_cli(result, 0)
 
     # Pull a first release of the dataset
     original_release = export_release(
-        annotation_format, local_dataset, config_values, release_name=first_release_name
+        annotation_format,
+        local_dataset,
+        config_values,
+        isolated_team,
+        release_name=first_release_name,
     )
     result = run_cli_command(
         f"darwin dataset pull {local_dataset.name}:{original_release.name}"
@@ -369,7 +394,7 @@ def test_full_cycle_multi_channel_item(
     assert_cli(result, 0)
 
     # Delete all items in the dataset
-    local_dataset.delete_items(config_values)
+    local_dataset.delete_items(config_values, isolated_team)
 
     # Create a temporary directory for pushing files
     tmp_push_dir = f"{pull_dir}/multi_channel_item"
@@ -381,7 +406,7 @@ def test_full_cycle_multi_channel_item(
     )
     assert_cli(result, 0)
     result = run_cli_command(
-        f"darwin dataset import {local_dataset.name} {annotation_format} {pull_dir}/releases/{first_release_name}/annotations"
+        f"darwin dataset import {local_dataset.name} {annotation_format} {pull_dir}/releases/{first_release_name}/annotations --yes"
     )
     assert_cli(result, 0)
 
@@ -393,6 +418,7 @@ def test_full_cycle_multi_channel_item(
         annotation_format,
         local_dataset,
         config_values,
+        isolated_team,
         release_name=second_release_name,
     )
     result = run_cli_command(
