@@ -2,8 +2,7 @@ import tempfile
 from os import environ
 from os.path import dirname, join
 from pathlib import Path
-from time import sleep
-from typing import Generator, List, Tuple
+from typing import Generator
 
 import dotenv
 import pytest
@@ -142,11 +141,11 @@ def isolated_team(
 
         yield team_config
 
-    except Exception as e:
+    except Exception:
         # If team creation fails, ensure we try to clean up if team was partially created
         if team_data:
             try:
                 delete_isolated_team(team_config, config_values)
-            except:
+            except Exception:
                 pass  # Already in an error state, just continue with original error
         raise  # Re-raise the original exception

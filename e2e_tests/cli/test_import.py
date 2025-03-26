@@ -16,7 +16,6 @@ from e2e_tests.helpers import (
     list_items,
     run_cli_command,
 )
-from e2e_tests.logger_config import logger
 from e2e_tests.objects import ConfigValues, E2EDataset, TeamConfigValues
 
 
