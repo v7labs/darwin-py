@@ -1,21 +1,26 @@
 import json
 import tempfile
 from pathlib import Path
-from typing import List, Tuple, Optional
+from typing import List, Optional, Tuple
 from unittest.mock import MagicMock, Mock, _patch, patch
 from zipfile import ZipFile
 
-from darwin.future.data_objects.properties import (
-    PropertyGranularity,
-    SelectedProperty,
-    FullProperty,
-    PropertyValue,
-)
-from darwin.item import DatasetItem
+import numpy as np
 import pytest
+from rich.console import Console
+
 from darwin import datatypes as dt
+from darwin.exceptions import RequestEntitySizeExceeded
+from darwin.future.data_objects.properties import (
+    FullProperty,
+    PropertyGranularity,
+    PropertyValue,
+    SelectedProperty,
+)
 from darwin.importer import get_importer
 from darwin.importer.importer import (
+    BASE_URL_LENGTH,
+    MAX_URL_LENGTH,
     _assign_item_properties_to_dataset,
     _build_attribute_lookup,
     _build_main_annotations_lookup_table,
@@ -24,27 +29,26 @@ from darwin.importer.importer import (
     _find_and_parse,
     _get_annotation_format,
     _get_remote_files_ready_for_import,
-    _get_slot_names,
-    _import_annotations,
-    _is_skeleton_class,
-    _overwrite_warning,
-    _parse_empty_masks,
-    _resolve_annotation_classes,
-    _verify_slot_annotation_alignment,
-    _import_properties,
-    _warn_for_annotations_with_multiple_instance_ids,
-    _serialize_item_level_properties,
-    _split_payloads,
     _get_remote_files_targeted_by_import,
     _get_remote_medical_file_transform_requirements,
-    slot_is_medical,
+    _get_slot_names,
+    _import_annotations,
+    _import_properties,
+    _is_skeleton_class,
+    _overwrite_warning,
+    _parse_affine,
+    _parse_empty_masks,
+    _parse_pixdims,
+    _parse_plane_map,
+    _resolve_annotation_classes,
+    _serialize_item_level_properties,
+    _split_payloads,
+    _verify_slot_annotation_alignment,
+    _warn_for_annotations_with_multiple_instance_ids,
     slot_is_handled_by_monai,
-    MAX_URL_LENGTH,
-    BASE_URL_LENGTH,
+    slot_is_medical,
 )
-from darwin.exceptions import RequestEntitySizeExceeded
-
-import numpy as np
+from darwin.item import DatasetItem
 
 
 @pytest.fixture
@@ -3842,9 +3846,10 @@ def test__get_remote_files_targeted_by_import_url_too_long() -> None:
 
 def test__get_remote_medical_file_transform_requirements_empty_list():
     """Test that empty input list returns empty dictionaries"""
+    mock_console = MagicMock(spec=Console)
     remote_files: List[DatasetItem] = []
     legacy_scaling, pixdims_and_primary_planes = (
-        _get_remote_medical_file_transform_requirements(remote_files)
+        _get_remote_medical_file_transform_requirements(remote_files, mock_console)
     )
     assert legacy_scaling == {}
     assert pixdims_and_primary_planes == {}
@@ -3852,12 +3857,13 @@ def test__get_remote_medical_file_transform_requirements_empty_list():
 
 def test__get_remote_medical_file_transform_requirements_no_slots():
     """Test that files with no slots are handled correctly"""
+    mock_console = MagicMock(spec=Console)
     mock_file = MagicMock(spec=DatasetItem)
     mock_file.slots = None
     mock_file.full_path = "/path/to/file"
     remote_files: List[DatasetItem] = [mock_file]
     legacy_scaling, pixdims_and_primary_planes = (
-        _get_remote_medical_file_transform_requirements(remote_files)
+        _get_remote_medical_file_transform_requirements(remote_files, mock_console)
     )
     assert legacy_scaling == {}
     assert pixdims_and_primary_planes == {}
@@ -3865,12 +3871,13 @@ def test__get_remote_medical_file_transform_requirements_no_slots():
 
 def test__get_remote_medical_file_transform_requirements_non_medical_slots():
     """Test that files with non-medical slots are handled correctly"""
+    mock_console = MagicMock(spec=Console)
     mock_file = MagicMock(spec=DatasetItem)
     mock_file.slots = [{"slot_name": "slot1", "metadata": {}}]
     mock_file.full_path = "/path/to/file"
     remote_files: List[DatasetItem] = [mock_file]
     legacy_scaling, pixdims_and_primary_planes = (
-        _get_remote_medical_file_transform_requirements(remote_files)
+        _get_remote_medical_file_transform_requirements(remote_files, mock_console)
     )
     assert legacy_scaling == {}
     assert pixdims_and_primary_planes == {}
@@ -3878,6 +3885,7 @@ def test__get_remote_medical_file_transform_requirements_non_medical_slots():
 
 def test__get_remote_medical_file_transform_requirements_monai_axial():
     """Test MONAI-handled medical slots with AXIAL plane"""
+    mock_console = MagicMock(spec=Console)
     mock_file = MagicMock(spec=DatasetItem)
     mock_file.slots = [
         {
@@ -3894,7 +3902,7 @@ def test__get_remote_medical_file_transform_requirements_monai_axial():
     mock_file.full_path = "/path/to/file"
     remote_files: List[DatasetItem] = [mock_file]
     legacy_scaling, pixdims_and_primary_planes = (
-        _get_remote_medical_file_transform_requirements(remote_files)
+        _get_remote_medical_file_transform_requirements(remote_files, mock_console)
     )
     assert legacy_scaling == {}
     assert pixdims_and_primary_planes == {
@@ -3904,6 +3912,7 @@ def test__get_remote_medical_file_transform_requirements_monai_axial():
 
 def test__get_remote_medical_file_transform_requirements_monai_coronal():
     """Test MONAI-handled medical slots with CORONAL plane"""
+    mock_console = MagicMock(spec=Console)
     mock_file = MagicMock(spec=DatasetItem)
     mock_file.slots = [
         {
@@ -3920,7 +3929,7 @@ def test__get_remote_medical_file_transform_requirements_monai_coronal():
     mock_file.full_path = "/path/to/file"
     remote_files: List[DatasetItem] = [mock_file]
     legacy_scaling, pixdims_and_primary_planes = (
-        _get_remote_medical_file_transform_requirements(remote_files)
+        _get_remote_medical_file_transform_requirements(remote_files, mock_console)
     )
     assert legacy_scaling == {}
     assert pixdims_and_primary_planes == {
@@ -3930,6 +3939,7 @@ def test__get_remote_medical_file_transform_requirements_monai_coronal():
 
 def test__get_remote_medical_file_transform_requirements_monai_sagittal():
     """Test MONAI-handled medical slots with SAGGITAL plane"""
+    mock_console = MagicMock(spec=Console)
     mock_file = MagicMock(spec=DatasetItem)
     mock_file.slots = [
         {
@@ -3946,7 +3956,7 @@ def test__get_remote_medical_file_transform_requirements_monai_sagittal():
     mock_file.full_path = "/path/to/file"
     remote_files: List[DatasetItem] = [mock_file]
     legacy_scaling, pixdims_and_primary_planes = (
-        _get_remote_medical_file_transform_requirements(remote_files)
+        _get_remote_medical_file_transform_requirements(remote_files, mock_console)
     )
     assert legacy_scaling == {}
     assert pixdims_and_primary_planes == {
@@ -3956,6 +3966,7 @@ def test__get_remote_medical_file_transform_requirements_monai_sagittal():
 
 def test__get_remote_medical_file_transform_requirements_legacy_nifti():
     """Test legacy NifTI scaling"""
+    mock_console = MagicMock(spec=Console)
     mock_file = MagicMock(spec=DatasetItem)
     mock_file.slots = [
         {
@@ -3972,7 +3983,7 @@ def test__get_remote_medical_file_transform_requirements_legacy_nifti():
     mock_file.full_path = "/path/to/file"
     remote_files: List[DatasetItem] = [mock_file]
     legacy_scaling, pixdims_and_primary_planes = (
-        _get_remote_medical_file_transform_requirements(remote_files)
+        _get_remote_medical_file_transform_requirements(remote_files, mock_console)
     )
     assert pixdims_and_primary_planes == {
         Path("/path/to/file"): {"slot1": ([1.0, 2.0, 3.0], "AXIAL")}
@@ -3990,6 +4001,7 @@ def test__get_remote_medical_file_transform_requirements_legacy_nifti():
 
 def test__get_remote_medical_file_transform_requirements_mixed():
     """Test mixed case with both MONAI and legacy NifTI files"""
+    mock_console = MagicMock(spec=Console)
     mock_file1 = MagicMock(spec=DatasetItem)
     mock_file1.slots = [
         {
@@ -4022,7 +4034,7 @@ def test__get_remote_medical_file_transform_requirements_mixed():
 
     remote_files: List[DatasetItem] = [mock_file1, mock_file2]
     legacy_scaling, pixdims_and_primary_planes = (
-        _get_remote_medical_file_transform_requirements(remote_files)
+        _get_remote_medical_file_transform_requirements(remote_files, mock_console)
     )
 
     assert pixdims_and_primary_planes == {
@@ -4040,21 +4052,319 @@ def test__get_remote_medical_file_transform_requirements_mixed():
     ).all()
 
 
+def test__get_remote_medical_file_transform_requirements_missing_plane_map():
+    """Test handling of missing plane_map in medical metadata"""
+    mock_file = MagicMock(spec=DatasetItem)
+    mock_console = MagicMock(spec=Console)
+    mock_file.slots = [
+        {
+            "slot_name": "slot1",
+            "metadata": {
+                "medical": {
+                    "pixdims": [1.0, 2.0, 3.0],
+                    # plane_map is missing
+                }
+            },
+        }
+    ]
+    mock_file.full_path = "/path/to/file"
+    remote_files: List[DatasetItem] = [mock_file]
+
+    legacy_scaling, pixdims_and_primary_planes = (
+        _get_remote_medical_file_transform_requirements(remote_files, mock_console)
+    )
+
+    assert legacy_scaling == {}
+    assert pixdims_and_primary_planes == {}
+    mock_console.print.assert_called_once_with(
+        "Missing plane_map for slot slot1 in file /path/to/file", style="warning"
+    )
+
+
+def test__get_remote_medical_file_transform_requirements_missing_pixdims():
+    """Test handling of missing pixdims in medical metadata"""
+    mock_file = MagicMock(spec=DatasetItem)
+    mock_console = MagicMock(spec=Console)
+    mock_file.slots = [
+        {
+            "slot_name": "slot1",
+            "metadata": {
+                "medical": {
+                    "plane_map": {"slot1": "AXIAL"},
+                    # pixdims is missing
+                }
+            },
+        }
+    ]
+    mock_file.full_path = "/path/to/file"
+    remote_files: List[DatasetItem] = [mock_file]
+
+    legacy_scaling, pixdims_and_primary_planes = (
+        _get_remote_medical_file_transform_requirements(remote_files, mock_console)
+    )
+
+    assert legacy_scaling == {}
+    assert pixdims_and_primary_planes == {}
+    mock_console.print.assert_called_once_with(
+        "Missing pixdims for slot slot1 in file /path/to/file", style="warning"
+    )
+
+
+def test__get_remote_medical_file_transform_requirements_none_pixdims():
+    """Test handling of None pixdims in medical metadata"""
+    mock_file = MagicMock(spec=DatasetItem)
+    mock_console = MagicMock(spec=Console)
+    mock_file.slots = [
+        {
+            "slot_name": "slot1",
+            "metadata": {"medical": {"plane_map": {"slot1": "AXIAL"}, "pixdims": None}},
+        }
+    ]
+    mock_file.full_path = "/path/to/file"
+    remote_files: List[DatasetItem] = [mock_file]
+
+    legacy_scaling, pixdims_and_primary_planes = (
+        _get_remote_medical_file_transform_requirements(remote_files, mock_console)
+    )
+
+    assert legacy_scaling == {}
+    assert pixdims_and_primary_planes == {}
+    mock_console.print.assert_called_once_with(
+        "Missing pixdims for slot slot1 in file /path/to/file", style="warning"
+    )
+
+
+def test__get_remote_medical_file_transform_requirements_invalid_pixdims():
+    """Test handling of invalid pixdims format"""
+    mock_file = MagicMock(spec=DatasetItem)
+    mock_console = MagicMock(spec=Console)
+    mock_file.slots = [
+        {
+            "slot_name": "slot1",
+            "metadata": {
+                "medical": {
+                    "plane_map": {"slot1": "AXIAL"},
+                    "pixdims": ["not", "valid", "numbers"],
+                }
+            },
+        }
+    ]
+    mock_file.full_path = "/path/to/file"
+    remote_files: List[DatasetItem] = [mock_file]
+
+    legacy_scaling, pixdims_and_primary_planes = (
+        _get_remote_medical_file_transform_requirements(remote_files, mock_console)
+    )
+
+    assert legacy_scaling == {}
+    assert pixdims_and_primary_planes == {}
+    mock_console.print.assert_called_once_with(
+        "Invalid pixdims format for slot slot1 in file /path/to/file", style="warning"
+    )
+
+
+def test__get_remote_medical_file_transform_requirements_invalid_affine():
+    """Test handling of invalid affine matrix format"""
+    mock_file = MagicMock(spec=DatasetItem)
+    mock_console = MagicMock(spec=Console)
+    mock_file.slots = [
+        {
+            "slot_name": "slot1",
+            "metadata": {
+                "medical": {
+                    "plane_map": {"slot1": "AXIAL"},
+                    "pixdims": [1.0, 2.0, 3.0],
+                    "affine": "not a valid matrix",
+                }
+            },
+        }
+    ]
+    mock_file.full_path = "/path/to/file"
+    remote_files: List[DatasetItem] = [mock_file]
+
+    legacy_scaling, pixdims_and_primary_planes = (
+        _get_remote_medical_file_transform_requirements(remote_files, mock_console)
+    )
+
+    # Should still have pixdims even though affine is invalid
+    assert legacy_scaling == {}
+    assert pixdims_and_primary_planes == {
+        Path("/path/to/file"): {"slot1": ([1.0, 2.0, 3.0], "AXIAL")}
+    }
+    mock_console.print.assert_called_once_with(
+        "Invalid affine matrix format for slot slot1 in file /path/to/file",
+        style="warning",
+    )
+
+
+def test__get_remote_medical_file_transform_requirements_multiple_slots_partial_failure():
+    """Test handling of multiple slots where some succeed and others fail"""
+    mock_console = MagicMock(spec=Console)
+
+    # Create two mock files with different full paths
+    mock_file_valid = MagicMock(spec=DatasetItem)
+    mock_file_valid.slots = [
+        {
+            "slot_name": "valid_slot",
+            "metadata": {
+                "medical": {
+                    "plane_map": {"valid_slot": "AXIAL"},
+                    "pixdims": [1.0, 2.0, 3.0],
+                }
+            },
+        }
+    ]
+    mock_file_valid.full_path = "/path/to/valid_file"
+
+    mock_file_invalid = MagicMock(spec=DatasetItem)
+    mock_file_invalid.slots = [
+        {
+            "slot_name": "invalid_slot",
+            "metadata": {
+                "medical": {
+                    "plane_map": {"invalid_slot": "AXIAL"},
+                    "pixdims": ["not", "valid", "numbers"],
+                }
+            },
+        }
+    ]
+    mock_file_invalid.full_path = "/path/to/invalid_file"
+
+    remote_files: List[DatasetItem] = [mock_file_valid, mock_file_invalid]
+
+    legacy_scaling, pixdims_and_primary_planes = (
+        _get_remote_medical_file_transform_requirements(remote_files, mock_console)
+    )
+
+    # Should have data for the valid slot but not the invalid one
+    assert legacy_scaling == {}
+    assert pixdims_and_primary_planes == {
+        Path("/path/to/valid_file"): {"valid_slot": ([1.0, 2.0, 3.0], "AXIAL")}
+    }
+    mock_console.print.assert_called_once_with(
+        "Invalid pixdims format for slot invalid_slot in file /path/to/invalid_file",
+        style="warning",
+    )
+
+
+@pytest.fixture
+def valid_medical_metadata():
+    return {
+        "plane_map": {"slot1": "axial"},
+        "pixdims": ["1.0", "2.0", "3.0"],
+        "affine": [
+            [1.0, 0.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0, 0.0],
+            [0.0, 0.0, 1.0, 0.0],
+            [0.0, 0.0, 0.0, 1.0],
+        ],
+    }
+
+
+def test_parse_plane_map_valid(valid_medical_metadata):
+    mock_console = MagicMock(spec=Console)
+    result = _parse_plane_map(
+        valid_medical_metadata, "slot1", "test/file.nii", mock_console
+    )
+    assert result == "axial"
+
+
+def test_parse_plane_map_missing_plane_map():
+    mock_console = MagicMock(spec=Console)
+    result = _parse_plane_map({}, "slot1", "test/file.nii", mock_console)
+    assert result is None
+
+
+def test_parse_plane_map_invalid_type():
+    mock_console = MagicMock(spec=Console)
+    result = _parse_plane_map(
+        {"plane_map": "not_a_dict"}, "slot1", "test/file.nii", mock_console
+    )
+    assert result is None
+
+
+def test_parse_plane_map_missing_slot():
+    mock_console = MagicMock(spec=Console)
+    result = _parse_plane_map(
+        {"plane_map": {"other_slot": "axial"}}, "slot1", "test/file.nii", mock_console
+    )
+    assert result is None
+
+
+def test_parse_pixdims_valid(valid_medical_metadata):
+    mock_console = MagicMock(spec=Console)
+    result = _parse_pixdims(
+        valid_medical_metadata, "slot1", "test/file.nii", mock_console
+    )
+    assert result == [1.0, 2.0, 3.0]
+
+
+def test_parse_pixdims_missing():
+    mock_console = MagicMock(spec=Console)
+    result = _parse_pixdims({}, "slot1", "test/file.nii", mock_console)
+    assert result is None
+
+
+def test_parse_pixdims_empty():
+    mock_console = MagicMock(spec=Console)
+    result = _parse_pixdims({"pixdims": []}, "slot1", "test/file.nii", mock_console)
+    assert result is None
+
+
+def test_parse_pixdims_invalid_values():
+    mock_console = MagicMock(spec=Console)
+    result = _parse_pixdims(
+        {"pixdims": ["not", "valid", "numbers"]}, "slot1", "test/file.nii", mock_console
+    )
+    assert result is None
+
+
+def test_parse_affine_valid(valid_medical_metadata):
+    mock_console = MagicMock(spec=Console)
+    result = _parse_affine(
+        valid_medical_metadata, "slot1", "test/file.nii", mock_console
+    )
+    expected = np.array(
+        [
+            [1.0, 0.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0, 0.0],
+            [0.0, 0.0, 1.0, 0.0],
+            [0.0, 0.0, 0.0, 1.0],
+        ]
+    )
+    assert np.array_equal(result, expected)
+
+
+def test_parse_affine_missing():
+    mock_console = MagicMock(spec=Console)
+    result = _parse_affine({}, "slot1", "test/file.nii", mock_console)
+    assert result is None
+
+
+def test_parse_affine_invalid_values():
+    mock_console = MagicMock(spec=Console)
+    invalid_affine = {"affine": "not_a_matrix"}
+    result = _parse_affine(invalid_affine, "slot1", "test/file.nii", mock_console)
+    assert result is None
+
+
 def test_slot_is_medical():
-    """
-    Test that slot_is_medical returns True if the slot has medical metadata
-    """
-    medical_slot = {"metadata": {"medical": {}}}
+    medical_slot = {"metadata": {"medical": {"some": "data"}}}
     non_medical_slot = {"metadata": {}}
+    empty_slot = {}
+
     assert slot_is_medical(medical_slot) is True
     assert slot_is_medical(non_medical_slot) is False
+    assert slot_is_medical(empty_slot) is False
 
 
 def test_slot_is_handled_by_monai():
-    """
-    Test that slot_is_handled_by_monai returns True if the slot has MONAI handler
-    """
     monai_slot = {"metadata": {"medical": {"handler": "MONAI"}}}
-    non_monai_slot = {"metadata": {"medical": {}}}
+    non_monai_slot = {"metadata": {"medical": {"handler": "other"}}}
+    no_handler_slot = {"metadata": {"medical": {}}}
+    empty_slot = {}
+
     assert slot_is_handled_by_monai(monai_slot) is True
     assert slot_is_handled_by_monai(non_monai_slot) is False
+    assert slot_is_handled_by_monai(no_handler_slot) is False
+    assert slot_is_handled_by_monai(empty_slot) is False
