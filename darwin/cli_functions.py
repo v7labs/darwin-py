@@ -1391,18 +1391,16 @@ def report_annotators(
         group_by,
     ).text
 
+    # the API does not return CSV headers if the report is empty
+    if not report:
+        report = "timestamp,dataset_id,dataset_name,dataset_slug,workflow_id,workflow_name,current_stage_id,current_stage_name,actor_id,actor_type,actor_email,actor_full_name,active_time,total_annotations,review_pass_rate,total_items_annotated,time_per_annotation,time_per_item\n"
+
     if not pretty:
-        # if no one worked in the report, we print nothing
         print(report)
         return
 
     lines: List[str] = report.split("\n")
     lines.pop(0)  # remove csv headers
-
-    if not lines:
-        console.print("No one has worked on this dataset yet!\n", style="success")
-        return
-
     lines.pop()  # remove last line, which is empty
 
     table: Table = Table(show_header=True, header_style="bold cyan")
