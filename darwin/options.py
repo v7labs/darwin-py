@@ -577,6 +577,7 @@ class Options:
         )
         parser_annotators.add_argument(
             "--group-by",
+            required=True,
             type=lambda csv: [value.strip() for value in csv.split(",")],
             help=f"Non-empty list of comma-separated grouping options for the report, any of: f{[name.value for name in AnnotatorReportGrouping]}.",
         )
