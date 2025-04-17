@@ -35,6 +35,7 @@ from darwin.dataset.split_manager import split_dataset
 from darwin.dataset.upload_manager import LocalFile
 from darwin.dataset.utils import get_release_path
 from darwin.datatypes import (
+    AnnotatorReportGrouping,
     ExportParser,
     ImportParser,
     NumberLike,
@@ -1346,6 +1347,90 @@ def post_comment(
     except Exception:
         console.print("[bold red]There was an error posting your comment!\n")
         console.print(f"[red]{traceback.format_exc()}")
+
+
+def report_annotators(
+    dataset_slugs: list[str],
+    start: datetime.datetime,
+    stop: datetime.datetime,
+    group_by: list[AnnotatorReportGrouping],
+    pretty: bool,
+) -> None:
+    """
+    Prints an annotators report in CSV format.
+
+    Parameters
+    ----------
+    dataset_slugs : list[str]
+        Slugs of datasets to include in the report.
+    start : datetime.datetime
+        Timezone aware report start DateTime.
+    stop : datetime.datetime
+        Timezone aware report end DateTime.
+    group_by: list[AnnotatorReportGrouping]
+        Non-empty list of grouping options for the report.
+    pretty : bool
+        If ``True``, it will print the output in a Rich formatted table.
+    """
+    client: Client = _load_client()
+    console = Console(theme=_console_theme())
+
+    dataset_ids = []
+    for dataset in client.list_remote_datasets():
+        if dataset.slug in dataset_slugs:
+            dataset_ids.append(dataset.dataset_id)
+            dataset_slugs.remove(dataset.slug)
+
+    if dataset_slugs:
+        _error(f"Datasets '{dataset_slugs}' do not exist.")
+
+    report: str = client.get_annotators_report(
+        dataset_ids,
+        start,
+        stop,
+        group_by,
+    ).text
+
+    # the API does not return CSV headers if the report is empty
+    if not report:
+        report = "timestamp,dataset_id,dataset_name,dataset_slug,workflow_id,workflow_name,current_stage_id,current_stage_name,actor_id,actor_type,actor_email,actor_full_name,active_time,total_annotations,review_pass_rate,total_items_annotated,time_per_annotation,time_per_item\n"
+
+    if not pretty:
+        print(report)
+        return
+
+    lines: List[str] = report.split("\n")
+    lines.pop(0)  # remove csv headers
+    lines.pop()  # remove last line, which is empty
+
+    table: Table = Table(show_header=True, header_style="bold cyan")
+
+    table.add_column("Date")
+    for header in [
+        "Dataset Id",
+        "Dataset Name",
+        "Dataset Slug",
+        "Workflow Id",
+        "Workflow Name",
+        "Current Stage Id",
+        "Current Stage Name",
+        "User Id",
+        "User Type",
+        "Email",
+        "Full Name",
+        "Active Time",
+        "Total Annotations",
+        "Review Pass Rate",
+        "Total Items Annotated",
+        "Time Per Annotation",
+        "Time Per Item",
+    ]:
+        table.add_column(header, justify="right")
+
+    for row in lines:
+        table.add_row(*row.split(","))
+
+    console.print(table)
 
 
 def help(parser: argparse.ArgumentParser, subparser: Optional[str] = None) -> None:

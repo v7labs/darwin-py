@@ -1,8 +1,10 @@
 import sys
 from argparse import ArgumentParser, Namespace
+from datetime import datetime
 from typing import Any, Optional, Tuple
 
 import argcomplete
+from darwin.datatypes import AnnotatorReportGrouping
 
 
 class Options:
@@ -542,6 +544,50 @@ class Options:
 
         # Help
         dataset_action.add_parser("help", help="Show this help message and exit.")
+
+        # REPORT
+        report = subparsers.add_parser(
+            "report",
+            help="Report related functions.",
+            description="Arguments to interact with reports",
+        )
+        report_action = report.add_subparsers(dest="action")
+
+        # Annotators
+        parser_annotators = report_action.add_parser(
+            "annotators", help="Report about the annotators."
+        )
+        parser_annotators.add_argument(
+            "--datasets",
+            default=[],
+            type=lambda csv: [value.strip() for value in csv.split(",")],
+            help="List of comma-separated dataset slugs to include in the report.",
+        )
+        parser_annotators.add_argument(
+            "--start",
+            required=True,
+            type=lambda dt: datetime.strptime(dt, "%Y-%m-%dT%H:%M:%S%z"),
+            help="Report start DateTime in RFC3339 format (e.g. 2020-01-20T14:00:00Z).",
+        )
+        parser_annotators.add_argument(
+            "--stop",
+            required=True,
+            type=lambda dt: datetime.strptime(dt, "%Y-%m-%dT%H:%M:%S%z"),
+            help="Report end DateTime in RFC3339 format (e.g. 2020-01-20T15:00:00Z).",
+        )
+        parser_annotators.add_argument(
+            "--group-by",
+            required=True,
+            type=lambda csv: [value.strip() for value in csv.split(",")],
+            help=f"Non-empty list of comma-separated grouping options for the report, any of: f{[name.value for name in AnnotatorReportGrouping]}.",
+        )
+        parser_annotators.add_argument(
+            "-r",
+            "--pretty",
+            action="store_true",
+            default=False,
+            help="Prints the results formatted in a rich table.",
+        )
 
         # VERSION
         subparsers.add_parser(

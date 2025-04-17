@@ -1567,3 +1567,17 @@ class StorageKeyDictModel(BaseModel):
 
 class StorageKeyListModel(BaseModel):
     storage_keys: List[str]
+
+
+class ReportJob(BaseModel):
+    id: str
+    status: str
+    format: str
+    url: str | None
+    team_id: int
+
+
+class AnnotatorReportGrouping(str, Enum):
+    ANNOTATORS = "annotators"
+    DATASETS = "datasets"
+    STAGES = "stages"

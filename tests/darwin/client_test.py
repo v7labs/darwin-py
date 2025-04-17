@@ -1,10 +1,20 @@
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import List
+from typing import List, Optional
+from unittest.mock import Mock, patch
 
 import pytest
 import responses
+from requests import HTTPError, Response
+from responses.registries import OrderedRegistry
+from tenacity import RetryError, stop_after_attempt
 
-from darwin.client import Client
+from darwin.client import (
+    MAX_RETRIES,
+    Client,
+    JobPendingException,
+    AnnotatorReportGrouping,
+)
 from darwin.config import Config
 from darwin.dataset.remote_dataset import RemoteDataset
 from darwin.dataset.remote_dataset_v2 import RemoteDatasetV2
@@ -13,12 +23,6 @@ from darwin.exceptions import NameTaken, NotFound
 from darwin.future.data_objects.properties import FullProperty
 from darwin.future.tests.core.fixtures import *  # noqa: F401, F403
 from tests.fixtures import *  # noqa: F401, F403
-
-
-from unittest.mock import Mock, patch
-from requests import Response, HTTPError
-from darwin.client import MAX_RETRIES
-from tenacity import RetryError
 
 
 @pytest.fixture
@@ -680,3 +684,291 @@ class TestClientRetry:
 
             assert mock_get.call_count == MAX_RETRIES
             assert mock_sleep.called
+
+
+@pytest.mark.usefixtures("file_read_write_test")
+class TestGetAnnotatorsReport:
+    @pytest.mark.parametrize(
+        "start,stop",
+        [
+            (datetime(2024, 1, 1), datetime(2024, 1, 31, tzinfo=timezone.utc)),
+            (datetime(2024, 1, 1, tzinfo=timezone.utc), datetime(2024, 1, 31)),
+            (datetime(2024, 1, 1), datetime(2024, 1, 31)),
+        ],
+    )
+    def test_raises_if_start_or_stop_datetime_not_timezone_aware(
+        self,
+        darwin_client: Client,
+        start: datetime,
+        stop: datetime,
+    ) -> None:
+        dataset_id = 123
+
+        with pytest.raises(
+            ValueError, match="start and stop parameters must be timezone aware"
+        ):
+            darwin_client.get_annotators_report(
+                [dataset_id],
+                start,
+                stop,
+                group_by=[],
+            )
+
+    def test_raises_if_no_group_by_options_provided(
+        self, darwin_client: Client
+    ) -> None:
+        dataset_id = 123
+        start_time = datetime(2024, 1, 1, tzinfo=timezone.utc)
+        end_time = datetime(2024, 1, 31, tzinfo=timezone.utc)
+
+        with pytest.raises(
+            ValueError, match="At least one group_by option is required"
+        ):
+            darwin_client.get_annotators_report(
+                [dataset_id],
+                start_time,
+                end_time,
+                group_by=[],
+            )
+
+    @responses.activate
+    def test_raises_if_failed_to_start_report_generation(
+        self, darwin_client: Client, team_slug_darwin_json_v2: str
+    ) -> None:
+        dataset_id = 123
+        start_time = datetime(2024, 1, 1, tzinfo=timezone.utc)
+        end_time = datetime(2024, 1, 31, tzinfo=timezone.utc)
+
+        start_job_endpoint_mock = responses.add(
+            responses.POST,
+            darwin_client.url
+            + f"/v3/teams/{team_slug_darwin_json_v2}/reports/annotator/jobs",
+            status=400,
+        )
+
+        with pytest.raises(HTTPError):
+            darwin_client.get_annotators_report(
+                [dataset_id],
+                start_time,
+                end_time,
+                [AnnotatorReportGrouping.ANNOTATORS],
+                team_slug_darwin_json_v2,
+            )
+
+        assert start_job_endpoint_mock.call_count == 1
+
+    @responses.activate
+    def test_raises_if_report_generation_job_fails(
+        self, darwin_client: Client, team_slug_darwin_json_v2: str
+    ) -> None:
+        dataset_id = 123
+        start_time = datetime(2024, 1, 1, tzinfo=timezone.utc)
+        end_time = datetime(2024, 1, 31, tzinfo=timezone.utc)
+        job_id = "5332fd45-3084-46d0-9916-171f6e0f808e"
+
+        start_job_endpoint_mock = self.job_start_endpoint_mock(
+            darwin_client.url, team_slug_darwin_json_v2, job_id, dataset_id
+        )
+        get_job_status_endpoint_mock = self.job_status_endpoint_mock(
+            darwin_client.url,
+            team_slug_darwin_json_v2,
+            job_id,
+            job_status="failed",
+        )
+
+        with pytest.raises(
+            ValueError, match="Building an annotator report failed, try again later."
+        ):
+            darwin_client.get_annotators_report(
+                [dataset_id],
+                start_time,
+                end_time,
+                [AnnotatorReportGrouping.ANNOTATORS],
+                team_slug_darwin_json_v2,
+            )
+
+        assert start_job_endpoint_mock.call_count == 1
+        assert get_job_status_endpoint_mock.call_count == 1
+
+    @responses.activate(registry=OrderedRegistry)
+    def test_raises_if_started_job_cannot_be_queried(
+        self,
+        darwin_client: Client,
+        team_slug_darwin_json_v2: str,
+    ) -> None:
+        dataset_id = 123
+        start_time = datetime(2024, 1, 1, tzinfo=timezone.utc)
+        end_time = datetime(2024, 1, 31, tzinfo=timezone.utc)
+        job_id = "5332fd45-3084-46d0-9916-171f6e0f808e"
+
+        start_job_endpoint_mock = self.job_start_endpoint_mock(
+            darwin_client.url, team_slug_darwin_json_v2, job_id, dataset_id
+        )
+        get_job_status_endpoint_mock = self.job_status_endpoint_mock(
+            darwin_client.url,
+            team_slug_darwin_json_v2,
+            job_id,
+            status_code=404,
+        )
+
+        with pytest.raises(NotFound):
+            with patch("tenacity.nap.time.sleep", return_value=None) as mock_sleep:
+                darwin_client.get_annotators_report(
+                    [dataset_id],
+                    start_time,
+                    end_time,
+                    [AnnotatorReportGrouping.ANNOTATORS],
+                    team_slug_darwin_json_v2,
+                )
+                assert mock_sleep.call_count == 1
+
+        assert start_job_endpoint_mock.call_count == 1
+        assert get_job_status_endpoint_mock.call_count == 1
+
+    @responses.activate()
+    def test_raises_and_provides_job_status_url_if_polling_times_out(
+        self,
+        darwin_client: Client,
+        team_slug_darwin_json_v2: str,
+    ) -> None:
+        dataset_id = 123
+        start_time = datetime(2024, 1, 1, tzinfo=timezone.utc)
+        end_time = datetime(2024, 1, 31, tzinfo=timezone.utc)
+        job_id = "5332fd45-3084-46d0-9916-171f6e0f808e"
+        report_url = f"http://localhost/s/data/teams/1/reports/annotator_2025-03-14T23%3A00%3A00.000Z_{job_id}.csv"
+
+        start_job_endpoint_mock = self.job_start_endpoint_mock(
+            darwin_client.url, team_slug_darwin_json_v2, job_id, dataset_id
+        )
+        get_job_status_endpoint_mock = self.job_status_endpoint_mock(
+            darwin_client.url, team_slug_darwin_json_v2, job_id, "running"
+        )
+        get_report_file_endpoint_mock = responses.add(
+            responses.GET, report_url, status=200
+        )
+
+        with pytest.raises(
+            JobPendingException, match="timed out, job status can be requested manually"
+        ):
+            with patch("tenacity.nap.time.sleep", return_value=None) as mock_sleep:
+                darwin_client.poll_pending_report_job.retry.stop = stop_after_attempt(2)
+                darwin_client.get_annotators_report(
+                    [dataset_id],
+                    start_time,
+                    end_time,
+                    [AnnotatorReportGrouping.ANNOTATORS],
+                    team_slug_darwin_json_v2,
+                )
+                assert mock_sleep.call_count == 1
+
+        assert start_job_endpoint_mock.call_count == 1
+        assert get_job_status_endpoint_mock.call_count == 2
+        assert get_report_file_endpoint_mock.call_count == 0
+
+    @pytest.mark.parametrize("job_status", ["pending", "running"])
+    @responses.activate(registry=OrderedRegistry)
+    def test_retries_if_report_generation_job_is_not_finished(
+        self, darwin_client: Client, team_slug_darwin_json_v2: str, job_status: str
+    ) -> None:
+        dataset_id = 123
+        start_time = datetime(2024, 1, 1, tzinfo=timezone.utc)
+        end_time = datetime(2024, 1, 31, tzinfo=timezone.utc)
+        job_id = "5332fd45-3084-46d0-9916-171f6e0f808e"
+        report_url = f"http://localhost/s/data/teams/1/reports/annotator_2025-03-14T23%3A00%3A00.000Z_{job_id}.csv"
+
+        start_job_endpoint_mock = self.job_start_endpoint_mock(
+            darwin_client.url, team_slug_darwin_json_v2, job_id, dataset_id
+        )
+        get_job_status_endpoint_mock = self.job_status_endpoint_mock(
+            darwin_client.url, team_slug_darwin_json_v2, job_id, job_status
+        )
+        get_job_status_endpoint_mock_2 = self.job_status_endpoint_mock(
+            darwin_client.url,
+            team_slug_darwin_json_v2,
+            job_id,
+            job_status="finished",
+            report_url=report_url,
+        )
+        get_report_file_endpoint_mock = responses.add(
+            responses.GET,
+            report_url,
+            body="some,csv,report",
+            status=200,
+        )
+
+        with patch("tenacity.nap.time.sleep", return_value=None) as mock_sleep:
+            darwin_client.get_annotators_report(
+                [dataset_id],
+                start_time,
+                end_time,
+                [AnnotatorReportGrouping.ANNOTATORS],
+                team_slug_darwin_json_v2,
+            )
+            assert mock_sleep.call_count == 1
+
+        assert start_job_endpoint_mock.call_count == 1
+        assert get_job_status_endpoint_mock.call_count == 1
+        assert get_job_status_endpoint_mock_2.call_count == 1
+        assert get_report_file_endpoint_mock.call_count == 1
+
+    def job_start_endpoint_mock(
+        self,
+        url: str,
+        team_slug: str,
+        job_id: str,
+        dataset_id: int,
+        status_code: int = 200,
+    ):
+        return responses.add(
+            responses.POST,
+            url + f"/v3/teams/{team_slug}/reports/annotator/jobs",
+            json={
+                "id": job_id,
+                "status": "pending",
+                "format": "csv",
+                "url": None,
+                "team_id": 1,
+            },
+            status=status_code,
+            match=[
+                responses.matchers.json_params_matcher(
+                    {
+                        "start": "2024-01-01T00:00:00+00:00",
+                        "stop": "2024-01-31T00:00:00+00:00",
+                        "dataset_ids": [dataset_id],
+                        "group_by": ["annotators"],
+                        "format": "csv",
+                        "metrics": [
+                            "active_time",
+                            "total_annotations",
+                            "total_items_annotated",
+                            "time_per_item",
+                            "time_per_annotation",
+                            "review_pass_rate",
+                        ],
+                    },
+                ),
+            ],
+        )
+
+    def job_status_endpoint_mock(
+        self,
+        url: str,
+        team_slug: str,
+        job_id: str,
+        job_status: str = "pending",
+        status_code: int = 200,
+        report_url: Optional[str] = None,
+    ):
+        return responses.add(
+            responses.GET,
+            url + f"/v3/teams/{team_slug}/reports/annotator/jobs/{job_id}",
+            json={
+                "id": job_id,
+                "status": job_status,
+                "format": "csv",
+                "url": report_url,
+                "team_id": 1,
+            },
+            status=status_code,
+        )
