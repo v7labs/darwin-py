@@ -1372,7 +1372,7 @@ def report_annotators(
     pretty : bool
         If ``True``, it will print the output in a Rich formatted table.
     """
-    client: Client = _load_client(offline=True)
+    client: Client = _load_client()
     console = Console(theme=_console_theme())
 
     dataset_ids = []
@@ -1406,24 +1406,28 @@ def report_annotators(
     lines.pop()  # remove last line, which is empty
 
     table: Table = Table(show_header=True, header_style="bold cyan")
+
     table.add_column("Date")
-    table.add_column("Dataset Id", justify="right")
-    table.add_column("Dataset Name", justify="right")
-    table.add_column("Dataset Slug", justify="right")
-    table.add_column("Workflow Id", justify="right")
-    table.add_column("Workflow Name", justify="right")
-    table.add_column("Current Stage Id", justify="right")
-    table.add_column("Current Stage Name", justify="right")
-    table.add_column("User Id", justify="right")
-    table.add_column("User Type", justify="right")
-    table.add_column("Email", justify="right")
-    table.add_column("Full Name", justify="right")
-    table.add_column("Active Time", justify="right")
-    table.add_column("Total Annotations", justify="right")
-    table.add_column("Review Pass Rate", justify="right")
-    table.add_column("Total Items Annotated", justify="right")
-    table.add_column("Time Per Annotation", justify="right")
-    table.add_column("Time Per Item", justify="right")
+    for header in [
+        "Dataset Id",
+        "Dataset Name",
+        "Dataset Slug",
+        "Workflow Id",
+        "Workflow Name",
+        "Current Stage Id",
+        "Current Stage Name",
+        "User Id",
+        "User Type",
+        "Email",
+        "Full Name",
+        "Active Time",
+        "Total Annotations",
+        "Review Pass Rate",
+        "Total Items Annotated",
+        "Time Per Annotation",
+        "Time Per Item",
+    ]:
+        table.add_column(header, justify="right")
 
     for row in lines:
         table.add_row(*row.split(","))
