@@ -61,7 +61,7 @@ max-line-length = 88
 line-length = 88
 
 [tool.poetry.dependencies]
-argcomplete = "^3.5.0"
+argcomplete = "^2.0.0"
 deprecation = "^2.1.0"
 humanize = "^4.4.0"
 json-stream = "^2.3.2"
