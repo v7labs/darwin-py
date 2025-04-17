@@ -548,5 +548,8 @@ class TestReportAnnotators:
         ):
             args, parser = Options().parse_args()
 
-            with pytest.raises(ValueError, match="'bad-grouping-option' is not a valid AnnotatorReportGrouping"):
+            with pytest.raises(
+                ValueError,
+                match="'bad-grouping-option' is not a valid AnnotatorReportGrouping",
+            ):
                 cli._run(args, parser)
