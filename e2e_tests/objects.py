@@ -1,13 +1,16 @@
+import json
 from collections import namedtuple
 from dataclasses import dataclass
-from typing import List, Literal, Optional, Tuple, Dict
+from typing import Dict, List, Literal, Optional, Tuple
 from uuid import UUID
 
-from darwin.datatypes import JSONType
 import requests
-import json
 
-ConfigValues = namedtuple("ConfigValues", ["server", "api_key", "team_slug"])
+from darwin.datatypes import JSONType
+from e2e_tests.logger_config import logger
+
+ConfigValues = namedtuple("ConfigValues", ["server", "superadmin_api_key"])
+TeamConfigValues = namedtuple("TeamConfigValues", ["api_key", "team_slug", "team_id"])
 
 
 @dataclass
@@ -66,6 +69,7 @@ class E2EDataset:
     def register_read_only_items(
         self,
         config_values: ConfigValues,
+        isolated_team: TeamConfigValues,
         item_type: str = "single_slotted",
         files_in_flat_structure: bool = False,
     ) -> None:
@@ -74,19 +78,20 @@ class E2EDataset:
 
         Useful for creating dataset to test `pull` or `import` operations on without having to wait for items to finish processing
         """
+        logger.debug(f"Registering read-only items for dataset {self.slug}")
         payload = get_read_only_registration_payload(
             item_type,
             dataset_slug=self.slug,
             files_in_flat_structure=files_in_flat_structure,
         )
-        api_key = config_values.api_key
+        api_key = isolated_team.api_key
         headers = {
             "Content-Type": "application/json",
             "Accept": "application/json",
             "Authorization": f"ApiKey {api_key}",
         }
         response = requests.post(
-            f"{config_values.server}/api/v2/teams/{config_values.team_slug}/items/register_existing_readonly",
+            f"{config_values.server}/api/v2/teams/{isolated_team.team_slug}/items/register_existing_readonly",
             headers=headers,
             json=payload,
         )
@@ -104,7 +109,9 @@ class E2EDataset:
             )
 
     def get_annotation_data(
-        self, config_values: ConfigValues
+        self,
+        config_values: ConfigValues,
+        isolated_team: TeamConfigValues,
     ) -> Tuple[Dict[str, List], Dict[str, List], Dict[str, List]]:
         """
         Returns the state of the following:
@@ -112,44 +119,48 @@ class E2EDataset:
         - 2: The annotation classes present in the team
         - 3: The properties & property values present in the team
         """
+        logger.debug(f"Getting annotation data for dataset {self.slug}")
         # 1: Get state of annotations for each item
         headers = {
             "Content-Type": "application/json",
             "Accept": "application/json",
-            "Authorization": f"ApiKey {config_values.api_key}",
+            "Authorization": f"ApiKey {isolated_team.api_key}",
         }
         item_annotations = {}
         for item in self.items:
             response = requests.get(
-                f"{config_values.server}/api/v2/teams/{config_values.team_slug}/items/{item.id}/annotations",
+                f"{config_values.server}/api/v2/teams/{isolated_team.team_slug}/items/{item.id}/annotations",
                 headers=headers,
             )
             item_annotations[item.name] = json.loads(response.text)
 
         # 2: Get state of annotation classes
         response = requests.get(
-            f"{config_values.server}/api/teams/{config_values.team_slug}/annotation_classes",
+            f"{config_values.server}/api/teams/{isolated_team.team_slug}/annotation_classes",
             headers=headers,
         )
         annotation_classes = json.loads(response.text)
 
         # 3: Get state of properties
         response = requests.get(
-            f"{config_values.server}/api/v2/teams/{config_values.team_slug}/properties?include_values=true",
+            f"{config_values.server}/api/v2/teams/{isolated_team.team_slug}/properties?include_values=true",
             headers=headers,
         )
         properties = json.loads(response.text)
 
         return item_annotations, annotation_classes, properties
 
-    def delete_items(self, config_values: ConfigValues) -> None:
+    def delete_items(
+        self, config_values: ConfigValues, isolated_team: TeamConfigValues
+    ) -> None:
         """
         Permanently deletes all items in the dataset
         """
+        logger.debug(f"Deleting items for dataset {self.slug}")
         headers = {
             "Content-Type": "application/json",
             "Accept": "application/json",
-            "Authorization": f"ApiKey {config_values.api_key}",
+            "Authorization": f"ApiKey {isolated_team.api_key}",
         }
         payload = {
             "filters": {
@@ -158,7 +169,7 @@ class E2EDataset:
             }
         }
         response = requests.delete(
-            f"{config_values.server}/api/v2/teams/{config_values.team_slug}/items",
+            f"{config_values.server}/api/v2/teams/{isolated_team.team_slug}/items",
             headers=headers,
             json=payload,
         )
@@ -178,6 +189,7 @@ def get_read_only_registration_payload(
     - `multi_channel`: A single item with 3 image channels
     - `single_slotted_video`: A single single-slotted video
     """
+    logger.debug(f"Getting read-only registration payload for dataset {dataset_slug}")
     path = "/" if files_in_flat_structure else None
     items = {
         "single_slotted": [
