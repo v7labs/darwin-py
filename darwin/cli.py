@@ -6,6 +6,7 @@ from argparse import ArgumentParser, Namespace
 from pathlib import Path
 
 import requests.exceptions
+from darwin.datatypes import AnnotatorReportGrouping
 from rich.console import Console
 
 import darwin.cli_functions as f
@@ -219,6 +220,19 @@ def _run(args: Namespace, parser: ArgumentParser) -> None:
             silent=args.silent,
             output=args.output,
         )
+
+    # Report generation commands
+    elif args.command == "report":
+        if args.action == "annotators":
+            f.report_annotators(
+                args.datasets,
+                args.start,
+                args.stop,
+                [AnnotatorReportGrouping(value) for value in args.group_by],
+                args.pretty,
+            )
+        elif args.action == "help" or args.action is None:
+            f.help(parser, "report")
 
 
 if __name__ == "__main__":

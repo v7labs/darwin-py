@@ -35,6 +35,7 @@ from darwin.dataset.split_manager import split_dataset
 from darwin.dataset.upload_manager import LocalFile
 from darwin.dataset.utils import get_release_path
 from darwin.datatypes import (
+    AnnotatorReportGrouping,
     ExportParser,
     ImportParser,
     NumberLike,
@@ -1346,6 +1347,88 @@ def post_comment(
     except Exception:
         console.print("[bold red]There was an error posting your comment!\n")
         console.print(f"[red]{traceback.format_exc()}")
+
+
+def report_annotators(
+    dataset_slugs: list[str],
+    start: datetime.datetime,
+    stop: datetime.datetime,
+    group_by: list[AnnotatorReportGrouping],
+    pretty: bool,
+) -> None:
+    """
+    Prints an annotators report in CSV format.
+
+    Parameters
+    ----------
+    dataset_slugs : list[str]
+        Slugs of datasets to include in the report.
+    start : datetime.datetime
+        Timezone aware report start DateTime.
+    stop : datetime.datetime
+        Timezone aware report end DateTime.
+    group_by: list[AnnotatorReportGrouping]
+        Non-empty list of grouping options for the report.
+    pretty : bool
+        If ``True``, it will print the output in a Rich formatted table.
+    """
+    client: Client = _load_client(offline=True)
+    console = Console(theme=_console_theme())
+
+    dataset_ids = []
+    for dataset in client.list_remote_datasets():
+        if dataset.slug in dataset_slugs:
+            dataset_ids.append(dataset.dataset_id)
+            dataset_slugs.remove(dataset.slug)
+
+    if dataset_slugs:
+        _error(f"Datasets '{dataset_slugs}' do not exist.")
+
+    report: str = client.get_annotators_report(
+        dataset_ids,
+        start,
+        stop,
+        group_by,
+    ).text
+
+    if not pretty:
+        # if no one worked in the report, we print nothing
+        print(report)
+        return
+
+    lines: List[str] = report.split("\n")
+    lines.pop(0)  # remove csv headers
+
+    if not lines:
+        console.print("No one has worked on this dataset yet!\n", style="success")
+        return
+
+    lines.pop()  # remove last line, which is empty
+
+    table: Table = Table(show_header=True, header_style="bold cyan")
+    table.add_column("Date")
+    table.add_column("Dataset Id", justify="right")
+    table.add_column("Dataset Name", justify="right")
+    table.add_column("Dataset Slug", justify="right")
+    table.add_column("Workflow Id", justify="right")
+    table.add_column("Workflow Name", justify="right")
+    table.add_column("Current Stage Id", justify="right")
+    table.add_column("Current Stage Name", justify="right")
+    table.add_column("User Id", justify="right")
+    table.add_column("User Type", justify="right")
+    table.add_column("Email", justify="right")
+    table.add_column("Full Name", justify="right")
+    table.add_column("Active Time", justify="right")
+    table.add_column("Total Annotations", justify="right")
+    table.add_column("Review Pass Rate", justify="right")
+    table.add_column("Total Items Annotated", justify="right")
+    table.add_column("Time Per Annotation", justify="right")
+    table.add_column("Time Per Item", justify="right")
+
+    for row in lines:
+        table.add_row(*row.split(","))
+
+    console.print(table)
 
 
 def help(parser: argparse.ArgumentParser, subparser: Optional[str] = None) -> None:

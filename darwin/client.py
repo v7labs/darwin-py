@@ -2,23 +2,36 @@ import json
 import logging
 import os
 import zlib
+from datetime import datetime
 from logging import Logger
 from pathlib import Path
 from typing import Dict, Iterator, List, Optional, Union, cast
-from requests.exceptions import HTTPError
+
 import requests
 from requests import Response
 from requests.adapters import HTTPAdapter
-from tenacity import RetryCallState, retry, stop_after_attempt, wait_exponential_jitter
+from requests.exceptions import HTTPError
+from tenacity import (
+    RetryCallState,
+    retry,
+    retry_if_exception_type,
+    stop_after_attempt,
+    stop_after_delay,
+    wait_exponential_jitter,
+)
+from tenacity.wait import wait_exponential
+
 from darwin.backend_v2 import BackendV2
 from darwin.config import Config
 from darwin.dataset.identifier import DatasetIdentifier
 from darwin.dataset.remote_dataset import RemoteDataset
 from darwin.dataset.remote_dataset_v2 import RemoteDatasetV2
 from darwin.datatypes import (
+    AnnotatorReportGrouping,
     DarwinVersionNumber,
     Feature,
     ObjectStore,
+    ReportJob,
     Team,
     UnknownType,
 )
@@ -54,6 +67,12 @@ from darwin.utils.get_item_count import get_item_count
 INITIAL_WAIT = int(os.getenv("DARWIN_RETRY_INITIAL_WAIT", "60"))
 MAX_WAIT = int(os.getenv("DARWIN_RETRY_MAX_WAIT", "300"))
 MAX_RETRIES = int(os.getenv("DARWIN_RETRY_MAX_ATTEMPTS", "10"))
+
+HOUR = 60 * 60
+
+
+class JobPendingException(Exception):
+    """Raised when a requested job is not finished or failed."""
 
 
 def log_rate_limit_exceeded(retry_state: RetryCallState):
@@ -632,6 +651,105 @@ class Client:
             f"/reports/{the_team_slug}/annotation?group_by=dataset,user&dataset_ids={dataset_id}&granularity={granularity}&format=csv&include=dataset.name,user.first_name,user.last_name,user.email",
             the_team_slug,
         )
+
+    def get_annotators_report(
+        self,
+        dataset_ids: list[int],
+        start: datetime,
+        stop: datetime,
+        group_by: list[AnnotatorReportGrouping],
+        team_slug: Optional[str] = None,
+    ) -> Response:
+        """
+        Gets annotators the report for the given dataset.
+
+        Parameters
+        ----------
+        dataset_ids: int
+            Ids of the datasets to include in the report.
+        start : datetime.datetime
+            Timezone aware report start DateTime
+        stop : datetime.datetime
+            Timezone aware report end DateTime
+        group_by: list[AnnotatorReportGrouping]
+            Non-empty list of grouping options for the report.
+        team_slug: Optional[str]
+            Team slug of the team the dataset will belong to. Defaults to None.
+
+        Returns
+        ------
+        Response
+            The raw response of the report (CSV format) or None if the Team was not found.
+
+        Raises
+        ------
+        ValueError
+            If no team was found. If start or stop parameters are not timezone aware. If no group_by options provided.
+        """
+        if start.utcoffset() is None or stop.utcoffset() is None:
+            raise ValueError(
+                "start and stop parameters must be timezone aware (e.g. 2024-11-04T00:00:00Z)"
+            )
+
+        if not group_by:
+            raise ValueError(
+                f"At least one group_by option is required, any of: {[option.value for option in AnnotatorReportGrouping]}"
+            )
+
+        the_team: Optional[Team] = self.config.get_team(team_slug or self.default_team)
+
+        if not the_team:
+            raise ValueError("No team was found.")
+
+        the_team_slug: str = the_team.slug
+
+        response_data = self._post(
+            f"/v3/teams/{the_team_slug}/reports/annotator/jobs",
+            {
+                "start": start.isoformat(timespec="seconds"),
+                "stop": stop.isoformat(timespec="seconds"),
+                "dataset_ids": dataset_ids,
+                "group_by": [option.value for option in group_by],
+                "format": "csv",
+                "metrics": [
+                    "active_time",
+                    "total_annotations",
+                    "total_items_annotated",
+                    "time_per_item",
+                    "time_per_annotation",
+                    "review_pass_rate",
+                ],
+            },
+            the_team_slug,
+        )
+        report_job = ReportJob.model_validate(response_data)
+
+        finished_report_job = self.poll_pending_report_job(the_team_slug, report_job.id)
+        assert isinstance(finished_report_job.url, str)
+
+        return self._get_raw_from_full_url(finished_report_job.url, the_team_slug)
+
+    @retry(
+        reraise=True,
+        wait=wait_exponential(max=MAX_WAIT),
+        stop=stop_after_delay(2 * HOUR),
+        retry=retry_if_exception_type(JobPendingException),
+    )
+    def poll_pending_report_job(self, team_slug: str, job_id: str) -> ReportJob:
+        job_status_url = f"/v3/teams/{team_slug}/reports/annotator/jobs/{job_id}"
+
+        response_data = self._get(job_status_url, team_slug)
+        report_job = ReportJob.model_validate(response_data)
+
+        if report_job.status == "failed":
+            raise ValueError("Building an annotator report failed, try again later.")
+
+        if report_job.status != "finished":
+            raise JobPendingException(
+                f"Polling for generated report results timed out, job status can be requested manually: {urljoin(self.url, job_status_url)}"
+            )
+
+        return report_job
 
     def fetch_binary(self, url: str) -> Response:
         """
