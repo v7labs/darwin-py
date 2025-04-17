@@ -1,7 +1,15 @@
 import ast
 from pathlib import Path
 
-EXCLUDED_DIRS = {"venv", ".venv", "env", ".env", "__pycache__", "site-packages", "future"}
+EXCLUDED_DIRS = {
+    "venv",
+    ".venv",
+    "env",
+    ".env",
+    "__pycache__",
+    "site-packages",
+    "future",
+}
 CAUGHT_VIOLATIONS_EXAMPLE = """
 FOO = str | None
 
