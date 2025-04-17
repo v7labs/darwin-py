@@ -526,3 +526,27 @@ class TestReportAnnotators:
                 "Error: Datasets '['non-existent-dataset']' do not exist."
                 in captured.out
             )
+
+    def test_raises_if_invalid_grouping_option_supplied(
+        self, remote_dataset: RemoteDataset, capsys
+    ):
+        test_args = [
+            "darwin",
+            "report",
+            "annotators",
+            "--start",
+            "2024-11-04T00:00:00Z",
+            "--stop",
+            "2025-05-01T00:00:00+02:00",
+            "--group-by",
+            "annotators,bad-grouping-option",
+        ]
+
+        with (
+            patch.object(sys, "argv", test_args),
+            patch.object(Client, "list_remote_datasets", return_value=[remote_dataset]),
+        ):
+            args, parser = Options().parse_args()
+
+            with pytest.raises(ValueError, match="'bad-grouping-option' is not a valid AnnotatorReportGrouping"):
+                cli._run(args, parser)
