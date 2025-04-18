@@ -66,6 +66,11 @@ jobs:
         shell: pwsh
         run: choco install ffmpeg -y
 
+      - name: Check darwin version
+        shell: bash
+        run: |
+          python -m darwin version
+
       - name: Run pytest
         shell: bash # Stops Windows hosts from using PowerShell
         run: |
