@@ -11,10 +11,6 @@ permissions:
   contents: read
   id-token: write # Necessary for the generate documentation job
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
   run_tests:
     name: Run tests
