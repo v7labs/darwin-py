@@ -1573,7 +1573,7 @@ class ReportJob(BaseModel):
     id: str
     status: str
     format: str
-    url: str | None
+    url: Optional[str]
     team_id: int
 
 

@@ -236,7 +236,7 @@ def local(team: Optional[str] = None) -> None:
     table.add_column("Sync Date", justify="right")
     table.add_column("Size", justify="right")
 
-    client: Client = _load_client(offline=True)
+    client: Client = _load_client()
     for dataset_path in client.list_local_datasets(team_slug=team):
         files_in_dataset_path = find_files([dataset_path])
         table.add_row(
@@ -267,7 +267,7 @@ def path(dataset_slug: str) -> Path:
         The absolute path of the dataset.
     """
     identifier: DatasetIdentifier = DatasetIdentifier.parse(dataset_slug)
-    client: Client = _load_client(offline=True)
+    client: Client = _load_client()
 
     for path in client.list_local_datasets(team_slug=identifier.team_slug):
         if identifier.dataset_slug == path.name:
@@ -290,7 +290,7 @@ def url(dataset_slug: str) -> None:
     dataset_slug: str
         The dataset's slug.
     """
-    client: Client = _load_client(offline=True)
+    client: Client = _load_client()
     try:
         remote_dataset: RemoteDataset = client.get_remote_dataset(
             dataset_identifier=dataset_slug
@@ -327,7 +327,7 @@ def export_dataset(
         When used for V2 dataset, allows to force generation of either Darwin JSON 1.0 (Legacy) or newer 2.0.
         Ommit this option to get your team's default.
     """
-    client: Client = _load_client(offline=False)
+    client: Client = _load_client()
     identifier: DatasetIdentifier = DatasetIdentifier.parse(dataset_slug)
     ds: RemoteDataset = client.get_remote_dataset(identifier)
 
@@ -386,7 +386,7 @@ def pull_dataset(
         If retrying, time to wait between retries of checking if the release is ready for download.
     """
     version: str = DatasetIdentifier.parse(dataset_slug).version or "latest"
-    client: Client = _load_client(offline=False, maybe_guest=True)
+    client: Client = _load_client(maybe_guest=True)
     try:
         dataset: RemoteDataset = client.get_remote_dataset(
             dataset_identifier=dataset_slug
@@ -448,7 +448,7 @@ def split(
         Random seed. Defaults to 0.
     """
     identifier: DatasetIdentifier = DatasetIdentifier.parse(dataset_slug)
-    client: Client = _load_client(offline=True)
+    client: Client = _load_client()
 
     for p in client.list_local_datasets(team_slug=identifier.team_slug):
         if identifier.dataset_slug == p.name:
@@ -531,7 +531,7 @@ def remove_remote_dataset(dataset_slug: str) -> None:
     dataset_slug: str
         The dataset's slug.
     """
-    client: Client = _load_client(offline=False)
+    client: Client = _load_client()
     try:
         dataset: RemoteDataset = client.get_remote_dataset(
             dataset_identifier=dataset_slug
@@ -557,7 +557,7 @@ def dataset_list_releases(dataset_slug: str) -> None:
     dataset_slug: str
         The dataset's slug.
     """
-    client: Client = _load_client(offline=False)
+    client: Client = _load_client()
     try:
         dataset: RemoteDataset = client.get_remote_dataset(
             dataset_identifier=dataset_slug
@@ -1446,19 +1446,16 @@ def _config() -> Config:
 
 def _load_client(
     team_slug: Optional[str] = None,
-    offline: bool = False,
     maybe_guest: bool = False,
     dataset_identifier: Optional[str] = None,
 ) -> Client:
-    """Fetches a client, potentially offline
+    """Fetches a client
 
     Parameters
     ----------
-    offline : bool
-        Flag for using an offline client
-
     maybe_guest : bool
         Flag to make a guest client, if config is missing
+
     Returns
     -------
     Client
