@@ -199,26 +199,6 @@ class Options:
             "dataset", type=str, help="Remote dataset name to delete."
         )
 
-        # Report
-        parser_report = dataset_action.add_parser(
-            "report", help="Report about the annotators."
-        )
-        parser_report.add_argument(
-            "dataset", type=str, help="Remote dataset name to report on."
-        )
-        parser_report.add_argument(
-            "-g",
-            "--granularity",
-            choices=["day", "week", "month", "total"],
-            help="Granularity of the report.",
-        )
-        parser_report.add_argument(
-            "-r",
-            "--pretty",
-            action="store_true",
-            default=False,
-            help="Prints the results formatted in a rich table.",
-        )
         # Export
         parser_export = dataset_action.add_parser(
             "export", help="Export a version of a dataset."

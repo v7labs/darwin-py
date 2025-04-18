@@ -13,7 +13,6 @@ from typing import (
     Iterable,
 )
 from pydantic import ValidationError
-from requests.models import Response
 
 from darwin.dataset import RemoteDataset
 from darwin.dataset.release import Release
@@ -503,25 +502,6 @@ class RemoteDatasetV2(RemoteDataset):
             dataset_slug=self.slug,
             team_slug=self.team,
         )
-
-    def get_report(self, granularity: str = "day") -> str:
-        """
-        Returns a String representation of a CSV report for this ``RemoteDataset``.
-
-        Parameters
-        ----------
-        granularity : str, default: "day"
-            The granularity of the report, can be 'day', 'week' or 'month'.
-
-        Returns
-        -------
-        str
-            A CSV report.
-        """
-        response: Response = self.client.get_report(
-            self.dataset_id, granularity, self.team
-        )
-        return response.text
 
     def workview_url_for_item(self, item: DatasetItem) -> str:
         """

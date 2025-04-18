@@ -719,22 +719,6 @@ class RemoteDataset(ABC):
         """
 
     @abstractmethod
-    def get_report(self, granularity: str = "day") -> str:
-        """
-        Returns a String representation of a CSV report for this ``RemoteDataset``.
-
-        Parameters
-        ----------
-        granularity : str, default: "day"
-            The granularity of the report, can be 'day', 'week' or 'month'.
-
-        Returns
-        -------
-        str
-            A CSV report.
-        """
-
-    @abstractmethod
     def get_releases(self, include_unavailable: bool = False) -> List["Release"]:
         """
         Get a sorted list of releases with the most recent first.

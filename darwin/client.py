@@ -615,43 +615,6 @@ class Client:
         )
         return response
 
-    def get_report(
-        self, dataset_id: int, granularity: str, team_slug: Optional[str] = None
-    ) -> Response:
-        """
-        Gets the report for the given dataset.
-
-        Parameters
-        ----------
-        dataset_id: int
-            The id of the dataset.
-        granularity: str
-            Granularity of the report, can be 'day', 'week' or 'month'.
-        team_slug: Optional[str]
-            Team slug of the team the dataset will belong to. Defaults to None.
-
-        Returns
-        ------
-        Response
-            The raw response of the report (CSV format) or None if the Team was not found.
-
-        Raises
-        ------
-        ValueError
-            If no team was found.
-        """
-        the_team: Optional[Team] = self.config.get_team(team_slug or self.default_team)
-
-        if not the_team:
-            raise ValueError("No team was found.")
-
-        the_team_slug: str = the_team.slug
-
-        return self._get_raw(
-            f"/reports/{the_team_slug}/annotation?group_by=dataset,user&dataset_ids={dataset_id}&granularity={granularity}&format=csv&include=dataset.name,user.first_name,user.last_name,user.email",
-            the_team_slug,
-        )
-
     def get_annotators_report(
         self,
         dataset_ids: list[int],
