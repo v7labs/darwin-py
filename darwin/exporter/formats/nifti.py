@@ -83,7 +83,9 @@ def export(
             medical_metadata = video_annotation.slots[0].metadata
             legacy = not medical_metadata.get("handler") == "MONAI"  # type: ignore
             plane_map = medical_metadata.get("plane_map", {slot_name: "AXIAL"})
-            primary_plane = medical_metadata.get("primary_plane", plane_map.get(slot_name, "AXIAL"))
+            primary_plane = medical_metadata.get(
+                "primary_plane", plane_map.get(slot_name, "AXIAL")
+            )
         except (KeyError, AttributeError):
             legacy = True
             primary_plane = "AXIAL"
