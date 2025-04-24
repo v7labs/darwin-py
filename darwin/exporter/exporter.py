@@ -6,6 +6,7 @@ from darwin.utils import (
     get_annotation_files_from_dir,
     parse_darwin_json,
     split_video_annotation,
+    load_data_from_file
 )
 
 
@@ -38,17 +39,20 @@ def darwin_to_dt_gen(
         for f in files:
             if f.suffix != ".json":
                 continue
-            data = parse_darwin_json(f, count)
-            if data:
-                if data.is_video and split_sequences:
-                    for d in split_video_annotation(data):
-                        d.seq = count
-                        count += 1
-                        yield d
-                else:
-                    yield data
-            count += 1
-
+            raw_data, version = load_data_from_file(f)
+            item = raw_data["item"]
+            slots = len(item.get("slots", []))  # Determine the number of slots
+            for slot_index in range(slots):  # Iterate over each slot
+                data = parse_darwin_json(f, count, slot_index)
+                if data:
+                    if data.is_video and split_sequences:
+                        for d in split_video_annotation(data):
+                            d.seq = count
+                            count += 1
+                            yield d
+                    else:
+                        yield data
+                count += 1
 
 def export_annotations(
     exporter: ExportParser,
@@ -69,8 +73,9 @@ def export_annotations(
         Where the parsed files will be placed after the operation is complete.
     """
     print("Converting annotations...")
+    annotation_files = darwin_to_dt_gen(file_paths, split_sequences=split_sequences)
     exporter(
-        darwin_to_dt_gen(file_paths, split_sequences=split_sequences),
+        annotation_files,
         Path(output_directory),
     )
     print(f"Converted annotations saved at {output_directory}")

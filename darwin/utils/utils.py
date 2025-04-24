@@ -447,7 +447,7 @@ def load_data_from_file(path: Path) -> Tuple[dict, dt.AnnotationFileVersion]:
 
 
 def parse_darwin_json(
-    path: Path, count: Optional[int] = None
+    path: Path, count: Optional[int] = None, slot_index: Optional[int] = None
 ) -> Optional[dt.AnnotationFile]:
     """
     Parses the given JSON file in v7's darwin proprietary format. Works for images, split frame
@@ -479,7 +479,7 @@ def parse_darwin_json(
     if "annotations" not in data:
         return None
 
-    return _parse_darwin_v2(path, data)
+    return _parse_darwin_v2(path, data, slot_index)
 
 
 def stream_darwin_json(path: Path) -> PersistentStreamingJSONObject:
@@ -560,7 +560,7 @@ def is_stream_list_empty(json_list: PersistentStreamingJSONList) -> bool:
     return False
 
 
-def _parse_darwin_v2(path: Path, data: Dict[str, Any]) -> dt.AnnotationFile:
+def _parse_darwin_v2(path: Path, data: Dict[str, Any], slot_index: Optional[int]) -> dt.AnnotationFile:
     item = data["item"]
     item_source = item.get("source_info", {})
     slots: List[dt.Slot] = list(
@@ -597,17 +597,26 @@ def _parse_darwin_v2(path: Path, data: Dict[str, Any]) -> dt.AnnotationFile:
             item_properties=data.get("properties", []),
         )
     else:
-        slot = slots[0]
+        if slot_index is not None:
+            slot = slots[slot_index]
+        else:
+            slot = slots[0]
+        slot_annotations = [
+            annotation for annotation in annotations
+            if hasattr(annotation, "slot_names") and annotation.slot_names and annotation.slot_names[0] == slot.name
+        ]
+        slot_annotation_classes = {annotation.annotation_class for annotation in slot_annotations}
+
         annotation_file = dt.AnnotationFile(
             version=_parse_version(data),
             path=path,
-            filename=item["name"],
+            filename=item["name"] + "-" + slot.name,
             item_id=item.get("source_info", {}).get("item_id", None),
             dataset_name=item.get("source_info", {})
             .get("dataset", {})
             .get("name", None),
-            annotation_classes=annotation_classes,
-            annotations=annotations,
+            annotation_classes=slot_annotation_classes,
+            annotations=slot_annotations,
             is_video=slot.frame_urls is not None or slot.frame_manifest is not None,
             image_width=slot.width,
             image_height=slot.height,
