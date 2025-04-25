@@ -1,19 +1,26 @@
-from subprocess import run
-from time import sleep
-from typing import Optional, Union, Sequence
-
-from attr import dataclass
-from darwin.exceptions import DarwinException
 import datetime
 import json
+import random
 import re
+import string
+import time
 import uuid
+from pathlib import Path
+from subprocess import run
+from time import sleep
+from typing import Literal, Optional, Sequence, Union
+
+import numpy as np
 import pytest
 import requests
-import time
-from e2e_tests.objects import E2EDataset, ConfigValues
-from darwin.dataset.release import Release, ReleaseStatus
+from attr import dataclass
+from PIL import Image
+
 import darwin.datatypes as dt
+from darwin.dataset.release import Release, ReleaseStatus
+from darwin.exceptions import DarwinException
+from e2e_tests.logger_config import logger
+from e2e_tests.objects import ConfigValues, E2EDataset, TeamConfigValues
 
 
 @dataclass
@@ -29,24 +36,26 @@ SERVER_WAIT_TIME = 10
 
 
 @pytest.fixture
-def new_dataset() -> E2EDataset:
+def new_dataset(isolated_team: TeamConfigValues) -> E2EDataset:
     """Create a new dataset via darwin cli and return the dataset object, complete with teardown"""
+    logger.debug(f"Creating new dataset within team {isolated_team.team_slug}")
     uuid_str = str(uuid.uuid4())
     new_dataset_name = "test_dataset_" + uuid_str
-    result = run_cli_command(f"darwin dataset create {new_dataset_name}")
+    result = run_cli_command(
+        f"darwin team {isolated_team.team_slug} && darwin dataset create {new_dataset_name}"
+    )
     assert_cli(result, 0)
     id_raw = re.findall(r"datasets[/\\+](\d+)", result.stdout)
     assert id_raw is not None and len(id_raw) == 1
     id = int(id_raw[0])
     teardown_dataset = E2EDataset(id, new_dataset_name, None)
-    pytest.datasets.append(teardown_dataset)  # type: ignore
+    logger.debug(f"Dataset created {result.stdout}")
     return teardown_dataset
 
 
 def run_cli_command(
     command: str,
     working_directory: Optional[str] = None,
-    yes: bool = False,
     server_wait: int = SERVER_WAIT_TIME,
 ) -> CLIResult:
     """
@@ -69,11 +78,9 @@ def run_cli_command(
     if ".." in command or (working_directory and ".." in working_directory):
         raise DarwinException("Cannot pass directory traversal to 'run_cli_command'.")
 
-    if yes:
-        command = f"yes Y | {command}"
-
     # Prefix the command with 'poetry run' to ensure it runs in the Poetry shell
     command = f"poetry run {command}"
+    logger.debug(f"Running command: {command}")
 
     if working_directory:
         result = run(
@@ -90,17 +97,26 @@ def run_cli_command(
         )
     sleep(server_wait)  # wait for server to catch up
     try:
-        return CLIResult(
+        cli_result = CLIResult(
             result.returncode,
             result.stdout.decode("utf-8"),
             result.stderr.decode("utf-8"),
         )
     except UnicodeDecodeError:
-        return CLIResult(
+        cli_result = CLIResult(
             result.returncode,
             result.stdout.decode("cp437"),
             result.stderr.decode("cp437"),
         )
+
+    logger.debug(f"CLI command result: {cli_result}")
+
+    if result.returncode != 0:
+        logger.error(f"Command failed with exit code {result.returncode}")
+        logger.error(f"Output: {result.stdout}")
+        logger.error(f"Error: {result.stderr}")
+
+    return cli_result
 
 
 def format_cli_output(result: CLIResult) -> str:
@@ -164,15 +180,18 @@ def list_items(api_key, dataset_id, team_slug, base_url):
 
 
 def wait_until_items_processed(
-    config_values: ConfigValues, dataset_id: int, timeout: int = 600
+    config_values: ConfigValues,
+    isolated_team: TeamConfigValues,
+    dataset_id: int,
+    timeout: int = 600,
 ):
     """
     Waits until all items in a dataset have finished processing before attempting to upload annotations.
     Raises a `TimeoutError` if the process takes longer than the specified timeout.
     """
     sleep_duration = 10
-    api_key = config_values.api_key
-    team_slug = config_values.team_slug
+    api_key = isolated_team.api_key
+    team_slug = isolated_team.team_slug
     base_url = config_values.server
     elapsed_time = 0
 
@@ -196,6 +215,7 @@ def export_release(
     annotation_format: str,
     local_dataset: E2EDataset,
     config_values: ConfigValues,
+    isolated_team: TeamConfigValues,
     release_name: Optional[str] = "all-files",
 ) -> Release:
     """
@@ -203,9 +223,10 @@ def export_release(
     Waits for the export to finish, then downloads and the annotation files to
     `actual_annotations_dir`
     """
+    logger.debug(f"Creating export {release_name} for dataset {local_dataset.slug}")
     dataset_slug = local_dataset.slug
-    team_slug = config_values.team_slug
-    api_key = config_values.api_key
+    team_slug = isolated_team.team_slug
+    api_key = isolated_team.api_key
     base_url = config_values.server
     create_export_url = (
         f"{base_url}/api/v2/teams/{team_slug}/datasets/{dataset_slug}/exports"
@@ -281,3 +302,90 @@ def delete_annotation_uuids(
                 del annotation.frames[frame].id
                 if annotation.annotation_class.annotation_type == "raster_layer":
                     del annotation.frames[frame].data["mask_annotation_ids_mapping"]
+
+
+def api_call(
+    verb: Literal["get", "post", "put", "delete"],
+    url: str,
+    payload: Optional[dict],
+    api_key: str,
+) -> requests.Response:
+    """
+    Make an API call to the server
+    (Written independently of the client library to avoid relying on tested items)
+
+    Parameters
+    ----------
+    verb : Literal["get", "post", "put" "delete"]
+        The HTTP verb to use
+    url : str
+        The URL to call
+    payload : dict
+        The payload to send
+    api_key : str
+        The API key to use
+
+    Returns
+    -------
+    requests.Response
+        The response object
+    """
+    headers = {"Authorization": f"ApiKey {api_key}"}
+    action = getattr(requests, verb)
+    if payload:
+        response = action(url, headers=headers, json=payload)
+    else:
+        response = action(url, headers=headers)
+    return response
+
+
+def generate_random_string(
+    length: int = 6, alphabet: str = (string.ascii_lowercase + string.digits)
+) -> str:
+    """
+    A random-enough to avoid collision on test runs prefix generator
+
+    Parameters
+    ----------
+    length : int
+        The length of the prefix to generate
+
+    Returns
+    -------
+    str
+        The generated prefix, of length (length).  Matches [a-z0-9]
+    """
+    return "".join(random.choice(alphabet) for i in range(length))
+
+
+def create_random_image(
+    prefix: str,
+    directory: Path,
+    height: int = 100,
+    width: int = 100,
+    fixed_name: bool = False,
+) -> Path:
+    """
+    Create a random image file in the given directory
+
+    Parameters
+    ----------
+
+    directory : Path
+        The directory to create the image in
+
+    Returns
+    -------
+    Path
+        The path to the created image
+    """
+    if fixed_name:
+        image_name = f"image_{prefix}.png"
+    else:
+        image_name = f"{prefix}_{generate_random_string(4)}_image.png"
+
+    image_array = np.array(np.random.rand(height, width, 3) * 255)
+    im = Image.fromarray(image_array.astype("uint8")).convert("RGBA")
+    im.save(str(directory / image_name))
+
+    return directory / image_name

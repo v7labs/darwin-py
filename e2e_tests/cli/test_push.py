@@ -1,20 +1,24 @@
+import tempfile
+import zipfile
 from pathlib import Path
-
 
 from e2e_tests.helpers import (
     assert_cli,
+    list_items,
     run_cli_command,
     wait_until_items_processed,
-    list_items,
 )
-from e2e_tests.objects import E2EDataset, E2EItem, ConfigValues
-
-import tempfile
-import zipfile
+from e2e_tests.logger_config import logger
+from e2e_tests.objects import ConfigValues, E2EDataset, E2EItem, TeamConfigValues
 
 
 def extract_and_push(
-    push_dir, local_dataset, config_values, expected_push_dir, extra_args=""
+    push_dir,
+    local_dataset,
+    config_values,
+    isolated_team,
+    expected_push_dir,
+    extra_args="",
 ):
     with tempfile.TemporaryDirectory() as tmp_dir_str:
         tmp_dir = Path(tmp_dir_str)
@@ -24,11 +28,11 @@ def extract_and_push(
                 f"darwin dataset push {local_dataset.name} {tmp_dir}/{expected_push_dir} {extra_args}"
             )
             assert_cli(result, 0)
-            wait_until_items_processed(config_values, local_dataset.id)
+            wait_until_items_processed(config_values, isolated_team, local_dataset.id)
             items = list_items(
-                config_values.api_key,
+                isolated_team.api_key,
                 local_dataset.id,
-                config_values.team_slug,
+                isolated_team.team_slug,
                 config_values.server,
             )
             for item in items:
@@ -46,7 +50,9 @@ def extract_and_push(
 
 
 def test_push_mixed_filetypes(
-    local_dataset: E2EDataset, config_values: ConfigValues
+    local_dataset: E2EDataset,
+    config_values: ConfigValues,
+    isolated_team: TeamConfigValues,
 ) -> None:
     """
     Test pushing a directory of files containing various fileytypes:
@@ -58,12 +64,18 @@ def test_push_mixed_filetypes(
     """
     expected_push_dir = "mixed_filetypes"
     push_dir = Path(__file__).parents[1] / "data" / "push" / f"{expected_push_dir}.zip"
-    items = extract_and_push(push_dir, local_dataset, config_values, expected_push_dir)
+    logger.info(f"Starting push test for team {isolated_team.team_slug}")
+    items = extract_and_push(
+        push_dir, local_dataset, config_values, isolated_team, expected_push_dir
+    )
     assert len(items) == 5
+    logger.info("Push operation completed successfully")
 
 
 def test_push_nested_directory_of_images(
-    local_dataset: E2EDataset, config_values: ConfigValues
+    local_dataset: E2EDataset,
+    config_values: ConfigValues,
+    isolated_team: TeamConfigValues,
 ) -> None:
     """
     Test pushing a nested directory structure of some images with the `preserve_folders` flag.
@@ -78,16 +90,25 @@ def test_push_nested_directory_of_images(
         "image_6.jpg": "/dir1/dir3",
     }
     push_dir = Path(__file__).parents[1] / "data" / "push" / f"{expected_push_dir}.zip"
+    logger.info(f"Starting push test for team {isolated_team.team_slug}")
     items = extract_and_push(
-        push_dir, local_dataset, config_values, expected_push_dir, "--preserve-folders"
+        push_dir,
+        local_dataset,
+        config_values,
+        isolated_team,
+        expected_push_dir,
+        "--preserve-folders",
     )
     assert len(items) == 6
     for item in items:
         assert expected_paths[item["name"]] == item["path"]
+    logger.info("Push operation completed successfully")
 
 
 def test_push_videos_with_non_native_fps(
-    local_dataset: E2EDataset, config_values: ConfigValues
+    local_dataset: E2EDataset,
+    config_values: ConfigValues,
+    isolated_team: TeamConfigValues,
 ) -> None:
     """
     Test that if FPS is set, that the value is respected in the resulting dataset items
@@ -95,8 +116,14 @@ def test_push_videos_with_non_native_fps(
     expected_push_dir = "25_frame_video"
     push_dir = Path(__file__).parents[1] / "data" / "push" / f"{expected_push_dir}.zip"
     fps = 5
+    logger.info(f"Starting push test for team {isolated_team.team_slug}")
     items = extract_and_push(
-        push_dir, local_dataset, config_values, expected_push_dir, f"--fps {fps}"
+        push_dir,
+        local_dataset,
+        config_values,
+        isolated_team,
+        expected_push_dir,
+        f"--fps {fps}",
     )
     video_metadata = items[0]["slots"][0]["metadata"]
     assert len(items) == 1
@@ -104,10 +131,13 @@ def test_push_videos_with_non_native_fps(
     assert video_metadata["native_fps"] == 10
     assert video_metadata["frames_manifests"][0]["total_frames"] == 25
     assert video_metadata["frames_manifests"][0]["visible_frames"] == 13
+    logger.info("Push operation completed successfully")
 
 
 def test_push_multi_slotted_item(
-    local_dataset: E2EDataset, config_values: ConfigValues
+    local_dataset: E2EDataset,
+    config_values: ConfigValues,
+    isolated_team: TeamConfigValues,
 ) -> None:
     """
     Test pushing a multi-slotted item with the CLI. Check the resulting item is
@@ -129,10 +159,12 @@ def test_push_multi_slotted_item(
         "image_6.jpg",
     ]
     push_dir = Path(__file__).parents[1] / "data" / "push" / f"{expected_push_dir}.zip"
+    logger.info(f"Starting push test for team {isolated_team.team_slug}")
     items = extract_and_push(
         push_dir,
         local_dataset,
         config_values,
+        isolated_team,
         expected_push_dir,
         "--item-merge-mode slots",
     )
@@ -144,10 +176,13 @@ def test_push_multi_slotted_item(
     for num, slot in enumerate(multi_slotted_item["slots"]):
         assert slot["slot_name"] == str(num)
         assert slot["file_name"] == expected_file_names[num]
+    logger.info("Push operation completed successfully")
 
 
 def test_push_multi_channel_item(
-    local_dataset: E2EDataset, config_values: ConfigValues
+    local_dataset: E2EDataset,
+    config_values: ConfigValues,
+    isolated_team: TeamConfigValues,
 ) -> None:
     """
     Test pushing a multi-channel item with the CLI. Check the resulting item is
@@ -180,10 +215,12 @@ def test_push_multi_channel_item(
         "image_6.jpg",
     ]
     push_dir = Path(__file__).parents[1] / "data" / "push" / f"{expected_push_dir}.zip"
+    logger.info(f"Starting push test for team {isolated_team.team_slug}")
     items = extract_and_push(
         push_dir,
         local_dataset,
         config_values,
+        isolated_team,
         expected_push_dir,
         "--item-merge-mode channels",
     )
@@ -195,10 +232,13 @@ def test_push_multi_channel_item(
     for num, slot in enumerate(multi_channel_item["slots"]):
         assert slot["slot_name"] == expected_file_names[num]
         assert slot["file_name"] == expected_file_names[num]
+    logger.info("Push operation completed successfully")
 
 
 def test_push_dicom_series(
-    local_dataset: E2EDataset, config_values: ConfigValues
+    local_dataset: E2EDataset,
+    config_values: ConfigValues,
+    isolated_team: TeamConfigValues,
 ) -> None:
     """
     Test pushing a multi-file DICOM item with the CLI. Check the resulting item is
@@ -209,10 +249,12 @@ def test_push_dicom_series(
     expected_slot_types = ["dicom"]
     expected_layout = {"slots": ["0"], "type": "simple", "version": 1}
     push_dir = Path(__file__).parents[1] / "data" / "push" / f"{expected_push_dir}.zip"
+    logger.info(f"Starting push test for team {isolated_team.team_slug}")
     items = extract_and_push(
         push_dir,
         local_dataset,
         config_values,
+        isolated_team,
         expected_push_dir,
         "--item-merge-mode series",
     )
@@ -223,3 +265,4 @@ def test_push_dicom_series(
     assert dicom_series_item["layout"] == expected_layout
     for num, slot in enumerate(dicom_series_item["slots"]):
         assert slot["slot_name"] == "0"
+    logger.info("Push operation completed successfully")
