@@ -119,13 +119,13 @@ def export(
             populate_output_volumes_from_polygons(
                 polygon_annotations, slot_map, output_volumes, legacy=legacy
             )
-            write_output_volume_to_disk(
-                output_volumes,
-                image_id=image_id,
-                output_dir=output_dir,
-                legacy=legacy,
-                filename=video_annotation.filename,
-            )
+        write_output_volume_to_disk(
+            output_volumes,
+            image_id=image_id,
+            output_dir=output_dir,
+            legacy=legacy,
+            filename=video_annotation.filename,
+        )
         # Need to map raster layers to SeriesInstanceUIDs
         if mask_present:
             mask_id_to_classname = {

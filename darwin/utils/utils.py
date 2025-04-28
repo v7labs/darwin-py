@@ -459,6 +459,8 @@ def parse_darwin_json(
         Path to the file to parse.
     count : Optional[int]
         Optional count parameter. Used only if the 's image sequence is None.
+    slot_index: Optional[int]
+        Optional index of the slot to be parsed as a separate AnnotationFile.
 
     Returns
     -------
@@ -597,26 +599,32 @@ def _parse_darwin_v2(path: Path, data: Dict[str, Any], slot_index: Optional[int]
             item_properties=data.get("properties", []),
         )
     else:
-        if slot_index is not None:
-            slot = slots[slot_index]
-        else:
+        filename = item["name"]
+
+        if slot_index is None:
             slot = slots[0]
-        slot_annotations = [
-            annotation for annotation in annotations
-            if hasattr(annotation, "slot_names") and annotation.slot_names and annotation.slot_names[0] == slot.name
-        ]
-        slot_annotation_classes = {annotation.annotation_class for annotation in slot_annotations}
+        else:
+            slot = slots[slot_index]
+            annotations = [
+                annotation for annotation in annotations
+                if hasattr(annotation, "slot_names") and annotation.slot_names and annotation.slot_names[0] == slot.name
+            ]
+            annotation_classes = {annotation.annotation_class for annotation in annotations}
+
+            if len(slots) > 1:
+                filename = item["name"] + "-" + slot.name
+            slots = [slot]
 
         annotation_file = dt.AnnotationFile(
             version=_parse_version(data),
             path=path,
-            filename=item["name"] + "-" + slot.name,
+            filename=filename,
             item_id=item.get("source_info", {}).get("item_id", None),
             dataset_name=item.get("source_info", {})
             .get("dataset", {})
             .get("name", None),
-            annotation_classes=slot_annotation_classes,
-            annotations=slot_annotations,
+            annotation_classes=annotation_classes,
+            annotations=annotations,
             is_video=slot.frame_urls is not None or slot.frame_manifest is not None,
             image_width=slot.width,
             image_height=slot.height,

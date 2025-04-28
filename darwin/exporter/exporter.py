@@ -39,10 +39,12 @@ def darwin_to_dt_gen(
         for f in files:
             if f.suffix != ".json":
                 continue
+
             raw_data, version = load_data_from_file(f)
             item = raw_data["item"]
-            slots = len(item.get("slots", []))  # Determine the number of slots
-            for slot_index in range(slots):  # Iterate over each slot
+            slot_count = len(item.get("slots", []))
+
+            for slot_index in range(slot_count):
                 data = parse_darwin_json(f, count, slot_index)
                 if data:
                     if data.is_video and split_sequences:
