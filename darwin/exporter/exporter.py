@@ -76,9 +76,8 @@ def export_annotations(
         Where the parsed files will be placed after the operation is complete.
     """
     print("Converting annotations...")
-    annotation_files = darwin_to_dt_gen(file_paths, split_sequences=split_sequences)
     exporter(
-        annotation_files,
+        darwin_to_dt_gen(file_paths, split_sequences=split_sequences),
         Path(output_directory),
     )
     print(f"Converted annotations saved at {output_directory}")
