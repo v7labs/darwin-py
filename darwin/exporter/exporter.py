@@ -6,7 +6,7 @@ from darwin.utils import (
     get_annotation_files_from_dir,
     parse_darwin_json,
     split_video_annotation,
-    load_data_from_file
+    load_data_from_file,
 )
 
 
@@ -55,6 +55,7 @@ def darwin_to_dt_gen(
                     else:
                         yield data
                 count += 1
+
 
 def export_annotations(
     exporter: ExportParser,

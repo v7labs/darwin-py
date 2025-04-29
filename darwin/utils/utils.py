@@ -562,7 +562,9 @@ def is_stream_list_empty(json_list: PersistentStreamingJSONList) -> bool:
     return False
 
 
-def _parse_darwin_v2(path: Path, data: Dict[str, Any], slot_index: Optional[int]) -> dt.AnnotationFile:
+def _parse_darwin_v2(
+    path: Path, data: Dict[str, Any], slot_index: Optional[int]
+) -> dt.AnnotationFile:
     item = data["item"]
     item_source = item.get("source_info", {})
     slots: List[dt.Slot] = list(
@@ -608,10 +610,15 @@ def _parse_darwin_v2(path: Path, data: Dict[str, Any], slot_index: Optional[int]
             slots = [slot]
             filename = item["name"] + "-" + slot.name
             annotations = [
-                annotation for annotation in annotations
-                if hasattr(annotation, "slot_names") and annotation.slot_names and annotation.slot_names[0] == slot.name
+                annotation
+                for annotation in annotations
+                if hasattr(annotation, "slot_names")
+                and annotation.slot_names
+                and annotation.slot_names[0] == slot.name
             ]
-            annotation_classes = {annotation.annotation_class for annotation in annotations}
+            annotation_classes = {
+                annotation.annotation_class for annotation in annotations
+            }
 
         annotation_file = dt.AnnotationFile(
             version=_parse_version(data),
