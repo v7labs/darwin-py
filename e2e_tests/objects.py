@@ -1,11 +1,12 @@
+import json
 from collections import namedtuple
 from dataclasses import dataclass
-from typing import List, Literal, Optional, Tuple, Dict
+from typing import Dict, List, Literal, Optional, Tuple
 from uuid import UUID
 
-from darwin.datatypes import JSONType
 import requests
-import json
+
+from darwin.datatypes import JSONType
 
 ConfigValues = namedtuple("ConfigValues", ["server", "api_key", "team_slug"])
 
@@ -420,6 +421,51 @@ def get_read_only_registration_payload(
                     },
                 ],
             }
+        ],
+        "multi_slotted_dicom": [
+            {
+                "path": path or "/",
+                "layout": {
+                    "slots": ["0", "1"],
+                    "type": "horizontal",
+                    "version": 1,
+                },
+                "slots": [
+                    {
+                        "type": "dicom",
+                        "file_name": "file_1.dcm",
+                        "storage_key": "darwin-py/dicoms/file_1.dcm",
+                        "storage_thumbnail_key": "darwin-py/images/image_3_thumbnail.jpg",
+                        "sections": [
+                            {
+                                "section_index": 1,
+                                "height": 1080,
+                                "width": 1920,
+                                "storage_hq_key": "darwin-py/videos/hq_frames/image_1_hq.jpg",
+                                "storage_lq_key": "darwin-py/videos/hq_frames/image_1_lq.jpg",
+                            },
+                        ],
+                        "slot_name": "0",
+                    },
+                    {
+                        "type": "dicom",
+                        "file_name": "file_2.dcm",
+                        "storage_key": "darwin-py/dicoms/file_2.dcm",
+                        "storage_thumbnail_key": "darwin-py/images/image_3_thumbnail.jpg",
+                        "sections": [
+                            {
+                                "section_index": 1,
+                                "height": 1080,
+                                "width": 1920,
+                                "storage_hq_key": "darwin-py/videos/hq_frames/image_1_hq.jpg",
+                                "storage_lq_key": "darwin-py/videos/hq_frames/image_1_lq.jpg",
+                            },
+                        ],
+                        "slot_name": "1",
+                    },
+                ],
+                "name": "multi_slotted_dicom_item",
+            },
         ],
     }
     return {

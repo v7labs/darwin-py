@@ -512,6 +512,17 @@ def test_import_annotations_to_multi_slotted_item_with_slots_defined(
     )
 
 
+def test_import_annotations_to_multi_slotted_item_with_dicom_slots(
+    local_dataset: E2EDataset, config_values: ConfigValues
+) -> None:
+    run_import_test(
+        local_dataset,
+        config_values,
+        item_type="multi_slotted_dicom",
+        annotations_subdir="multi_slotted_annotations_with_dicom_slots",
+    )
+
+
 def test_import_annotations_to_multi_channel_item_without_slots_defined(
     local_dataset: E2EDataset, config_values: ConfigValues
 ) -> None:

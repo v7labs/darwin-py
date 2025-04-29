@@ -1,0 +1,196 @@
+{
+  "version": "2.0",
+  "schema_ref": "https://darwin-public.s3.eu-west-1.amazonaws.com/darwin_json/2.0/schema.json",
+  "item": {
+    "name": "multi_slotted_dicom_item",
+    "path": "/",
+    "source_info": {
+      "item_id": "01923065-fe73-590a-119b-59cf1cd9b0ea",
+      "dataset": {
+        "name": "test_dataset_c6d7f523-c837-41ce-9267-c9441258d831",
+        "slug": "test_dataset_c6d7f523-c837-41ce-9267-c9441258d831",
+        "dataset_management_url": "https://staging.v7labs.com/datasets/919888/dataset-management"
+      },
+      "team": {
+        "name": "E2E Testing",
+        "slug": "e2e-testing"
+      },
+      "workview_url": "https://staging.v7labs.com/workview?dataset=919888&item=01923065-fe73-590a-119b-59cf1cd9b0ea"
+    },
+    "slots": [
+      {
+        "slot_name": "0",
+        "type": "dicom",
+        "storage_key": "darwin-py/dicoms/file_1.dcm",
+        "storage_thumbnail_key": "darwin-py/images/image_3_thumbnail.jpg",
+        "file_name": "file_1.dcm",
+        "source_files": [
+          {
+            "file_name": "file_1.dcm",
+            "storage_key": "darwin-py/dicoms/file_1.dcm",
+            "url": "https://staging.v7labs.com/api/v2/teams/e2e-testing/uploads/144dc80d-6bec-4885-b5cb-a174f18000e2"
+          }
+        ],
+        "sections": [],
+        "metadata": {
+          "handler": null,
+          "shape": [
+            1,
+            512,
+            512,
+            0
+          ],
+          "SeriesInstanceUID": "1.3.12.2.1107.5.2.41.169564.2020042813301141366601341",
+          "affine": "[[0.08913741368344952, -0.002451136967734148, 1.1977545891985513, 95.846341859537], [-1.4218570160804405, -0.3123601272972694, 0.07121401006667598, 205.87200175651], [0.31163018838647816, -1.4244863529748326, -0.017676742040419257, 120.40900817655], [0.0, 0.0, 0.0, 1.0]]",
+          "colorspace": "RG16",
+          "original_affine": [
+            [
+              "0.08913741368344952",
+              "-0.002451136967734148",
+              "1.1977545891985513",
+              "95.846341859537"
+            ],
+            [
+              "-1.4218570160804405",
+              "-0.3123601272972694",
+              "0.07121401006667598",
+              "205.87200175651"
+            ],
+            [
+              "0.31163018838647816",
+              "-1.4244863529748326",
+              "-0.017676742040419257",
+              "120.40900817655"
+            ],
+            [
+              "0.0",
+              "0.0",
+              "0.0",
+              "1.0"
+            ]
+          ],
+          "pixdim": "(1.4583334, 1.4583334, 1.1999999)",
+          "plane_map": {
+            "0": "AXIAL"
+          }
+        }
+      },
+      {
+        "slot_name": "1",
+        "type": "dicom",
+        "storage_key": "darwin-py/dicoms/file_2.dcm",
+        "storage_thumbnail_key": "darwin-py/images/image_3_thumbnail.jpg",
+        "file_name": "file_2.dcm",
+        "source_files": [
+          {
+            "file_name": "file_2.dcm",
+            "storage_key": "darwin-py/dicoms/file_2.dcm",
+            "url": "https://staging.v7labs.com/api/v2/teams/e2e-testing/uploads/144dc80d-6bec-4885-b5cb-a174f18000e2"
+          }
+        ],
+        "sections": [],
+        "metadata": {
+          "handler": null,
+          "shape": [
+            1,
+            512,
+            512,
+            0
+          ],
+          "SeriesInstanceUID": "1.3.12.2.1107.5.2.41.169564.2020042813301141366601341",
+          "affine": "[[0.08913741368344952, -0.002451136967734148, 1.1977545891985513, 95.846341859537], [-1.4218570160804405, -0.3123601272972694, 0.07121401006667598, 205.87200175651], [0.31163018838647816, -1.4244863529748326, -0.017676742040419257, 120.40900817655], [0.0, 0.0, 0.0, 1.0]]",
+          "colorspace": "RG16",
+          "original_affine": [
+            [
+              "0.08913741368344952",
+              "-0.002451136967734148",
+              "1.1977545891985513",
+              "95.846341859537"
+            ],
+            [
+              "-1.4218570160804405",
+              "-0.3123601272972694",
+              "0.07121401006667598",
+              "205.87200175651"
+            ],
+            [
+              "0.31163018838647816",
+              "-1.4244863529748326",
+              "-0.017676742040419257",
+              "120.40900817655"
+            ],
+            [
+              "0.0",
+              "0.0",
+              "0.0",
+              "1.0"
+            ]
+          ],
+          "pixdim": "(1.4583334, 1.4583334, 1.1999999)",
+          "plane_map": {
+            "0": "AXIAL"
+          }
+        }
+      }
+    ]
+  },
+  "annotations": [
+    {
+      "frames": {
+        "0": {
+          "keyframe": true,
+          "mask": {}
+        }
+      },
+      "id": "e950fe0c-4811-4590-a28a-40cb7ea96864",
+      "interpolate_algorithm": "linear-1.1",
+      "name": "test_mask_basic",
+      "only_keyframes": true,
+      "properties": [],
+      "ranges": [
+        [
+          0,
+          1
+        ]
+      ],
+      "slot_names": [
+        "0"
+      ]
+    },
+    {
+      "frames": {
+        "0": {
+          "keyframe": true,
+          "raster_layer": {
+            "dense_rle": [
+              0,
+              5,
+              1,
+              5,
+              0,
+              5
+            ],
+            "mask_annotation_ids_mapping": {
+              "e950fe0c-4811-4590-a28a-40cb7ea96864": 1
+            },
+            "total_pixels": 15
+          }
+        }
+      },
+      "id": "505f072e-94e5-46d8-89ef-f36663d82c0e",
+      "name": "__raster_layer__",
+      "only_keyframes": true,
+      "properties": [],
+      "ranges": [
+        [
+          0,
+          1
+        ]
+      ],
+      "slot_names": [
+        "0"
+      ]
+    }
+  ],
+  "properties": []
+}
