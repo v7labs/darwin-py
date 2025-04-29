@@ -601,19 +601,17 @@ def _parse_darwin_v2(path: Path, data: Dict[str, Any], slot_index: Optional[int]
     else:
         filename = item["name"]
 
-        if slot_index is None:
+        if slot_index is None or len(slots) == 1:
             slot = slots[0]
         else:
             slot = slots[slot_index]
+            slots = [slot]
+            filename = item["name"] + "-" + slot.name
             annotations = [
                 annotation for annotation in annotations
                 if hasattr(annotation, "slot_names") and annotation.slot_names and annotation.slot_names[0] == slot.name
             ]
             annotation_classes = {annotation.annotation_class for annotation in annotations}
-
-            if len(slots) > 1:
-                filename = item["name"] + "-" + slot.name
-            slots = [slot]
 
         annotation_file = dt.AnnotationFile(
             version=_parse_version(data),
