@@ -9,17 +9,17 @@ on:
 
 permissions:
   contents: read
-  id-token: write # Necessary for the generate documentation job 
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  id-token: write # Necessary for the generate documentation job
 
 jobs:
-
   run_tests:
     name: Run tests
     uses: ./.github/workflows/JOB_tests.yml
+
+  e2e_tests:
+    name: E2E Tests
+    uses: ./.github/workflows/JOB_e2e.yml
+    secrets: inherit
 
   documentation:
     name: Documentation
@@ -30,18 +30,18 @@ jobs:
       contents: read
 
   warn_on_fail:
-    needs: [run_tests, documentation]
+    needs: [run_tests, e2e_tests, documentation]
     if: ${{ failure() }}
     name: Slack message us on fail
     uses: ./.github/workflows/JOB_slack_message.yml
     secrets: inherit
     with:
       at_team: true
-      icon: ':warning:'
-      message: 'Master is failing after a push event, please review at ${{ github.event.repository.html_url }}/actions/runs/${{ github.run_id }}'
+      icon: ":warning:"
+      message: "Master is failing after a push event, please review at ${{ github.event.repository.html_url }}/actions/runs/${{ github.run_id }}"
 
   success:
-    needs: [run_tests, documentation]
+    needs: [run_tests, e2e_tests, documentation]
     if: ${{ success() }}
     name: Success
     runs-on: ubuntu-latest
