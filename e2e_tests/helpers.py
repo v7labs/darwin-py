@@ -229,7 +229,6 @@ def export_release(
         "Authorization": f"ApiKey {api_key}",
     }
     response = requests.post(create_export_url, json=payload, headers=headers)
-    response.raise_for_status()
     list_export_url = (
         f"{base_url}/api/v2/teams/{team_slug}/datasets/{dataset_slug}/exports"
     )
