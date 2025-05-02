@@ -566,6 +566,7 @@ def _parse_darwin_v2(
     path: Path, data: Dict[str, Any], slot_index: Optional[int]
 ) -> dt.AnnotationFile:
     item = data["item"]
+    filename = item["name"]
     item_source = item.get("source_info", {})
     slots: List[dt.Slot] = list(
         filter(None, map(_parse_darwin_slot, item.get("slots", [])))
@@ -581,7 +582,7 @@ def _parse_darwin_v2(
         annotation_file = dt.AnnotationFile(
             version=_parse_version(data),
             path=path,
-            filename=item["name"],
+            filename=filename,
             item_id=item.get("source_info", {}).get("item_id", None),
             dataset_name=item.get("source_info", {})
             .get("dataset", {})
@@ -601,14 +602,12 @@ def _parse_darwin_v2(
             item_properties=data.get("properties", []),
         )
     else:
-        filename = item["name"]
-
         if slot_index is None or len(slots) == 1:
             slot = slots[0]
         else:
             slot = slots[slot_index]
             slots = [slot]
-            filename = item["name"] + "-" + slot.name
+            filename = slot.source_files[0].file_name
             annotations = [
                 annotation
                 for annotation in annotations

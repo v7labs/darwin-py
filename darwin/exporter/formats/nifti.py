@@ -124,6 +124,8 @@ def export(
             image_id=image_id,
             output_dir=output_dir,
             legacy=legacy,
+            item_name=video_annotation.path.stem,
+            slot_name=slot_name,
             filename=video_annotation.filename,
         )
         # Need to map raster layers to SeriesInstanceUIDs
@@ -159,6 +161,8 @@ def export(
                 image_id=image_id,
                 output_dir=output_dir,
                 legacy=legacy,
+                item_name=video_annotation.path.stem,
+                slot_name=slot_name,
                 filename=video_annotation.filename,
             )
 
@@ -501,7 +505,9 @@ def write_output_volume_to_disk(
     output_volumes: Dict,
     image_id: str,
     output_dir: Union[str, Path],
+    item_name: str,
     legacy: bool = False,
+    slot_name: str = "0",
     filename: str = None,
 ) -> None:
     """Writes the given output volumes to disk.
@@ -519,6 +525,8 @@ def write_output_volume_to_disk(
         If ``False``, the exporter will use the new calculation by dividing with pixdims.
     filename: str
         The filename of the dataset item
+    slot_name: str
+        Name of the item slot the annotation volume belongs to.
 
     Returns
     -------
@@ -543,9 +551,19 @@ def write_output_volume_to_disk(
         )
         img = _get_reoriented_nifti_image(img, volume, legacy, filename)
         if volume.from_raster_layer:
-            output_path = Path(output_dir) / f"{image_id}_{volume.class_name}_m.nii.gz"
+            output_path = (
+                Path(output_dir)
+                / item_name
+                / slot_name
+                / f"{Path(Path(filename).stem).stem}_{volume.class_name}_m.nii.gz"
+            )
         else:
-            output_path = Path(output_dir) / f"{image_id}_{volume.class_name}.nii.gz"
+            output_path = (
+                Path(output_dir)
+                / item_name
+                / slot_name
+                / f"{Path(Path(filename).stem).stem}_{volume.class_name}.nii.gz"
+            )
         if not output_path.parent.exists():
             output_path.parent.mkdir(parents=True)
         nib.save(img=img, filename=output_path)
