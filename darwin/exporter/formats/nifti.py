@@ -507,7 +507,7 @@ def write_output_volume_to_disk(
     output_dir: Union[str, Path],
     item_name: str,
     legacy: bool = False,
-    slot_name: str = "0",
+    slot_name: str = "0",  # default slot name is "0"
     filename: str = None,
 ) -> None:
     """Writes the given output volumes to disk.
@@ -523,10 +523,12 @@ def write_output_volume_to_disk(
     legacy : bool, default=False
         If ``True``, the exporter will use the legacy calculation.
         If ``False``, the exporter will use the new calculation by dividing with pixdims.
-    filename: str
-        The filename of the dataset item
-    slot_name: str
-        Name of the item slot the annotation volume belongs to.
+    item_name : str
+        Name of the dataset item.
+    slot_name : str
+        Name of the dataset item slot the volume belongs to.
+    filename : str
+        Name of the file occupying the dataset item slot.
 
     Returns
     -------
@@ -550,19 +552,22 @@ def write_output_volume_to_disk(
             affine=volume.affine,
         )
         img = _get_reoriented_nifti_image(img, volume, legacy, filename)
+        filename_stem = Path(
+            Path(filename).stem
+        ).stem  # We take stem twice to handle ".nii.gz" suffixes
         if volume.from_raster_layer:
             output_path = (
                 Path(output_dir)
                 / item_name
                 / slot_name
-                / f"{Path(Path(filename).stem).stem}_{volume.class_name}_m.nii.gz"
+                / f"{filename_stem}_{volume.class_name}_m.nii.gz"
             )
         else:
             output_path = (
                 Path(output_dir)
                 / item_name
                 / slot_name
-                / f"{Path(Path(filename).stem).stem}_{volume.class_name}.nii.gz"
+                / f"{filename_stem}_{volume.class_name}.nii.gz"
             )
         if not output_path.parent.exists():
             output_path.parent.mkdir(parents=True)
