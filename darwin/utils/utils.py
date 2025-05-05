@@ -13,6 +13,7 @@ from typing import (
     Iterator,
     List,
     Optional,
+    Sequence,
     Set,
     Tuple,
     Union,
@@ -608,13 +609,7 @@ def _parse_darwin_v2(
             slot = slots[slot_index]
             slots = [slot]
             filename = slot.source_files[0].file_name
-            annotations = [
-                annotation
-                for annotation in annotations
-                if hasattr(annotation, "slot_names")
-                and annotation.slot_names
-                and annotation.slot_names[0] == slot.name
-            ]
+            annotations = get_annotations_in_slot(slot.name, annotations)
             annotation_classes = {
                 annotation.annotation_class for annotation in annotations
             }
@@ -646,6 +641,18 @@ def _parse_darwin_v2(
         )
 
     return annotation_file
+
+
+def get_annotations_in_slot(
+    slot_name: str, annotations: Sequence[Union[dt.Annotation, dt.VideoAnnotation]]
+) -> List[Union[dt.Annotation, dt.VideoAnnotation]]:
+    return [
+        annotation
+        for annotation in annotations
+        if hasattr(annotation, "slot_names")
+        and annotation.slot_names
+        and annotation.slot_names[0] == slot_name
+    ]
 
 
 def _parse_darwin_slot(data: Dict[str, Any]) -> dt.Slot:
