@@ -13,7 +13,7 @@ license = "MIT"
 name = "darwin-py"
 readme = "README.md"
 repository = "https://github.com/v7labs/darwin-py"
-version = "1.2.2"
+version = "2.0.1"
 [[tool.poetry.packages]]
 include = "darwin"
 
@@ -61,7 +61,7 @@ max-line-length = 88
 line-length = 88
 
 [tool.poetry.dependencies]
-argcomplete = "^2.0.0"
+argcomplete = "^3.6.2"
 deprecation = "^2.1.0"
 humanize = "^4.4.0"
 json-stream = "^2.3.2"

@@ -157,7 +157,7 @@ def detectron2_register_dataset(
         if identifier.version:
             release_name = identifier.version
 
-        client = _load_client(offline=True)
+        client = _load_client()
         dataset_path = None
         for path in client.list_local_datasets(team_slug=identifier.team_slug):
             if identifier.dataset_slug == path.name:

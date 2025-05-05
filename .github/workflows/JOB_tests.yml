@@ -4,6 +4,8 @@ run-name: Tests
 
 on:
   workflow_call:
+  pull_request:
+    branches: [main, master]
 
 permissions:
   contents: read
@@ -32,7 +34,7 @@ jobs:
         with:
           ref: ${{ github.head_ref || github.ref }}
       - name: Install Python ${{ matrix.python-version }}
-        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
+        uses: actions/setup-python@8d9ed9ac5c53483de85588cdf95a591a75ab9f55 # v5.5.0
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -48,7 +50,7 @@ jobs:
                      pip install wheel && \
                      pip install --upgrade setuptools && \
                      pip install --editable '.[test,ml,medical,dev, ocv]'"
-                     
+
       - name: Install ffmpeg (Ubuntu)
         if: matrix.os == 'ubuntu-latest'
         shell: bash

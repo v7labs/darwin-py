@@ -61,7 +61,7 @@ def get_dataset(
 
     identifier = DatasetIdentifier.parse(dataset_slug)
     if client is None:
-        client = _load_client(offline=True)
+        client = _load_client()
 
     for p in client.list_local_datasets(team_slug=identifier.team_slug):
         if identifier.dataset_slug == p.name:

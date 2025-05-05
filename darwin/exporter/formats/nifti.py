@@ -223,7 +223,7 @@ def build_output_volumes(
     return {
         series_instance_uid: {
             class_name: Volume(
-                pixel_array=np.zeros(volume_dims),
+                pixel_array=np.zeros(volume_dims, dtype=np.uint8),
                 affine=affine,
                 original_affine=original_affine,
                 dims=volume_dims,
@@ -461,7 +461,7 @@ def populate_output_volumes_from_raster_layer(
                 next_global_id += 1
 
     # Initialize multilabel volume
-    multilabel_volume = np.zeros(slot.metadata["shape"][1:])
+    multilabel_volume = np.zeros(slot.metadata["shape"][1:], dtype=np.uint8)
 
     # Second pass: populate the multilabel volume using the global mapping
     for frame_idx in sorted(frames.keys()):
@@ -471,7 +471,7 @@ def populate_output_volumes_from_raster_layer(
         mask_2d = decode_rle(dense_rle, slot.width, slot.height)
 
         # Convert the mask_2d using the global mapping
-        converted_mask_2d = np.zeros_like(mask_2d)
+        converted_mask_2d = np.zeros_like(mask_2d, dtype=np.uint8)
         local_mapping = frame_data.data["mask_annotation_ids_mapping"]
 
         for mask_id, local_id in local_mapping.items():

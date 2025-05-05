@@ -35,6 +35,7 @@ from darwin.dataset.split_manager import split_dataset
 from darwin.dataset.upload_manager import LocalFile
 from darwin.dataset.utils import get_release_path
 from darwin.datatypes import (
+    AnnotatorReportGrouping,
     ExportParser,
     ImportParser,
     NumberLike,
@@ -235,7 +236,7 @@ def local(team: Optional[str] = None) -> None:
     table.add_column("Sync Date", justify="right")
     table.add_column("Size", justify="right")
 
-    client: Client = _load_client(offline=True)
+    client: Client = _load_client()
     for dataset_path in client.list_local_datasets(team_slug=team):
         files_in_dataset_path = find_files([dataset_path])
         table.add_row(
@@ -266,7 +267,7 @@ def path(dataset_slug: str) -> Path:
         The absolute path of the dataset.
     """
     identifier: DatasetIdentifier = DatasetIdentifier.parse(dataset_slug)
-    client: Client = _load_client(offline=True)
+    client: Client = _load_client()
 
     for path in client.list_local_datasets(team_slug=identifier.team_slug):
         if identifier.dataset_slug == path.name:
@@ -289,7 +290,7 @@ def url(dataset_slug: str) -> None:
     dataset_slug: str
         The dataset's slug.
     """
-    client: Client = _load_client(offline=True)
+    client: Client = _load_client()
     try:
         remote_dataset: RemoteDataset = client.get_remote_dataset(
             dataset_identifier=dataset_slug
@@ -297,65 +298,6 @@ def url(dataset_slug: str) -> None:
         print(remote_dataset.remote_path)
     except NotFound as e:
         _error(f"Dataset '{e.name}' does not exist.")
-
-
-def dataset_report(dataset_slug: str, granularity: str, pretty: bool) -> None:
-    """
-    Prints a dataset's report in CSV format.
-    Exits the application if no dataset is found.
-
-    Parameters
-    ----------
-    dataset_slug : str
-        The dataset's slug.
-    granularity : str
-        Granularity of the report, can be 'day', 'week' or 'month'.
-    pretty : bool
-        If ``True``, it will print the output in a Rich formatted table.
-    """
-    client: Client = _load_client(offline=True)
-    console = Console(theme=_console_theme())
-    try:
-        remote_dataset: RemoteDataset = client.get_remote_dataset(
-            dataset_identifier=dataset_slug
-        )
-        report: str = remote_dataset.get_report(granularity)
-
-        if not pretty:
-            # if no one worked in the report, we print nothing
-            print(report)
-            return
-
-        lines: List[str] = report.split("\n")
-        lines.pop(0)  # remove csv headers
-
-        if not lines:
-            console.print("No one has worked on this dataset yet!\n", style="success")
-            return
-
-        lines.pop()  # remove last line, which is empty
-
-        table: Table = Table(show_header=True, header_style="bold cyan")
-        table.add_column("Date")
-        table.add_column("Dataset Id", justify="right")
-        table.add_column("Dataset Name", justify="right")
-        table.add_column("User Id", justify="right")
-        table.add_column("Email", justify="right")
-        table.add_column("First Name", justify="right")
-        table.add_column("Last Name", justify="right")
-        table.add_column("Annotation Time", justify="right")
-        table.add_column("Annotations Approved", justify="right")
-        table.add_column("Annotations Created", justify="right")
-        table.add_column("Images Annotated", justify="right")
-        table.add_column("Images Approved", justify="right")
-        table.add_column("Images Rejected", justify="right")
-
-        for row in lines:
-            table.add_row(*row.split(","))
-
-        console.print(table)
-    except NotFound:
-        _error(f"Dataset '{dataset_slug}' does not exist.")
 
 
 def export_dataset(
@@ -385,7 +327,7 @@ def export_dataset(
         When used for V2 dataset, allows to force generation of either Darwin JSON 1.0 (Legacy) or newer 2.0.
         Ommit this option to get your team's default.
     """
-    client: Client = _load_client(offline=False)
+    client: Client = _load_client()
     identifier: DatasetIdentifier = DatasetIdentifier.parse(dataset_slug)
     ds: RemoteDataset = client.get_remote_dataset(identifier)
 
@@ -444,7 +386,7 @@ def pull_dataset(
         If retrying, time to wait between retries of checking if the release is ready for download.
     """
     version: str = DatasetIdentifier.parse(dataset_slug).version or "latest"
-    client: Client = _load_client(offline=False, maybe_guest=True)
+    client: Client = _load_client(maybe_guest=True)
     try:
         dataset: RemoteDataset = client.get_remote_dataset(
             dataset_identifier=dataset_slug
@@ -506,7 +448,7 @@ def split(
         Random seed. Defaults to 0.
     """
     identifier: DatasetIdentifier = DatasetIdentifier.parse(dataset_slug)
-    client: Client = _load_client(offline=True)
+    client: Client = _load_client()
 
     for p in client.list_local_datasets(team_slug=identifier.team_slug):
         if identifier.dataset_slug == p.name:
@@ -589,7 +531,7 @@ def remove_remote_dataset(dataset_slug: str) -> None:
     dataset_slug: str
         The dataset's slug.
     """
-    client: Client = _load_client(offline=False)
+    client: Client = _load_client()
     try:
         dataset: RemoteDataset = client.get_remote_dataset(
             dataset_identifier=dataset_slug
@@ -615,7 +557,7 @@ def dataset_list_releases(dataset_slug: str) -> None:
     dataset_slug: str
         The dataset's slug.
     """
-    client: Client = _load_client(offline=False)
+    client: Client = _load_client()
     try:
         dataset: RemoteDataset = client.get_remote_dataset(
             dataset_identifier=dataset_slug
@@ -1348,6 +1290,90 @@ def post_comment(
         console.print(f"[red]{traceback.format_exc()}")
 
 
+def report_annotators(
+    dataset_slugs: list[str],
+    start: datetime.datetime,
+    stop: datetime.datetime,
+    group_by: list[AnnotatorReportGrouping],
+    pretty: bool,
+) -> None:
+    """
+    Prints an annotators report in CSV format.
+
+    Parameters
+    ----------
+    dataset_slugs : list[str]
+        Slugs of datasets to include in the report.
+    start : datetime.datetime
+        Timezone aware report start DateTime.
+    stop : datetime.datetime
+        Timezone aware report end DateTime.
+    group_by: list[AnnotatorReportGrouping]
+        Non-empty list of grouping options for the report.
+    pretty : bool
+        If ``True``, it will print the output in a Rich formatted table.
+    """
+    client: Client = _load_client()
+    console = Console(theme=_console_theme())
+
+    dataset_ids = []
+    for dataset in client.list_remote_datasets():
+        if dataset.slug in dataset_slugs:
+            dataset_ids.append(dataset.dataset_id)
+            dataset_slugs.remove(dataset.slug)
+
+    if dataset_slugs:
+        _error(f"Datasets '{dataset_slugs}' do not exist.")
+
+    report: str = client.get_annotators_report(
+        dataset_ids,
+        start,
+        stop,
+        group_by,
+    ).text
+
+    # the API does not return CSV headers if the report is empty
+    if not report:
+        report = "timestamp,dataset_id,dataset_name,dataset_slug,workflow_id,workflow_name,current_stage_id,current_stage_name,actor_id,actor_type,actor_email,actor_full_name,active_time,total_annotations,review_pass_rate,total_items_annotated,time_per_annotation,time_per_item\n"
+
+    if not pretty:
+        print(report)
+        return
+
+    lines: List[str] = report.split("\n")
+    lines.pop(0)  # remove csv headers
+    lines.pop()  # remove last line, which is empty
+
+    table: Table = Table(show_header=True, header_style="bold cyan")
+
+    table.add_column("Date")
+    for header in [
+        "Dataset Id",
+        "Dataset Name",
+        "Dataset Slug",
+        "Workflow Id",
+        "Workflow Name",
+        "Current Stage Id",
+        "Current Stage Name",
+        "User Id",
+        "User Type",
+        "Email",
+        "Full Name",
+        "Active Time",
+        "Total Annotations",
+        "Review Pass Rate",
+        "Total Items Annotated",
+        "Time Per Annotation",
+        "Time Per Item",
+    ]:
+        table.add_column(header, justify="right")
+
+    for row in lines:
+        table.add_row(*row.split(","))
+
+    console.print(table)
+
+
 def help(parser: argparse.ArgumentParser, subparser: Optional[str] = None) -> None:
     """
     Prints the help text for the given command.
@@ -1420,19 +1446,16 @@ def _config() -> Config:
 
 def _load_client(
     team_slug: Optional[str] = None,
-    offline: bool = False,
     maybe_guest: bool = False,
     dataset_identifier: Optional[str] = None,
 ) -> Client:
-    """Fetches a client, potentially offline
+    """Fetches a client
 
     Parameters
     ----------
-    offline : bool
-        Flag for using an offline client
-
     maybe_guest : bool
         Flag to make a guest client, if config is missing
+
     Returns
     -------
     Client

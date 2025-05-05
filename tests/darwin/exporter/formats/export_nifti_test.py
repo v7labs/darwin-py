@@ -1,6 +1,6 @@
 import tempfile
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, ANY
 from zipfile import ZipFile
 
 import nibabel as nib
@@ -129,12 +129,19 @@ def test_export_calls_populate_output_volumes_from_raster_layer(
                 / team_slug_darwin_json_v2
                 / "nifti/releases/latest/annotations"
             )
-            video_annotation_filepaths = [annotations_dir / "mask_only.json"]
+            video_annotation_filepaths = [annotations_dir / "non_axial_mask_only.json"]
             video_annotations = list(
                 darwin_to_dt_gen(video_annotation_filepaths, False)
             )
             nifti.export(video_annotations, output_dir=Path(tmpdir))
             mock.assert_called()
+            mock.assert_called_with(
+                annotation=ANY,
+                mask_id_to_classname=ANY,
+                slot_map=ANY,
+                output_volumes=ANY,
+                primary_plane="CORONAL",
+            )
 
 
 def test_export_creates_file_for_polygons_and_masks(

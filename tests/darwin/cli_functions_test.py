@@ -1,11 +1,14 @@
 import builtins
 import sys
+from datetime import datetime, timedelta, timezone
 from unittest.mock import call, patch
 
+from darwin.datatypes import AnnotatorReportGrouping
 import pytest
 import responses
 from rich.console import Console
 
+from darwin import cli
 from darwin.cli_functions import (
     delete_files,
     extract_video_artifacts,
@@ -16,6 +19,7 @@ from darwin.client import Client
 from darwin.config import Config
 from darwin.dataset import RemoteDataset
 from darwin.dataset.remote_dataset_v2 import RemoteDatasetV2
+from darwin.options import Options
 from darwin.utils import BLOCKED_UPLOAD_ERROR_ALREADY_EXISTS
 from tests.fixtures import *
 
@@ -448,3 +452,104 @@ class TestExtractVideo:
                 repair=False,
                 storage_key_prefix="test/prefix",
             )
+
+
+class TestReportAnnotators:
+    def test_parses_datetimes_and_comma_separated_lists(
+        self, remote_dataset: RemoteDataset
+    ):
+        start_date = datetime(2024, 11, 4, tzinfo=timezone.utc)
+        stop_date = datetime(2025, 5, 1, tzinfo=timezone(timedelta(hours=2)))
+        group_by = [
+            AnnotatorReportGrouping.STAGES,
+            AnnotatorReportGrouping.ANNOTATORS,
+            AnnotatorReportGrouping.DATASETS,
+        ]
+        dataset_id = remote_dataset.dataset_id
+        test_args = [
+            "darwin",
+            "report",
+            "annotators",
+            "--start",
+            "2024-11-04T00:00:00Z",
+            "--stop",
+            "2025-05-01T00:00:00+02:00",
+            "--group-by",
+            "  stages, annotators,datasets",
+            "--datasets",
+            remote_dataset.slug,
+        ]
+
+        with (
+            patch.object(sys, "argv", test_args),
+            patch.object(Client, "list_remote_datasets", return_value=[remote_dataset]),
+            patch.object(Client, "get_annotators_report") as get_report_mock,
+        ):
+            args, parser = Options().parse_args()
+            cli._run(args, parser)
+
+            get_report_mock.assert_called_once_with(
+                [dataset_id],
+                start_date,
+                stop_date,
+                group_by,
+            )
+
+    def test_exits_with_error_if_dataset_not_found(
+        self, remote_dataset: RemoteDataset, capsys
+    ):
+        test_args = [
+            "darwin",
+            "report",
+            "annotators",
+            "--start",
+            "2024-11-04T00:00:00Z",
+            "--stop",
+            "2025-05-01T00:00:00+02:00",
+            "--group-by",
+            "stages,annotators,datasets",
+            "--datasets",
+            f"{remote_dataset.slug},non-existent-dataset",
+        ]
+
+        with (
+            patch.object(sys, "argv", test_args),
+            patch.object(Client, "list_remote_datasets", return_value=[remote_dataset]),
+        ):
+            args, parser = Options().parse_args()
+
+            with pytest.raises(SystemExit):
+                cli._run(args, parser)
+
+            captured = capsys.readouterr()
+            assert (
+                "Error: Datasets '['non-existent-dataset']' do not exist."
+                in captured.out
+            )
+
+    def test_raises_if_invalid_grouping_option_supplied(
+        self, remote_dataset: RemoteDataset, capsys
+    ):
+        test_args = [
+            "darwin",
+            "report",
+            "annotators",
+            "--start",
+            "2024-11-04T00:00:00Z",
+            "--stop",
+            "2025-05-01T00:00:00+02:00",
+            "--group-by",
+            "annotators,bad-grouping-option",
+        ]
+
+        with (
+            patch.object(sys, "argv", test_args),
+            patch.object(Client, "list_remote_datasets", return_value=[remote_dataset]),
+        ):
+            args, parser = Options().parse_args()
+
+            with pytest.raises(
+                ValueError,
+                match="'bad-grouping-option' is not a valid AnnotatorReportGrouping",
+            ):
+                cli._run(args, parser)
