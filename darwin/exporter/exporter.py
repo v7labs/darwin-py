@@ -6,7 +6,6 @@ from darwin.utils import (
     get_annotation_files_from_dir,
     parse_darwin_json,
     split_video_annotation,
-    load_data_from_file,
 )
 
 
@@ -39,22 +38,16 @@ def darwin_to_dt_gen(
         for f in files:
             if f.suffix != ".json":
                 continue
-
-            raw_data, version = load_data_from_file(f)
-            item = raw_data["item"]
-            slot_count = len(item.get("slots", []))
-
-            for slot_index in range(slot_count):
-                data = parse_darwin_json(f, count, slot_index)
-                if data:
-                    if data.is_video and split_sequences:
-                        for d in split_video_annotation(data):
-                            d.seq = count
-                            count += 1
-                            yield d
-                    else:
-                        yield data
-                count += 1
+            data = parse_darwin_json(f, count)
+            if data:
+                if data.is_video and split_sequences:
+                    for d in split_video_annotation(data):
+                        d.seq = count
+                        count += 1
+                        yield d
+                else:
+                    yield data
+            count += 1
 
 
 def export_annotations(

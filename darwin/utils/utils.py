@@ -448,7 +448,7 @@ def load_data_from_file(path: Path) -> Tuple[dict, dt.AnnotationFileVersion]:
 
 
 def parse_darwin_json(
-    path: Path, count: Optional[int] = None, slot_index: Optional[int] = None
+    path: Path, count: Optional[int] = None
 ) -> Optional[dt.AnnotationFile]:
     """
     Parses the given JSON file in v7's darwin proprietary format. Works for images, split frame
@@ -460,8 +460,6 @@ def parse_darwin_json(
         Path to the file to parse.
     count : Optional[int]
         Optional count parameter. Used only if the 's image sequence is None.
-    slot_index: Optional[int]
-        Optional index of the slot to be parsed as a separate AnnotationFile.
 
     Returns
     -------
@@ -482,7 +480,7 @@ def parse_darwin_json(
     if "annotations" not in data:
         return None
 
-    return _parse_darwin_v2(path, data, slot_index)
+    return _parse_darwin_v2(path, data)
 
 
 def stream_darwin_json(path: Path) -> PersistentStreamingJSONObject:
@@ -563,11 +561,8 @@ def is_stream_list_empty(json_list: PersistentStreamingJSONList) -> bool:
     return False
 
 
-def _parse_darwin_v2(
-    path: Path, data: Dict[str, Any], slot_index: Optional[int]
-) -> dt.AnnotationFile:
+def _parse_darwin_v2(path: Path, data: Dict[str, Any]) -> dt.AnnotationFile:
     item = data["item"]
-    filename = item["name"]
     item_source = item.get("source_info", {})
     slots: List[dt.Slot] = list(
         filter(None, map(_parse_darwin_slot, item.get("slots", [])))
@@ -583,7 +578,7 @@ def _parse_darwin_v2(
         annotation_file = dt.AnnotationFile(
             version=_parse_version(data),
             path=path,
-            filename=filename,
+            filename=item["name"],
             item_id=item.get("source_info", {}).get("item_id", None),
             dataset_name=item.get("source_info", {})
             .get("dataset", {})
@@ -603,21 +598,11 @@ def _parse_darwin_v2(
             item_properties=data.get("properties", []),
         )
     else:
-        if slot_index is None or len(slots) == 1:
-            slot = slots[0]
-        else:
-            slot = slots[slot_index]
-            slots = [slot]
-            filename = slot.source_files[0].file_name
-            annotations = get_annotations_in_slot(slot.name, annotations)
-            annotation_classes = {
-                annotation.annotation_class for annotation in annotations
-            }
-
+        slot = slots[0]
         annotation_file = dt.AnnotationFile(
             version=_parse_version(data),
             path=path,
-            filename=filename,
+            filename=item["name"],
             item_id=item.get("source_info", {}).get("item_id", None),
             dataset_name=item.get("source_info", {})
             .get("dataset", {})
