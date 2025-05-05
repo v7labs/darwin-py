@@ -1243,9 +1243,7 @@ def dataset_convert(
             output_dir = Path(output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
 
-        export_annotations(
-            parser, [annotations_path], output_dir, split_sequences=(format != "nifti")
-        )
+        export_annotations(parser, [annotations_path], output_dir)
     except ExporterNotFoundError:
         _error(
             f"Unsupported export format: {format}, currently supported: {export_formats}"
