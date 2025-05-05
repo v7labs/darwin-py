@@ -88,14 +88,16 @@ def export(
         for slot in video_annotation.slots:
             slot_name = slot.name
             slot_annotations = get_annotations_in_slot(
-                slot.name, video_annotation.annotations
+                slot_name, video_annotation.annotations
             )
 
             try:
                 medical_metadata = slot.metadata
                 legacy = not medical_metadata.get("handler") == "MONAI"  # type: ignore
                 plane_map = medical_metadata.get("plane_map", {slot_name: "AXIAL"})
-                primary_plane = plane_map.get(slot_name, "AXIAL")
+                primary_plane = medical_metadata.get(
+                    "primary_plane", plane_map.get(slot_name, "AXIAL")
+                )
             except (KeyError, AttributeError):
                 legacy = True
                 primary_plane = "AXIAL"
@@ -214,7 +216,7 @@ def build_output_volumes(
         "SeriesInstanceUID", "SeriesIntanceUIDNotProvided"
     )
     # Builds output volumes per class
-    volume_dims, pixdims, affine, original_affine = process_metadata(slot.metadata)
+    volume_dims, pixdims, affine, original_affine = process_metadata(slot_metadata)
     if not mask_present and not class_names_to_export:
         class_names_to_export = [
             ""
