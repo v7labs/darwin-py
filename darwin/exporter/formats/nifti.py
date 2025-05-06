@@ -78,17 +78,16 @@ def export(
     sends output volumes, image_id and output_dir to the write_output_volume_to_disk function
 
     """
-    video_annotations = list(annotation_files)
-    for video_annotation in video_annotations:
-        slot_map = {slot.name: slot for slot in video_annotation.slots}
-        image_id = check_for_error_and_return_imageid(video_annotation, output_dir)
+    for annotation_file in annotation_files:
+        slot_map = {slot.name: slot for slot in annotation_file.slots}
+        image_id = check_for_error_and_return_imageid(annotation_file, output_dir)
         if not isinstance(image_id, str):
             continue
 
-        for slot in video_annotation.slots:
+        for slot in annotation_file.slots:
             slot_name = slot.name
             slot_annotations = get_annotations_in_slot(
-                slot_name, video_annotation.annotations
+                slot_name, annotation_file.annotations
             )
 
             try:
@@ -136,7 +135,7 @@ def export(
                 image_id=image_id,
                 output_dir=output_dir,
                 legacy=legacy,
-                item_name=video_annotation.path.stem,
+                item_name=annotation_file.path.stem,
                 slot_name=slot.name,
                 filename=slot.source_files[0].file_name,
             )
@@ -173,7 +172,7 @@ def export(
                     image_id=image_id,
                     output_dir=output_dir,
                     legacy=legacy,
-                    item_name=video_annotation.path.stem,
+                    item_name=annotation_file.path.stem,
                     slot_name=slot.name,
                     filename=slot.source_files[0].file_name,
                 )
@@ -191,7 +190,7 @@ def build_output_volumes(
 
     Parameters
     ----------
-    video_annotation : dt.AnnotationFile
+    annotation_file : dt.AnnotationFile
         The ``AnnotationFile``\\s to be exported.
     from_raster_layer : bool
         Whether the output volumes are being built from raster layers or not
@@ -241,14 +240,14 @@ def build_output_volumes(
 
 
 def check_for_error_and_return_imageid(
-    video_annotation: dt.AnnotationFile, output_dir: Path
+    annotation_file: dt.AnnotationFile, output_dir: Path
 ) -> Union[str, bool]:
-    """Given the video_annotation file and the output directory, checks for a range of errors and
+    """Given the annotation_file file and the output directory, checks for a range of errors and
     returns messages accordingly.
 
     Parameters
     ----------
-    video_annotation : dt.AnnotationFile
+    annotation_file : dt.AnnotationFile
         The ``AnnotationFile``\\s to be exported.
     output_dir : Path
         The folder where the new instance mask files will be.
@@ -259,7 +258,7 @@ def check_for_error_and_return_imageid(
         Returns the image_id if no errors are found, otherwise returns False
     """
     # Check if all item slots have the correct file-extension
-    for slot in video_annotation.slots:
+    for slot in annotation_file.slots:
         for source_file in slot.source_files:
             filename = Path(source_file.file_name)
             if not (
@@ -273,7 +272,7 @@ def check_for_error_and_return_imageid(
                     str(filename),
                 )
 
-    filename = Path(video_annotation.filename)
+    filename = Path(annotation_file.filename)
     if filename.name.lower().endswith(".nii.gz"):
         image_id = re.sub(r"(?i)\.nii\.gz$", "", str(filename))
     elif filename.name.lower().endswith(".nii"):
@@ -283,7 +282,7 @@ def check_for_error_and_return_imageid(
     else:
         image_id = str(filename)
 
-    for slot in video_annotation.slots:
+    for slot in annotation_file.slots:
         metadata = slot.metadata
         if metadata is None:
             return create_error_message_json(
