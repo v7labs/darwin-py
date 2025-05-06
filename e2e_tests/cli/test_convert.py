@@ -66,6 +66,11 @@ class TestExportCli:
                 data_path / "nifti-no-legacy-scaling/to",
             ),
             (
+                "nifti",
+                data_path / "nifti-multislot/from",
+                data_path / "nifti-multislot/to",
+            ),
+            (
                 "instance_mask",
                 data_path / "instance_mask/from",
                 data_path / "instance_mask/to",

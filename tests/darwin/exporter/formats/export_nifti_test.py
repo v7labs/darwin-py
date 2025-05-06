@@ -156,15 +156,25 @@ def test_export_creates_file_for_polygons_and_masks(
                 / "nifti/releases/latest/annotations"
             )
             video_annotation_files = {
-                "mask_only.json": ["hippocampus_multislot_3_test_hippo_LOIN_m.nii.gz"],
+                "mask_only.json": [
+                    Path("mask_only/0/hippocampus_multislot_3_test_hippo_LOIN_m.nii.gz")
+                ],
                 "polygon_only.json": [
-                    "hippocampus_multislot_3_test_hippo_create_class_1.nii.gz"
+                    Path(
+                        "polygon_only/0/hippocampus_multislot_3_test_hippo_create_class_1.nii.gz"
+                    ),
                 ],
                 "polygon_and_mask.json": [
-                    "hippocampus_multislot_3_test_hippo_create_class_1.nii.gz",
-                    "hippocampus_multislot_3_test_hippo_LOIN_m.nii.gz",
+                    Path(
+                        "polygon_and_mask/0/hippocampus_multislot_3_test_hippo_create_class_1.nii.gz"
+                    ),
+                    Path(
+                        "polygon_and_mask/0/hippocampus_multislot_3_test_hippo_LOIN_m.nii.gz"
+                    ),
                 ],
-                "empty.json": ["hippocampus_multislot_3_test_hippo_.nii.gz"],
+                "empty.json": [
+                    Path("empty/0/hippocampus_multislot_3_test_hippo_.nii.gz")
+                ],
             }
             for video_annotation_file in video_annotation_files:
                 video_annotation_filepaths = [annotations_dir / video_annotation_file]
