@@ -346,6 +346,14 @@ class VideoAnnotation:
             "hidden_areas": self.hidden_areas,
         }
 
+        # Only put attributes in the payload if the attributes have changed this frame
+        last_attributes = None
+        for idx, frame in output["frames"].items():
+            attributes = frame.get("attributes")
+            if attributes is not None and attributes == last_attributes:
+                output["frames"][idx].pop("attributes")
+            last_attributes = attributes
+
         return output
 
 

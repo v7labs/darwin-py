@@ -739,7 +739,7 @@ def test__get_annotation_data_video_annotation_with_attributes_that_become_empty
     assert result["frames"][4]["attributes"] == {"attributes": []}
 
 
-def test__get_annotation_data_video_annotation_does_not_wipe_sub_annotations_when_keyframe_is_true() -> (
+def test__get_annotation_data_video_annotation_only_stores_updates_to_sub_annotations_when_keyframe_is_true() -> (
     None
 ):
     from darwin.importer.importer import _get_annotation_data
@@ -785,7 +785,8 @@ def test__get_annotation_data_video_annotation_does_not_wipe_sub_annotations_whe
     attributes = {"video_class_id": {"attribute_1": "id_1", "attribute_2": "id_2"}}
     result = _get_annotation_data(video_annotation, "video_class_id", attributes)
     assert result["frames"][1]["attributes"] == {"attributes": ["id_1", "id_2"]}
-    assert result["frames"][3]["attributes"] == {"attributes": ["id_1", "id_2"]}
+    assert result["frames"].get(2) == None
+    assert result["frames"][3].get("attributes") == None
 
 
 def __expectation_factory(i: int, slot_names: List[str]) -> dt.Annotation:
