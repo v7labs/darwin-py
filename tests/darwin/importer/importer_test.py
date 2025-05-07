@@ -786,7 +786,7 @@ def test__get_annotation_data_video_annotation_only_stores_updates_to_sub_annota
     result = _get_annotation_data(video_annotation, "video_class_id", attributes)
     assert result["frames"][1]["attributes"] == {"attributes": ["id_1", "id_2"]}
     assert 2 not in result["frames"]
-    assert result["frames"][3].get("attributes") == None
+    assert result["frames"][3].get("attributes") is None
 
 
 def __expectation_factory(i: int, slot_names: List[str]) -> dt.Annotation:

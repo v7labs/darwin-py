@@ -348,8 +348,8 @@ class VideoAnnotation:
 
         # Only put attributes in the payload if the attributes have changed this frame
         last_attributes = None
-        for idx, frame in output["frames"].items():
-            attributes = frame.get("attributes")
+        for idx in sorted(output["frames"]):
+            attributes = output["frames"][idx].get("attributes")
             if attributes is not None and attributes == last_attributes:
                 output["frames"][idx].pop("attributes")
             last_attributes = attributes
