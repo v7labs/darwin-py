@@ -90,6 +90,15 @@ class JSONType:
         return cls(**json)
 
 
+def sorted_nested_lists(obj: Any) -> Any:
+    if isinstance(obj, dict):
+        return {k: sorted_nested_lists(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return sorted(sorted_nested_lists(x) for x in obj)
+    else:
+        return obj
+
+
 AnnotationType = Literal[  # NB: Some of these are not supported yet
     "bounding_box",
     "polygon",
@@ -106,6 +115,16 @@ AnnotationType = Literal[  # NB: Some of these are not supported yet
     "string",
     "graph",
 ]
+
+
+class SubAnnotationType(str, Enum):
+    TEXT = "text"
+    ATTRIBUTES = "attributes"
+    INSTANCE_ID = "instance_id"
+    INFERENCE = "inference"
+    DIRECTIONAL_VECTOR = "directional_vector"
+    MEASURES = "measures"
+    AUTO_ANNOTATE = "auto_annotate"
 
 
 @dataclass
@@ -169,7 +188,7 @@ class SubAnnotation:
     """
 
     #: The type of this ``SubAnnotation``.
-    annotation_type: str
+    annotation_type: SubAnnotationType
 
     #: Any external data, in any format, relevant to this ``SubAnnotation``.
     #: Used for compatibility purposes with external formats.
@@ -346,13 +365,27 @@ class VideoAnnotation:
             "hidden_areas": self.hidden_areas,
         }
 
-        # Only put attributes in the payload if the attributes have changed this frame
-        last_attributes = None
-        for idx in sorted(output["frames"]):
-            attributes = output["frames"][idx].get("attributes")
-            if attributes is not None and attributes == last_attributes:
-                output["frames"][idx].pop("attributes")
-            last_attributes = attributes
+        # Track all subannotation attributes as a set for each frame
+        last_frame_subannotations: Dict[str, Any] = {}
+
+        for idx in sorted(output["frames"], key=int):
+            frame_data = output["frames"][idx]
+            current_frame_subannotations: Dict[str, Any] = {}
+
+            for subannotation_name in SubAnnotationType:
+                value = frame_data.get(subannotation_name.value)
+                if value is None:
+                    continue
+                current_frame_subannotations[subannotation_name.value] = (
+                    sorted_nested_lists(value)
+                )
+
+            if current_frame_subannotations == last_frame_subannotations:
+                for subannotation in current_frame_subannotations:
+                    frame_data.pop(subannotation)
+            else:
+                last_frame_subannotations.clear()
+                last_frame_subannotations.update(current_frame_subannotations)
 
         return output
 
@@ -1323,7 +1356,7 @@ def make_instance_id(value: int) -> SubAnnotation:
     SubAnnotation
         An instance id ``SubAnnotation``.
     """
-    return SubAnnotation("instance_id", value)
+    return SubAnnotation(SubAnnotationType.INSTANCE_ID, value)
 
 
 def make_attributes(attributes: List[str]) -> SubAnnotation:
@@ -1340,7 +1373,7 @@ def make_attributes(attributes: List[str]) -> SubAnnotation:
     SubAnnotation
         An attributes ``SubAnnotation``.
     """
-    return SubAnnotation("attributes", attributes)
+    return SubAnnotation(SubAnnotationType.ATTRIBUTES, attributes)
 
 
 def make_text(text: str) -> SubAnnotation:
@@ -1357,7 +1390,7 @@ def make_text(text: str) -> SubAnnotation:
     SubAnnotation
         A text ``SubAnnotation``.
     """
-    return SubAnnotation("text", text)
+    return SubAnnotation(SubAnnotationType.TEXT, text)
 
 
 def make_opaque_sub(type: str, data: UnknownType) -> SubAnnotation:
