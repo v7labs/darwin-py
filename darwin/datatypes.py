@@ -25,9 +25,9 @@ except ImportError:
     NDArray = Any  # type:ignore
 
 from darwin.future.data_objects.properties import (
+    PropertyGranularity,
     PropertyType,
     SelectedProperty,
-    PropertyGranularity,
 )
 from darwin.path_utils import construct_full_path, is_properties_enabled, parse_metadata
 
@@ -124,7 +124,6 @@ class SubAnnotationType(str, Enum):
     INFERENCE = "inference"
     DIRECTIONAL_VECTOR = "directional_vector"
     MEASURES = "measures"
-    AUTO_ANNOTATE = "auto_annotate"
 
 
 @dataclass
@@ -1410,7 +1409,7 @@ def make_opaque_sub(type: str, data: UnknownType) -> SubAnnotation:
     SubAnnotation
         A text ``SubAnnotation``.
     """
-    return SubAnnotation(type, data)
+    return SubAnnotation(SubAnnotationType(type), data)
 
 
 KeyFrame = Dict[str, Union[int, Annotation]]
