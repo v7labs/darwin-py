@@ -889,10 +889,6 @@ def _parse_darwin_annotation(
         main_annotation.subs.append(
             dt.make_opaque_sub("measures", annotation["measures"])
         )
-    if "auto_annotate" in annotation:
-        main_annotation.subs.append(
-            dt.make_opaque_sub("auto_annotate", annotation["auto_annotate"])
-        )
 
     if annotation.get("annotators") is not None:
         main_annotation.annotators = _parse_annotators(annotation["annotators"])

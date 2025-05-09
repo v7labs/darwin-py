@@ -2,7 +2,7 @@ import json
 import shutil
 import tempfile
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Any
 
 import pytest
 
@@ -10,8 +10,11 @@ from darwin.client import Client
 from darwin.config import Config
 from darwin.dataset.remote_dataset_v2 import RemoteDatasetV2
 from darwin.datatypes import (
+    AnnotationClass,
+    Annotation,
     ObjectStore,
     Point,
+    VideoAnnotation,
     make_polygon,
     parse_property_classes,
     split_paths_by_metadata,
@@ -188,3 +191,186 @@ class TestObjectStore:
             repr(object_store)
             == "ObjectStore(name=test, prefix=test_prefix, readonly=False, provider=aws)"
         )
+
+
+class TestVideoAnnotationGetData:
+    def test_frames_sorted_numerically_for_duplicate_attribute_removal(self):
+        annotation_class = AnnotationClass("test", "polygon")
+        annotation1 = Annotation(annotation_class, {"data": "frame_1"})
+        annotation10 = Annotation(annotation_class, {"data": "frame_10"})
+        annotation2 = Annotation(annotation_class, {"data": "frame_2"})
+        keyframes = {1: True, 10: True, 2: True}
+        segments = [[1, 10]]
+        interpolated = True
+        slot_names = ["main"]
+
+        # Source frames are out of order
+        frames = {
+            1: annotation1,
+            10: annotation10,
+            2: annotation2,
+        }
+
+        video_annotation = VideoAnnotation(
+            annotation_class,
+            frames,
+            keyframes,
+            segments,
+            interpolated,
+            slot_names,
+        )
+
+        def mock_post_processing(
+            annotation: Any, data: Dict[str, Any]
+        ) -> Dict[str, Any]:
+            if annotation == annotation1:
+                data["attributes"] = ["attr1"]
+            elif annotation == annotation2:
+                data["attributes"] = ["attr1"]  # Same as frame 1, should be removed
+            elif annotation == annotation10:
+                data["attributes"] = ["attr10"]  # Different from previous frames
+            return data
+
+        result = video_annotation.get_data(post_processing=mock_post_processing)
+
+        assert "attributes" in result["frames"][1]
+        assert result["frames"][1]["attributes"] == ["attr1"]
+
+        assert (
+            "attributes" not in result["frames"][2]
+        ), "Duplicate attributes should be removed"
+
+        assert "attributes" in result["frames"][10]
+        assert result["frames"][10]["attributes"] == ["attr10"]
+
+    def test_attributes_equality_for_lists_ignores_order(self):
+        annotation1 = Annotation(
+            AnnotationClass("test", "polygon"), {"data": "frame_1"}
+        )
+        annotation2 = Annotation(
+            AnnotationClass("test", "polygon"), {"data": "frame_2"}
+        )
+        annotation_class = AnnotationClass("test", "polygon")
+        keyframes = {1: True, 2: True}
+        segments = [[1, 2]]
+        interpolated = True
+        slot_names = ["main"]
+
+        frames = {
+            1: annotation1,
+            2: annotation2,
+        }
+
+        video_annotation = VideoAnnotation(
+            annotation_class,
+            frames,
+            keyframes,
+            segments,
+            interpolated,
+            slot_names,
+        )
+
+        def mock_post_processing(
+            annotation: Any, data: Dict[str, Any]
+        ) -> Dict[str, Any]:
+            if annotation == annotation1:
+                data["attributes"] = ["attr1", "attr2"]
+            elif annotation == annotation2:
+                data["attributes"] = [
+                    "attr2",
+                    "attr1",
+                ]  # Same elements, different order
+            return data
+
+        result = video_annotation.get_data(post_processing=mock_post_processing)
+
+        assert "attributes" in result["frames"][1]
+        assert result["frames"][1]["attributes"] == ["attr1", "attr2"]
+
+        assert (
+            "attributes" not in result["frames"][2]
+        ), "Different order lists should be considered the same set of attributes"
+
+    def test_all_subannotation_present_if_any_are_changed_none_present_otherwise(self):
+        """Test all subannotation attributes are correctly processed for changes between frames."""
+        annotation_class = AnnotationClass("test", "polygon")
+        annotation1 = Annotation(annotation_class, {"data": "frame_1"})
+        annotation2 = Annotation(annotation_class, {"data": "frame_2"})
+        annotation3 = Annotation(annotation_class, {"data": "frame_3"})
+        annotation4 = Annotation(annotation_class, {"data": "frame_4"})
+
+        keyframes = {1: True, 2: True, 3: True, 4: True}
+        segments = [[1, 4]]
+        interpolated = True
+        slot_names = ["main"]
+
+        frames = {
+            1: annotation1,
+            2: annotation2,
+            3: annotation3,
+            4: annotation4,
+        }
+
+        video_annotation = VideoAnnotation(
+            annotation_class,
+            frames,
+            keyframes,
+            segments,
+            interpolated,
+            slot_names,
+        )
+
+        def mock_post_processing(
+            annotation: Any, data: Dict[str, Any]
+        ) -> Dict[str, Any]:
+            # Frame 1: Set initial values for all attributes
+            if annotation == annotation1:
+                data["text"] = "Initial text"
+                data["attributes"] = ["attr1", "attr2"]
+                data["instance_id"] = 123
+
+            # Frame 2: Keep the same values (should be removed in output)
+            elif annotation == annotation2:
+                data["text"] = "Initial text"
+                data["attributes"] = ["attr1", "attr2"]
+                data["instance_id"] = 123
+
+            # Frame 3: Change only one attribute (text)
+            elif annotation == annotation3:
+                data["text"] = "Updated text"  # Changed from frame 2
+                data["attributes"] = ["attr1", "attr2"]
+                data["instance_id"] = 123
+
+            # Frame 4: Keep the same values from frame 3 (should be removed in output)
+            elif annotation == annotation4:
+                data["text"] = "Updated text"
+                data["attributes"] = ["attr1", "attr2"]
+                data["instance_id"] = 123
+
+            return data
+
+        result = video_annotation.get_data(post_processing=mock_post_processing)
+
+        # Frame 1: All attributes should be present
+        frame1 = result["frames"][1]
+        assert frame1["text"] == "Initial text"
+        assert frame1["attributes"] == ["attr1", "attr2"]
+        assert frame1["instance_id"] == 123
+
+        # Frame 2: All attributes should be removed (unchanged from frame 1)
+        frame2 = result["frames"][2]
+        assert "text" not in frame2
+        assert "attributes" not in frame2
+        assert "instance_id" not in frame2
+
+        # Frame 3: All attributes should be present (text changed from frame 2)
+        frame3 = result["frames"][3]
+        assert frame3["text"] == "Updated text"
+        assert frame3["attributes"] == ["attr1", "attr2"]
+        assert frame3["instance_id"] == 123
+
+        # Frame 4: All attributes should be removed (unchanged from frame 3)
+        frame4 = result["frames"][4]
+        assert "text" not in frame4
+        assert "attributes" not in frame4
+        assert "instance_id" not in frame4
