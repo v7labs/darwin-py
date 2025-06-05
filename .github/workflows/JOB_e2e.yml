@@ -20,7 +20,7 @@ on:
         required: true
 
 concurrency:
-  group: e2e-tests-${{ github.event_name == 'repository_dispatch' && 'backend-triggered' || github.ref }}
+  group: e2e-tests-${{ (github.event_name == 'repository_dispatch' && 'backend-triggered') || github.ref }}
   cancel-in-progress: false  # Don't cancel running E2E tests, just queue them
 
 jobs:
