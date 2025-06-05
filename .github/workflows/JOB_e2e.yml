@@ -5,7 +5,7 @@ permissions:
 
 on:
   schedule:
-    - cron: "0 8 * * mon-fri"
+    - cron: "0 5 * * mon-fri"
   workflow_dispatch:
   pull_request:
     paths:
