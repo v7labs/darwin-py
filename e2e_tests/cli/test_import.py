@@ -282,8 +282,7 @@ def compare_annotations_export(
                 non_mask_actual_annotations,
                 non_mask_expected_annotations,
             ) = compare_and_omit_mask_annotations(
-                actual_annotations,
-                expected_annotations
+                actual_annotations, expected_annotations
             )
 
             assert_same_item_level_properties(
