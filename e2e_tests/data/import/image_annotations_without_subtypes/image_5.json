@@ -36,46 +36,49 @@
   },
   "annotations": [
     {
-      "bounding_box": {
-        "h": 38.138,
-        "w": 67.608,
-        "x": 36.019,
-        "y": 50.273
+      "id": "2b136d83-363e-440f-94e3-c70851517e52",
+      "line": {
+        "path": [
+          {
+            "x": 136.565,
+            "y": 353.6437
+          },
+          {
+            "x": 107.0947,
+            "y": 402.183
+          },
+          {
+            "x": 169.5024,
+            "y": 407.3836
+          }
+        ]
       },
-      "id": "047ed9e8-27cd-4809-9ad9-3fc566fab086",
-      "name": "test_bounding_box_basic",
+      "name": "test_line_basic",
       "properties": [],
       "slot_names": [
         "0"
       ]
     },
     {
-      "ellipse": {
-        "angle": 0.2004,
-        "center": {
-          "x": 214.5746,
-          "y": 259.1653
-        },
-        "radius": {
-          "x": 169.8191,
-          "y": 169.8191
-        }
-      },
-      "id": "41c2402e-c4a0-49cb-a2ba-03d551df8cd0",
-      "name": "test_ellipse_basic",
+      "id": "13498f4b-6621-495b-b036-9bf267cec8f5",
+      "name": "test_skeleton_basic",
       "properties": [],
-      "slot_names": [
-        "0"
-      ]
-    },
-    {
-      "id": "a70842c8-eca4-4091-aced-802793a65038",
-      "keypoint": {
-        "x": 483.2745,
-        "y": 199.3579
+      "skeleton": {
+        "nodes": [
+          {
+            "name": "node",
+            "occluded": false,
+            "x": 55.0883,
+            "y": 303.3708
+          },
+          {
+            "name": "2",
+            "occluded": false,
+            "x": 70.3435,
+            "y": 275.634
+          }
+        ]
       },
-      "name": "test_keypoint_basic",
-      "properties": [],
       "slot_names": [
         "0"
       ]
@@ -87,7 +90,7 @@
         "x": 18.6838,
         "y": 135.2167
       },
-      "id": "b42f2409-feed-47fc-935c-ce10db9eab54",
+      "id": "29ef1ee8-7376-485a-bdf9-1d5652fc001c",
       "name": "test_polygon_basic",
       "polygon": {
         "paths": [
@@ -117,55 +120,52 @@
       ]
     },
     {
-      "id": "1575cf2d-4c80-4f73-ab30-bed32764f784",
-      "name": "test_skeleton_basic",
-      "properties": [],
-      "skeleton": {
-        "nodes": [
-          {
-            "name": "node",
-            "occluded": false,
-            "x": 55.0883,
-            "y": 303.3708
-          },
-          {
-            "name": "2",
-            "occluded": false,
-            "x": 70.3435,
-            "y": 275.634
-          }
-        ]
+      "id": "20b99874-0982-4754-bc68-8db993a3b08b",
+      "keypoint": {
+        "x": 483.2745,
+        "y": 199.3579
       },
-      "slot_names": [
-        "0"
-      ]
-    },
-    {
-      "id": "0c4fb76b-402b-424e-9406-91139ce842eb",
-      "line": {
-        "path": [
-          {
-            "x": 136.565,
-            "y": 353.6437
-          },
-          {
-            "x": 107.0947,
-            "y": 402.183
-          },
-          {
-            "x": 169.5024,
-            "y": 407.3836
-          }
-        ]
-      },
-      "name": "test_line_basic",
+      "name": "test_keypoint_basic",
       "properties": [],
       "slot_names": [
         "0"
       ]
     },
     {
-      "id": "4b56c891-95c3-438e-8e80-7f29bb6f8593",
+      "ellipse": {
+        "angle": 0.2004,
+        "center": {
+          "x": 214.5746,
+          "y": 259.1653
+        },
+        "radius": {
+          "x": 169.8191,
+          "y": 169.8191
+        }
+      },
+      "id": "dfdc5ac9-bac9-4486-add6-53f7b2b30336",
+      "name": "test_ellipse_basic",
+      "properties": [],
+      "slot_names": [
+        "0"
+      ]
+    },
+    {
+      "bounding_box": {
+        "h": 38.138,
+        "w": 67.608,
+        "x": 36.019,
+        "y": 50.273
+      },
+      "id": "3339c5b7-0830-4efe-b788-df15732d8a47",
+      "name": "test_bounding_box_basic",
+      "properties": [],
+      "slot_names": [
+        "0"
+      ]
+    },
+    {
+      "id": "e12a715b-ff8b-417f-98b5-8752d080d02b",
       "name": "test_tag_basic",
       "properties": [],
       "slot_names": [
@@ -174,7 +174,7 @@
       "tag": {}
     },
     {
-      "id": "499731b1-5885-460e-bf4c-1a5f81634545",
+      "id": "43ff8902-2990-46a3-a8b1-d4a511e5cc76",
       "mask": {},
       "name": "test_mask_basic",
       "properties": [],
@@ -183,7 +183,16 @@
       ]
     },
     {
-      "id": "bd963672-e400-4c8f-8504-49096325d9a6",
+      "id": "60231167-2b1f-4681-a8df-62ef9389ff11",
+      "mask": {},
+      "name": "test_mask_basic",
+      "properties": [],
+      "slot_names": [
+        "0"
+      ]
+    },
+    {
+      "id": "8f4eb256-a98d-4481-8ed9-d00e8398551e",
       "name": "__raster_layer__",
       "properties": [],
       "raster_layer": {
@@ -353,10 +362,15 @@
           1,
           8,
           0,
-          1673906
+          28804,
+          2,
+          1,
+          0,
+          1645101
         ],
         "mask_annotation_ids_mapping": {
-          "499731b1-5885-460e-bf4c-1a5f81634545": 1
+          "43ff8902-2990-46a3-a8b1-d4a511e5cc76": 1,
+          "60231167-2b1f-4681-a8df-62ef9389ff11": 2
         },
         "total_pixels": 2073600
       },
