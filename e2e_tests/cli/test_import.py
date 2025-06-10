@@ -316,12 +316,12 @@ def assert_all_expected_mask_instances_present(
 
     for annotation in actual_annotations:
         if annotation.annotation_class.annotation_type == "mask":
-            mask_instances_to_match.remove(
-                (
-                    annotation.annotation_class.name,
-                    *annotation.slot_names,
-                )
+            mask_instance = (
+                annotation.annotation_class.name,
+                *annotation.slot_names,
             )
+            if mask_instance in mask_instances_to_match:
+                mask_instances_to_match.remove(mask_instance)
 
     assert not mask_instances_to_match
 
