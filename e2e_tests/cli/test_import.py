@@ -1,4 +1,3 @@
-from collections import defaultdict
 import importlib
 import tempfile
 import zipfile
@@ -11,6 +10,7 @@ from e2e_tests.helpers import (
     delete_annotation_uuids,
     export_release,
     list_items,
+    exclude_annotations_of_type,
     run_cli_command,
 )
 from e2e_tests.objects import ConfigValues, E2EDataset
@@ -276,21 +276,21 @@ def compare_annotations_export(
             delete_annotation_uuids(expected_annotations)
             delete_annotation_uuids(actual_annotations)
 
-            # Because we support mask instances, multiple mask annotations with
-            # the same annotation class id can be in the same slot.
-            (
-                non_mask_actual_annotations,
-                non_mask_expected_annotations,
-            ) = compare_and_omit_mask_annotations(
+            # We compare mask annotation instances separately: equal sets and counts
+            assert_all_expected_mask_instances_present(
                 actual_annotations, expected_annotations
+            )
+            actual_annotations = exclude_annotations_of_type("mask", actual_annotations)
+            expected_annotations = exclude_annotations_of_type(
+                "mask", expected_annotations
             )
 
             assert_same_item_level_properties(
                 expected_item_level_properties, actual_item_level_properties
             )
-            for expected_annotation in non_mask_expected_annotations:
+            for expected_annotation in expected_annotations:
                 actual_annotation = find_matching_actual_annotation(
-                    expected_annotation, non_mask_actual_annotations
+                    expected_annotation, actual_annotations
                 )
                 assert_same_annotation_data(expected_annotation, actual_annotation)
                 assert_same_annotation_properties(
@@ -301,40 +301,29 @@ def compare_annotations_export(
                 )
 
 
-def compare_and_omit_mask_annotations(
+def assert_all_expected_mask_instances_present(
     actual_annotations: Sequence[Union[dt.Annotation, dt.VideoAnnotation]],
     expected_annotations: Sequence[Union[dt.Annotation, dt.VideoAnnotation]],
-):
-    non_mask_actual_annotations = []
-    non_mask_expected_annotations = []
-    mask_instances_to_match = []
-
-    for expected_annotation in expected_annotations:
-        if expected_annotation.annotation_class.annotation_type != "mask":
-            non_mask_expected_annotations.append(expected_annotation)
-            continue
-
-        mask_instances_to_match.append(
-            (
-                expected_annotation.annotation_class.name,
-                *expected_annotation.slot_names,
-            )
+) -> None:
+    mask_instances_to_match = [
+        (
+            annotation.annotation_class.name,
+            *annotation.slot_names,
         )
+        for annotation in expected_annotations
+        if annotation.annotation_class.annotation_type == "mask"
+    ]
 
-    for actual_annotation in actual_annotations:
-        if actual_annotation.annotation_class.annotation_type != "mask":
-            non_mask_actual_annotations.append(actual_annotation)
-            continue
-
-        mask_instances_to_match.remove(
-            (
-                actual_annotation.annotation_class.name,
-                *actual_annotation.slot_names,
+    for annotation in actual_annotations:
+        if annotation.annotation_class.annotation_type == "mask":
+            mask_instances_to_match.remove(
+                (
+                    annotation.annotation_class.name,
+                    *annotation.slot_names,
+                )
             )
-        )
 
     assert not mask_instances_to_match
-    return non_mask_actual_annotations, non_mask_expected_annotations
 
 
 def run_import_test(

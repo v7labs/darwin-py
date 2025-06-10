@@ -281,3 +281,17 @@ def delete_annotation_uuids(
                 del annotation.frames[frame].id
                 if annotation.annotation_class.annotation_type == "raster_layer":
                     del annotation.frames[frame].data["mask_annotation_ids_mapping"]
+
+
+def exclude_annotations_of_type(
+    annotation_type: str,
+    annotations: Sequence[Union[dt.Annotation, dt.VideoAnnotation]],
+) -> Sequence[Union[dt.Annotation, dt.VideoAnnotation]]:
+    """
+    Filters out all annotation objects of given type.
+    """
+    return [
+        annotation
+        for annotation in annotations
+        if annotation.annotation_class.annotation_type != annotation_type
+    ]
