@@ -106,6 +106,51 @@
       ]
     },
     {
+      "id": "657ab125-1a8f-4e21-bf94-27956b44c6b0",
+      "mask": {},
+      "name": "test_mask_basic",
+      "properties": [],
+      "slot_names": [
+        "0"
+      ]
+    },
+    {
+      "id": "b2f0b41a-bb00-4d4c-b946-5c35218aeec0",
+      "mask": {},
+      "name": "test_mask_basic",
+      "properties": [],
+      "slot_names": [
+        "0"
+      ]
+    },
+    {
+      "id": "87d6540f-2667-4c64-9fba-5c35a140d30b",
+      "name": "__raster_layer__",
+      "properties": [],
+      "raster_layer": {
+        "dense_rle": [
+          0,
+          843137,
+          1,
+          1,
+          0,
+          201629,
+          2,
+          1,
+          0,
+          1028832
+        ],
+        "mask_annotation_ids_mapping": {
+          "657ab125-1a8f-4e21-bf94-27956b44c6b0": 1,
+          "b2f0b41a-bb00-4d4c-b946-5c35218aeec0": 2
+        },
+        "total_pixels": 2073600
+      },
+      "slot_names": [
+        "0"
+      ]
+    },
+    {
       "bounding_box": {
         "h": 7.9365,
         "w": 11.7725,
@@ -115,6 +160,59 @@
       "id": "2a4fc53e-52e2-4c29-a558-90307f7beb7a",
       "name": "test_bounding_box_basic",
       "properties": [],
+      "slot_names": [
+        "1"
+      ]
+    },
+    {
+      "id": "d58dfad5-7b9f-42da-93a7-c955fa79abad",
+      "mask": {},
+      "name": "test_mask_basic",
+      "properties": [],
+      "slot_names": [
+        "1"
+      ]
+    },
+    {
+      "id": "08d3c9c3-2b38-472f-ab4d-169e183e7cac",
+      "mask": {},
+      "name": "test_mask_basic",
+      "properties": [],
+      "slot_names": [
+        "1"
+      ]
+    },
+    {
+      "id": "787221f4-5f37-45a5-92db-86cf0e2c1d23",
+      "name": "__raster_layer__",
+      "properties": [],
+      "raster_layer": {
+        "dense_rle": [
+          0,
+          806744,
+          1,
+          2,
+          0,
+          1918,
+          1,
+          1,
+          0,
+          1920,
+          1,
+          1,
+          0,
+          163216,
+          2,
+          1,
+          0,
+          1099797
+        ],
+        "mask_annotation_ids_mapping": {
+          "08d3c9c3-2b38-472f-ab4d-169e183e7cac": 2,
+          "d58dfad5-7b9f-42da-93a7-c955fa79abad": 1
+        },
+        "total_pixels": 2073600
+      },
       "slot_names": [
         "1"
       ]
@@ -157,6 +255,51 @@
       "id": "3a2b9b85-c423-4509-a7fe-b7a8e5761817",
       "name": "test_bounding_box_basic",
       "properties": [],
+      "slot_names": [
+        "2"
+      ]
+    },
+    {
+      "id": "567da26d-6c7b-4ac3-a3fe-8552f163a91f",
+      "mask": {},
+      "name": "test_mask_basic",
+      "properties": [],
+      "slot_names": [
+        "2"
+      ]
+    },
+    {
+      "id": "a1e5e24c-647e-4bc4-b1d4-c6f6aaf64520",
+      "mask": {},
+      "name": "test_mask_basic",
+      "properties": [],
+      "slot_names": [
+        "2"
+      ]
+    },
+    {
+      "id": "fd1ab6df-a866-463c-ac7f-36a654258e16",
+      "name": "__raster_layer__",
+      "properties": [],
+      "raster_layer": {
+        "dense_rle": [
+          0,
+          814476,
+          1,
+          1,
+          0,
+          151683,
+          2,
+          1,
+          0,
+          1107439
+        ],
+        "mask_annotation_ids_mapping": {
+          "567da26d-6c7b-4ac3-a3fe-8552f163a91f": 1,
+          "a1e5e24c-647e-4bc4-b1d4-c6f6aaf64520": 2
+        },
+        "total_pixels": 2073600
+      },
       "slot_names": [
         "2"
       ]

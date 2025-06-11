@@ -11,7 +11,7 @@ import tempfile
 from darwin.future.data_objects.typing import UnknownType
 from e2e_tests.exceptions import E2EEnvironmentVariableNotSet
 from e2e_tests.objects import ConfigValues, E2EDataset
-from e2e_tests.helpers import new_dataset  # noqa: F401
+from e2e_tests.helpers import SERVER_WAIT_TIME, new_dataset  # noqa: F401
 from e2e_tests.setup_tests import (
     setup_annotation_classes,
     setup_datasets,
@@ -72,7 +72,7 @@ def pytest_sessionstart(session: pytest.Session) -> None:
     environ["DARWIN_API_KEY"] = api_key
 
     print("Sleeping for 10 seconds to allow the server to catch up")
-    sleep(10)
+    sleep(SERVER_WAIT_TIME)
 
 
 def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:

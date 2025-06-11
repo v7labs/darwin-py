@@ -1,0 +1,162 @@
+{
+  "version": "1.0",
+  "schema_ref": "https://darwin-public.s3.eu-west-1.amazonaws.com/darwin_json/metadata/1.0/schema.json",
+  "classes": [
+    {
+      "name": "__raster_layer__",
+      "type": "raster_layer",
+      "description": "System class for all team's annotations with raster_layer type",
+      "color": "rgba(0,0,0,1.0)",
+      "sub_types": [],
+      "properties": [],
+      "sub_types_settings": {}
+    },
+    {
+      "name": "test_bounding_box_basic",
+      "type": "bounding_box",
+      "description": null,
+      "color": "rgba(255,85,0,1.0)",
+      "sub_types": [
+        "inference"
+      ],
+      "properties": [],
+      "sub_types_settings": {
+        "inference": {}
+      }
+    },
+    {
+      "name": "test_polygon_basic",
+      "type": "polygon",
+      "description": null,
+      "color": "rgba(85,255,0,1.0)",
+      "sub_types": [
+        "inference"
+      ],
+      "properties": [],
+      "sub_types_settings": {
+        "inference": {}
+      }
+    },
+    {
+      "name": "test_ellipse_basic",
+      "type": "ellipse",
+      "description": null,
+      "color": "rgba(255,0,255,1.0)",
+      "sub_types": [
+        "inference"
+      ],
+      "properties": [],
+      "sub_types_settings": {
+        "inference": {}
+      }
+    },
+    {
+      "name": "test_keypoint_basic",
+      "type": "keypoint",
+      "description": null,
+      "color": "rgba(0,0,255,1.0)",
+      "sub_types": [
+        "inference"
+      ],
+      "properties": [],
+      "sub_types_settings": {
+        "inference": {}
+      }
+    },
+    {
+      "name": "test_line_basic",
+      "type": "line",
+      "description": null,
+      "color": "rgba(0,255,255,1.0)",
+      "sub_types": [
+        "inference"
+      ],
+      "properties": [],
+      "sub_types_settings": {
+        "inference": {}
+      }
+    },
+    {
+      "name": "test_mask_basic",
+      "type": "mask",
+      "description": null,
+      "color": "rgba(255,0,85,1.0)",
+      "sub_types": [],
+      "properties": [],
+      "sub_types_settings": {}
+    },
+    {
+      "name": "test_skeleton_basic",
+      "type": "skeleton",
+      "description": null,
+      "color": "rgba(255,0,0,1.0)",
+      "sub_types": [
+        "inference"
+      ],
+      "properties": [],
+      "sub_types_settings": {
+        "inference": {}
+      }
+    },
+    {
+      "name": "test_tag_basic",
+      "type": "tag",
+      "description": null,
+      "color": "rgba(255,255,0,1.0)",
+      "sub_types": [
+        "inference"
+      ],
+      "properties": [],
+      "sub_types_settings": {
+        "inference": {}
+      }
+    }
+  ],
+  "properties": [
+    {
+      "name": "test_item_level_property_text",
+      "type": "text",
+      "description": "",
+      "required": false,
+      "granularity": "item",
+      "property_values": []
+    },
+    {
+      "name": "test_item_level_property_single_select",
+      "type": "single_select",
+      "description": "",
+      "required": false,
+      "granularity": "item",
+      "property_values": [
+        {
+          "value": "2",
+          "color": "rgba(255,92,0,1.0)"
+        },
+        {
+          "value": "1",
+          "color": "rgba(255,92,0,1.0)"
+        }
+      ]
+    },
+    {
+      "name": "test_item_level_property_multi_select",
+      "type": "multi_select",
+      "description": "",
+      "required": false,
+      "granularity": "item",
+      "property_values": [
+        {
+          "value": "2",
+          "color": "rgba(255,92,0,1.0)"
+        },
+        {
+          "value": "1",
+          "color": "rgba(255,92,0,1.0)"
+        }
+      ]
+    }
+  ],
+  "mask_classes_labels": {
+    "test_mask_basic": 56
+  }
+}
