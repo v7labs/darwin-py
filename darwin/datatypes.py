@@ -1613,7 +1613,7 @@ class ReportJob(BaseModel):
     id: str
     status: str
     format: str
-    url: Optional[str]
+    url: str | None
     team_id: int
 
 
