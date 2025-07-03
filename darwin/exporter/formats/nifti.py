@@ -58,13 +58,18 @@ class Volume:
     primary_plane: str
 
 
+# Unique ID and file suffix for the "All segments" volume
+multi_segments_label = "0"
+multi_segments_name = "Segments"
+
+
 def export(
     annotation_files: Iterable[dt.AnnotationFile],
     output_dir: Path,
 ) -> None:
     """
     Exports the given ``AnnotationFile``\\s into nifti format inside of the given
-    ``output_dir``. Deletes everything within ``output_dir/masks`` before writting to it.
+    ``output_dir``. Deletes everything within ``output_dir/masks`` before writing to it.
 
     Parameters
     ----------
@@ -146,6 +151,8 @@ def export(
                     for ann in slot_annotations
                     if ann.annotation_class.annotation_type == "mask"
                 }
+                # Add a unique ID for the "All segments" volume
+                mask_id_to_classname[multi_segments_label] = multi_segments_name
                 raster_output_volumes = build_output_volumes(
                     slot,
                     class_names_to_export=list(mask_id_to_classname.values()),
@@ -497,6 +504,10 @@ def populate_output_volumes_from_raster_layer(
             volume[class_name].pixel_array = np.where(
                 multilabel_volume == global_id, 1, volume[class_name].pixel_array
             )
+        elif mask_id == multi_segments_label:
+            # Unique ID for "All segments":
+            volume = output_volumes[series_instance_uid]
+            volume[multi_segments_name].pixel_array = multilabel_volume
 
     return volume
 

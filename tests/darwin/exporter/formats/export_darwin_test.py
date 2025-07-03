@@ -1,13 +1,17 @@
+import shutil
 import tempfile
 import zipfile
 from pathlib import Path
+import nibabel as nib
+import numpy as np
 
 from darwin.datatypes import Annotation, AnnotationClass, AnnotationFile
 from darwin.exporter.formats.darwin import (
     _build_v2_annotation_data,
     build_image_annotation,
 )
-from darwin.utils import get_annotation_files_from_dir
+from darwin.exporter.formats.nifti import export
+from darwin.utils import get_annotation_files_from_dir, parse_darwin_json
 
 
 def test_empty_annotation_file_v2():
@@ -142,3 +146,34 @@ def test_properties_metadata_is_ignored_when_reading_annotations_directory():
         for annotation_filepath in annotation_filepaths:
             assert "./v7/" not in annotation_filepath
             assert "\\.v7\\" not in annotation_filepath
+
+
+def test_multi_segment_nifti_export():
+    work_dir = Path("tests/darwin/data/nifti/multi_segment")
+    ground_truth_path = work_dir.joinpath("ground_truth.nii.gz")
+    darwin_json_path = work_dir.joinpath("coronal_LAS_pixdim_0.1_0.2_0.5.json")
+    target_output_directory = work_dir.joinpath("output")
+    target_output_path = target_output_directory.joinpath(
+        "coronal_LAS_pixdim_0.1_0.2_0.5",
+        "0",
+        "coronal_LAS_pixdim_0.1_0.2_0_Segments_m.nii.gz"
+    )
+
+    try:
+        # Convert darwin json to nifti
+        annotation_file = parse_darwin_json(darwin_json_path)
+        assert annotation_file is not None
+        export([annotation_file], target_output_directory)
+
+        # Compare exported nifti to ground truth
+        ground_truth = nib.load(ground_truth_path.absolute().as_posix())
+        ground_truth_array = ground_truth.get_fdata()
+
+        nifti = nib.load(target_output_path)
+        nifti_array = nifti.get_fdata()
+
+        assert np.array_equal(nifti_array, ground_truth_array)
+
+    finally:
+        # Delete produced nifti
+        shutil.rmtree(target_output_directory.absolute().as_posix())
