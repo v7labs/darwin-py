@@ -5,17 +5,17 @@
     "name": "coronal_LAS_pixdim_0.1_0.2_0.5.dcm",
     "path": "/",
     "source_info": {
-      "item_id": "01951442-3873-46c2-7373-30e56050d853",
+      "item_id": "0197ee1d-591e-7d19-bb01-65d27fb0bcdd",
       "dataset": {
-        "name": "dicom_test_data",
-        "slug": "dicom_test_data",
-        "dataset_management_url": "https://darwin.v7labs.com/datasets/1643259/dataset-management"
+        "name": "dicom_test_data_new",
+        "slug": "dicom_test_data_new",
+        "dataset_management_url": "https://darwin.v7labs.com/datasets/1856922/dataset-management"
       },
       "team": {
         "name": "V7 John",
         "slug": "v7-john"
       },
-      "workview_url": "https://darwin.v7labs.com/workview?dataset=1643259&item=01951442-3873-46c2-7373-30e56050d853"
+      "workview_url": "https://darwin.v7labs.com/workview?dataset=1856922&item=0197ee1d-591e-7d19-bb01-65d27fb0bcdd"
     },
     "slots": [
       {
@@ -24,31 +24,31 @@
         "width": 128,
         "height": 128,
         "fps": null,
-        "thumbnail_url": "https://darwin.v7labs.com/api/v2/teams/v7-john/files/b9d93da4-37dc-4af4-825e-41b9899bf799/thumbnail?token=642eedac-c980-4747-8dca-cba51e52dec1",
+        "thumbnail_url": "https://darwin.v7labs.com/api/v2/teams/v7-john/files/b33547f6-c281-4766-97cf-1623f00353f5/thumbnail?token=971b08d7-a0d7-4d95-a22f-f1f7429b207f",
         "source_files": [
           {
             "file_name": "coronal_LAS_pixdim_0.1_0.2_0.5.dcm",
-            "url": "https://darwin.v7labs.com/api/v2/teams/v7-john/uploads/100f98aa-6917-42a0-891e-bdd692950e49?token=642eedac-c980-4747-8dca-cba51e52dec1"
+            "url": "https://darwin.v7labs.com/api/v2/teams/v7-john/uploads/bbf2147d-e328-4a93-a624-90f9c474a071?token=971b08d7-a0d7-4d95-a22f-f1f7429b207f"
           }
         ],
         "frame_count": 16,
         "frame_urls": [
-          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/b9d93da4-37dc-4af4-825e-41b9899bf799/sections/0?token=642eedac-c980-4747-8dca-cba51e52dec1",
-          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/b9d93da4-37dc-4af4-825e-41b9899bf799/sections/1?token=642eedac-c980-4747-8dca-cba51e52dec1",
-          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/b9d93da4-37dc-4af4-825e-41b9899bf799/sections/2?token=642eedac-c980-4747-8dca-cba51e52dec1",
-          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/b9d93da4-37dc-4af4-825e-41b9899bf799/sections/3?token=642eedac-c980-4747-8dca-cba51e52dec1",
-          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/b9d93da4-37dc-4af4-825e-41b9899bf799/sections/4?token=642eedac-c980-4747-8dca-cba51e52dec1",
-          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/b9d93da4-37dc-4af4-825e-41b9899bf799/sections/5?token=642eedac-c980-4747-8dca-cba51e52dec1",
-          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/b9d93da4-37dc-4af4-825e-41b9899bf799/sections/6?token=642eedac-c980-4747-8dca-cba51e52dec1",
-          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/b9d93da4-37dc-4af4-825e-41b9899bf799/sections/7?token=642eedac-c980-4747-8dca-cba51e52dec1",
-          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/b9d93da4-37dc-4af4-825e-41b9899bf799/sections/8?token=642eedac-c980-4747-8dca-cba51e52dec1",
-          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/b9d93da4-37dc-4af4-825e-41b9899bf799/sections/9?token=642eedac-c980-4747-8dca-cba51e52dec1",
-          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/b9d93da4-37dc-4af4-825e-41b9899bf799/sections/10?token=642eedac-c980-4747-8dca-cba51e52dec1",
-          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/b9d93da4-37dc-4af4-825e-41b9899bf799/sections/11?token=642eedac-c980-4747-8dca-cba51e52dec1",
-          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/b9d93da4-37dc-4af4-825e-41b9899bf799/sections/12?token=642eedac-c980-4747-8dca-cba51e52dec1",
-          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/b9d93da4-37dc-4af4-825e-41b9899bf799/sections/13?token=642eedac-c980-4747-8dca-cba51e52dec1",
-          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/b9d93da4-37dc-4af4-825e-41b9899bf799/sections/14?token=642eedac-c980-4747-8dca-cba51e52dec1",
-          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/b9d93da4-37dc-4af4-825e-41b9899bf799/sections/15?token=642eedac-c980-4747-8dca-cba51e52dec1"
+          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/b33547f6-c281-4766-97cf-1623f00353f5/sections/0?token=971b08d7-a0d7-4d95-a22f-f1f7429b207f",
+          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/b33547f6-c281-4766-97cf-1623f00353f5/sections/1?token=971b08d7-a0d7-4d95-a22f-f1f7429b207f",
+          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/b33547f6-c281-4766-97cf-1623f00353f5/sections/2?token=971b08d7-a0d7-4d95-a22f-f1f7429b207f",
+          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/b33547f6-c281-4766-97cf-1623f00353f5/sections/3?token=971b08d7-a0d7-4d95-a22f-f1f7429b207f",
+          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/b33547f6-c281-4766-97cf-1623f00353f5/sections/4?token=971b08d7-a0d7-4d95-a22f-f1f7429b207f",
+          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/b33547f6-c281-4766-97cf-1623f00353f5/sections/5?token=971b08d7-a0d7-4d95-a22f-f1f7429b207f",
+          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/b33547f6-c281-4766-97cf-1623f00353f5/sections/6?token=971b08d7-a0d7-4d95-a22f-f1f7429b207f",
+          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/b33547f6-c281-4766-97cf-1623f00353f5/sections/7?token=971b08d7-a0d7-4d95-a22f-f1f7429b207f",
+          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/b33547f6-c281-4766-97cf-1623f00353f5/sections/8?token=971b08d7-a0d7-4d95-a22f-f1f7429b207f",
+          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/b33547f6-c281-4766-97cf-1623f00353f5/sections/9?token=971b08d7-a0d7-4d95-a22f-f1f7429b207f",
+          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/b33547f6-c281-4766-97cf-1623f00353f5/sections/10?token=971b08d7-a0d7-4d95-a22f-f1f7429b207f",
+          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/b33547f6-c281-4766-97cf-1623f00353f5/sections/11?token=971b08d7-a0d7-4d95-a22f-f1f7429b207f",
+          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/b33547f6-c281-4766-97cf-1623f00353f5/sections/12?token=971b08d7-a0d7-4d95-a22f-f1f7429b207f",
+          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/b33547f6-c281-4766-97cf-1623f00353f5/sections/13?token=971b08d7-a0d7-4d95-a22f-f1f7429b207f",
+          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/b33547f6-c281-4766-97cf-1623f00353f5/sections/14?token=971b08d7-a0d7-4d95-a22f-f1f7429b207f",
+          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/b33547f6-c281-4766-97cf-1623f00353f5/sections/15?token=971b08d7-a0d7-4d95-a22f-f1f7429b207f"
         ],
         "metadata": {
           "handler": "MONAI",
@@ -104,7 +104,8 @@
           "mask": {}
         }
       },
-      "id": "cce036e7-dcc2-46de-ab71-4e20beb94459",
+      "global_sub_types": {},
+      "id": "0a8b3cfb-d6ff-427a-8b3e-a31410f10331",
       "interpolate_algorithm": "linear-1.1",
       "name": "mask1",
       "only_keyframes": true,
@@ -126,7 +127,8 @@
           "mask": {}
         }
       },
-      "id": "beffc847-da35-4937-b4a1-a1e16994cfc8",
+      "global_sub_types": {},
+      "id": "0e845870-995b-4cb7-982e-741c1e54109e",
       "interpolate_algorithm": "linear-1.1",
       "name": "mask2",
       "only_keyframes": true,
@@ -231,14 +233,14 @@
               7736
             ],
             "mask_annotation_ids_mapping": {
-              "81b795d7-0f12-4951-a2dc-0bd06af0aa6e": 1,
-              "dec395da-9478-476e-921e-4a4750ba413f": 2
+              "0a8b3cfb-d6ff-427a-8b3e-a31410f10331": 1,
+              "0e845870-995b-4cb7-982e-741c1e54109e": 2
             },
             "total_pixels": 16384
           }
         }
       },
-      "id": "7fe1310e-8a4d-457c-815a-e34276366d0d",
+      "id": "1af4d613-c4c4-41cd-a53a-2e8905f90b95",
       "name": "__raster_layer__",
       "only_keyframes": true,
       "properties": [],

@@ -149,31 +149,37 @@ def test_properties_metadata_is_ignored_when_reading_annotations_directory():
 
 
 def test_multi_segment_nifti_export():
-    work_dir = Path("tests/darwin/data/nifti/multi_segment")
-    ground_truth_path = work_dir.joinpath("ground_truth.nii.gz")
-    darwin_json_path = work_dir.joinpath("coronal_LAS_pixdim_0.1_0.2_0.5.json")
-    target_output_directory = work_dir.joinpath("output")
-    target_output_path = target_output_directory.joinpath(
-        "coronal_LAS_pixdim_0.1_0.2_0.5",
-        "0",
-        "coronal_LAS_pixdim_0.1_0.2_0_Segments_m.nii.gz"
-    )
+    root_dir = Path("tests/darwin/data/nifti/multi_segment")
+    for subdir in root_dir.iterdir():
+        if not subdir.is_dir():
+            continue
+        print(subdir)
+        
+        ground_truth_path = subdir.joinpath("ground_truth.nii.gz")
+        darwin_json_path = subdir.joinpath("darwin.json")
+        target_output_directory = subdir.joinpath("output")
+        volume_name = subdir.parts[-1]
+        target_output_path = target_output_directory.joinpath(
+            "darwin",
+            "0",
+            f"{volume_name[:-2]}_Segments_m.nii.gz"
+        )
 
-    try:
-        # Convert darwin json to nifti
-        annotation_file = parse_darwin_json(darwin_json_path)
-        assert annotation_file is not None
-        export([annotation_file], target_output_directory)
+        try:
+            # Convert darwin json to nifti
+            annotation_file = parse_darwin_json(darwin_json_path)
+            assert annotation_file is not None
+            export([annotation_file], target_output_directory)
 
-        # Compare exported nifti to ground truth
-        ground_truth = nib.load(ground_truth_path.absolute().as_posix())
-        ground_truth_array = ground_truth.get_fdata()
+            # Compare exported nifti to ground truth
+            ground_truth = nib.load(ground_truth_path.absolute().as_posix())
+            ground_truth_array = ground_truth.get_fdata()
 
-        nifti = nib.load(target_output_path)
-        nifti_array = nifti.get_fdata()
+            nifti = nib.load(target_output_path)
+            nifti_array = nifti.get_fdata()
 
-        assert np.array_equal(nifti_array, ground_truth_array)
+            assert np.array_equal(nifti_array, ground_truth_array)
 
-    finally:
-        # Delete produced nifti
-        shutil.rmtree(target_output_directory.absolute().as_posix())
+        finally:
+            # Delete produced nifti
+            shutil.rmtree(target_output_directory.absolute().as_posix())
