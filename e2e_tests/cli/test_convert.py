@@ -71,6 +71,11 @@ class TestExportCli:
                 data_path / "nifti-multislot/to",
             ),
             (
+                "nifti",
+                data_path / "nifti-multi-segment/from",
+                data_path / "nifti-multi-segment/to",
+            ),
+            (
                 "instance_mask",
                 data_path / "instance_mask/from",
                 data_path / "instance_mask/to",
