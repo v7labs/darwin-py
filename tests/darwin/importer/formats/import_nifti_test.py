@@ -614,11 +614,11 @@ def test_parse_path_nifti_without_legacy_scaling():
 
 def test_image_annotation_nifti_multi_label():
     multi_segment_dir = "e2e_tests/data/convert/nifti-multi-segment"
-    multi_segment_volumes = Path(multi_segment_dir).glob("**/*Segments_m.nii.gz")
+    volumes = list(Path(multi_segment_dir).glob("**/*Segments_m.nii.gz"))
 
-    assert multi_segment_volumes
+    assert volumes
 
-    for volume in multi_segment_volumes:
+    for volume in volumes:
         nifti_image = nib.load(volume)
         data_array = process_nifti(nifti_image)
 
