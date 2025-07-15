@@ -71,6 +71,26 @@ class TestExportCli:
                 data_path / "nifti-multislot/to",
             ),
             (
+                "nifti",
+                data_path / "nifti-multi-segment/axial_RPI_pixdim_1.0_1.0_1.0/from",
+                data_path / "nifti-multi-segment/axial_RPI_pixdim_1.0_1.0_1.0/to",
+            ),
+            (
+                "nifti",
+                data_path / "nifti-multi-segment/axial_RPI_pixdim_1.0_1.0_1.0/from",
+                data_path / "nifti-multi-segment/axial_RPI_pixdim_1.0_1.0_1.0/to",
+            ),
+            (
+                "nifti",
+                data_path / "nifti-multi-segment/coronal_LAS_pixdim_0.1_0.2_0.5/from",
+                data_path / "nifti-multi-segment/coronal_LAS_pixdim_0.1_0.2_0.5/to",
+            ),
+            (
+                "nifti",
+                data_path / "nifti-multi-segment/sagittal_LPI_pixdim_0.1_0.2_0.5/from",
+                data_path / "nifti-multi-segment/sagittal_LPI_pixdim_0.1_0.2_0.5/to",
+            ),
+            (
                 "instance_mask",
                 data_path / "instance_mask/from",
                 data_path / "instance_mask/to",
