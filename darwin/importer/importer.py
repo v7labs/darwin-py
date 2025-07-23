@@ -516,27 +516,20 @@ def _build_metadata_lookups(
     metadata_property_classes: List[PropertyClass],
     metadata_item_props: List[Dict[str, str]],
 ) -> Tuple[
-    Set[Tuple[str, str]],
     Dict[Tuple[str, str], Property],
-    Dict[Tuple[int, str], Property],
     Dict[str, Property],
 ]:
-    metadata_classes_lookup = set()
     metadata_cls_prop_lookup = {}
-    metadata_cls_id_prop_lookup = {}
     metadata_item_prop_lookup = {}
 
     for _cls in metadata_property_classes:
-        metadata_classes_lookup.add((_cls.name, _cls.type))
         for _prop in _cls.properties or []:
             metadata_cls_prop_lookup[(_cls.name, _prop.name)] = _prop
     for _item_prop in metadata_item_props:
         metadata_item_prop_lookup[_item_prop["name"]] = _item_prop
 
     return (
-        metadata_classes_lookup,
         metadata_cls_prop_lookup,
-        metadata_cls_id_prop_lookup,
         metadata_item_prop_lookup,
     )
 
@@ -584,11 +577,11 @@ def _import_properties(
 
     # Build metadata lookups
     (
-        metadata_classes_lookup,
         metadata_cls_prop_lookup,
-        metadata_cls_id_prop_lookup,
         metadata_item_prop_lookup,
     ) = _build_metadata_lookups(metadata_property_classes, metadata_item_props)
+
+    metadata_cls_id_prop_lookup = {}
 
     # (annotation-id): dt.Annotation object
     annotation_id_map: Dict[str, dt.Annotation] = {}
