@@ -193,7 +193,10 @@ class LocalFile:
         optional_properties = ["tags", "as_frames", "extract_views"]
         slot: Dict[str, Any] = {"file_name": self.data["filename"], "slot_name": "0"}
         for optional_property in optional_properties:
-            if optional_property in self.data and self.data[optional_property] is not None:
+            if (
+                optional_property in self.data
+                and self.data[optional_property] is not None
+            ):
                 slot[optional_property] = self.data.get(optional_property)
 
         slot["fps"] = self.data.get("fps") or FPS_NATIVE

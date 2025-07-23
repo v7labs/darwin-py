@@ -261,7 +261,6 @@ class TestUploadData:
                         not in print_mock.call_args_list
                     )
 
-
     @pytest.mark.usefixtures("file_read_write_test")
     @responses.activate
     def test_upload_data_with_float_fps(
