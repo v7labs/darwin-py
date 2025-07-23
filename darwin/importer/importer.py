@@ -448,10 +448,9 @@ def _serialize_item_level_properties(
 
     Args:
         item_property_values (List[Dict[str, str]]): A list of dictionaries containing item property values.
-        client (Client): The client instance used to interact with the API.
-        dataset (RemoteDataset): The remote dataset instance.
         import_annotators (bool): Flag indicating whether to import annotators.
         import_reviewers (bool): Flag indicating whether to import reviewers.
+        team_item_properties_lookup (Dict[str, FullProperty]): Lookup dictionary for team item properties.
 
     Returns:
         List[Dict[str, Any]]: A list of serialized item-level properties for the annotation import payload.
@@ -556,20 +555,19 @@ def _import_properties(
 
     Args:
         metadata_path (Union[Path, bool]): Path object to .v7/metadata.json file
-        client (Client): Darwin Client object
         item_properties (List[Dict[str, str]]): List of item-level properties present in the annotation file
+        client (Client): Darwin Client object
         annotations (List[dt.Annotation]): List of annotations
         annotation_class_ids_map (Dict[Tuple[str, str], str]): Dict of annotation class names/types to annotation class ids
         dataset (RemoteDataset): RemoteDataset object
+        annotation_id_property_map (Dict[str, Dict[str, Dict[str, Set[str]]]]): The map to be updated with properties.
+        team_properties_lookups: (TeamPropertiesLookups): Lookups for team properties.
 
     Raises:
         ValueError: raise error if annotation class not present in metadata and in team-properties
         ValueError: raise error if annotation-property not present in metadata and in team-properties
         ValueError: raise error if property value is missing for a property that requires a value
         ValueError: raise error if property value/type is different in m_prop (.v7/metadata.json) options
-
-    Returns:
-        Dict[str, Dict[str, Dict[str, Set[str]]]]: Dict of annotation.id to frame_index -> property id -> property val ids
     """
     team_slug = client.default_team
 
