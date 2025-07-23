@@ -3575,9 +3575,6 @@ def test_serialize_item_level_properties_empty_input():
 def test_serialize_item_level_properties_single_select():
     """Test serialization of single select property"""
     # Setup
-    client = Mock()
-    dataset = Mock(team="test_team")
-
     property_value_id = "123"
     property_id = "456"
 
@@ -3620,9 +3617,6 @@ def test_serialize_item_level_properties_single_select():
 def test_serialize_item_level_properties_text():
     """Test serialization of text property"""
     # Setup
-    client = Mock()
-    dataset = Mock(team="test_team")
-
     property_id = "789"
 
     # Mock full property
@@ -3660,9 +3654,6 @@ def test_serialize_item_level_properties_text():
 def test_serialize_item_level_properties_with_actors():
     """Test serialization with annotators and reviewers"""
     # Setup
-    client = Mock()
-    dataset = Mock(team="test_team")
-
     property_id = "789"
 
     # Mock full property
@@ -3711,10 +3702,6 @@ def test_serialize_item_level_properties_with_actors():
 
 def test_serialize_item_level_properties_multiple_properties():
     """Test serialization of multiple properties"""
-    # Setup
-    client = Mock()
-    dataset = Mock(team="test_team")
-
     # Mock properties
     text_property = FullProperty(
         id="123",
