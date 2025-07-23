@@ -26,7 +26,11 @@ from darwin.datatypes import PathLike, Slot, SourceFile
 from darwin.doc_enum import DocEnum
 from darwin.path_utils import construct_full_path
 from darwin.utils import chunk
-from darwin.utils.utils import is_image_extension_allowed_by_filename, SLOTS_GRID_MAP
+from darwin.utils.utils import (
+    is_image_extension_allowed_by_filename,
+    SLOTS_GRID_MAP,
+    FPS_NATIVE,
+)
 
 if TYPE_CHECKING:
     from darwin.client import Client
@@ -192,10 +196,7 @@ class LocalFile:
             if optional_property in self.data and self.data[optional_property] is not None:
                 slot[optional_property] = self.data.get(optional_property)
 
-        if "fps" in self.data and self.data["fps"] is not None:
-            slot["fps"] = self.data["fps"]
-        else:
-            slot["fps"] = "native"
+        slot["fps"] = self.data.get("fps") or FPS_NATIVE
 
         return {
             "slots": [slot],
@@ -206,7 +207,7 @@ class LocalFile:
     @property
     def full_path(self) -> str:
         """The full ``Path`` (with filename inclduded) to the item."""
-        return construct_full_path(str(self.data["path"]), str(self.data["filename"]))
+        return construct_full_path(self.data["path"], self.data["filename"])
 
 
 class MultiFileItem:
@@ -286,10 +287,7 @@ class MultiFileItem:
                 "file_name": local_file.data["filename"],
                 "slot_name": self.slot_names[idx],
             }
-            if "fps" in local_file.data and local_file.data["fps"] is not None:
-                slot["fps"] = local_file.data["fps"]
-            else:
-                slot["fps"] = "native"
+            slot["fps"] = local_file.data.get("fps") or FPS_NATIVE
             slots.append(slot)
 
         return {
