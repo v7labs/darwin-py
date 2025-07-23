@@ -941,6 +941,7 @@ def _import_properties(
         )
 
     # loop over metadata_cls_id_prop_lookup, and update additional metadata property values
+    metadata_property_values_updated = False
     for (annotation_class_id, prop_name), m_prop in metadata_cls_id_prop_lookup.items():
         # does the annotation-property exist in the team? if not, skip
         if (prop_name, annotation_class_id) not in team_properties_annotation_lookup:
@@ -991,6 +992,16 @@ def _import_properties(
             prop = client.update_property(
                 team_slug=full_property.slug, params=full_property
             )
+            metadata_property_values_updated = True
+
+    if metadata_property_values_updated:
+        updated_lookups = _get_team_properties_annotation_lookup(client, dataset.team)
+        team_properties_annotation_lookup = team_properties_lookups.annotation = (
+            updated_lookups.annotation
+        )
+        team_item_properties_lookup = team_properties_lookups.item = (
+            updated_lookups.item
+        )
 
     # update annotation_id_property_map with property ids from created_properties & updated_properties
     for annotation_id, _ in annotation_id_property_map.items():
