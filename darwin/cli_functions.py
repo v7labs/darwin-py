@@ -593,7 +593,7 @@ def upload_data(
     dataset_identifier: str,
     files: Optional[List[Union[PathLike, LocalFile]]],
     files_to_exclude: Optional[List[PathLike]],
-    fps: int,
+    fps: Optional[float],
     path: Optional[str],
     frames: bool,
     extract_views: bool = False,
@@ -615,7 +615,7 @@ def upload_data(
         List of files to upload. Can be None.
     files_to_exclude : List[PathLike]
         List of files to exclude from the file scan (which is done only if files is None).
-    fps : int
+    fps : Optional[float]
         Frame rate to split videos in.
     path : Optional[str]
         If provided; files will be placed under this path in the v7 platform. If `preserve_folders`

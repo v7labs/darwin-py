@@ -1,10 +1,42 @@
 import sys
-from argparse import ArgumentParser, Namespace
+from argparse import ArgumentParser, Namespace, ArgumentTypeError
 from datetime import datetime
-from typing import Any, Optional, Tuple
+from typing import Any, Optional, Tuple, Union
 
 import argcomplete
 from darwin.datatypes import AnnotatorReportGrouping
+
+
+def fps_value(value: str) -> Optional[float]:
+    """
+    Validates that the given value is a positive float or the string 'native'.
+
+    Parameters
+    ----------
+    value : str
+        The value to validate.
+
+    Returns
+    -------
+    Optional[float]
+        The validated value as a float, or None if the value is 'native'.
+
+    Raises
+    ------
+    ArgumentTypeError
+        If the value is not a positive float or the string 'native'.
+    """
+    if value.lower() == "native":
+        return None
+    try:
+        f_value = float(value)
+        if f_value <= 0:
+            raise ArgumentTypeError("FPS value must be a positive float.")
+        if f_value > 120:
+            raise ArgumentTypeError("FPS value cannot be greater than 120.")
+        return f_value
+    except ValueError:
+        raise ArgumentTypeError("FPS value must be a float or 'native'.")
 
 
 class Options:
@@ -151,7 +183,8 @@ class Options:
             "-f",
             "--fps",
             default="native",
-            help="Frames per second for video split (recommended: 1), use 'native' to use the videos intrinsic fps.",
+            type=fps_value,
+            help="Frames per second for video split (recommended: 1), use 'native' to use the videos intrinsic fps. Must be a float between 0 and 120, or 'native'.",
         )
         parser_push.add_argument(
             "--frames",

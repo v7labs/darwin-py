@@ -18,6 +18,7 @@ from typing import (
     Set,
     Tuple,
     Dict,
+    Union,
 )
 import requests
 
@@ -150,7 +151,7 @@ class LocalFile:
     ----------
     local_path : PathLike
         The ``Path`` of the file.
-    data : Dict[str, str]
+    data : Dict[str, Any]
         Dictionary with metadata relative to this file. It has the following format:
 
         .. code-block:: python
@@ -168,28 +169,33 @@ class LocalFile:
     def __init__(
         self,
         local_path: PathLike,
-        **kwargs,
+        **kwargs: Any,
     ):
         self.local_path = Path(local_path)
-        self.data = kwargs
+        self.data: Dict[str, Any] = kwargs
         self._type_check(kwargs)
 
-    def _type_check(self, args) -> None:
+    def _type_check(self, args: Dict[str, Any]) -> None:
         self.data["filename"] = args.get("filename") or self.local_path.name
         self.data["path"] = args.get("path") or "/"
 
-    def serialize(self):
+    def serialize(self) -> Dict[str, Any]:
         return {
             "files": [{"file_name": self.data["filename"], "slot_name": "0"}],
             "name": self.data["filename"],
         }
 
-    def serialize_darwin_json_v2(self):
-        optional_properties = ["tags", "fps", "as_frames", "extract_views"]
-        slot = {"file_name": self.data["filename"], "slot_name": "0"}
+    def serialize_darwin_json_v2(self) -> Dict[str, Any]:
+        optional_properties = ["tags", "as_frames", "extract_views"]
+        slot: Dict[str, Any] = {"file_name": self.data["filename"], "slot_name": "0"}
         for optional_property in optional_properties:
-            if optional_property in self.data:
+            if optional_property in self.data and self.data[optional_property] is not None:
                 slot[optional_property] = self.data.get(optional_property)
+
+        if "fps" in self.data and self.data["fps"] is not None:
+            slot["fps"] = self.data["fps"]
+        else:
+            slot["fps"] = "native"
 
         return {
             "slots": [slot],
@@ -200,12 +206,16 @@ class LocalFile:
     @property
     def full_path(self) -> str:
         """The full ``Path`` (with filename inclduded) to the item."""
-        return construct_full_path(self.data["path"], self.data["filename"])
+        return construct_full_path(str(self.data["path"]), str(self.data["filename"]))
 
 
 class MultiFileItem:
     def __init__(
-        self, directory: Path, files: List[Path], merge_mode: ItemMergeMode, fps: int
+        self,
+        directory: Path,
+        files: List[Path],
+        merge_mode: ItemMergeMode,
+        fps: Optional[float],
     ):
         self.directory = directory
         self.name = directory.name
@@ -213,7 +223,7 @@ class MultiFileItem:
         self.merge_mode = merge_mode
         self._prepare_local_files_and_create_layout()
 
-    def _prepare_local_files_and_create_layout(self):
+    def _prepare_local_files_and_create_layout(self) -> None:
         """
         This function:
         - Ensures that the files to be uploaded are valid for the given merge mode
@@ -269,17 +279,17 @@ class MultiFileItem:
             }
             self.slot_names = self.layout["slots_grid"][0][0]
 
-    def serialize_darwin_json_v2(self):
-        optional_properties = ["fps"]
+    def serialize_darwin_json_v2(self) -> Dict[str, Any]:
         slots = []
         for idx, local_file in enumerate(self.files):
-            slot = {
+            slot: Dict[str, Any] = {
                 "file_name": local_file.data["filename"],
                 "slot_name": self.slot_names[idx],
             }
-            for optional_property in optional_properties:
-                if optional_property in local_file.data:
-                    slot[optional_property] = local_file.data.get(optional_property)
+            if "fps" in local_file.data and local_file.data["fps"] is not None:
+                slot["fps"] = local_file.data["fps"]
+            else:
+                slot["fps"] = "native"
             slots.append(slot)
 
         return {

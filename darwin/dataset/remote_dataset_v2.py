@@ -167,7 +167,7 @@ class RemoteDatasetV2(RemoteDataset):
         blocking: bool = True,
         multi_threaded: bool = True,
         max_workers: Optional[int] = None,
-        fps: int = 0,
+        fps: Optional[float] = None,
         as_frames: bool = False,
         extract_views: bool = False,
         handle_as_slices: Optional[bool] = False,
@@ -193,7 +193,7 @@ class RemoteDatasetV2(RemoteDataset):
             If blocking is False this has no effect.
         max_workers : int, default: None
             Maximum number of workers to use for parallel upload.
-        fps : int, default: 0
+        fps : Optional[float], default: None
             When the uploading file is a video, specify its framerate.
         as_frames: bool, default: False
             When the uploading file is a video, specify whether it's going to be uploaded as a list of frames.
@@ -845,7 +845,7 @@ class RemoteDatasetV2(RemoteDataset):
 def _find_files_to_upload_as_multi_file_items(
     search_files: List[PathLike],
     files_to_exclude: List[PathLike],
-    fps: int,
+    fps: Optional[float],
     item_merge_mode: str,
 ) -> Tuple[List[LocalFile], List[MultiFileItem]]:
     """
@@ -858,7 +858,7 @@ def _find_files_to_upload_as_multi_file_items(
         List of directories to search for files.
     files_to_exclude : List[PathLike]
         List of files to exclude from the file scan.
-    fps : int
+    fps : Optional[float]
         When uploading video files, specify the framerate
     item_merge_mode : str
         Mode to merge the files in the folders. Valid options are: 'slots', 'series', 'channels'.
@@ -903,7 +903,7 @@ def _find_files_to_upload_as_single_file_items(
     files_to_upload: Optional[Sequence[Union[PathLike, LocalFile]]],
     files_to_exclude: List[PathLike],
     path: Optional[str],
-    fps: int,
+    fps: Optional[float],
     as_frames: bool,
     extract_views: bool,
     preserve_folders: bool,
@@ -922,7 +922,7 @@ def _find_files_to_upload_as_single_file_items(
         List of files to upload. These can be folders.
     path : Optional[str]
         Path to store the files in.
-    fps: int
+    fps: Optional[float]
         When uploading video files, specify the framerate.
     as_frames: bool
         When uploading video files, specify whether to upload as a list of frames.
@@ -940,7 +940,7 @@ def _find_files_to_upload_as_single_file_items(
     uploading_files = [item for item in files_to_upload if isinstance(item, LocalFile)]
 
     generic_parameters_specified = (
-        path is not None or fps != 0 or as_frames is not False
+        path is not None or fps is not None or as_frames is not False
     )
 
     if (
