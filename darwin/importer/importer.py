@@ -638,9 +638,9 @@ def _import_properties(
                     if a_prop.value is None:
                         assert t_prop.id is not None
 
-                        annotation_id_property_map[annotation_id][str(a_prop.frame_index)][
-                            t_prop.id
-                        ] = set()
+                        annotation_id_property_map[annotation_id][
+                            str(a_prop.frame_index)
+                        ][t_prop.id] = set()
                         continue
 
                     # get team property value
@@ -654,9 +654,9 @@ def _import_properties(
                     if t_prop_val:
                         assert t_prop.id is not None
                         assert t_prop_val.id is not None
-                        annotation_id_property_map[annotation_id][str(a_prop.frame_index)][
-                            t_prop.id
-                        ].add(t_prop_val.id)
+                        annotation_id_property_map[annotation_id][
+                            str(a_prop.frame_index)
+                        ][t_prop.id].add(t_prop_val.id)
                         continue
 
                 # TODO: Change this so that if a property isn't found in the metadata, we can create it assuming it's an option, multi-select with no description (DAR-2920)
@@ -898,8 +898,12 @@ def _import_properties(
     if properties_to_create or properties_to_update:
         # get latest team properties
         updated_lookups = _get_team_properties_annotation_lookup(client, dataset.team)
-        team_properties_annotation_lookup = team_properties_lookups.annotation = updated_lookups.annotation
-        team_item_properties_lookup = team_properties_lookups.item = updated_lookups.item
+        team_properties_annotation_lookup = team_properties_lookups.annotation = (
+            updated_lookups.annotation
+        )
+        team_item_properties_lookup = team_properties_lookups.item = (
+            updated_lookups.item
+        )
 
     # Update item-level properties from annotations
     _, item_properties_to_update_from_annotations = _create_update_item_properties(
@@ -929,8 +933,12 @@ def _import_properties(
 
         # get latest team properties
         updated_lookups = _get_team_properties_annotation_lookup(client, dataset.team)
-        team_properties_annotation_lookup = team_properties_lookups.annotation = updated_lookups.annotation
-        team_item_properties_lookup = team_properties_lookups.item = updated_lookups.item
+        team_properties_annotation_lookup = team_properties_lookups.annotation = (
+            updated_lookups.annotation
+        )
+        team_item_properties_lookup = team_properties_lookups.item = (
+            updated_lookups.item
+        )
 
     # loop over metadata_cls_id_prop_lookup, and update additional metadata property values
     for (annotation_class_id, prop_name), m_prop in metadata_cls_id_prop_lookup.items():
@@ -1592,9 +1600,13 @@ def import_annotations(  # noqa: C901
             team_properties_lookups,
         )
 
-    team_properties_lookups = _get_team_properties_annotation_lookup(dataset.client, dataset.team)
+    team_properties_lookups = _get_team_properties_annotation_lookup(
+        dataset.client, dataset.team
+    )
     annotation_id_property_map = {}
-    for local_file in tqdm(local_files, desc="Processing properties from local annotation files"):
+    for local_file in tqdm(
+        local_files, desc="Processing properties from local annotation files"
+    ):
         process_local_file(local_file, import_properties)
 
     if use_multi_cpu:
@@ -1999,7 +2011,10 @@ def _import_annotations(
 
     _update_payload_with_properties(serialized_annotations, annotation_id_property_map)
     serialized_item_level_properties = _serialize_item_level_properties(
-        item_properties, import_annotators, import_reviewers, team_item_properties_lookup,
+        item_properties,
+        import_annotators,
+        import_reviewers,
+        team_item_properties_lookup,
     )
 
     payload: dt.DictFreeForm = {"annotations": serialized_annotations}
@@ -2632,8 +2647,10 @@ def slot_is_handled_by_monai(slot: Dict[str, Any]) -> bool:
 def set_text_property_value(annotation_id_property_map, annotation_id, a_prop, t_prop):
     if a_prop.value is None:
         # here we will remove the property value
-        annotation_id_property_map[annotation_id][str(a_prop.frame_index)][t_prop.id] = []
+        annotation_id_property_map[annotation_id][str(a_prop.frame_index)][
+            t_prop.id
+        ] = []
     else:
-        annotation_id_property_map[annotation_id][str(a_prop.frame_index)][t_prop.id] = [
-            {"text": a_prop.value}
-        ]
+        annotation_id_property_map[annotation_id][str(a_prop.frame_index)][
+            t_prop.id
+        ] = [{"text": a_prop.value}]
