@@ -86,7 +86,7 @@ instead of calling this low-level function directly.
 
 
 @dataclass
-class TeamPropertiesLookups:
+class TeamPropertyLookups:
     annotation: Dict[Tuple[str, Optional[int]], FullProperty]
     item: Dict[str, FullProperty]
 
@@ -367,7 +367,7 @@ def _resolve_annotation_classes(
 
 def _get_team_properties_annotation_lookup(
     client: "Client", team_slug: str
-) -> TeamPropertiesLookups:
+) -> TeamPropertyLookups:
     """
     Returns two lookup dictionaries for team properties:
      - team_properties_annotation_lookup: (property-name, annotation_class_id): FullProperty object
@@ -401,7 +401,7 @@ def _get_team_properties_annotation_lookup(
         elif prop.granularity.value == "item":
             team_item_properties_lookup[prop.name] = prop
 
-    return TeamPropertiesLookups(
+    return TeamPropertyLookups(
         annotation=team_properties_annotation_lookup,
         item=team_item_properties_lookup,
     )
@@ -546,7 +546,7 @@ def _import_properties(
     annotation_class_ids_map: Dict[Tuple[str, str], str],
     dataset: "RemoteDataset",
     annotation_id_property_map: Dict[str, Dict[str, Dict[str, Set[str]]]],
-    team_properties_lookups: TeamPropertiesLookups,
+    team_property_lookups: TeamPropertyLookups,
 ) -> None:
     """
     Creates/Updates missing/mismatched properties from annotation & metadata.json file to team-properties.
@@ -561,7 +561,7 @@ def _import_properties(
         annotation_class_ids_map (Dict[Tuple[str, str], str]): Dict of annotation class names/types to annotation class ids
         dataset (RemoteDataset): RemoteDataset object
         annotation_id_property_map (Dict[str, Dict[str, Dict[str, Set[str]]]]): The map to be updated with properties.
-        team_properties_lookups: (TeamPropertiesLookups): Lookups for team properties.
+        team_property_lookups: (TeamPropertyLookups): Lookups for team properties.
 
     Raises:
         ValueError: raise error if annotation class not present in metadata and in team-properties
@@ -575,8 +575,8 @@ def _import_properties(
     metadata_property_classes, metadata_item_props = _parse_metadata_file(metadata_path)
 
     # Get team properties
-    team_properties_annotation_lookup = team_properties_lookups.annotation
-    team_item_properties_lookup = team_properties_lookups.item
+    team_properties_annotation_lookup = team_property_lookups.annotation
+    team_item_properties_lookup = team_property_lookups.item
 
     # Build metadata lookups
     (
@@ -898,12 +898,10 @@ def _import_properties(
     if created_properties or updated_properties:
         # get latest team properties
         updated_lookups = _get_team_properties_annotation_lookup(client, dataset.team)
-        team_properties_annotation_lookup = team_properties_lookups.annotation = (
+        team_properties_annotation_lookup = team_property_lookups.annotation = (
             updated_lookups.annotation
         )
-        team_item_properties_lookup = team_properties_lookups.item = (
-            updated_lookups.item
-        )
+        team_item_properties_lookup = team_property_lookups.item = updated_lookups.item
 
     # Update item-level properties from annotations
     _, item_properties_to_update_from_annotations = _create_update_item_properties(
@@ -933,12 +931,10 @@ def _import_properties(
 
         # get latest team properties
         updated_lookups = _get_team_properties_annotation_lookup(client, dataset.team)
-        team_properties_annotation_lookup = team_properties_lookups.annotation = (
+        team_properties_annotation_lookup = team_property_lookups.annotation = (
             updated_lookups.annotation
         )
-        team_item_properties_lookup = team_properties_lookups.item = (
-            updated_lookups.item
-        )
+        team_item_properties_lookup = team_property_lookups.item = updated_lookups.item
 
     # loop over metadata_cls_id_prop_lookup, and update additional metadata property values
     for (annotation_class_id, prop_name), m_prop in metadata_cls_id_prop_lookup.items():
@@ -1505,7 +1501,7 @@ def import_annotations(  # noqa: C901
             import_annotators,
             import_reviewers,
             annotation_id_property_map,
-            team_properties_lookups.item,
+            team_property_lookups.item,
         )
 
         if errors:
@@ -1601,10 +1597,10 @@ def import_annotations(  # noqa: C901
             annotation_class_ids_map,
             dataset,
             annotation_id_property_map,
-            team_properties_lookups,
+            team_property_lookups,
         )
 
-    team_properties_lookups = _get_team_properties_annotation_lookup(
+    team_property_lookups = _get_team_properties_annotation_lookup(
         dataset.client, dataset.team
     )
     annotation_id_property_map = {}
