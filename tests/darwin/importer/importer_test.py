@@ -21,7 +21,7 @@ from darwin.importer import get_importer
 from darwin.importer.importer import (
     BASE_URL_LENGTH,
     MAX_URL_LENGTH,
-    TeamPropertiesLookups,
+    TeamPropertyLookups,
     _assign_item_properties_to_dataset,
     _build_attribute_lookup,
     _build_main_annotations_lookup_table,
@@ -2879,7 +2879,7 @@ def test_import_existing_section_level_property_values_without_manifest(
     setup_data,
 ):
     client, team_slug, annotation_class_ids_map, annotations = setup_data
-    mock_get_team_properties.return_value = TeamPropertiesLookups(
+    mock_get_team_properties.return_value = TeamPropertyLookups(
         annotation={
             ("existing_property_single_select", 123): FullProperty(
                 id="property_id_1",
@@ -2938,7 +2938,7 @@ def test_import_existing_section_level_property_values_without_manifest(
         annotation_class_ids_map,
         mock_dataset,
         annotation_id_property_map,
-        team_properties_lookups=mock_get_team_properties.return_value,
+        team_property_lookups=mock_get_team_properties.return_value,
     )
     assert annotation_id_property_map["annotation_id_1"]["0"]["property_id_1"] == {
         "property_value_id_1",
@@ -2959,7 +2959,7 @@ def test_import_new_section_level_property_values_with_manifest(
     setup_data,
 ):
     client, team_slug, annotation_class_ids_map, annotations = setup_data
-    mock_get_team_properties.return_value = TeamPropertiesLookups(
+    mock_get_team_properties.return_value = TeamPropertyLookups(
         annotation={
             ("existing_property_single_select", 123): FullProperty(
                 id="property_id_1",
@@ -3017,7 +3017,7 @@ def test_import_new_section_level_property_values_with_manifest(
             annotation_class_ids_map,
             mock_dataset,
             annotation_id_property_map,
-            team_properties_lookups=mock_get_team_properties.return_value,
+            team_property_lookups=mock_get_team_properties.return_value,
         )
         assert annotation_id_property_map["annotation_id_1"]["0"]["property_id_2"] == {
             "property_value_id_2",
@@ -3097,9 +3097,7 @@ def test_import_identical_properties_to_different_classes(
             )
         ),
     ]
-    mock_get_team_properties.return_value = TeamPropertiesLookups(
-        item={}, annotation={}
-    )
+    mock_get_team_properties.return_value = TeamPropertyLookups(item={}, annotation={})
     metadata_path = (
         Path(__file__).parents[1]
         / "data"
@@ -3147,7 +3145,7 @@ def test_import_identical_properties_to_different_classes(
             annotation_class_ids_map,
             mock_dataset,
             annotation_id_property_map,
-            team_properties_lookups=mock_get_team_properties.return_value,
+            team_property_lookups=mock_get_team_properties.return_value,
         )
         assert annotation_id_property_map["1"]["0"]["prop_id_1"] == {"prop_val_id_1"}
         assert annotation_id_property_map["2"]["0"]["prop_id_2"] == {"prop_val_id_2"}
@@ -3161,9 +3159,7 @@ def test_import_new_section_level_properties_with_manifest(
     setup_data,
 ):
     client, team_slug, annotation_class_ids_map, annotations = setup_data
-    mock_get_team_properties.return_value = TeamPropertiesLookups(
-        item={}, annotation={}
-    )
+    mock_get_team_properties.return_value = TeamPropertyLookups(item={}, annotation={})
     metadata_path = (
         Path(__file__).parents[1]
         / "data"
@@ -3179,7 +3175,7 @@ def test_import_new_section_level_properties_with_manifest(
             annotation_class_ids_map,
             mock_dataset,
             annotation_id_property_map,
-            team_properties_lookups=mock_get_team_properties.return_value,
+            team_property_lookups=mock_get_team_properties.return_value,
         )
         assert mock_create_property.call_args_list[0].kwargs["params"] == FullProperty(
             id=None,
@@ -3220,7 +3216,7 @@ def test_import_existing_annotation_level_property_values_without_manifest(
     setup_data,
 ):
     client, team_slug, annotation_class_ids_map, annotations = setup_data
-    mock_get_team_properties.return_value = TeamPropertiesLookups(
+    mock_get_team_properties.return_value = TeamPropertyLookups(
         annotation={
             ("existing_property_single_select", 123): FullProperty(
                 id="property_id_1",
@@ -3278,7 +3274,7 @@ def test_import_existing_annotation_level_property_values_without_manifest(
         annotation_class_ids_map,
         mock_dataset,
         annotation_id_property_map,
-        team_properties_lookups=mock_get_team_properties.return_value,
+        team_property_lookups=mock_get_team_properties.return_value,
     )
     assert annotation_id_property_map["annotation_id_1"]["None"]["property_id_1"] == {
         "property_value_id_1",
@@ -3295,7 +3291,7 @@ def test_import_new_annotation_level_property_values_with_manifest(
     mock_get_team_properties, setup_data, mock_dataset
 ):
     client, team_slug, annotation_class_ids_map, annotations = setup_data
-    mock_get_team_properties.return_value = TeamPropertiesLookups(
+    mock_get_team_properties.return_value = TeamPropertyLookups(
         annotation={
             ("existing_property_single_select", 123): FullProperty(
                 id="property_id_1",
@@ -3396,9 +3392,7 @@ def test_import_new_annotation_level_properties_with_manifest(
     setup_data,
 ):
     client, team_slug, annotation_class_ids_map, annotations = setup_data
-    mock_get_team_properties.return_value = TeamPropertiesLookups(
-        item={}, annotation={}
-    )
+    mock_get_team_properties.return_value = TeamPropertyLookups(item={}, annotation={})
     metadata_path = (
         Path(__file__).parents[1]
         / "data"
@@ -3414,7 +3408,7 @@ def test_import_new_annotation_level_properties_with_manifest(
             annotation_class_ids_map,
             mock_dataset,
             annotation_id_property_map,
-            team_properties_lookups=mock_get_team_properties.return_value,
+            team_property_lookups=mock_get_team_properties.return_value,
         )
         assert mock_create_property.call_args_list[0].kwargs["params"] == FullProperty(
             name="existing_property_single_select",
@@ -3592,7 +3586,7 @@ def test_serialize_item_level_properties_single_select():
     )
 
     # Mock team properties lookup
-    mock_lookup_response = TeamPropertiesLookups(
+    mock_lookup_response = TeamPropertyLookups(
         annotation={}, item={"test_property": full_property}
     )
 
@@ -3629,7 +3623,7 @@ def test_serialize_item_level_properties_text():
     )
 
     # Mock team properties lookup
-    mock_lookup_response = TeamPropertiesLookups(
+    mock_lookup_response = TeamPropertyLookups(
         annotation={}, item={"text_property": full_property}
     )
 
@@ -3666,7 +3660,7 @@ def test_serialize_item_level_properties_with_actors():
     )
 
     # Mock team properties lookup
-    mock_lookup_response = TeamPropertiesLookups(
+    mock_lookup_response = TeamPropertyLookups(
         annotation={}, item={"text_property": full_property}
     )
 
@@ -3722,7 +3716,7 @@ def test_serialize_item_level_properties_multiple_properties():
     )
 
     # Mock team properties lookup
-    mock_lookup_response = TeamPropertiesLookups(
+    mock_lookup_response = TeamPropertyLookups(
         annotation={},
         item={"text_property": text_property, "select_property": select_property},
     )
