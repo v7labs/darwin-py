@@ -617,7 +617,6 @@ def test_image_annotation_nifti_multi_label():
     for subdir in root_dir.iterdir():
         if not subdir.is_dir():
             continue
-        print(subdir)
 
         nifti_file_path = subdir.joinpath("ground_truth.nii.gz")
         nifti_image = nib.load(nifti_file_path)

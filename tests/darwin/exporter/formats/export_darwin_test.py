@@ -153,7 +153,6 @@ def test_multi_segment_nifti_export():
     for subdir in root_dir.iterdir():
         if not subdir.is_dir():
             continue
-        print(subdir)
 
         ground_truth_path = subdir.joinpath("ground_truth.nii.gz")
         darwin_json_path = subdir.joinpath("darwin.json")
