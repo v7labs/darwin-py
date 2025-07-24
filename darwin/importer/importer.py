@@ -602,7 +602,7 @@ def _import_properties(
             continue
         annotation_class_id = int(annotation_class_ids_map[annotation_name_type])
         if not annotation.id:
-            continue
+            annotation.id = str(uuid.uuid4())
         annotation_id = annotation.id
         if annotation_id not in annotation_id_property_map:
             annotation_id_property_map[annotation_id] = defaultdict(
@@ -895,7 +895,7 @@ def _import_properties(
             )
             updated_properties.append(prop)
 
-    if properties_to_create or properties_to_update:
+    if created_properties or updated_properties:
         # get latest team properties
         updated_lookups = _get_team_properties_annotation_lookup(client, dataset.team)
         team_properties_annotation_lookup = team_properties_lookups.annotation = (
@@ -991,6 +991,7 @@ def _import_properties(
             prop = client.update_property(
                 team_slug=full_property.slug, params=full_property
             )
+            team_properties_annotation_lookup[(prop_name, annotation_class_id)] = prop
 
     # update annotation_id_property_map with property ids from created_properties & updated_properties
     for annotation_id, _ in annotation_id_property_map.items():
@@ -1175,14 +1176,17 @@ def _assign_item_properties_to_dataset(
                     if dataset.dataset_id not in prop_datasets:
                         updated_property = team_item_properties_lookup[team_prop]
                         updated_property.dataset_ids.append(dataset.dataset_id)
-                        updated_property.property_values = (
+
+                        # We must not mutate properties in team_item_properties_lookup, since their values are also used for lookups
+                        property_copy = updated_property.model_copy()
+                        property_copy.property_values = (
                             []
                         )  # Necessary to clear, otherwise we're trying to add the exsting values to themselves
                         console.print(
-                            f"Adding item-level property '{updated_property.name}' to the dataset '{dataset.name}' ",
+                            f"Adding item-level property '{property_copy.name}' to the dataset '{dataset.name}' ",
                             style="info",
                         )
-                        client.update_property(dataset.team, updated_property)
+                        client.update_property(dataset.team, property_copy)
 
 
 def import_annotations(  # noqa: C901
@@ -1509,7 +1513,7 @@ def import_annotations(  # noqa: C901
             for error in errors:
                 console.print(f"\t{error}", style="error")
 
-    def process_local_file(local_file, processing_func):
+    def process_local_file(local_file, processing_func, force_single_thread=False):
         if local_file is None:
             parsed_files = []
         elif not isinstance(local_file, List):
@@ -1546,7 +1550,7 @@ def import_annotations(  # noqa: C901
         if files_to_track:
             _warn_unsupported_annotations(files_to_track)
 
-            if use_multi_cpu:
+            if not force_single_thread and use_multi_cpu:
                 with concurrent.futures.ThreadPoolExecutor(
                     max_workers=cpu_limit
                 ) as executor:
@@ -1607,7 +1611,7 @@ def import_annotations(  # noqa: C901
     for local_file in tqdm(
         local_files, desc="Processing properties from local annotation files"
     ):
-        process_local_file(local_file, import_properties)
+        process_local_file(local_file, import_properties, force_single_thread=True)
 
     if use_multi_cpu:
         with concurrent.futures.ThreadPoolExecutor(max_workers=cpu_limit) as executor:
@@ -2001,7 +2005,6 @@ def _import_annotations(
             "context_keys": {"slot_names": annotation.slot_names},
         }
 
-        annotation.id = annotation.id or str(uuid.uuid4())
         serial_obj["id"] = annotation.id
 
         if actors:
