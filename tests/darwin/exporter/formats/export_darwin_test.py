@@ -154,15 +154,13 @@ def test_multi_segment_nifti_export():
         if not subdir.is_dir():
             continue
         print(subdir)
-        
+
         ground_truth_path = subdir.joinpath("ground_truth.nii.gz")
         darwin_json_path = subdir.joinpath("darwin.json")
         target_output_directory = subdir.joinpath("output")
         volume_name = subdir.parts[-1]
         target_output_path = target_output_directory.joinpath(
-            "darwin",
-            "0",
-            f"{volume_name[:-2]}_Segments_m.nii.gz"
+            "darwin", "0", f"{volume_name[:-2]}_Segments_m.nii.gz"
         )
 
         try:
