@@ -610,3 +610,17 @@ def test_parse_path_nifti_without_legacy_scaling():
             parsed_annotation, decimal_places=4
         )
         assert expected_annotation_rounded == parsed_annotation_rounded
+
+
+def test_image_annotation_nifti_multi_label():
+    root_dir = Path("tests/darwin/data/nifti/multi_segment")
+    for subdir in root_dir.iterdir():
+        if not subdir.is_dir():
+            continue
+
+        nifti_file_path = subdir.joinpath("ground_truth.nii.gz")
+        nifti_image = nib.load(nifti_file_path)
+        data_array = process_nifti(nifti_image)
+
+        # Assert correct conversion with presence of 3 values (background and 2 labels)
+        assert data_array is not None and len(np.unique(data_array)) == 3
