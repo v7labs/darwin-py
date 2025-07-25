@@ -1,3 +1,4 @@
+from pathlib import Path
 from subprocess import run
 from time import sleep
 from typing import Optional, Union, Sequence
@@ -295,3 +296,35 @@ def exclude_annotations_of_type(
         for annotation in annotations
         if annotation.annotation_class.annotation_type != annotation_type
     ]
+
+
+def compare_directories(path: Path, expected_path: Path) -> None:
+    """
+    Compare two directories recursively
+    """
+    assert path.exists() and expected_path.exists()
+    assert path.is_dir() and expected_path.is_dir()
+
+    for file in path.iterdir():
+        if file.is_dir():
+            # Recursively compare directories
+            compare_directories(file, expected_path / file.name)
+        else:
+            if file.name.startswith("."):
+                # Ignore hidden files
+                continue
+
+            # Compare files
+            with file.open("rb") as f:
+                content = f.read()
+
+            with Path(expected_path / file.name).open("rb") as f:
+                expected_content = f.read()
+
+            if content != expected_content:
+                print(f"Expected file: {expected_path / file.name}")
+                print(f"Expected Content: \n{expected_content}")
+                print("---------------------")
+                print(f"Actual file: {file}")
+                print(f"Actual Content: \n{content}")
+                assert False, f"File {file} does not match expected file"
