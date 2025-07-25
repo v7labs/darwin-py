@@ -3,7 +3,12 @@ import shutil
 import time
 from pathlib import Path
 
-from e2e_tests.helpers import SERVER_WAIT_TIME, assert_cli, run_cli_command, export_release
+from e2e_tests.helpers import (
+    SERVER_WAIT_TIME,
+    assert_cli,
+    run_cli_command,
+    export_release,
+)
 from e2e_tests.objects import E2EDataset, ConfigValues
 from e2e_tests.cli.test_import import compare_annotations_export
 from e2e_tests.cli.test_push import extract_and_push
@@ -151,10 +156,7 @@ def test_full_cycle_nifti(
         f"{Path.home()}/.darwin/datasets/{config_values.team_slug}/{local_dataset.slug}"
     )
     annotations_import_dir = (
-        Path(__file__).parents[1]
-        / "data"
-        / "import"
-        / "nifti_multi_segment"
+        Path(__file__).parents[1] / "data" / "import" / "nifti_multi_segment"
     )
 
     expected_filepaths = [
