@@ -170,7 +170,7 @@ def wait_until_items_processed(
     Waits until all items in a dataset have finished processing before attempting to upload annotations.
     Raises a `TimeoutError` if the process takes longer than the specified timeout.
     """
-    sleep_duration = 10
+    sleep_duration = SERVER_WAIT_TIME
     api_key = config_values.api_key
     team_slug = config_values.team_slug
     base_url = config_values.server
