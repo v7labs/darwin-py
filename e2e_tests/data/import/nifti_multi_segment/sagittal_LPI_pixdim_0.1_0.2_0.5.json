@@ -1,0 +1,259 @@
+{
+  "version": "2.0",
+  "schema_ref": "https://darwin-public.s3.eu-west-1.amazonaws.com/darwin_json/2.0/schema.json",
+  "item": {
+    "name": "sagittal_LPI_pixdim_0.1_0.2_0.5.dcm",
+    "path": "/",
+    "source_info": {
+      "item_id": "0197ee1d-5920-c9f8-017f-987b38e38f5f",
+      "dataset": {
+        "name": "dicom_test_data_new",
+        "slug": "dicom_test_data_new",
+        "dataset_management_url": "https://darwin.v7labs.com/datasets/1856922/dataset-management"
+      },
+      "team": {
+        "name": "V7 John",
+        "slug": "v7-john"
+      },
+      "workview_url": "https://darwin.v7labs.com/workview?dataset=1856922&item=0197ee1d-5920-c9f8-017f-987b38e38f5f"
+    },
+    "slots": [
+      {
+        "type": "dicom",
+        "slot_name": "0",
+        "width": 128,
+        "height": 128,
+        "fps": null,
+        "thumbnail_url": "https://darwin.v7labs.com/api/v2/teams/v7-john/files/c160652a-9d74-4a27-91f5-158bd68eab2c/thumbnail?token=4ca42b77-ad16-42ce-82e1-e9c762085012",
+        "source_files": [
+          {
+            "file_name": "sagittal_LPI_pixdim_0.1_0.2_0.5.dcm",
+            "url": "https://darwin.v7labs.com/api/v2/teams/v7-john/uploads/54adbf48-0129-44ea-978c-313aeb35627b?token=4ca42b77-ad16-42ce-82e1-e9c762085012"
+          }
+        ],
+        "frame_count": 16,
+        "frame_urls": [
+          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/c160652a-9d74-4a27-91f5-158bd68eab2c/sections/0?token=4ca42b77-ad16-42ce-82e1-e9c762085012",
+          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/c160652a-9d74-4a27-91f5-158bd68eab2c/sections/1?token=4ca42b77-ad16-42ce-82e1-e9c762085012",
+          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/c160652a-9d74-4a27-91f5-158bd68eab2c/sections/2?token=4ca42b77-ad16-42ce-82e1-e9c762085012",
+          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/c160652a-9d74-4a27-91f5-158bd68eab2c/sections/3?token=4ca42b77-ad16-42ce-82e1-e9c762085012",
+          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/c160652a-9d74-4a27-91f5-158bd68eab2c/sections/4?token=4ca42b77-ad16-42ce-82e1-e9c762085012",
+          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/c160652a-9d74-4a27-91f5-158bd68eab2c/sections/5?token=4ca42b77-ad16-42ce-82e1-e9c762085012",
+          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/c160652a-9d74-4a27-91f5-158bd68eab2c/sections/6?token=4ca42b77-ad16-42ce-82e1-e9c762085012",
+          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/c160652a-9d74-4a27-91f5-158bd68eab2c/sections/7?token=4ca42b77-ad16-42ce-82e1-e9c762085012",
+          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/c160652a-9d74-4a27-91f5-158bd68eab2c/sections/8?token=4ca42b77-ad16-42ce-82e1-e9c762085012",
+          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/c160652a-9d74-4a27-91f5-158bd68eab2c/sections/9?token=4ca42b77-ad16-42ce-82e1-e9c762085012",
+          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/c160652a-9d74-4a27-91f5-158bd68eab2c/sections/10?token=4ca42b77-ad16-42ce-82e1-e9c762085012",
+          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/c160652a-9d74-4a27-91f5-158bd68eab2c/sections/11?token=4ca42b77-ad16-42ce-82e1-e9c762085012",
+          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/c160652a-9d74-4a27-91f5-158bd68eab2c/sections/12?token=4ca42b77-ad16-42ce-82e1-e9c762085012",
+          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/c160652a-9d74-4a27-91f5-158bd68eab2c/sections/13?token=4ca42b77-ad16-42ce-82e1-e9c762085012",
+          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/c160652a-9d74-4a27-91f5-158bd68eab2c/sections/14?token=4ca42b77-ad16-42ce-82e1-e9c762085012",
+          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/c160652a-9d74-4a27-91f5-158bd68eab2c/sections/15?token=4ca42b77-ad16-42ce-82e1-e9c762085012"
+        ],
+        "metadata": {
+          "handler": "MONAI",
+          "shape": [
+            1,
+            16,
+            128,
+            128
+          ],
+          "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.16951377570626244557338024182864652772",
+          "affine": "[[-1.0, 0.0, 0.0, 15.0], [0.0, -0.1, 0.0, 0.0], [0.0, 0.0, -0.25, 0.0], [0.0, 0.0, 0.0, 1.0]]",
+          "colorspace": "RG16",
+          "original_affine": [
+            [
+              "0.0",
+              "0.0",
+              "1.0",
+              "0.0"
+            ],
+            [
+              "-0.1",
+              "0.0",
+              "0.0",
+              "0.0"
+            ],
+            [
+              "0.0",
+              "-0.25",
+              "0.0",
+              "0.0"
+            ],
+            [
+              "0.0",
+              "0.0",
+              "0.0",
+              "1.0"
+            ]
+          ],
+          "pixdim": "(1.0, 0.1, 0.25)",
+          "plane_map": {
+            "0": "SAGITTAL"
+          },
+          "primary_plane": "SAGITTAL"
+        }
+      }
+    ]
+  },
+  "annotations": [
+    {
+      "frames": {
+        "15": {
+          "keyframe": true,
+          "mask": {}
+        }
+      },
+      "global_sub_types": {},
+      "id": "2d12dc2e-5cc5-4bb7-89ce-5f010fc0f184",
+      "interpolate_algorithm": "linear-1.1",
+      "name": "mask1",
+      "only_keyframes": true,
+      "properties": [],
+      "ranges": [
+        [
+          15,
+          16
+        ]
+      ],
+      "slot_names": [
+        "0"
+      ]
+    },
+    {
+      "frames": {
+        "15": {
+          "keyframe": true,
+          "mask": {}
+        }
+      },
+      "global_sub_types": {},
+      "id": "97117be2-ae2e-4431-bcd3-5dd724121489",
+      "interpolate_algorithm": "linear-1.1",
+      "name": "mask2",
+      "only_keyframes": true,
+      "properties": [],
+      "ranges": [
+        [
+          15,
+          16
+        ]
+      ],
+      "slot_names": [
+        "0"
+      ]
+    },
+    {
+      "frames": {
+        "15": {
+          "keyframe": true,
+          "raster_layer": {
+            "dense_rle": [
+              0,
+              2088,
+              1,
+              32,
+              0,
+              96,
+              1,
+              32,
+              0,
+              96,
+              1,
+              32,
+              0,
+              96,
+              1,
+              32,
+              0,
+              96,
+              1,
+              32,
+              0,
+              96,
+              1,
+              32,
+              0,
+              96,
+              1,
+              32,
+              0,
+              96,
+              1,
+              32,
+              0,
+              96,
+              1,
+              32,
+              0,
+              96,
+              1,
+              32,
+              0,
+              96,
+              2,
+              32,
+              0,
+              96,
+              2,
+              32,
+              0,
+              96,
+              2,
+              32,
+              0,
+              96,
+              2,
+              32,
+              0,
+              96,
+              2,
+              32,
+              0,
+              96,
+              2,
+              32,
+              0,
+              96,
+              2,
+              32,
+              0,
+              96,
+              2,
+              32,
+              0,
+              96,
+              2,
+              32,
+              0,
+              96,
+              2,
+              32,
+              0,
+              11832
+            ],
+            "mask_annotation_ids_mapping": {
+              "2d12dc2e-5cc5-4bb7-89ce-5f010fc0f184": 1,
+              "97117be2-ae2e-4431-bcd3-5dd724121489": 2
+            },
+            "total_pixels": 16384
+          }
+        }
+      },
+      "id": "c41d3017-793b-41f8-b9be-fa95d2e505ef",
+      "name": "__raster_layer__",
+      "only_keyframes": true,
+      "properties": [],
+      "ranges": [
+        [
+          0,
+          16
+        ]
+      ],
+      "slot_names": [
+        "0"
+      ]
+    }
+  ],
+  "properties": []
+}

@@ -6,7 +6,7 @@ import orjson as json
 import pytest
 import xml.etree.ElementTree as ET
 
-from e2e_tests.helpers import assert_cli, run_cli_command
+from e2e_tests.helpers import assert_cli, compare_directories, run_cli_command
 
 
 class TestExportCli:
@@ -16,37 +16,6 @@ class TestExportCli:
     @pytest.fixture(autouse=True)
     def config(self) -> None:
         assert self.data_path.exists(), "Data path does not exist, tests cannot run"
-
-    def compare_directories(self, path: Path, expected_path: Path) -> None:
-        """
-        Compare two directories recursively
-        """
-        assert path.exists() and expected_path.exists()
-        assert path.is_dir() and expected_path.is_dir()
-
-        for file in path.iterdir():
-            if file.is_dir():
-                # Recursively compare directories
-                self.compare_directories(file, expected_path / file.name)
-            else:
-                if file.name.startswith("."):
-                    # Ignore hidden files
-                    continue
-
-                # Compare files
-                with file.open("rb") as f:
-                    content = f.read()
-
-                with Path(expected_path / file.name).open("rb") as f:
-                    expected_content = f.read()
-
-                if content != expected_content:
-                    print(f"Expected file: {expected_path / file.name}")
-                    print(f"Expected Content: \n{expected_content}")
-                    print("---------------------")
-                    print(f"Actual file: {file}")
-                    print(f"Actual Content: \n{content}")
-                    assert False, f"File {file} does not match expected file"
 
     @pytest.mark.parametrize(
         "format, input_path, expectation_path",
@@ -69,6 +38,11 @@ class TestExportCli:
                 "nifti",
                 data_path / "nifti-multislot/from",
                 data_path / "nifti-multislot/to",
+            ),
+            (
+                "nifti",
+                data_path / "nifti-multi-segment/from",
+                data_path / "nifti-multi-segment/to",
             ),
             (
                 "instance_mask",
@@ -112,7 +86,7 @@ class TestExportCli:
         )
         self.patch_format(format, tmp_path)
         assert_cli(result, 0)
-        self.compare_directories(expectation_path, tmp_path)
+        compare_directories(expectation_path, tmp_path)
 
     def patch_format(self, format: str, path: Path) -> None:
         """

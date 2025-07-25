@@ -98,7 +98,7 @@ def export(
             try:
                 medical_metadata = slot.metadata
                 legacy = not medical_metadata.get("handler") == "MONAI"  # type: ignore
-                plane_map = medical_metadata.get("plane_map", {slot_name: "AXIAL"})
+                plane_map = medical_metadata.get("plane_map") or {slot_name: "AXIAL"}
                 primary_plane = medical_metadata.get(
                     "primary_plane", plane_map.get(slot_name, "AXIAL")
                 )

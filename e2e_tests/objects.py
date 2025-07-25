@@ -467,6 +467,125 @@ def get_read_only_registration_payload(
                 "name": "multi_slotted_dicom_item",
             },
         ],
+        "multi_segment_nifti": [
+            {
+                "path": path or "/",
+                "name": "axial_RPI_pixdim_1.0_1.0_1.0.dcm",
+                "slots": [
+                    {
+                        "slot_name": "0",
+                        "type": "dicom",
+                        "storage_key": "darwin-py/dicoms/axial_RPI_pixdim_1.0_1.0_1.0.dcm",
+                        "storage_thumbnail_key": "data/darwin-py/dicoms/axial_RPI_pixdim_1.0_1.0_1.0.dcm/uploads/a176ce30-4a3e-48db-a33a-01af311726ee/thumbnails/000000000.jpg",
+                        "file_name": "axial_RPI_pixdim_1.0_1.0_1.0.dcm",
+                        "sections": [
+                            {
+                                "section_index": i + 1,
+                                "height": 128,
+                                "width": 128,
+                                "storage_hq_key": f"data/darwin-py/dicoms/axial_RPI_pixdim_1.0_1.0_1.0.dcm/uploads/a176ce30-4a3e-48db-a33a-01af311726ee/hq_sections/{i:09}.png",
+                                "storage_lq_key": f"data/darwin-py/dicoms/axial_RPI_pixdim_1.0_1.0_1.0.dcm/uploads/a176ce30-4a3e-48db-a33a-01af311726ee/lq_sections/{i:09}.png",
+                            }
+                            for i in range(16)
+                        ],
+                        "metadata": {
+                            "handler": "MONAI",
+                            "shape": [1, 128, 128, 16],
+                            "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.37180825650614764423282910493086149224",
+                            "affine": "[[-1.0, 0.0, 0.0, 127.0], [0.0, -1.0, 0.0, 0.0], [0.0, 0.0, -1.0, 15.0], [0.0, 0.0, 0.0, 1.0]]",
+                            "colorspace": "RG16",
+                            "original_affine": [
+                                ["1.0", "0.0", "0.0", "0.0"],
+                                ["0.0", "-1.0", "0.0", "0.0"],
+                                ["0.0", "0.0", "1.0", "0.0"],
+                                ["0.0", "0.0", "0.0", "1.0"],
+                            ],
+                            "pixdim": "(1.0, 1.0, 1.0)",
+                            "plane_map": {"0": "AXIAL"},
+                            "primary_plane": "AXIAL",
+                        },
+                    },
+                ],
+            },
+            {
+                "path": path or "/",
+                "name": "coronal_LAS_pixdim_0.1_0.2_0.5.dcm",
+                "slots": [
+                    {
+                        "slot_name": "0",
+                        "type": "dicom",
+                        "storage_key": "darwin-py/dicoms/coronal_LAS_pixdim_0.1_0.2_0.5.dcm",
+                        "storage_thumbnail_key": "data/darwin-py/dicoms/coronal_LAS_pixdim_0.1_0.2_0.5.dcm/uploads/120c999b-230e-4bdd-a833-93fe6b3a3a30/thumbnails/000000000.jpg",
+                        "file_name": "coronal_LAS_pixdim_0.1_0.2_0.5.dcm",
+                        "sections": [
+                            {
+                                "section_index": i + 1,
+                                "height": 128,
+                                "width": 128,
+                                "storage_hq_key": f"data/darwin-py/dicoms/coronal_LAS_pixdim_0.1_0.2_0.5.dcm/uploads/120c999b-230e-4bdd-a833-93fe6b3a3a30/hq_sections/{i:09}.png",
+                                "storage_lq_key": f"data/darwin-py/dicoms/coronal_LAS_pixdim_0.1_0.2_0.5.dcm/uploads/120c999b-230e-4bdd-a833-93fe6b3a3a30/lq_sections/{i:09}.png",
+                            }
+                            for i in range(16)
+                        ],
+                        "metadata": {
+                            "handler": "MONAI",
+                            "shape": [1, 128, 16, 128],
+                            "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.10392093638286046303269310577715221690",
+                            "affine": "[[-0.1, 0.0, 0.0, 0.0], [0.0, -1.0, 0.0, 0.0], [0.0, 0.0, -0.25, 31.75], [0.0, 0.0, 0.0, 1.0]]",
+                            "colorspace": "RG16",
+                            "original_affine": [
+                                ["-0.1", "0.0", "0.0", "0.0"],
+                                ["0.0", "0.0", "-1.0", "0.0"],
+                                ["0.0", "0.25", "0.0", "0.0"],
+                                ["0.0", "0.0", "0.0", "1.0"],
+                            ],
+                            "pixdim": "(0.1, 1.0, 0.25)",
+                            "plane_map": {"0": "CORONAL"},
+                            "primary_plane": "CORONAL",
+                        },
+                    },
+                ],
+            },
+            {
+                "path": path or "/",
+                "name": "sagittal_LPI_pixdim_0.1_0.2_0.5.dcm",
+                "slots": [
+                    {
+                        "slot_name": "0",
+                        "type": "dicom",
+                        "storage_key": "darwin-py/dicoms/sagittal_LPI_pixdim_0.1_0.2_0.5.dcm",
+                        "storage_thumbnail_key": "data/darwin-py/dicoms/sagittal_LPI_pixdim_0.1_0.2_0.5.dcm/uploads/8d69ef65-db0f-45ab-827e-23faa4871519/thumbnails/000000000.jpg",
+                        "file_name": "sagittal_LPI_pixdim_0.1_0.2_0.5.dcm",
+                        "sections": [
+                            {
+                                "section_index": i + 1,
+                                "height": 128,
+                                "width": 128,
+                                "storage_hq_key": f"data/darwin-py/dicoms/sagittal_LPI_pixdim_0.1_0.2_0.5.dcm/uploads/8d69ef65-db0f-45ab-827e-23faa4871519/hq_sections/{i:09}.png",
+                                "storage_lq_key": f"data/darwin-py/dicoms/sagittal_LPI_pixdim_0.1_0.2_0.5.dcm/uploads/8d69ef65-db0f-45ab-827e-23faa4871519/lq_sections/{i:09}.png",
+                            }
+                            for i in range(16)
+                        ],
+                        "metadata": {
+                            "handler": "MONAI",
+                            "shape": [1, 16, 128, 128],
+                            "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.16951377570626244557338024182864652772",
+                            "affine": "[[-1.0, 0.0, 0.0, 15.0], [0.0, -0.1, 0.0, 0.0], [0.0, 0.0, -0.25, 0.0], [0.0, 0.0, 0.0, 1.0]]",
+                            "colorspace": "RG16",
+                            "original_affine": [
+                                ["0.0", "0.0", "1.0", "0.0"],
+                                ["-0.1", "0.0", "0.0", "0.0"],
+                                ["0.0", "-0.25", "0.0", "0.0"],
+                                ["0.0", "0.0", "0.0", "1.0"],
+                            ],
+                            "pixdim": "(1.0, 0.1, 0.25)",
+                            "plane_map": {"0": "SAGITTAL"},
+                            "primary_plane": "SAGITTAL",
+                        },
+                    },
+                ],
+            },
+        ],
     }
     return {
         "items": items[item_type],  # type: ignore

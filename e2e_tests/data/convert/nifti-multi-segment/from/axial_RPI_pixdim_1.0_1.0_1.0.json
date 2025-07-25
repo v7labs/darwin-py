@@ -1,0 +1,259 @@
+{
+  "version": "2.0",
+  "schema_ref": "https://darwin-public.s3.eu-west-1.amazonaws.com/darwin_json/2.0/schema.json",
+  "item": {
+    "name": "axial_RPI_pixdim_1.0_1.0_1.0.dcm",
+    "path": "/",
+    "source_info": {
+      "item_id": "0197ee1d-591e-a61b-82e2-e6f1e5c30cf2",
+      "dataset": {
+        "name": "dicom_test_data_new",
+        "slug": "dicom_test_data_new",
+        "dataset_management_url": "https://darwin.v7labs.com/datasets/1856922/dataset-management"
+      },
+      "team": {
+        "name": "V7 John",
+        "slug": "v7-john"
+      },
+      "workview_url": "https://darwin.v7labs.com/workview?dataset=1856922&item=0197ee1d-591e-a61b-82e2-e6f1e5c30cf2"
+    },
+    "slots": [
+      {
+        "type": "dicom",
+        "slot_name": "0",
+        "width": 128,
+        "height": 128,
+        "fps": null,
+        "thumbnail_url": "https://darwin.v7labs.com/api/v2/teams/v7-john/files/243d7c36-d767-4e3c-adb0-44324ebd14fe/thumbnail?token=590de404-3490-4dde-90f9-d13136b0d14f",
+        "source_files": [
+          {
+            "file_name": "axial_RPI_pixdim_1.0_1.0_1.0.dcm",
+            "url": "https://darwin.v7labs.com/api/v2/teams/v7-john/uploads/d4f4e7cd-e8a8-407f-9ff3-0a1f3298c84c?token=590de404-3490-4dde-90f9-d13136b0d14f"
+          }
+        ],
+        "frame_count": 16,
+        "frame_urls": [
+          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/243d7c36-d767-4e3c-adb0-44324ebd14fe/sections/0?token=590de404-3490-4dde-90f9-d13136b0d14f",
+          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/243d7c36-d767-4e3c-adb0-44324ebd14fe/sections/1?token=590de404-3490-4dde-90f9-d13136b0d14f",
+          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/243d7c36-d767-4e3c-adb0-44324ebd14fe/sections/2?token=590de404-3490-4dde-90f9-d13136b0d14f",
+          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/243d7c36-d767-4e3c-adb0-44324ebd14fe/sections/3?token=590de404-3490-4dde-90f9-d13136b0d14f",
+          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/243d7c36-d767-4e3c-adb0-44324ebd14fe/sections/4?token=590de404-3490-4dde-90f9-d13136b0d14f",
+          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/243d7c36-d767-4e3c-adb0-44324ebd14fe/sections/5?token=590de404-3490-4dde-90f9-d13136b0d14f",
+          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/243d7c36-d767-4e3c-adb0-44324ebd14fe/sections/6?token=590de404-3490-4dde-90f9-d13136b0d14f",
+          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/243d7c36-d767-4e3c-adb0-44324ebd14fe/sections/7?token=590de404-3490-4dde-90f9-d13136b0d14f",
+          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/243d7c36-d767-4e3c-adb0-44324ebd14fe/sections/8?token=590de404-3490-4dde-90f9-d13136b0d14f",
+          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/243d7c36-d767-4e3c-adb0-44324ebd14fe/sections/9?token=590de404-3490-4dde-90f9-d13136b0d14f",
+          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/243d7c36-d767-4e3c-adb0-44324ebd14fe/sections/10?token=590de404-3490-4dde-90f9-d13136b0d14f",
+          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/243d7c36-d767-4e3c-adb0-44324ebd14fe/sections/11?token=590de404-3490-4dde-90f9-d13136b0d14f",
+          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/243d7c36-d767-4e3c-adb0-44324ebd14fe/sections/12?token=590de404-3490-4dde-90f9-d13136b0d14f",
+          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/243d7c36-d767-4e3c-adb0-44324ebd14fe/sections/13?token=590de404-3490-4dde-90f9-d13136b0d14f",
+          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/243d7c36-d767-4e3c-adb0-44324ebd14fe/sections/14?token=590de404-3490-4dde-90f9-d13136b0d14f",
+          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/243d7c36-d767-4e3c-adb0-44324ebd14fe/sections/15?token=590de404-3490-4dde-90f9-d13136b0d14f"
+        ],
+        "metadata": {
+          "handler": "MONAI",
+          "shape": [
+            1,
+            128,
+            128,
+            16
+          ],
+          "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.37180825650614764423282910493086149224",
+          "affine": "[[-1.0, 0.0, 0.0, 127.0], [0.0, -1.0, 0.0, 0.0], [0.0, 0.0, -1.0, 15.0], [0.0, 0.0, 0.0, 1.0]]",
+          "colorspace": "RG16",
+          "original_affine": [
+            [
+              "1.0",
+              "0.0",
+              "0.0",
+              "0.0"
+            ],
+            [
+              "0.0",
+              "-1.0",
+              "0.0",
+              "0.0"
+            ],
+            [
+              "0.0",
+              "0.0",
+              "1.0",
+              "0.0"
+            ],
+            [
+              "0.0",
+              "0.0",
+              "0.0",
+              "1.0"
+            ]
+          ],
+          "pixdim": "(1.0, 1.0, 1.0)",
+          "plane_map": {
+            "0": "AXIAL"
+          },
+          "primary_plane": "AXIAL"
+        }
+      }
+    ]
+  },
+  "annotations": [
+    {
+      "frames": {
+        "15": {
+          "keyframe": true,
+          "mask": {}
+        }
+      },
+      "global_sub_types": {},
+      "id": "02c693fa-97f5-4a3c-9c45-e1d9eebb0731",
+      "interpolate_algorithm": "linear-1.1",
+      "name": "mask1",
+      "only_keyframes": true,
+      "properties": [],
+      "ranges": [
+        [
+          15,
+          16
+        ]
+      ],
+      "slot_names": [
+        "0"
+      ]
+    },
+    {
+      "frames": {
+        "15": {
+          "keyframe": true,
+          "mask": {}
+        }
+      },
+      "global_sub_types": {},
+      "id": "d212f8a6-8e09-4901-a44b-77745626edc9",
+      "interpolate_algorithm": "linear-1.1",
+      "name": "mask2",
+      "only_keyframes": true,
+      "properties": [],
+      "ranges": [
+        [
+          15,
+          16
+        ]
+      ],
+      "slot_names": [
+        "0"
+      ]
+    },
+    {
+      "frames": {
+        "15": {
+          "keyframe": true,
+          "raster_layer": {
+            "dense_rle": [
+              0,
+              2104,
+              1,
+              32,
+              0,
+              96,
+              1,
+              32,
+              0,
+              96,
+              1,
+              32,
+              0,
+              96,
+              1,
+              32,
+              0,
+              96,
+              1,
+              32,
+              0,
+              96,
+              1,
+              32,
+              0,
+              96,
+              1,
+              32,
+              0,
+              96,
+              1,
+              32,
+              0,
+              96,
+              1,
+              32,
+              0,
+              96,
+              1,
+              32,
+              0,
+              96,
+              2,
+              32,
+              0,
+              96,
+              2,
+              32,
+              0,
+              96,
+              2,
+              32,
+              0,
+              96,
+              2,
+              32,
+              0,
+              96,
+              2,
+              32,
+              0,
+              96,
+              2,
+              32,
+              0,
+              96,
+              2,
+              32,
+              0,
+              96,
+              2,
+              32,
+              0,
+              96,
+              2,
+              32,
+              0,
+              96,
+              2,
+              32,
+              0,
+              11816
+            ],
+            "mask_annotation_ids_mapping": {
+              "02c693fa-97f5-4a3c-9c45-e1d9eebb0731": 1,
+              "d212f8a6-8e09-4901-a44b-77745626edc9": 2
+            },
+            "total_pixels": 16384
+          }
+        }
+      },
+      "id": "a15c3b3e-89af-4733-b6c7-10f01e2c0b57",
+      "name": "__raster_layer__",
+      "only_keyframes": true,
+      "properties": [],
+      "ranges": [
+        [
+          0,
+          16
+        ]
+      ],
+      "slot_names": [
+        "0"
+      ]
+    }
+  ],
+  "properties": []
+}
