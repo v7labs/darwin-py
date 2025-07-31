@@ -21,6 +21,7 @@ from darwin.importer import get_importer
 from darwin.importer.importer import (
     BASE_URL_LENGTH,
     MAX_URL_LENGTH,
+    TeamPropertyLookups,
     _assign_item_properties_to_dataset,
     _build_attribute_lookup,
     _build_main_annotations_lookup_table,
@@ -411,7 +412,8 @@ def test_import_annotations() -> None:
     delete_for_empty = False
     import_annotators = True
     import_reviewers = True
-    metadata_path = False
+    annotation_id_property_map = {}
+    team_item_properties_lookup = {}
 
     with patch("darwin.importer.importer._get_annotation_data") as mock_gad, patch(
         "darwin.importer.importer._handle_annotators"
@@ -445,7 +447,8 @@ def test_import_annotations() -> None:
             delete_for_empty,
             import_annotators,
             import_reviewers,
-            metadata_path,
+            annotation_id_property_map,
+            team_item_properties_lookup,
         )
 
         assert success == dt.Success.SUCCESS
@@ -1086,6 +1089,9 @@ def test__import_annotations() -> None:
         )
         mock_ip.return_value = {}
 
+        annotation_id_property_map = {}
+        team_item_properties_lookup = {}
+
         annotation = dt.Annotation(
             dt.AnnotationClass("test_class", "bbox"), {"paths": [1, 2, 3, 4, 5]}, [], []
         )
@@ -1103,7 +1109,8 @@ def test__import_annotations() -> None:
             False,
             "test_import_annotators",  # type: ignore
             "test_import_reviewers",  # type: ignore
-            False,
+            annotation_id_property_map,
+            team_item_properties_lookup,
         )
 
         assert mock_dataset.import_annotation.call_count == 1
@@ -2872,62 +2879,74 @@ def test_import_existing_section_level_property_values_without_manifest(
     setup_data,
 ):
     client, team_slug, annotation_class_ids_map, annotations = setup_data
-    mock_get_team_properties.return_value = {
-        ("existing_property_single_select", 123): FullProperty(
-            id="property_id_1",
-            name="existing_property_single_select",
-            type="single_select",
-            required=False,
-            property_values=[
-                PropertyValue(value="1", id="property_value_id_1"),
-            ],
-            granularity=PropertyGranularity.section,
-        ),
-        ("existing_property_multi_select", 123): FullProperty(
-            id="property_id_2",
-            name="existing_property_multi_select",
-            type="multi_select",
-            required=False,
-            property_values=[
-                PropertyValue(value="1", id="property_value_id_2"),
-                PropertyValue(value="2", id="property_value_id_3"),
-            ],
-            granularity=PropertyGranularity.section,
-        ),
-    }, {
-        ("existing_property_single_select", 123): FullProperty(
-            id="property_id_1",
-            name="existing_property_single_select",
-            type="single_select",
-            required=False,
-            property_values=[
-                PropertyValue(value="1", id="property_value_id_1"),
-            ],
-            granularity=PropertyGranularity.section,
-        ),
-        ("existing_property_multi_select", 123): FullProperty(
-            id="property_id_2",
-            name="existing_property_multi_select",
-            type="multi_select",
-            required=False,
-            property_values=[
-                PropertyValue(value="1", id="property_value_id_2"),
-                PropertyValue(value="2", id="property_value_id_3"),
-            ],
-            granularity=PropertyGranularity.section,
-        ),
-    }
-    metadata_path = False
-    result = _import_properties(
-        metadata_path, [], client, annotations, annotation_class_ids_map, mock_dataset
+    mock_get_team_properties.return_value = TeamPropertyLookups(
+        annotation={
+            ("existing_property_single_select", 123): FullProperty(
+                id="property_id_1",
+                name="existing_property_single_select",
+                type="single_select",
+                required=False,
+                property_values=[
+                    PropertyValue(value="1", id="property_value_id_1"),
+                ],
+                granularity=PropertyGranularity.section,
+            ),
+            ("existing_property_multi_select", 123): FullProperty(
+                id="property_id_2",
+                name="existing_property_multi_select",
+                type="multi_select",
+                required=False,
+                property_values=[
+                    PropertyValue(value="1", id="property_value_id_2"),
+                    PropertyValue(value="2", id="property_value_id_3"),
+                ],
+                granularity=PropertyGranularity.section,
+            ),
+        },
+        item={
+            "existing_property_single_select": FullProperty(
+                id="property_id_1",
+                name="existing_property_single_select",
+                type="single_select",
+                required=False,
+                property_values=[
+                    PropertyValue(value="1", id="property_value_id_1"),
+                ],
+                granularity=PropertyGranularity.section,
+            ),
+            "existing_property_multi_select": FullProperty(
+                id="property_id_2",
+                name="existing_property_multi_select",
+                type="multi_select",
+                required=False,
+                property_values=[
+                    PropertyValue(value="1", id="property_value_id_2"),
+                    PropertyValue(value="2", id="property_value_id_3"),
+                ],
+                granularity=PropertyGranularity.section,
+            ),
+        },
     )
-    assert result["annotation_id_1"]["0"]["property_id_1"] == {
+
+    metadata_path = False
+    annotation_id_property_map = {}
+    _import_properties(
+        metadata_path,
+        [],
+        client,
+        annotations,
+        annotation_class_ids_map,
+        mock_dataset,
+        annotation_id_property_map,
+        team_property_lookups=mock_get_team_properties.return_value,
+    )
+    assert annotation_id_property_map["annotation_id_1"]["0"]["property_id_1"] == {
         "property_value_id_1",
     }
-    assert result["annotation_id_1"]["0"]["property_id_2"] == {
+    assert annotation_id_property_map["annotation_id_1"]["0"]["property_id_2"] == {
         "property_value_id_2",
     }
-    assert result["annotation_id_1"]["1"]["property_id_2"] == {
+    assert annotation_id_property_map["annotation_id_1"]["1"]["property_id_2"] == {
         "property_value_id_3",
     }
 
@@ -2940,61 +2959,67 @@ def test_import_new_section_level_property_values_with_manifest(
     setup_data,
 ):
     client, team_slug, annotation_class_ids_map, annotations = setup_data
-    mock_get_team_properties.return_value = {
-        ("existing_property_single_select", 123): FullProperty(
-            id="property_id_1",
-            name="existing_property_single_select",
-            type="single_select",
-            required=False,
-            property_values=[],
-            granularity=PropertyGranularity.section,
-        ),
-        ("existing_property_multi_select", 123): FullProperty(
-            id="property_id_2",
-            name="existing_property_multi_select",
-            type="multi_select",
-            required=False,
-            property_values=[
-                PropertyValue(value="1", id="property_value_id_2"),
-            ],
-            granularity=PropertyGranularity.section,
-        ),
-    }, {
-        ("existing_property_single_select", 123): FullProperty(
-            id="property_id_1",
-            name="existing_property_single_select",
-            type="single_select",
-            required=False,
-            property_values=[PropertyValue(value="1", id="property_value_id_1")],
-            granularity=PropertyGranularity.section,
-        ),
-        ("existing_property_multi_select", 123): FullProperty(
-            id="property_id_2",
-            name="existing_property_multi_select",
-            type="multi_select",
-            required=False,
-            property_values=[
-                PropertyValue(value="1", id="property_value_id_2"),
-                PropertyValue(value="2", id="property_value_id_3"),
-            ],
-            granularity=PropertyGranularity.section,
-        ),
-    }
+    mock_get_team_properties.return_value = TeamPropertyLookups(
+        annotation={
+            ("existing_property_single_select", 123): FullProperty(
+                id="property_id_1",
+                name="existing_property_single_select",
+                type="single_select",
+                required=False,
+                property_values=[],
+                granularity=PropertyGranularity.section,
+            ),
+            ("existing_property_multi_select", 123): FullProperty(
+                id="property_id_2",
+                name="existing_property_multi_select",
+                type="multi_select",
+                required=False,
+                property_values=[
+                    PropertyValue(value="1", id="property_value_id_2"),
+                ],
+                granularity=PropertyGranularity.section,
+            ),
+        },
+        item={
+            "existing_property_single_select": FullProperty(
+                id="property_id_1",
+                name="existing_property_single_select",
+                type="single_select",
+                required=False,
+                property_values=[PropertyValue(value="1", id="property_value_id_1")],
+                granularity=PropertyGranularity.section,
+            ),
+            "existing_property_multi_select": FullProperty(
+                id="property_id_2",
+                name="existing_property_multi_select",
+                type="multi_select",
+                required=False,
+                property_values=[
+                    PropertyValue(value="1", id="property_value_id_2"),
+                    PropertyValue(value="2", id="property_value_id_3"),
+                ],
+                granularity=PropertyGranularity.section,
+            ),
+        },
+    )
     metadata_path = (
         Path(__file__).parents[1]
         / "data"
         / "metadata_missing_section_property_values.json"
     )
     with patch.object(client, "update_property") as mock_update_property:
-        result = _import_properties(
+        annotation_id_property_map = {}
+        _import_properties(
             metadata_path,
             [],
             client,
             annotations,
             annotation_class_ids_map,
             mock_dataset,
+            annotation_id_property_map,
+            team_property_lookups=mock_get_team_properties.return_value,
         )
-        assert result["annotation_id_1"]["0"]["property_id_2"] == {
+        assert annotation_id_property_map["annotation_id_1"]["0"]["property_id_2"] == {
             "property_value_id_2",
         }
         assert mock_update_property.call_args_list[0].kwargs["params"] == FullProperty(
@@ -3072,7 +3097,7 @@ def test_import_identical_properties_to_different_classes(
             )
         ),
     ]
-    mock_get_team_properties.return_value = {}, {}
+    mock_get_team_properties.return_value = TeamPropertyLookups(item={}, annotation={})
     metadata_path = (
         Path(__file__).parents[1]
         / "data"
@@ -3111,16 +3136,19 @@ def test_import_identical_properties_to_different_classes(
                 granularity=PropertyGranularity.section,
             ),
         ]
-        annotation_property_map = _import_properties(
+        annotation_id_property_map = {}
+        _import_properties(
             metadata_path,
             [],
             client,
             annotations,
             annotation_class_ids_map,
             mock_dataset,
+            annotation_id_property_map,
+            team_property_lookups=mock_get_team_properties.return_value,
         )
-        assert annotation_property_map["1"]["0"]["prop_id_1"] == {"prop_val_id_1"}
-        assert annotation_property_map["2"]["0"]["prop_id_2"] == {"prop_val_id_2"}
+        assert annotation_id_property_map["1"]["0"]["prop_id_1"] == {"prop_val_id_1"}
+        assert annotation_id_property_map["2"]["0"]["prop_id_2"] == {"prop_val_id_2"}
 
 
 @patch("darwin.importer.importer._get_team_properties_annotation_lookup")
@@ -3131,13 +3159,14 @@ def test_import_new_section_level_properties_with_manifest(
     setup_data,
 ):
     client, team_slug, annotation_class_ids_map, annotations = setup_data
-    mock_get_team_properties.return_value = {}, {}
+    mock_get_team_properties.return_value = TeamPropertyLookups(item={}, annotation={})
     metadata_path = (
         Path(__file__).parents[1]
         / "data"
         / "metadata_missing_section_property_values.json"
     )
     with patch.object(client, "create_property") as mock_create_property:
+        annotation_id_property_map = {}
         _import_properties(
             metadata_path,
             [],
@@ -3145,6 +3174,8 @@ def test_import_new_section_level_properties_with_manifest(
             annotations,
             annotation_class_ids_map,
             mock_dataset,
+            annotation_id_property_map,
+            team_property_lookups=mock_get_team_properties.return_value,
         )
         assert mock_create_property.call_args_list[0].kwargs["params"] == FullProperty(
             id=None,
@@ -3185,59 +3216,70 @@ def test_import_existing_annotation_level_property_values_without_manifest(
     setup_data,
 ):
     client, team_slug, annotation_class_ids_map, annotations = setup_data
-    mock_get_team_properties.return_value = {
-        ("existing_property_single_select", 123): FullProperty(
-            id="property_id_1",
-            name="existing_property_single_select",
-            type="single_select",
-            required=False,
-            property_values=[
-                PropertyValue(value="1", id="property_value_id_1"),
-            ],
-            granularity=PropertyGranularity.annotation,
-        ),
-        ("existing_property_multi_select", 123): FullProperty(
-            id="property_id_2",
-            name="existing_property_multi_select",
-            type="multi_select",
-            required=False,
-            property_values=[
-                PropertyValue(value="1", id="property_value_id_2"),
-                PropertyValue(value="2", id="property_value_id_3"),
-            ],
-            granularity=PropertyGranularity.annotation,
-        ),
-    }, {
-        ("existing_property_single_select", 123): FullProperty(
-            id="property_id_1",
-            name="existing_property_single_select",
-            type="single_select",
-            required=False,
-            property_values=[
-                PropertyValue(value="1", id="property_value_id_1"),
-            ],
-            granularity=PropertyGranularity.annotation,
-        ),
-        ("existing_property_multi_select", 123): FullProperty(
-            id="property_id_2",
-            name="existing_property_multi_select",
-            type="multi_select",
-            required=False,
-            property_values=[
-                PropertyValue(value="1", id="property_value_id_2"),
-                PropertyValue(value="2", id="property_value_id_3"),
-            ],
-            granularity=PropertyGranularity.annotation,
-        ),
-    }
-    metadata_path = False
-    result = _import_properties(
-        metadata_path, [], client, annotations, annotation_class_ids_map, mock_dataset
+    mock_get_team_properties.return_value = TeamPropertyLookups(
+        annotation={
+            ("existing_property_single_select", 123): FullProperty(
+                id="property_id_1",
+                name="existing_property_single_select",
+                type="single_select",
+                required=False,
+                property_values=[
+                    PropertyValue(value="1", id="property_value_id_1"),
+                ],
+                granularity=PropertyGranularity.annotation,
+            ),
+            ("existing_property_multi_select", 123): FullProperty(
+                id="property_id_2",
+                name="existing_property_multi_select",
+                type="multi_select",
+                required=False,
+                property_values=[
+                    PropertyValue(value="1", id="property_value_id_2"),
+                    PropertyValue(value="2", id="property_value_id_3"),
+                ],
+                granularity=PropertyGranularity.annotation,
+            ),
+        },
+        item={
+            "existing_property_single_select": FullProperty(
+                id="property_id_1",
+                name="existing_property_single_select",
+                type="single_select",
+                required=False,
+                property_values=[
+                    PropertyValue(value="1", id="property_value_id_1"),
+                ],
+                granularity=PropertyGranularity.annotation,
+            ),
+            "existing_property_multi_select": FullProperty(
+                id="property_id_2",
+                name="existing_property_multi_select",
+                type="multi_select",
+                required=False,
+                property_values=[
+                    PropertyValue(value="1", id="property_value_id_2"),
+                    PropertyValue(value="2", id="property_value_id_3"),
+                ],
+                granularity=PropertyGranularity.annotation,
+            ),
+        },
     )
-    assert result["annotation_id_1"]["None"]["property_id_1"] == {
+    metadata_path = False
+    annotation_id_property_map = {}
+    _import_properties(
+        metadata_path,
+        [],
+        client,
+        annotations,
+        annotation_class_ids_map,
+        mock_dataset,
+        annotation_id_property_map,
+        team_property_lookups=mock_get_team_properties.return_value,
+    )
+    assert annotation_id_property_map["annotation_id_1"]["None"]["property_id_1"] == {
         "property_value_id_1",
     }
-    assert result["annotation_id_1"]["None"]["property_id_2"] == {
+    assert annotation_id_property_map["annotation_id_1"]["None"]["property_id_2"] == {
         "property_value_id_2",
         "property_value_id_3",
     }
@@ -3249,8 +3291,8 @@ def test_import_new_annotation_level_property_values_with_manifest(
     mock_get_team_properties, setup_data, mock_dataset
 ):
     client, team_slug, annotation_class_ids_map, annotations = setup_data
-    mock_get_team_properties.return_value = (
-        {
+    mock_get_team_properties.return_value = TeamPropertyLookups(
+        annotation={
             ("existing_property_single_select", 123): FullProperty(
                 id="property_id_1",
                 name="existing_property_single_select",
@@ -3270,8 +3312,8 @@ def test_import_new_annotation_level_property_values_with_manifest(
                 granularity=PropertyGranularity.annotation,
             ),
         },
-        {
-            ("existing_property_single_select", 123): FullProperty(
+        item={
+            "existing_property_single_select": FullProperty(
                 id="property_id_1",
                 name="existing_property_single_select",
                 type="single_select",
@@ -3279,7 +3321,7 @@ def test_import_new_annotation_level_property_values_with_manifest(
                 property_values=[PropertyValue(value="1", id="property_value_id_1")],
                 granularity=PropertyGranularity.annotation,
             ),
-            ("existing_property_multi_select", 123): FullProperty(
+            "existing_property_multi_select": FullProperty(
                 id="property_id_2",
                 name="existing_property_multi_select",
                 type="multi_select",
@@ -3298,15 +3340,20 @@ def test_import_new_annotation_level_property_values_with_manifest(
         / "metadata_missing_annotation_property_values.json"
     )
     with patch.object(client, "update_property") as mock_update_property:
-        result = _import_properties(
+        annotation_id_property_map = {}
+        _import_properties(
             metadata_path,
             [],
             client,
             annotations,
             annotation_class_ids_map,
             mock_dataset,
+            annotation_id_property_map,
+            mock_get_team_properties.return_value,
         )
-        assert result["annotation_id_1"]["None"]["property_id_2"] == {
+        assert annotation_id_property_map["annotation_id_1"]["None"][
+            "property_id_2"
+        ] == {
             "property_value_id_2",
         }
         assert mock_update_property.call_args_list[0].kwargs["params"] == FullProperty(
@@ -3345,13 +3392,14 @@ def test_import_new_annotation_level_properties_with_manifest(
     setup_data,
 ):
     client, team_slug, annotation_class_ids_map, annotations = setup_data
-    mock_get_team_properties.return_value = {}, {}
+    mock_get_team_properties.return_value = TeamPropertyLookups(item={}, annotation={})
     metadata_path = (
         Path(__file__).parents[1]
         / "data"
         / "metadata_missing_annotation_property_values.json"
     )
     with patch.object(client, "create_property") as mock_create_property:
+        annotation_id_property_map = {}
         _import_properties(
             metadata_path,
             [],
@@ -3359,6 +3407,8 @@ def test_import_new_annotation_level_properties_with_manifest(
             annotations,
             annotation_class_ids_map,
             mock_dataset,
+            annotation_id_property_map,
+            team_property_lookups=mock_get_team_properties.return_value,
         )
         assert mock_create_property.call_args_list[0].kwargs["params"] == FullProperty(
             name="existing_property_single_select",
@@ -3512,16 +3562,13 @@ def test_warning_with_multiple_files_with_multi_instance_id_annotations():
 
 def test_serialize_item_level_properties_empty_input():
     """Test that empty input returns empty list"""
-    result = _serialize_item_level_properties([], Mock(), Mock(), False, False)
+    result = _serialize_item_level_properties([], False, False, Mock())
     assert result == []
 
 
 def test_serialize_item_level_properties_single_select():
     """Test serialization of single select property"""
     # Setup
-    client = Mock()
-    dataset = Mock(team="test_team")
-
     property_value_id = "123"
     property_id = "456"
 
@@ -3539,7 +3586,9 @@ def test_serialize_item_level_properties_single_select():
     )
 
     # Mock team properties lookup
-    mock_lookup_response = ({}, {"test_property": full_property})
+    mock_lookup_response = TeamPropertyLookups(
+        annotation={}, item={"test_property": full_property}
+    )
 
     with patch(
         "darwin.importer.importer._get_team_properties_annotation_lookup",
@@ -3547,10 +3596,9 @@ def test_serialize_item_level_properties_single_select():
     ):
         result = _serialize_item_level_properties(
             [{"name": "test_property", "value": "option1"}],
-            client,
-            dataset,
             False,
             False,
+            mock_lookup_response.item,
         )
 
     expected = [
@@ -3563,9 +3611,6 @@ def test_serialize_item_level_properties_single_select():
 def test_serialize_item_level_properties_text():
     """Test serialization of text property"""
     # Setup
-    client = Mock()
-    dataset = Mock(team="test_team")
-
     property_id = "789"
 
     # Mock full property
@@ -3578,7 +3623,9 @@ def test_serialize_item_level_properties_text():
     )
 
     # Mock team properties lookup
-    mock_lookup_response = ({}, {"text_property": full_property})
+    mock_lookup_response = TeamPropertyLookups(
+        annotation={}, item={"text_property": full_property}
+    )
 
     with patch(
         "darwin.importer.importer._get_team_properties_annotation_lookup",
@@ -3586,10 +3633,9 @@ def test_serialize_item_level_properties_text():
     ):
         result = _serialize_item_level_properties(
             [{"name": "text_property", "value": "some text"}],
-            client,
-            dataset,
             False,
             False,
+            mock_lookup_response.item,
         )
 
     expected = [
@@ -3602,9 +3648,6 @@ def test_serialize_item_level_properties_text():
 def test_serialize_item_level_properties_with_actors():
     """Test serialization with annotators and reviewers"""
     # Setup
-    client = Mock()
-    dataset = Mock(team="test_team")
-
     property_id = "789"
 
     # Mock full property
@@ -3617,7 +3660,9 @@ def test_serialize_item_level_properties_with_actors():
     )
 
     # Mock team properties lookup
-    mock_lookup_response = ({}, {"text_property": full_property})
+    mock_lookup_response = TeamPropertyLookups(
+        annotation={}, item={"text_property": full_property}
+    )
 
     # Mock annotator and reviewer handlers
     mock_annotator = {"email": "annotator@test.com", "role": "annotator"}
@@ -3633,10 +3678,9 @@ def test_serialize_item_level_properties_with_actors():
     ):
         result = _serialize_item_level_properties(
             [{"name": "text_property", "value": "some text"}],
-            client,
-            dataset,
             True,
             True,
+            mock_lookup_response.item,
         )
 
     expected = [
@@ -3652,10 +3696,6 @@ def test_serialize_item_level_properties_with_actors():
 
 def test_serialize_item_level_properties_multiple_properties():
     """Test serialization of multiple properties"""
-    # Setup
-    client = Mock()
-    dataset = Mock(team="test_team")
-
     # Mock properties
     text_property = FullProperty(
         id="123",
@@ -3676,9 +3716,9 @@ def test_serialize_item_level_properties_multiple_properties():
     )
 
     # Mock team properties lookup
-    mock_lookup_response = (
-        {},
-        {"text_property": text_property, "select_property": select_property},
+    mock_lookup_response = TeamPropertyLookups(
+        annotation={},
+        item={"text_property": text_property, "select_property": select_property},
     )
 
     with patch(
@@ -3690,10 +3730,9 @@ def test_serialize_item_level_properties_multiple_properties():
                 {"name": "text_property", "value": "some text"},
                 {"name": "select_property", "value": "option1"},
             ],
-            client,
-            dataset,
             False,
             False,
+            mock_lookup_response.item,
         )
 
     expected = [
