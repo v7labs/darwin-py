@@ -365,6 +365,13 @@ def _resolve_annotation_classes(
     return local_classes_not_in_dataset, local_classes_not_in_team
 
 
+def _get_latest_team_properties(client, team_slug, team_property_lookups):
+    updated_lookups = _get_team_properties_annotation_lookup(client, team_slug)
+    team_property_lookups.annotation = updated_lookups.annotation
+    team_property_lookups.item = updated_lookups.item
+    return updated_lookups.annotation, updated_lookups.item
+
+
 def _get_team_properties_annotation_lookup(
     client: "Client", team_slug: str
 ) -> TeamPropertyLookups:
@@ -897,11 +904,13 @@ def _import_properties(
 
     if created_properties or updated_properties:
         # get latest team properties
-        updated_lookups = _get_team_properties_annotation_lookup(client, dataset.team)
-        team_properties_annotation_lookup = team_property_lookups.annotation = (
-            updated_lookups.annotation
+        team_properties_annotation_lookup, team_item_properties_lookup = (
+            _get_latest_team_properties(
+                client,
+                dataset.team,
+                team_property_lookups,
+            )
         )
-        team_item_properties_lookup = team_property_lookups.item = updated_lookups.item
 
     # Update item-level properties from annotations
     _, item_properties_to_update_from_annotations = _create_update_item_properties(
@@ -930,11 +939,13 @@ def _import_properties(
             updated_properties.append(prop)
 
         # get latest team properties
-        updated_lookups = _get_team_properties_annotation_lookup(client, dataset.team)
-        team_properties_annotation_lookup = team_property_lookups.annotation = (
-            updated_lookups.annotation
+        team_properties_annotation_lookup, team_item_properties_lookup = (
+            _get_latest_team_properties(
+                client,
+                dataset.team,
+                team_property_lookups,
+            )
         )
-        team_item_properties_lookup = team_property_lookups.item = updated_lookups.item
 
     # loop over metadata_cls_id_prop_lookup, and update additional metadata property values
     for (annotation_class_id, prop_name), m_prop in metadata_cls_id_prop_lookup.items():
