@@ -6,7 +6,6 @@ from pathlib import Path
 from e2e_tests.helpers import (
     SERVER_WAIT_TIME,
     assert_cli,
-    compare_directories,
     run_cli_command,
     export_release,
 )
@@ -149,8 +148,8 @@ def test_full_cycle_nifti(
 
     It is designed to catch errors that may arise from changes to exported Darwin JSON
     """
-    expected_push_dir = "multi_segment_nifti"
-    annotation_format = "nifti"
+    item_type = "multi_segment_nifti"
+    annotation_format = "darwin"
     first_release_name = "first_release"
     second_release_name = "second_release"
     pull_dir = Path(
@@ -168,26 +167,20 @@ def test_full_cycle_nifti(
     expected_filepaths = [f"{pull_dir}/images/{file}.dcm" for file in source_files]
 
     # Populate the dataset with items and annotations
-    push_dir = Path(__file__).parents[1] / "data" / "push" / f"{expected_push_dir}.zip"
-    items = extract_and_push(push_dir, local_dataset, config_values, expected_push_dir)
-    assert len(items) == 3
-    time.sleep(SERVER_WAIT_TIME * 3)
+    local_dataset.register_read_only_items(config_values, item_type)
+    time.sleep(SERVER_WAIT_TIME)
 
     result = run_cli_command(
-        f"darwin dataset import {local_dataset.name} darwin {annotations_import_dir}"
+        f"darwin dataset import {local_dataset.name} {annotation_format} {annotations_import_dir}"
     )
     assert_cli(result, 0)
 
     # Pull a first release of the dataset
     original_release = export_release(
-        "darwin", local_dataset, config_values, release_name=first_release_name
+        annotation_format, local_dataset, config_values, release_name=first_release_name
     )
     result = run_cli_command(
         f"darwin dataset pull {local_dataset.name}:{original_release.name}"
-    )
-    assert_cli(result, 0)
-    result = run_cli_command(
-        f"darwin dataset convert {local_dataset.name}:{original_release.name} {annotation_format}"
     )
     assert_cli(result, 0)
 
@@ -203,7 +196,7 @@ def test_full_cycle_nifti(
     time.sleep(SERVER_WAIT_TIME * 3)
 
     result = run_cli_command(
-        f"darwin dataset import {local_dataset.name} darwin {pull_dir}/releases/{first_release_name}/annotations"
+        f"darwin dataset import {local_dataset.name} {annotation_format} {pull_dir}/releases/{first_release_name}/annotations"
     )
     assert_cli(result, 0)
 
@@ -212,17 +205,13 @@ def test_full_cycle_nifti(
 
     # Pull a second release of the dataset
     new_release = export_release(
-        "darwin",
+        annotation_format,
         local_dataset,
         config_values,
         release_name=second_release_name,
     )
     result = run_cli_command(
         f"darwin dataset pull {local_dataset.name}:{new_release.name}"
-    )
-    assert_cli(result, 0)
-    result = run_cli_command(
-        f"darwin dataset convert {local_dataset.name}:{new_release.name} {annotation_format}"
     )
     assert_cli(result, 0)
 
@@ -232,13 +221,11 @@ def test_full_cycle_nifti(
         assert Path(expected_file) in all_filepaths
 
     # Check that all downloaded annotations are as expected
-    compare_directories(
-        Path(
-            f"{pull_dir}/releases/{first_release_name}/other_formats/{annotation_format}"
-        ),
-        Path(
-            f"{pull_dir}/releases/{second_release_name}/other_formats/{annotation_format}"
-        ),
+    compare_annotations_export(
+        Path(f"{pull_dir}/releases/{first_release_name}/annotations"),
+        Path(f"{pull_dir}/releases/{second_release_name}/annotations"),
+        item_type,
+        unzip=False,
     )
 
 
