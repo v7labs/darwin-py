@@ -1623,18 +1623,6 @@ class TeamPropertyLookups:
 
     @classmethod
     def from_team(cls, client: "Client", team_slug: str) -> TeamPropertyLookups:
-        """
-        Returns two lookup dictionaries for team properties:
-         - team_properties_annotation_lookup: (property-name, annotation_class_id): FullProperty object
-         - item_properties_lookup: property-name: FullProperty object
-
-        Args:
-            client (Client): Darwin Client object
-            team_slug (str): Team slug
-
-        Returns:
-            Tuple[Dict[Tuple[str, Optional[int]], FullProperty], Dict[str, FullProperty]: Tuple of two dictionaries
-        """
         new_lookups = cls(
             annotation_properties={},
             item_properties={},
