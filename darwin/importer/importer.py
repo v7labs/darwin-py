@@ -3,7 +3,6 @@ import copy
 import json
 import uuid
 from collections import defaultdict
-from dataclasses import dataclass
 from logging import getLogger
 from multiprocessing import cpu_count
 from pathlib import Path
@@ -878,7 +877,10 @@ def _import_properties(
     # loop over metadata_cls_id_prop_lookup, and update additional metadata property values
     for (annotation_class_id, prop_name), m_prop in metadata_cls_id_prop_lookup.items():
         # does the annotation-property exist in the team? if not, skip
-        if (prop_name, annotation_class_id) not in team_property_lookups.annotation_properties:
+        if (
+            prop_name,
+            annotation_class_id,
+        ) not in team_property_lookups.annotation_properties:
             continue
 
         # get metadata property values
@@ -926,7 +928,9 @@ def _import_properties(
             prop = client.update_property(
                 team_slug=full_property.slug, params=full_property
             )
-            team_property_lookups.annotation_properties[(prop_name, annotation_class_id)] = prop
+            team_property_lookups.annotation_properties[
+                (prop_name, annotation_class_id)
+            ] = prop
 
     # update annotation_id_property_map with property ids from created_properties & updated_properties
     for annotation_id, _ in annotation_id_property_map.items():
@@ -1106,9 +1110,7 @@ def _assign_item_properties_to_dataset(
         for item_property in item_properties_set:
             for team_prop in item_properties_lookup:
                 if team_prop == item_property:
-                    prop_datasets = (
-                        item_properties_lookup[team_prop].dataset_ids or []
-                    )
+                    prop_datasets = item_properties_lookup[team_prop].dataset_ids or []
                     if dataset.dataset_id not in prop_datasets:
                         updated_property = item_properties_lookup[team_prop]
                         updated_property.dataset_ids.append(dataset.dataset_id)

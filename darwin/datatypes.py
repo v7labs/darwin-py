@@ -1618,11 +1618,15 @@ AnnotationClassId = Optional[int]
 class TeamPropertyLookups:
     annotation_properties: Dict[Tuple[PropertyName, AnnotationClassId], FullProperty]
     item_properties: Dict[PropertyName, FullProperty]
-    _client: "Client" = field(repr=False)
+    _client: "Client" = field(repr=False)  # noqa: F821
     _team_slug: str = field(repr=False)
 
     @classmethod
-    def from_team(cls, client: "Client", team_slug: str) -> TeamPropertyLookups:
+    def from_team(
+        cls,
+        client: "Client",  # noqa: F821
+        team_slug: str,
+    ) -> TeamPropertyLookups:
         new_lookups = cls(
             annotation_properties={},
             item_properties={},
@@ -1643,9 +1647,7 @@ class TeamPropertyLookups:
                 prop.granularity.value == "section"
                 or prop.granularity.value == "annotation"
             ):
-                self.annotation_properties[(prop.name, prop.annotation_class_id)] = (
-                    prop
-                )
+                self.annotation_properties[(prop.name, prop.annotation_class_id)] = prop
             elif prop.granularity.value == "item":
                 self.item_properties[prop.name] = prop
 

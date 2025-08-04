@@ -2,7 +2,6 @@ import json
 import tempfile
 from pathlib import Path
 from typing import List, Optional, Tuple
-from unittest import mock
 from unittest.mock import MagicMock, Mock, _patch, patch
 from zipfile import ZipFile
 
@@ -22,7 +21,6 @@ from darwin.importer import get_importer
 from darwin.importer.importer import (
     BASE_URL_LENGTH,
     MAX_URL_LENGTH,
-    TeamPropertyLookups,
     _assign_item_properties_to_dataset,
     _build_attribute_lookup,
     _build_main_annotations_lookup_table,
@@ -181,6 +179,7 @@ def mock_team_property_lookups_refresh(
     def wrapper():
         lookups.annotation_properties = annotation_properties
         lookups.item_properties = item_properties
+
     return wrapper
 
 
@@ -2269,9 +2268,7 @@ def test__assign_item_properties_to_dataset(mock_client, mock_dataset, mock_cons
         ),
     }
 
-    with patch(
-        "darwin.datatypes.TeamPropertyLookups"
-    ) as mock_lookups, patch.object(
+    with patch("darwin.datatypes.TeamPropertyLookups") as mock_lookups, patch.object(
         mock_client, "update_property"
     ) as mock_update_property:
         mock_lookups.refresh.return_value = ({}, item_properties_lookup)
@@ -3424,7 +3421,7 @@ def test_import_new_annotation_level_properties_with_manifest(
     mock_lookups.refresh.side_effect = mock_team_property_lookups_refresh(
         mock_lookups,
         item_properties={},
-            annotation_properties={},
+        annotation_properties={},
     )
     metadata_path = (
         Path(__file__).parents[1]
@@ -3730,7 +3727,10 @@ def test_serialize_item_level_properties_multiple_properties():
         ],
         False,
         False,
-        item_properties_lookup={"text_property": text_property, "select_property": select_property},
+        item_properties_lookup={
+            "text_property": text_property,
+            "select_property": select_property,
+        },
     )
 
     expected = [
