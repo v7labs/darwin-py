@@ -2,6 +2,7 @@ import json
 import tempfile
 from pathlib import Path
 from typing import List, Optional, Tuple
+from unittest import mock
 from unittest.mock import MagicMock, Mock, _patch, patch
 from zipfile import ZipFile
 
@@ -170,6 +171,17 @@ def mock_pass_through(data: dt.UnknownType) -> dt.UnknownType:
 
 def patch_factory(module: str) -> _patch:
     return patch(root_path(module))
+
+
+def mock_team_property_lookups_refresh(
+    lookups,
+    annotation_properties,
+    item_properties,
+):
+    def wrapper():
+        lookups.annotation_properties = annotation_properties
+        lookups.item_properties = item_properties
+    return wrapper
 
 
 def test__build_main_annotations_lookup_table() -> None:
@@ -413,7 +425,7 @@ def test_import_annotations() -> None:
     import_annotators = True
     import_reviewers = True
     annotation_id_property_map = {}
-    team_item_properties_lookup = {}
+    item_properties_lookup = {}
 
     with patch("darwin.importer.importer._get_annotation_data") as mock_gad, patch(
         "darwin.importer.importer._handle_annotators"
@@ -448,7 +460,7 @@ def test_import_annotations() -> None:
             import_annotators,
             import_reviewers,
             annotation_id_property_map,
-            team_item_properties_lookup,
+            item_properties_lookup,
         )
 
         assert success == dt.Success.SUCCESS
@@ -1090,7 +1102,7 @@ def test__import_annotations() -> None:
         mock_ip.return_value = {}
 
         annotation_id_property_map = {}
-        team_item_properties_lookup = {}
+        item_properties_lookup = {}
 
         annotation = dt.Annotation(
             dt.AnnotationClass("test_class", "bbox"), {"paths": [1, 2, 3, 4, 5]}, [], []
@@ -1110,7 +1122,7 @@ def test__import_annotations() -> None:
             "test_import_annotators",  # type: ignore
             "test_import_reviewers",  # type: ignore
             annotation_id_property_map,
-            team_item_properties_lookup,
+            item_properties_lookup,
         )
 
         assert mock_dataset.import_annotation.call_count == 1
@@ -2230,7 +2242,7 @@ def test__assign_item_properties_to_dataset(mock_client, mock_dataset, mock_cons
         {"name": "prop2", "value": "2"},
     ]
 
-    team_item_properties_lookup = {
+    item_properties_lookup = {
         "prop1": FullProperty(
             name="prop1",
             type="single_select",
@@ -2258,15 +2270,15 @@ def test__assign_item_properties_to_dataset(mock_client, mock_dataset, mock_cons
     }
 
     with patch(
-        "darwin.importer.importer._get_team_properties_annotation_lookup"
-    ) as mock_get_team_props, patch.object(
+        "darwin.datatypes.TeamPropertyLookups"
+    ) as mock_lookups, patch.object(
         mock_client, "update_property"
     ) as mock_update_property:
-        mock_get_team_props.return_value = ({}, team_item_properties_lookup)
+        mock_lookups.refresh.return_value = ({}, item_properties_lookup)
 
         _assign_item_properties_to_dataset(
             item_properties,
-            team_item_properties_lookup,
+            item_properties_lookup,
             mock_client,
             mock_dataset,
             mock_console,
@@ -2871,16 +2883,17 @@ def test_does_not_raise_error_for_nifti_format_with_warnings():
     assert not slot_errors
 
 
-@patch("darwin.importer.importer._get_team_properties_annotation_lookup")
+@patch("darwin.datatypes.TeamPropertyLookups")
 @pytest.mark.parametrize("setup_data", ["section"], indirect=True)
 def test_import_existing_section_level_property_values_without_manifest(
-    mock_get_team_properties,
+    mock_lookups,
     mock_dataset,
     setup_data,
 ):
     client, team_slug, annotation_class_ids_map, annotations = setup_data
-    mock_get_team_properties.return_value = TeamPropertyLookups(
-        annotation={
+    mock_lookups.refresh.side_effect = mock_team_property_lookups_refresh(
+        mock_lookups,
+        annotation_properties={
             ("existing_property_single_select", 123): FullProperty(
                 id="property_id_1",
                 name="existing_property_single_select",
@@ -2903,7 +2916,7 @@ def test_import_existing_section_level_property_values_without_manifest(
                 granularity=PropertyGranularity.section,
             ),
         },
-        item={
+        item_properties={
             "existing_property_single_select": FullProperty(
                 id="property_id_1",
                 name="existing_property_single_select",
@@ -2929,16 +2942,16 @@ def test_import_existing_section_level_property_values_without_manifest(
     )
 
     metadata_path = False
-    annotation_id_property_map = {}
-    _import_properties(
+    mock_lookups.refresh()
+    annotation_id_property_map = _import_properties(
         metadata_path,
         [],
         client,
         annotations,
         annotation_class_ids_map,
         mock_dataset,
-        annotation_id_property_map,
-        team_property_lookups=mock_get_team_properties.return_value,
+        annotation_id_property_map={},
+        team_property_lookups=mock_lookups,
     )
     assert annotation_id_property_map["annotation_id_1"]["0"]["property_id_1"] == {
         "property_value_id_1",
@@ -2951,16 +2964,17 @@ def test_import_existing_section_level_property_values_without_manifest(
     }
 
 
-@patch("darwin.importer.importer._get_team_properties_annotation_lookup")
+@patch("darwin.datatypes.TeamPropertyLookups")
 @pytest.mark.parametrize("setup_data", ["section"], indirect=True)
 def test_import_new_section_level_property_values_with_manifest(
-    mock_get_team_properties,
+    mock_lookups,
     mock_dataset,
     setup_data,
 ):
     client, team_slug, annotation_class_ids_map, annotations = setup_data
-    mock_get_team_properties.return_value = TeamPropertyLookups(
-        annotation={
+    mock_lookups.refresh.side_effect = mock_team_property_lookups_refresh(
+        mock_lookups,
+        annotation_properties={
             ("existing_property_single_select", 123): FullProperty(
                 id="property_id_1",
                 name="existing_property_single_select",
@@ -2980,7 +2994,7 @@ def test_import_new_section_level_property_values_with_manifest(
                 granularity=PropertyGranularity.section,
             ),
         },
-        item={
+        item_properties={
             "existing_property_single_select": FullProperty(
                 id="property_id_1",
                 name="existing_property_single_select",
@@ -3007,6 +3021,7 @@ def test_import_new_section_level_property_values_with_manifest(
         / "data"
         / "metadata_missing_section_property_values.json"
     )
+    mock_lookups.refresh()
     with patch.object(client, "update_property") as mock_update_property:
         annotation_id_property_map = {}
         _import_properties(
@@ -3017,7 +3032,7 @@ def test_import_new_section_level_property_values_with_manifest(
             annotation_class_ids_map,
             mock_dataset,
             annotation_id_property_map,
-            team_property_lookups=mock_get_team_properties.return_value,
+            team_property_lookups=mock_lookups,
         )
         assert annotation_id_property_map["annotation_id_1"]["0"]["property_id_2"] == {
             "property_value_id_2",
@@ -3050,10 +3065,10 @@ def test_import_new_section_level_property_values_with_manifest(
         )
 
 
-@patch("darwin.importer.importer._get_team_properties_annotation_lookup")
+@patch("darwin.datatypes.TeamPropertyLookups")
 @pytest.mark.parametrize("setup_data", ["section"], indirect=True)
 def test_import_identical_properties_to_different_classes(
-    mock_get_team_properties, mock_dataset, setup_data
+    mock_lookups, mock_dataset, setup_data
 ):
     client, team_slug, _, _ = setup_data
     # This test requires 2 annotation classes
@@ -3097,12 +3112,17 @@ def test_import_identical_properties_to_different_classes(
             )
         ),
     ]
-    mock_get_team_properties.return_value = TeamPropertyLookups(item={}, annotation={})
+    mock_lookups.refresh.side_effect = mock_team_property_lookups_refresh(
+        mock_lookups,
+        item_properties={},
+        annotation_properties={},
+    )
     metadata_path = (
         Path(__file__).parents[1]
         / "data"
         / "metadata_identical_properties_different_classes.json"
     )
+    mock_lookups.refresh()
     with patch.object(client, "create_property") as mock_create_property:
         mock_create_property.side_effect = [
             FullProperty(
@@ -3145,26 +3165,31 @@ def test_import_identical_properties_to_different_classes(
             annotation_class_ids_map,
             mock_dataset,
             annotation_id_property_map,
-            team_property_lookups=mock_get_team_properties.return_value,
+            team_property_lookups=mock_lookups,
         )
         assert annotation_id_property_map["1"]["0"]["prop_id_1"] == {"prop_val_id_1"}
         assert annotation_id_property_map["2"]["0"]["prop_id_2"] == {"prop_val_id_2"}
 
 
-@patch("darwin.importer.importer._get_team_properties_annotation_lookup")
+@patch("darwin.datatypes.TeamPropertyLookups")
 @pytest.mark.parametrize("setup_data", ["section"], indirect=True)
 def test_import_new_section_level_properties_with_manifest(
-    mock_get_team_properties,
+    mock_lookups,
     mock_dataset,
     setup_data,
 ):
     client, team_slug, annotation_class_ids_map, annotations = setup_data
-    mock_get_team_properties.return_value = TeamPropertyLookups(item={}, annotation={})
+    mock_lookups.refresh.side_effect = mock_team_property_lookups_refresh(
+        mock_lookups,
+        annotation_properties={},
+        item_properties={},
+    )
     metadata_path = (
         Path(__file__).parents[1]
         / "data"
         / "metadata_missing_section_property_values.json"
     )
+    mock_lookups.refresh()
     with patch.object(client, "create_property") as mock_create_property:
         annotation_id_property_map = {}
         _import_properties(
@@ -3175,7 +3200,7 @@ def test_import_new_section_level_properties_with_manifest(
             annotation_class_ids_map,
             mock_dataset,
             annotation_id_property_map,
-            team_property_lookups=mock_get_team_properties.return_value,
+            team_property_lookups=mock_lookups,
         )
         assert mock_create_property.call_args_list[0].kwargs["params"] == FullProperty(
             id=None,
@@ -3208,16 +3233,17 @@ def test_import_new_section_level_properties_with_manifest(
         )
 
 
-@patch("darwin.importer.importer._get_team_properties_annotation_lookup")
+@patch("darwin.datatypes.TeamPropertyLookups")
 @pytest.mark.parametrize("setup_data", ["annotation"], indirect=True)
 def test_import_existing_annotation_level_property_values_without_manifest(
-    mock_get_team_properties,
+    mock_lookups,
     mock_dataset,
     setup_data,
 ):
     client, team_slug, annotation_class_ids_map, annotations = setup_data
-    mock_get_team_properties.return_value = TeamPropertyLookups(
-        annotation={
+    mock_lookups.refresh.side_effect = mock_team_property_lookups_refresh(
+        mock_lookups,
+        annotation_properties={
             ("existing_property_single_select", 123): FullProperty(
                 id="property_id_1",
                 name="existing_property_single_select",
@@ -3240,7 +3266,7 @@ def test_import_existing_annotation_level_property_values_without_manifest(
                 granularity=PropertyGranularity.annotation,
             ),
         },
-        item={
+        item_properties={
             "existing_property_single_select": FullProperty(
                 id="property_id_1",
                 name="existing_property_single_select",
@@ -3265,6 +3291,7 @@ def test_import_existing_annotation_level_property_values_without_manifest(
         },
     )
     metadata_path = False
+    mock_lookups.refresh()
     annotation_id_property_map = {}
     _import_properties(
         metadata_path,
@@ -3274,7 +3301,7 @@ def test_import_existing_annotation_level_property_values_without_manifest(
         annotation_class_ids_map,
         mock_dataset,
         annotation_id_property_map,
-        team_property_lookups=mock_get_team_properties.return_value,
+        team_property_lookups=mock_lookups,
     )
     assert annotation_id_property_map["annotation_id_1"]["None"]["property_id_1"] == {
         "property_value_id_1",
@@ -3285,14 +3312,15 @@ def test_import_existing_annotation_level_property_values_without_manifest(
     }
 
 
-@patch("darwin.importer.importer._get_team_properties_annotation_lookup")
+@patch("darwin.datatypes.TeamPropertyLookups")
 @pytest.mark.parametrize("setup_data", ["annotation"], indirect=True)
 def test_import_new_annotation_level_property_values_with_manifest(
-    mock_get_team_properties, setup_data, mock_dataset
+    mock_lookups, setup_data, mock_dataset
 ):
     client, team_slug, annotation_class_ids_map, annotations = setup_data
-    mock_get_team_properties.return_value = TeamPropertyLookups(
-        annotation={
+    mock_lookups.refresh.side_effect = mock_team_property_lookups_refresh(
+        mock_lookups,
+        annotation_properties={
             ("existing_property_single_select", 123): FullProperty(
                 id="property_id_1",
                 name="existing_property_single_select",
@@ -3312,7 +3340,7 @@ def test_import_new_annotation_level_property_values_with_manifest(
                 granularity=PropertyGranularity.annotation,
             ),
         },
-        item={
+        item_properties={
             "existing_property_single_select": FullProperty(
                 id="property_id_1",
                 name="existing_property_single_select",
@@ -3339,6 +3367,7 @@ def test_import_new_annotation_level_property_values_with_manifest(
         / "data"
         / "metadata_missing_annotation_property_values.json"
     )
+    mock_lookups.refresh()
     with patch.object(client, "update_property") as mock_update_property:
         annotation_id_property_map = {}
         _import_properties(
@@ -3349,7 +3378,7 @@ def test_import_new_annotation_level_property_values_with_manifest(
             annotation_class_ids_map,
             mock_dataset,
             annotation_id_property_map,
-            mock_get_team_properties.return_value,
+            mock_lookups,
         )
         assert annotation_id_property_map["annotation_id_1"]["None"][
             "property_id_2"
@@ -3384,20 +3413,25 @@ def test_import_new_annotation_level_property_values_with_manifest(
         )
 
 
-@patch("darwin.importer.importer._get_team_properties_annotation_lookup")
+@patch("darwin.datatypes.TeamPropertyLookups")
 @pytest.mark.parametrize("setup_data", ["annotation"], indirect=True)
 def test_import_new_annotation_level_properties_with_manifest(
-    mock_get_team_properties,
+    mock_lookups,
     mock_dataset,
     setup_data,
 ):
     client, team_slug, annotation_class_ids_map, annotations = setup_data
-    mock_get_team_properties.return_value = TeamPropertyLookups(item={}, annotation={})
+    mock_lookups.refresh.side_effect = mock_team_property_lookups_refresh(
+        mock_lookups,
+        item_properties={},
+            annotation_properties={},
+    )
     metadata_path = (
         Path(__file__).parents[1]
         / "data"
         / "metadata_missing_annotation_property_values.json"
     )
+    mock_lookups.refresh()
     with patch.object(client, "create_property") as mock_create_property:
         annotation_id_property_map = {}
         _import_properties(
@@ -3408,7 +3442,7 @@ def test_import_new_annotation_level_properties_with_manifest(
             annotation_class_ids_map,
             mock_dataset,
             annotation_id_property_map,
-            team_property_lookups=mock_get_team_properties.return_value,
+            team_property_lookups=mock_lookups,
         )
         assert mock_create_property.call_args_list[0].kwargs["params"] == FullProperty(
             name="existing_property_single_select",
@@ -3585,21 +3619,12 @@ def test_serialize_item_level_properties_single_select():
         granularity=PropertyGranularity("item"),
     )
 
-    # Mock team properties lookup
-    mock_lookup_response = TeamPropertyLookups(
-        annotation={}, item={"test_property": full_property}
+    result = _serialize_item_level_properties(
+        [{"name": "test_property", "value": "option1"}],
+        False,
+        False,
+        item_properties_lookup={"test_property": full_property},
     )
-
-    with patch(
-        "darwin.importer.importer._get_team_properties_annotation_lookup",
-        return_value=mock_lookup_response,
-    ):
-        result = _serialize_item_level_properties(
-            [{"name": "test_property", "value": "option1"}],
-            False,
-            False,
-            mock_lookup_response.item,
-        )
 
     expected = [
         {"actors": [], "property_id": property_id, "value": {"id": property_value_id}}
@@ -3622,21 +3647,12 @@ def test_serialize_item_level_properties_text():
         granularity=PropertyGranularity("item"),
     )
 
-    # Mock team properties lookup
-    mock_lookup_response = TeamPropertyLookups(
-        annotation={}, item={"text_property": full_property}
+    result = _serialize_item_level_properties(
+        [{"name": "text_property", "value": "some text"}],
+        False,
+        False,
+        item_properties_lookup={"text_property": full_property},
     )
-
-    with patch(
-        "darwin.importer.importer._get_team_properties_annotation_lookup",
-        return_value=mock_lookup_response,
-    ):
-        result = _serialize_item_level_properties(
-            [{"name": "text_property", "value": "some text"}],
-            False,
-            False,
-            mock_lookup_response.item,
-        )
 
     expected = [
         {"actors": [], "property_id": property_id, "value": {"text": "some text"}}
@@ -3659,19 +3675,11 @@ def test_serialize_item_level_properties_with_actors():
         granularity=PropertyGranularity("item"),
     )
 
-    # Mock team properties lookup
-    mock_lookup_response = TeamPropertyLookups(
-        annotation={}, item={"text_property": full_property}
-    )
-
     # Mock annotator and reviewer handlers
     mock_annotator = {"email": "annotator@test.com", "role": "annotator"}
     mock_reviewer = {"email": "reviewer@test.com", "role": "reviewer"}
 
     with patch(
-        "darwin.importer.importer._get_team_properties_annotation_lookup",
-        return_value=mock_lookup_response,
-    ), patch(
         "darwin.importer.importer._handle_annotators", return_value=[mock_annotator]
     ), patch(
         "darwin.importer.importer._handle_reviewers", return_value=[mock_reviewer]
@@ -3680,7 +3688,7 @@ def test_serialize_item_level_properties_with_actors():
             [{"name": "text_property", "value": "some text"}],
             True,
             True,
-            mock_lookup_response.item,
+            item_properties_lookup={"text_property": full_property},
         )
 
     expected = [
@@ -3715,25 +3723,15 @@ def test_serialize_item_level_properties_multiple_properties():
         granularity=PropertyGranularity("item"),
     )
 
-    # Mock team properties lookup
-    mock_lookup_response = TeamPropertyLookups(
-        annotation={},
-        item={"text_property": text_property, "select_property": select_property},
+    result = _serialize_item_level_properties(
+        [
+            {"name": "text_property", "value": "some text"},
+            {"name": "select_property", "value": "option1"},
+        ],
+        False,
+        False,
+        item_properties_lookup={"text_property": text_property, "select_property": select_property},
     )
-
-    with patch(
-        "darwin.importer.importer._get_team_properties_annotation_lookup",
-        return_value=mock_lookup_response,
-    ):
-        result = _serialize_item_level_properties(
-            [
-                {"name": "text_property", "value": "some text"},
-                {"name": "select_property", "value": "option1"},
-            ],
-            False,
-            False,
-            mock_lookup_response.item,
-        )
 
     expected = [
         {"actors": [], "property_id": "123", "value": {"text": "some text"}},

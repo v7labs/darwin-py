@@ -2,7 +2,7 @@
     "data": [
         {
             "image": "2044737.fat.nii.gz",
-            "label": "/Users/john/Documents/code/development/darwin-py/tests/darwin/data/nifti/BRAINIX_NIFTI_ROI.nii.gz",
+            "label": "/Users/vvihorev/code/darwin-py/tests/darwin/data/nifti/BRAINIX_NIFTI_ROI.nii.gz",
             "class_map": {
                 "1": "Reference_sBAT"
             },
