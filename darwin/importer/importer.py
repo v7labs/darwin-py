@@ -490,6 +490,7 @@ def _build_metadata_lookups(
         metadata_item_prop_lookup,
     )
 
+
 def _import_properties(
     metadata_path: Union[Path, bool],
     item_properties: List[Dict[str, str]],
