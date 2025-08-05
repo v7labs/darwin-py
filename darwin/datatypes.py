@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from enum import Enum, auto
 from pathlib import Path
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     Dict,
@@ -24,6 +25,8 @@ try:
 except ImportError:
     NDArray = Any  # type:ignore
 
+if TYPE_CHECKING:
+    from darwin.client import Client
 from darwin.future.data_objects.properties import (
     FullProperty,
     PropertyGranularity,
@@ -1610,21 +1613,42 @@ class StorageKeyListModel(BaseModel):
     storage_keys: List[str]
 
 
-PropertyName = str
 AnnotationClassId = int
+AnnotationId = str
+FrameIndex = str
+PropertyId = str
+PropertyName = str
+PropertyValueId = str
+TextPropertyValue = str
+
+# PropertyValueMap can be either:
+# - a set of value IDs (for select/multi-select properties)
+# - a single text value (for text properties)
+PropertyValueMap = Union[Set[PropertyValueId], TextPropertyValue]
+
+AnnotationIdPropertyMap = Dict[
+    AnnotationId,
+    Dict[
+        FrameIndex,
+        Dict[
+            PropertyId,
+            PropertyValueMap,
+        ],
+    ],
+]
 
 
 @dataclass
 class TeamPropertyLookups:
     annotation_properties: Dict[Tuple[PropertyName, AnnotationClassId], FullProperty]
     item_properties: Dict[PropertyName, FullProperty]
-    _client: "Client" = field(repr=False)  # noqa: F821
+    _client: Client = field(repr=False)  # noqa: F821
     _team_slug: str = field(repr=False)
 
     @classmethod
     def from_team(
         cls,
-        client: "Client",  # noqa: F821
+        client: Client,
         team_slug: str,
     ) -> TeamPropertyLookups:
         new_lookups = cls(

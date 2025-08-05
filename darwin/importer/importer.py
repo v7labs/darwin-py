@@ -23,6 +23,7 @@ from typing import (
 
 from darwin.datatypes import (
     AnnotationFile,
+    AnnotationIdPropertyMap,
     Property,
     PropertyClass,
     TeamPropertyLookups,
@@ -489,7 +490,6 @@ def _build_metadata_lookups(
         metadata_item_prop_lookup,
     )
 
-
 def _import_properties(
     metadata_path: Union[Path, bool],
     item_properties: List[Dict[str, str]],
@@ -497,9 +497,9 @@ def _import_properties(
     annotations: List[dt.Annotation],
     annotation_class_ids_map: Dict[Tuple[str, str], str],
     dataset: "RemoteDataset",
-    annotation_id_property_map: Dict[str, Dict[str, Dict[str, Set[str]]]],
+    annotation_id_property_map: AnnotationIdPropertyMap,
     team_property_lookups: TeamPropertyLookups,
-) -> Dict[str, Dict[str, Dict[str, Set[str]]]]:
+) -> AnnotationIdPropertyMap:
     """
     Creates/Updates missing/mismatched properties from annotation & metadata.json file to team-properties.
     As the properties are created/updated, the annotation_id_property_map is updated with the new/old property ids.
@@ -512,7 +512,7 @@ def _import_properties(
         annotations (List[dt.Annotation]): List of annotations
         annotation_class_ids_map (Dict[Tuple[str, str], str]): Dict of annotation class names/types to annotation class ids
         dataset (RemoteDataset): RemoteDataset object
-        annotation_id_property_map (Dict[str, Dict[str, Dict[str, Set[str]]]]): The map to be updated with properties.
+        annotation_id_property_map (AnnotationIdPropertyMap): The map to be updated with properties.
         team_property_lookups: (TeamPropertyLookups): Lookups for team properties.
 
     Raises:
