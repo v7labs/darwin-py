@@ -1611,7 +1611,7 @@ class StorageKeyListModel(BaseModel):
 
 
 PropertyName = str
-AnnotationClassId = Optional[int]
+AnnotationClassId = int
 
 
 @dataclass
