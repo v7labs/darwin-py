@@ -1632,7 +1632,7 @@ PropertyValueMap = Union[Set[PropertyValueId], TextPropertyValue]
 class TeamPropertyLookups:
     annotation_properties: Dict[Tuple[PropertyName, AnnotationClassId], FullProperty]
     item_properties: Dict[PropertyName, FullProperty]
-    _client: Client = field(repr=False)  # noqa: F821
+    _client: Client = field(repr=False)
     _team_slug: str = field(repr=False)
 
     @classmethod
