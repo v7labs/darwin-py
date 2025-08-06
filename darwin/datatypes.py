@@ -1614,6 +1614,7 @@ class StorageKeyListModel(BaseModel):
 
 
 AnnotationClassId = int
+AnnotationClassName = str
 AnnotationId = str
 FrameIndex = str
 PropertyId = str
@@ -1625,17 +1626,6 @@ TextPropertyValue = str
 # - a set of value IDs (for select/multi-select properties)
 # - a single text value (for text properties)
 PropertyValueMap = Union[Set[PropertyValueId], TextPropertyValue]
-
-AnnotationIdPropertyMap = Dict[
-    AnnotationId,
-    Dict[
-        FrameIndex,
-        Dict[
-            PropertyId,
-            PropertyValueMap,
-        ],
-    ],
-]
 
 
 @dataclass

@@ -22,10 +22,17 @@ from typing import (
 )
 
 from darwin.datatypes import (
+    AnnotationClassId,
     AnnotationFile,
-    AnnotationIdPropertyMap,
+    AnnotationId,
+    AnnotationClassName,
+    AnnotationType,
+    FrameIndex,
     Property,
     PropertyClass,
+    PropertyId,
+    PropertyName,
+    PropertyValueMap,
     TeamPropertyLookups,
     parse_property_classes,
 )
@@ -84,6 +91,22 @@ changes in its interface and implementation are to be expected. We encourage usi
 instead of calling this low-level function directly.
 
 """
+
+AnnotationClassIdsMap = Dict[
+    Tuple[AnnotationClassName, AnnotationType],
+    AnnotationClassId,
+]
+
+AnnotationIdPropertyMap = Dict[
+    AnnotationId,
+    Dict[
+        FrameIndex,
+        Dict[
+            PropertyId,
+            PropertyValueMap,
+        ],
+    ],
+]
 
 
 def _build_main_annotations_lookup_table(
@@ -496,7 +519,7 @@ def _import_properties(
     item_properties: List[Dict[str, str]],
     client: "Client",
     annotations: List[dt.Annotation],
-    annotation_class_ids_map: Dict[Tuple[str, str], str],
+    annotation_class_ids_map: AnnotationClassIdsMap,
     dataset: "RemoteDataset",
     annotation_id_property_map: AnnotationIdPropertyMap,
     team_property_lookups: TeamPropertyLookups,
@@ -511,7 +534,7 @@ def _import_properties(
         item_properties (List[Dict[str, str]]): List of item-level properties present in the annotation file
         client (Client): Darwin Client object
         annotations (List[dt.Annotation]): List of annotations
-        annotation_class_ids_map (Dict[Tuple[str, str], str]): Dict of annotation class names/types to annotation class ids
+        annotation_class_ids_map (AnnotationClassIdsMap): Dict of annotation class names/types to annotation class ids
         dataset (RemoteDataset): RemoteDataset object
         annotation_id_property_map (AnnotationIdPropertyMap): The map to be updated with properties.
         team_property_lookups: (TeamPropertyLookups): Lookups for team properties.
@@ -536,7 +559,7 @@ def _import_properties(
     metadata_cls_id_prop_lookup = {}
 
     # (annotation-id): dt.Annotation object
-    annotation_id_map: Dict[str, dt.Annotation] = {}
+    annotation_id_map: Dict[AnnotationId, dt.Annotation] = {}
 
     annotation_and_section_level_properties_to_create: List[FullProperty] = []
     annotation_and_section_level_properties_to_update: List[FullProperty] = []
@@ -1010,7 +1033,7 @@ def _normalize_item_properties(
 
 def _create_update_item_properties(
     item_properties: Dict[str, Dict[str, Any]],
-    item_properties_lookup: Dict[str, FullProperty],
+    item_properties_lookup: Dict[PropertyName, FullProperty],
     team_slug: str,
 ) -> Tuple[List[FullProperty], List[FullProperty]]:
     """
@@ -1091,7 +1114,7 @@ def _create_update_item_properties(
 
 def _assign_item_properties_to_dataset(
     item_properties: List[Dict[str, str]],
-    item_properties_lookup: Dict[str, FullProperty],
+    item_properties_lookup: Dict[PropertyName, FullProperty],
     client: "Client",
     dataset: "RemoteDataset",
     console: Console,
@@ -1520,16 +1543,14 @@ def import_annotations(  # noqa: C901
 
         metadata_path = is_properties_enabled(parsed_file.path)
 
-        annotation_class_ids_map: Dict[Tuple[str, str], str] = {}
+        annotation_class_ids_map: AnnotationClassIdsMap = {}
         for annotation in parsed_file.annotations:
             annotation_class = annotation.annotation_class
             annotation_type = (
                 annotation_class.annotation_internal_type
                 or annotation_class.annotation_type
             )
-            annotation_class_id: str = remote_classes[annotation_type][
-                annotation_class.name
-            ]
+            annotation_class_id = remote_classes[annotation_type][annotation_class.name]
             annotation_class_ids_map[(annotation_class.name, annotation_type)] = (
                 annotation_class_id
             )
@@ -1864,8 +1885,8 @@ def _import_annotations(
     delete_for_empty: bool,  # TODO: This is unused, should it be?
     import_annotators: bool,
     import_reviewers: bool,
-    annotation_id_property_map: Dict[str, Dict[str, Dict[str, Set[str]]]],
-    item_properties_lookup: Dict[str, FullProperty],
+    annotation_id_property_map: AnnotationIdPropertyMap,
+    item_properties_lookup: Dict[PropertyName, FullProperty],
 ) -> Tuple[dt.ErrorList, dt.Success]:
     errors: dt.ErrorList = []
     success: dt.Success = dt.Success.SUCCESS
@@ -1874,7 +1895,7 @@ def _import_annotations(
     raster_layer_dense_rle_ids: Optional[Set[str]] = None
     raster_layer_dense_rle_ids_frames: Optional[Dict[int, Set[str]]] = None
     serialized_annotations = []
-    annotation_class_ids_map: Dict[Tuple[str, str], str] = {}
+    annotation_class_ids_map: AnnotationClassIdsMap = {}
     for annotation in annotations:
         annotation_class = annotation.annotation_class
         annotation_type = (
