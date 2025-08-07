@@ -45,6 +45,7 @@ from darwin.importer.importer import (
     _split_payloads,
     _verify_slot_annotation_alignment,
     _warn_for_annotations_with_multiple_instance_ids,
+    import_annotations,
     slot_is_handled_by_monai,
     slot_is_medical,
 )
@@ -486,6 +487,78 @@ def test_import_annotations() -> None:
         }
 
         assert payload == expected_payload
+
+
+def test_properties_import_is_always_synchronous():
+    filename = "bar.json"
+    annotation_class = dt.AnnotationClass(
+        name="class1",
+        annotation_type="bounding_box",
+    )
+    annotation_file = dt.AnnotationFile(
+        Path("/foo/bar"),
+        filename,
+        remote_path="/",
+        annotation_classes={annotation_class},
+        annotations=[]
+    )
+
+    dataset_item = Mock()
+    dataset_item.full_path = f"/{filename}"
+    dataset_item.status = "annotate"
+    dataset_item.layout = {"version": 2}
+    dataset_item.slots = [{"slot_name": "0"}]
+
+    dataset = Mock()
+    dataset.fetch_remote_classes.return_value = [
+        {
+            "id": "123",
+            "name": annotation_class.name,
+            "available": True,
+            "annotation_types": [annotation_class.annotation_type],
+        }
+    ]
+    dataset.fetch_remote_attributes.return_value = []
+    dataset.fetch_remote_files.return_value = [dataset_item]
+
+    importer = Mock()
+    importer.__module__ = "darwin.importer.formats.coco"
+
+    with (
+        patch("darwin.importer.importer._find_and_parse") as fap,
+        patch("darwin.importer.importer._verify_slot_annotation_alignment") as vsaa,
+        patch("darwin.importer.importer.TeamPropertyLookups") as tpl,
+        patch("concurrent.futures.ThreadPoolExecutor") as tpe,
+        patch("concurrent.futures.as_completed") as ac,
+    ):
+        fap.return_value = [annotation_file]
+        vsaa.return_value = ([annotation_file], {}, {})
+        tpl.refresh.side_effect = mock_team_property_lookups_refresh(tpl, {}, {})
+
+        mock_future = Mock()
+        mock_future.result.return_value = None
+        ac.return_value = iter([mock_future])
+
+        mock_thread_pool_executor = Mock()
+        tpe.return_value = mock_thread_pool_executor
+        tpe.submit.return_value = mock_future
+
+        mock_submit = Mock()
+        mock_thread_pool_executor.__enter__ = mock_submit
+        mock_thread_pool_executor.__exit__ = Mock()
+
+        import_annotations(
+            dataset=dataset,
+            importer=importer,
+            file_paths=[],
+            append=False,
+            overwrite=True,
+            class_prompt=False,
+            use_multi_cpu=True,
+        )
+
+        mock_submit.assert_called_once()
+        assert mock_submit.mock_calls[-1].args[2].__name__ == "import_annotation"
 
 
 def test__is_skeleton_class() -> None:
