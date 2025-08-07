@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from enum import Enum, auto
 from pathlib import Path
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     Dict,
@@ -24,7 +25,10 @@ try:
 except ImportError:
     NDArray = Any  # type:ignore
 
+if TYPE_CHECKING:
+    from darwin.client import Client
 from darwin.future.data_objects.properties import (
+    FullProperty,
     PropertyGranularity,
     PropertyType,
     SelectedProperty,
@@ -1607,6 +1611,59 @@ class StorageKeyDictModel(BaseModel):
 
 class StorageKeyListModel(BaseModel):
     storage_keys: List[str]
+
+
+AnnotationClassId = int
+AnnotationClassName = str
+AnnotationId = str
+FrameIndex = str
+PropertyId = str
+PropertyName = str
+PropertyValueId = str
+TextPropertyValue = str
+
+# PropertyValueMap can be either:
+# - a set of value IDs (for select/multi-select properties)
+# - a single text value (for text properties)
+PropertyValueMap = Union[Set[PropertyValueId], TextPropertyValue]
+
+
+@dataclass
+class TeamPropertyLookups:
+    annotation_properties: Dict[Tuple[PropertyName, AnnotationClassId], FullProperty]
+    item_properties: Dict[PropertyName, FullProperty]
+    _client: Client = field(repr=False)
+    _team_slug: str = field(repr=False)
+
+    @classmethod
+    def from_team(
+        cls,
+        client: Client,
+        team_slug: str,
+    ) -> TeamPropertyLookups:
+        new_lookups = cls(
+            annotation_properties={},
+            item_properties={},
+            _client=client,
+            _team_slug=team_slug,
+        )
+        new_lookups.refresh()
+        return new_lookups
+
+    def refresh(self) -> None:
+        team_properties = self._client.get_team_properties(self._team_slug)
+
+        self.annotation_properties = {}
+        self.item_properties = {}
+
+        for prop in team_properties:
+            if (
+                prop.granularity.value == "section"
+                or prop.granularity.value == "annotation"
+            ):
+                self.annotation_properties[(prop.name, prop.annotation_class_id)] = prop
+            elif prop.granularity.value == "item":
+                self.item_properties[prop.name] = prop
 
 
 class ReportJob(BaseModel):
