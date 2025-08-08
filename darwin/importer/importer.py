@@ -117,6 +117,7 @@ def _build_main_annotations_lookup_table(
         "cuboid",
         "ellipse",
         "keypoint",
+        "keypoint_3d",
         "line",
         "link",
         "polygon",

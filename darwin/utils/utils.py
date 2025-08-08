@@ -809,6 +809,14 @@ def _parse_darwin_annotation(
             annotation["keypoint"]["y"],
             slot_names=slot_names,
         )
+    elif "keypoint_3d" in annotation:
+        main_annotation = dt.make_keypoint_3d(
+            name,
+            annotation["keypoint_3d"]["x"],
+            annotation["keypoint_3d"]["y"],
+            annotation["keypoint_3d"]["z"],
+            slot_names=slot_names,
+        )
     elif "ellipse" in annotation:
         main_annotation = dt.make_ellipse(
             name, annotation["ellipse"], slot_names=slot_names

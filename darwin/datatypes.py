@@ -118,6 +118,7 @@ AnnotationType = Literal[  # NB: Some of these are not supported yet
     "table",
     "string",
     "graph",
+    "keypoint_3d"
 ]
 
 
@@ -854,6 +855,68 @@ def make_keypoint(
     subs: Optional[List[SubAnnotation]] = None,
     slot_names: Optional[List[str]] = None,
 ) -> Annotation:
+    """
+    Creates and returns a keypoint, aka point, annotation.
+
+    Parameters
+    ----------
+    class_name : str
+        The name of the class for this ``Annotation``.
+    x : float
+        The ``x`` value of the point.
+    y : float
+        The ``y`` value of the point.
+    subs : Optional[List[SubAnnotation]], default: None
+        List of ``SubAnnotation``s for this ``Annotation``.
+
+    Returns
+    -------
+    Annotation
+        A point ``Annotation``.
+    """
+    return Annotation(
+        AnnotationClass(class_name, "keypoint"),
+        {"x": x, "y": y},
+        subs or [],
+        slot_names=slot_names or [],
+    )
+
+def make_keypoint_3d(
+    class_name: str,
+    x: float,
+    y: float,
+    z: float,
+    subs: Optional[List[SubAnnotation]] = None,
+    slot_names: Optional[List[str]] = None,
+) -> Annotation:
+    """
+    Creates and returns a 3D keypoint annotation.
+
+    Parameters
+    ----------
+    class_name : str
+        The name of the class for this ``Annotation``.
+    x : float
+        The ``x`` value of the point.
+    y : float
+        The ``y`` value of the point.
+    z : float
+        The ``z`` value of the point.
+    subs : Optional[List[SubAnnotation]], default: None
+        List of ``SubAnnotation``s for this ``Annotation``.
+
+    Returns
+    -------
+    Annotation
+        A 3D point ``Annotation``.
+    """
+    return Annotation(
+        AnnotationClass(class_name, "keypoint_3d"),
+        {"x": x, "y": y, "z": z},
+        subs or [],
+        slot_names=slot_names or [],
+    )
+
     """
     Creates and returns a keypoint, aka point, annotation.
 
