@@ -917,33 +917,6 @@ def make_keypoint_3d(
         slot_names=slot_names or [],
     )
 
-    """
-    Creates and returns a keypoint, aka point, annotation.
-
-    Parameters
-    ----------
-    class_name : str
-        The name of the class for this ``Annotation``.
-    x : float
-        The ``x`` value of the point.
-    y : float
-        The ``y`` value of the point.
-    subs : Optional[List[SubAnnotation]], default: None
-        List of ``SubAnnotation``s for this ``Annotation``.
-
-    Returns
-    -------
-    Annotation
-        A point ``Annotation``.
-    """
-    return Annotation(
-        AnnotationClass(class_name, "keypoint"),
-        {"x": x, "y": y},
-        subs or [],
-        slot_names=slot_names or [],
-    )
-
-
 def make_line(
     class_name: str,
     path: List[Point],
