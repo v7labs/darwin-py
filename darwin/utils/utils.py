@@ -1028,7 +1028,7 @@ def _parse_darwin_video_annotation(annotation: dict) -> Optional[dt.VideoAnnotat
                 break
     for f, frame in frames.items():
         frame_annotations[int(f)] = _parse_darwin_annotation(
-            {**frame, **{"name": name, "id": annotation.get("id", None)}},
+            {**frame, **{"name": name, "id": frame.get("id", None)}},
             only_keyframes,
             annotation_type,
             annotation_data,
