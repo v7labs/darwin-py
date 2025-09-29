@@ -45,9 +45,11 @@ def _create_directories(base_dir: str) -> Dict[str, str]:
         "sections": os.path.join(base_dir, "sections"),
     }
 
-    # Create high/low quality segment dirs
     paths["segments_high"] = os.path.join(paths["segments"], "high")
     paths["segments_low"] = os.path.join(paths["segments"], "low")
+
+    paths["sections_high"] = os.path.join(paths["sections"], "high")
+    paths["sections_low"] = os.path.join(paths["sections"], "low")
 
     for path in paths.values():
         os.makedirs(path, exist_ok=True)
@@ -387,48 +389,38 @@ def _get_frames_timestamps(source_file: str) -> List[float]:
     return frames
 
 
-def _extract_frames(source_file: str, output_dir: str, downsampling_step: float):
+def _extract_frames(
+    source_file: str, output_dir: str, downsampling_step: float, quality: str
+):
     """Extract frames using ffmpeg with optional downsampling"""
-    frame_pattern = os.path.join(output_dir, "%09d.png")
+    frame_ext = "png" if quality == "high" else "jpg"
+    frame_pattern = os.path.join(output_dir, f"%09d.{frame_ext}")
+
+    cmd = [
+        "ffmpeg",
+        "-hide_banner",
+        "-v",
+        "error",
+        "-i",
+        source_file,
+        "-start_number",
+        "0",
+        "-vsync",
+        "passthrough",
+        "-f",
+        "image2",
+    ]
+
+    if quality == "low":
+        cmd.extend(["-q", "5"])
 
     if downsampling_step > 1:
         # Use select filter to precisely control what frames are extracted
         # This matches the frame selection logic in the manifest
         select_expr = f"select='eq(trunc(trunc((n+1)/{downsampling_step})*{downsampling_step})\\,n)'"
-        cmd = [
-            "ffmpeg",
-            "-hide_banner",
-            "-v",
-            "error",
-            "-i",
-            source_file,
-            "-start_number",
-            "0",
-            "-vsync",
-            "passthrough",
-            "-vf",
-            select_expr,
-            "-f",
-            "image2",
-            frame_pattern,
-        ]
-    else:
-        # Extract all frames when no downsampling needed
-        cmd = [
-            "ffmpeg",
-            "-hide_banner",
-            "-v",
-            "error",
-            "-i",
-            source_file,
-            "-start_number",
-            "0",
-            "-vsync",
-            "passthrough",
-            "-f",
-            "image2",
-            frame_pattern,
-        ]
+        cmd.extend(["-vf", select_expr])
+
+    cmd.extend([frame_pattern])
 
     subprocess.run(cmd, check=True)
 
@@ -572,6 +564,7 @@ def extract_artifacts(
     fps: float = 0.0,
     segment_length: int = 2,
     repair: bool = False,
+    save_metadata: bool = False,
 ) -> Dict:
     """
     Extracts video artifacts including segments, frames, thumbnail for
@@ -584,6 +577,7 @@ def extract_artifacts(
         fps: Desired frames per second (0.0 for native fps), defaults to 0.0
         segment_length: Length of each segment in seconds, defaults to 2
         repair: If True, attempt to repair video if errors are detected, defaults to False
+        save_metadata: If True, save metadata to a file, defaults to False
 
     Returns:
         Dict containing metadata and paths to generated artifacts
@@ -623,7 +617,8 @@ def extract_artifacts(
 
     console.print("\nExtracting frames...")
 
-    _extract_frames(source_file, dirs["sections"], downsampling_step)
+    _extract_frames(source_file, dirs["sections_high"], downsampling_step, "high")
+    _extract_frames(source_file, dirs["sections_low"], downsampling_step, "low")
 
     console.print("\nCreating frames manifest...")
 
@@ -687,7 +682,8 @@ def extract_artifacts(
                 },
             },
             "storage_key": f"{storage_key_prefix}/{source_file_name}",
-            "storage_sections_key_prefix": f"{storage_key_prefix}/sections",
+            "storage_sections_key_prefix": f"{storage_key_prefix}/sections/high",
+            "storage_low_quality_sections_key_prefix": f"{storage_key_prefix}/sections/low",
             "storage_frames_manifest_key": f"{storage_key_prefix}/frames_manifest.txt",
             "storage_thumbnail_key": f"{storage_key_prefix}/thumbnail.jpg",
             "total_size_bytes": source_file_size,
@@ -704,7 +700,8 @@ def extract_artifacts(
             "storage_audio_peaks_key"
         ] = f"{storage_key_prefix}/audio_peaks.gz"
 
-    with open(os.path.join(dirs["base_dir"], "metadata.json"), "w") as f:
-        json.dump(result_metadata, f, indent=2)
+    if save_metadata:
+        with open(os.path.join(dirs["base_dir"], "metadata.json"), "w") as f:
+            json.dump(result_metadata, f, indent=2)
 
     return result_metadata
