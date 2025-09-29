@@ -451,6 +451,7 @@ class TestExtractVideo:
                 segment_length=2,
                 repair=False,
                 storage_key_prefix="test/prefix",
+                save_metadata=True,
             )
 
 
