@@ -1502,6 +1502,7 @@ def extract_video_artifacts(
     fps: float = 0.0,
     segment_length: int = 2,
     repair: bool = False,
+    save_metadata: bool = True,
 ) -> None:
     """
     Generate video artifacts (segments, sections, thumbnail, frames manifest).
@@ -1520,6 +1521,8 @@ def extract_video_artifacts(
         Length of each segment in seconds, by default 2
     repair : bool, optional
         Whether to attempt to repair video if errors are detected, by default False
+    save_metadata : bool, optional
+        Whether to save metadata to a file, by default False
     """
 
     video.extract_artifacts(
@@ -1529,4 +1532,5 @@ def extract_video_artifacts(
         fps=fps,
         segment_length=segment_length,
         repair=repair,
+        save_metadata=save_metadata,
     )

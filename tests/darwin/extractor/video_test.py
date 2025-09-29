@@ -29,6 +29,7 @@ class TestVideoArtifactExtraction:
             fps=30.0,
             segment_length=2,
             repair=False,
+            save_metadata=True,
         )
 
         # Get the actual result for bitrate values
@@ -90,7 +91,8 @@ class TestVideoArtifactExtraction:
             "storage_key": "test/prefix/test_video.mp4",
             "storage_frames_manifest_key": "test/prefix/frames_manifest.txt",
             "storage_thumbnail_key": "test/prefix/thumbnail.jpg",
-            "storage_sections_key_prefix": "test/prefix/sections",
+            "storage_sections_key_prefix": "test/prefix/sections/high",
+            "storage_low_quality_sections_key_prefix": "test/prefix/sections/low",
             "total_size_bytes": 61859,
             "name": "test_video.mp4",
             "path": "/",
@@ -133,7 +135,8 @@ class TestVideoArtifactExtraction:
             ), f"Wrong timestamp at line {i}"
 
         # Verify generated files
-        assert len(list((output_dir / "sections").glob("*.png"))) == 150
+        assert len(list((output_dir / "sections" / "high").glob("*.png"))) == 150
+        assert len(list((output_dir / "sections" / "low").glob("*.jpg"))) == 150
 
         # Verify HLS segments
         assert len(list((output_dir / "segments" / "high").glob("*.ts"))) == 3
