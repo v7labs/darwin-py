@@ -1040,8 +1040,18 @@ def _parse_darwin_video_annotation(annotation: dict) -> Optional[dt.VideoAnnotat
             if annotation_type:
                 break
     for f, frame in frames.items():
+        parent_data = {
+            "name": name,
+            "id": annotation.get("id", None),
+        }
+        if not parse_slot_names(frame) and len(parse_slot_names(annotation)) == 1:
+            parent_data["slot_names"] = parse_slot_names(annotation)
+
         frame_annotations[int(f)] = _parse_darwin_annotation(
-            {**frame, **{"name": name, "id": annotation.get("id", None)}},
+            {
+                **frame,
+                **parent_data,
+            },
             only_keyframes,
             annotation_type,
             annotation_data,
