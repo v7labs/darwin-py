@@ -439,7 +439,6 @@ class TestGetExternalFileType:
         assert get_external_file_type("/path/to/file/my_image.webp") == "image"
         assert get_external_file_type("/path/to/file/my_image.JPEG") == "image"
         assert get_external_file_type("/path/to/file/my_image.JPG") == "image"
-        assert get_external_file_type("/path/to/file/my_image.BMP") == "image"
 
         assert get_external_file_type("/path/to/file/my_video.avi") == "video"
         assert get_external_file_type("/path/to/file/my_video.bpm") == "video"

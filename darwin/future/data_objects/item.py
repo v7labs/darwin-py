@@ -89,7 +89,7 @@ class ItemSlot(DefaultDarwin):
 
         if file_name is not None:
             # TODO - Review types
-            if file_name.endswith((".jpg", ".jpeg", ".png", ".bmp", ".gif", ".BMP")):
+            if file_name.endswith((".jpg", ".jpeg", ".png", ".bmp", ".gif")):
                 values["type"] = "image"
             elif file_name.endswith(".pdf"):
                 values["type"] = "pdf"
