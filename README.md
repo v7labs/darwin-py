@@ -160,8 +160,8 @@ For videos, the frame rate extraction rate can be specified by adding `--fps <fr
 
 Supported extensions:
 
--   Video files: [`.mp4`, `.bpm`, `.mov` formats].
--   Image files [`.jpg`, `.jpeg`, `.png` formats].
+-   Video files: [`.mp4`, `.bpm`, `.mov`, `.avi`, `.mkv`, `.hevc`, `.pdf`, `.dcm`, `.nii`, `.nii.gz`, `.ndpi`, `.rvg` formats].
+-   Image files [`.jpg`, `.jpeg`, `.png`, `.jfif`, `.tif`, `.tiff`, `.qtiff`, `.bmp`, `.svs`, `.webp`, `.JPEG`, `.JPG`, `.BMP` formats].
 
 ```
 $ darwin dataset push test /path/to/folder/with/images
