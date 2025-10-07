@@ -58,6 +58,7 @@ SUPPORTED_IMAGE_EXTENSIONS = [
     ".webp",
     ".JPEG",
     ".JPG",
+    ".BMP",
 ]
 SUPPORTED_VIDEO_EXTENSIONS = [
     ".avi",

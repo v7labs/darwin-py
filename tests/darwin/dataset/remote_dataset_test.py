@@ -817,6 +817,7 @@ class TestPush:
             ".mp4",
             ".pdf",
             ".ndpi",
+            ".BMP",
         ]
         filenames = [f"test{extension}" for extension in supported_extensions]
         with patch.object(remote_dataset, "fetch_remote_files", return_value=[]):

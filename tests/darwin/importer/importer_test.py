@@ -427,13 +427,13 @@ def test_import_annotations() -> None:
     annotation_id_property_map = {}
     item_properties_lookup = {}
 
-    with patch("darwin.importer.importer._get_annotation_data") as mock_gad, patch(
-        "darwin.importer.importer._handle_annotators"
-    ) as mock_ha, patch("darwin.importer.importer._handle_reviewers") as mock_hr, patch(
-        "darwin.importer.importer._import_properties"
-    ) as mock_ip, patch(
-        "darwin.importer.importer._get_overwrite_value"
-    ) as mock_gov:
+    with (
+        patch("darwin.importer.importer._get_annotation_data") as mock_gad,
+        patch("darwin.importer.importer._handle_annotators") as mock_ha,
+        patch("darwin.importer.importer._handle_reviewers") as mock_hr,
+        patch("darwin.importer.importer._import_properties") as mock_ip,
+        patch("darwin.importer.importer._get_overwrite_value") as mock_gov,
+    ):
         mock_gad.return_value = "test_data"
         mock_ha.return_value = [
             {"email": "annotator1@example.com", "role": "annotator"},
@@ -500,7 +500,7 @@ def test_properties_import_is_always_synchronous():
         filename,
         remote_path="/",
         annotation_classes={annotation_class},
-        annotations=[]
+        annotations=[],
     )
 
     dataset_item = Mock()
@@ -741,10 +741,10 @@ def test__get_annotation_data() -> None:
 
     annotation.data = "TEST DATA"
 
-    with patch_factory("_format_polygon_for_import") as mock_hcp, patch_factory(
-        "_handle_subs"
-    ) as mock_hs, patch.object(
-        dt.VideoAnnotation, "get_data", return_value="TEST VIDEO DATA"
+    with (
+        patch_factory("_format_polygon_for_import") as mock_hcp,
+        patch_factory("_handle_subs") as mock_hs,
+        patch.object(dt.VideoAnnotation, "get_data", return_value="TEST VIDEO DATA"),
     ):
         from darwin.importer.importer import _get_annotation_data
 
@@ -760,9 +760,10 @@ def test__get_annotation_data() -> None:
         assert mock_hcp.call_count == 1
         assert mock_hs.call_count == 1
 
-    with patch_factory("_format_polygon_for_import") as mock_hcp, patch_factory(
-        "_handle_subs"
-    ) as mock_hs:
+    with (
+        patch_factory("_format_polygon_for_import") as mock_hcp,
+        patch_factory("_handle_subs") as mock_hs,
+    ):
         from darwin.importer.importer import _get_annotation_data
 
         mock_hs.return_value = {"TEST_TYPE": "TEST DATA"}
@@ -1135,17 +1136,17 @@ def test__parse_empty_masks_video(raster_layer_video_annotations) -> None:
 
 
 def test__import_annotations() -> None:
-    with patch_factory("_format_polygon_for_import") as mock_hcp, patch_factory(
-        "_handle_reviewers"
-    ) as mock_hr, patch_factory("_handle_annotators") as mock_ha, patch_factory(
-        "_handle_subs"
-    ) as mock_hs, patch_factory(
-        "_get_overwrite_value"
-    ) as mock_gov, patch_factory(
-        "_handle_slot_names"
-    ) as mock_hsn, patch_factory(
-        "_import_properties",
-    ) as mock_ip:
+    with (
+        patch_factory("_format_polygon_for_import") as mock_hcp,
+        patch_factory("_handle_reviewers") as mock_hr,
+        patch_factory("_handle_annotators") as mock_ha,
+        patch_factory("_handle_subs") as mock_hs,
+        patch_factory("_get_overwrite_value") as mock_gov,
+        patch_factory("_handle_slot_names") as mock_hsn,
+        patch_factory(
+            "_import_properties",
+        ) as mock_ip,
+    ):
         from darwin.client import Client
         from darwin.dataset import RemoteDataset
         from darwin.importer.importer import _import_annotations
@@ -1373,11 +1374,14 @@ class TestImportItemLevelProperties:
         annotation_class_ids_map,
         item_properties,
     ):
-        with patch(
-            "darwin.importer.importer._get_team_properties_annotation_lookup"
-        ) as mock_get_team_props, patch(
-            "darwin.importer.importer._create_update_item_properties"
-        ) as mock_create_update_props:
+        with (
+            patch(
+                "darwin.importer.importer._get_team_properties_annotation_lookup"
+            ) as mock_get_team_props,
+            patch(
+                "darwin.importer.importer._create_update_item_properties"
+            ) as mock_create_update_props,
+        ):
             metadata_path = False
             mock_get_team_props.side_effect = [
                 ({}, {}),
@@ -1471,11 +1475,14 @@ class TestImportItemLevelProperties:
         annotation_class_ids_map,
         item_properties,
     ):
-        with patch(
-            "darwin.importer.importer._get_team_properties_annotation_lookup"
-        ) as mock_get_team_props, patch(
-            "darwin.importer.importer._create_update_item_properties"
-        ) as mock_create_update_props:
+        with (
+            patch(
+                "darwin.importer.importer._get_team_properties_annotation_lookup"
+            ) as mock_get_team_props,
+            patch(
+                "darwin.importer.importer._create_update_item_properties"
+            ) as mock_create_update_props,
+        ):
             metadata_path = Path(
                 "darwin/future/tests/data/.v7/metadata_with_item_level_properties.json"
             )
@@ -1603,11 +1610,14 @@ class TestImportItemLevelProperties:
         annotation_class_ids_map,
         item_properties,
     ):
-        with patch(
-            "darwin.importer.importer._get_team_properties_annotation_lookup"
-        ) as mock_get_team_props, patch(
-            "darwin.importer.importer._create_update_item_properties"
-        ) as mock_create_update_props:
+        with (
+            patch(
+                "darwin.importer.importer._get_team_properties_annotation_lookup"
+            ) as mock_get_team_props,
+            patch(
+                "darwin.importer.importer._create_update_item_properties"
+            ) as mock_create_update_props,
+        ):
             metadata_path = Path(
                 "darwin/future/tests/data/.v7/metadata_with_item_level_properties.json"
             )
@@ -1747,11 +1757,14 @@ class TestImportItemLevelProperties:
         annotation_class_ids_map,
         item_properties,
     ):
-        with patch(
-            "darwin.importer.importer._get_team_properties_annotation_lookup"
-        ) as mock_get_team_props, patch(
-            "darwin.importer.importer._create_update_item_properties"
-        ) as mock_create_update_props:
+        with (
+            patch(
+                "darwin.importer.importer._get_team_properties_annotation_lookup"
+            ) as mock_get_team_props,
+            patch(
+                "darwin.importer.importer._create_update_item_properties"
+            ) as mock_create_update_props,
+        ):
             metadata_path = Path(
                 "darwin/future/tests/data/.v7/metadata_with_item_level_properties.json"
             )
@@ -1936,11 +1949,14 @@ class TestImportItemLevelProperties:
         annotation_class_ids_map,
         item_properties,
     ):
-        with patch(
-            "darwin.importer.importer._get_team_properties_annotation_lookup"
-        ) as mock_get_team_props, patch(
-            "darwin.importer.importer._create_update_item_properties"
-        ) as mock_create_update_props:
+        with (
+            patch(
+                "darwin.importer.importer._get_team_properties_annotation_lookup"
+            ) as mock_get_team_props,
+            patch(
+                "darwin.importer.importer._create_update_item_properties"
+            ) as mock_create_update_props,
+        ):
             metadata_path = False
             mock_get_team_props.side_effect = [
                 (
@@ -2116,11 +2132,14 @@ class TestImportItemLevelProperties:
         annotation_class_ids_map,
         item_properties,
     ):
-        with patch(
-            "darwin.importer.importer._get_team_properties_annotation_lookup"
-        ) as mock_get_team_props, patch(
-            "darwin.importer.importer._create_update_item_properties"
-        ) as mock_create_update_props:
+        with (
+            patch(
+                "darwin.importer.importer._get_team_properties_annotation_lookup"
+            ) as mock_get_team_props,
+            patch(
+                "darwin.importer.importer._create_update_item_properties"
+            ) as mock_create_update_props,
+        ):
             metadata_path = Path(
                 "darwin/future/tests/data/.v7/metadata_with_item_level_properties.json"
             )
@@ -2341,9 +2360,10 @@ def test__assign_item_properties_to_dataset(mock_client, mock_dataset, mock_cons
         ),
     }
 
-    with patch("darwin.datatypes.TeamPropertyLookups") as mock_lookups, patch.object(
-        mock_client, "update_property"
-    ) as mock_update_property:
+    with (
+        patch("darwin.datatypes.TeamPropertyLookups") as mock_lookups,
+        patch.object(mock_client, "update_property") as mock_update_property,
+    ):
         mock_lookups.refresh.return_value = ({}, item_properties_lookup)
 
         _assign_item_properties_to_dataset(
@@ -3749,10 +3769,13 @@ def test_serialize_item_level_properties_with_actors():
     mock_annotator = {"email": "annotator@test.com", "role": "annotator"}
     mock_reviewer = {"email": "reviewer@test.com", "role": "reviewer"}
 
-    with patch(
-        "darwin.importer.importer._handle_annotators", return_value=[mock_annotator]
-    ), patch(
-        "darwin.importer.importer._handle_reviewers", return_value=[mock_reviewer]
+    with (
+        patch(
+            "darwin.importer.importer._handle_annotators", return_value=[mock_annotator]
+        ),
+        patch(
+            "darwin.importer.importer._handle_reviewers", return_value=[mock_reviewer]
+        ),
     ):
         result = _serialize_item_level_properties(
             [{"name": "text_property", "value": "some text"}],
