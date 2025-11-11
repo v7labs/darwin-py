@@ -254,6 +254,30 @@ class BackendV2:
             f"/v2/teams/{team_slug}/items/register_existing", payload
         )
 
+    @inject_default_team_slug
+    def register_readonly_items(
+        self, payload: Dict[str, Any], team_slug: str
+    ) -> Dict[str, Any]:
+        """
+        Register items from readonly external storage.
+
+        Parameters
+        ----------
+        payload: Dict[str, Any]
+            The payload to register items from readonly external storage.
+        team_slug: str
+            The team slug.
+
+        Returns
+        -------
+        Dict[str, Any]
+            Response containing registered and blocked items.
+        """
+        response = self._client._post_raw(
+            f"/v2/teams/{team_slug}/items/register_existing_readonly", payload
+        )
+        return response.json()
+
     def _get_remote_annotations(
         self,
         item_id: str,

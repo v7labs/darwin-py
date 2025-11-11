@@ -2,7 +2,7 @@ import json
 import shutil
 import tempfile
 from pathlib import Path
-from typing import Dict, List, Any
+from typing import Any, Dict, List
 
 import pytest
 
@@ -10,8 +10,8 @@ from darwin.client import Client
 from darwin.config import Config
 from darwin.dataset.remote_dataset_v2 import RemoteDatasetV2
 from darwin.datatypes import (
-    AnnotationClass,
     Annotation,
+    AnnotationClass,
     ObjectStore,
     Point,
     VideoAnnotation,
@@ -145,6 +145,8 @@ class TestObjectStore:
             readonly=False,
             provider="aws",
             default=True,
+            bucket="test-bucket",
+            region="us-east-1",
         )
 
     @pytest.fixture
@@ -179,17 +181,19 @@ class TestObjectStore:
         assert object_store.readonly is False
         assert object_store.provider == "aws"
         assert object_store.default is True
+        assert object_store.bucket == "test-bucket"
+        assert object_store.region == "us-east-1"
 
     def test_str(self, object_store):
         assert (
             str(object_store)
-            == "Storage configuration:\n- Name: test\n- Prefix: test_prefix\n- Readonly: False\n- Provider: aws\n- Default: True"
+            == "Storage configuration:\n- Name: test\n- Prefix: test_prefix\n- Readonly: False\n- Provider: aws\n- Default: True\n- Bucket: test-bucket\n- Region: us-east-1"
         )
 
     def test_repr(self, object_store):
         assert (
             repr(object_store)
-            == "ObjectStore(name=test, prefix=test_prefix, readonly=False, provider=aws)"
+            == "ObjectStore(name=test, prefix=test_prefix, readonly=False, provider=aws, bucket=test-bucket, region=us-east-1)"
         )
 
 

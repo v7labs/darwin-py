@@ -11,6 +11,7 @@ import orjson as json
 import pytest
 import responses
 from pydantic import ValidationError
+
 from darwin.client import Client
 from darwin.config import Config
 from darwin.dataset import RemoteDataset
@@ -21,18 +22,14 @@ from darwin.dataset.download_manager import (
 from darwin.dataset.release import Release, ReleaseStatus
 from darwin.dataset.remote_dataset_v2 import (
     RemoteDatasetV2,
-    _find_files_to_upload_as_single_file_items,
     _find_files_to_upload_as_multi_file_items,
+    _find_files_to_upload_as_single_file_items,
 )
-from darwin.dataset.upload_manager import (
-    ItemMergeMode,
-    LocalFile,
-    UploadHandlerV2,
-)
-from darwin.utils.utils import SLOTS_GRID_MAP
+from darwin.dataset.upload_manager import ItemMergeMode, LocalFile, UploadHandlerV2
 from darwin.datatypes import ManifestItem, ObjectStore, SegmentManifest
 from darwin.exceptions import UnsupportedExportFormat, UnsupportedFileType
 from darwin.item import DatasetItem
+from darwin.utils.utils import SLOTS_GRID_MAP
 from tests.fixtures import *
 
 
@@ -1653,6 +1650,7 @@ class TestRegister:
                     readonly=False,
                     provider="aws",
                     default=True,
+                    bucket="test-bucket",
                 ),
                 [1, 2, 3],
             )
@@ -1666,6 +1664,7 @@ class TestRegister:
                     readonly=False,
                     provider="aws",
                     default=True,
+                    bucket="test-bucket",
                 ),
                 ["unsupported_file.xyz"],
             )
@@ -1688,6 +1687,7 @@ class TestRegister:
                 readonly=False,
                 provider="aws",
                 default=True,
+                bucket="test-bucket",
             ),
             ["test.jpg"],
         )
@@ -1714,6 +1714,7 @@ class TestRegister:
                 readonly=False,
                 provider="aws",
                 default=True,
+                bucket="test-bucket",
             ),
             ["test.jpg"],
         )
@@ -1734,6 +1735,7 @@ class TestRegisterMultiSlotted:
                     readonly=False,
                     provider="aws",
                     default=True,
+                    bucket="test-bucket",
                 ),
                 {"item1": [1, 2, 3]},
                 multi_slotted=True,
@@ -1748,6 +1750,7 @@ class TestRegisterMultiSlotted:
                     readonly=False,
                     provider="aws",
                     default=True,
+                    bucket="test-bucket",
                 ),
                 {"item1": ["unsupported_file.xyz"]},
                 multi_slotted=True,
@@ -1771,6 +1774,7 @@ class TestRegisterMultiSlotted:
                 readonly=False,
                 provider="aws",
                 default=True,
+                bucket="test-bucket",
             ),
             {"item1": ["test.jpg"]},
             multi_slotted=True,
@@ -1798,6 +1802,7 @@ class TestRegisterMultiSlotted:
                 readonly=False,
                 provider="aws",
                 default=True,
+                bucket="test-bucket",
             ),
             {"item1": ["test.jpg"]},
             multi_slotted=True,
@@ -1959,3 +1964,371 @@ class TestGetRemoteFilesThatRequireLegacyScaling:
                 current_workflow=None,
             ),
         ]
+
+
+@pytest.mark.usefixtures("file_read_write_test")
+class TestRegisterSingleSlottedReadonlyVideos:
+    """Tests for register_single_slotted_readonly_videos method."""
+
+    @pytest.fixture
+    def readonly_object_store(self):
+        return ObjectStore(
+            name="readonly-storage",
+            prefix="test_prefix",
+            readonly=True,
+            provider="aws",
+            default=False,
+            bucket="test-bucket",
+            region="us-east-1",
+        )
+
+    def test_raises_for_unsupported_provider(self, remote_dataset: RemoteDatasetV2):
+        """Test that unsupported storage providers raise ValueError."""
+        unsupported_store = ObjectStore(
+            name="test",
+            prefix="test_prefix",
+            readonly=True,
+            provider="unsupported",
+            default=False,
+            bucket="test-bucket",
+        )
+
+        with pytest.raises(ValueError) as exc_info:
+            remote_dataset.register_single_slotted_readonly_videos(
+                object_store=unsupported_store,
+                video_files=["video.mp4"],
+            )
+        assert "Unsupported storage provider" in str(exc_info.value)
+
+    def test_raises_for_nonexistent_file(
+        self, remote_dataset: RemoteDatasetV2, readonly_object_store
+    ):
+        """Test that nonexistent files raise FileNotFoundError."""
+        with pytest.raises(FileNotFoundError) as exc_info:
+            remote_dataset.register_single_slotted_readonly_videos(
+                object_store=readonly_object_store,
+                video_files=["nonexistent_video.mp4"],
+            )
+        assert "Video file not found" in str(exc_info.value)
+
+    def test_raises_for_mixed_existing_nonexistent_files(
+        self, remote_dataset: RemoteDatasetV2, readonly_object_store, tmp_path
+    ):
+        """Test that FileNotFoundError is raised even when some files exist."""
+        # Create one real file
+        existing_file = tmp_path / "exists.mp4"
+        existing_file.write_text("video content")
+
+        with pytest.raises(FileNotFoundError) as exc_info:
+            remote_dataset.register_single_slotted_readonly_videos(
+                object_store=readonly_object_store,
+                video_files=[str(existing_file), "nonexistent.mp4"],
+            )
+        assert "nonexistent.mp4" in str(exc_info.value)
+
+    @patch("darwin.backend_v2.BackendV2.register_readonly_items")
+    def test_registers_single_video_successfully(
+        self,
+        mock_register,
+        remote_dataset: RemoteDatasetV2,
+        readonly_object_store,
+        tmp_path,
+    ):
+        """Test successful registration of a single video file."""
+        video_file = tmp_path / "test_video.mp4"
+        video_file.write_text("video content")
+
+        mock_register.return_value = {
+            "items": [{"id": "123", "name": "test_video.mp4"}],
+            "blocked_items": [],
+        }
+
+        with patch.object(
+            remote_dataset,
+            "_process_video_file_for_readonly",
+            return_value={
+                "fps": 30.0,
+                "frame_count": 100,
+                "width": 1920,
+                "height": 1080,
+                "size_bytes": 1000000,
+            },
+        ):
+            result = remote_dataset.register_single_slotted_readonly_videos(
+                object_store=readonly_object_store,
+                video_files=[str(video_file)],
+                path="/videos",
+            )
+
+        assert len(result["registered"]) == 1
+        assert len(result["blocked"]) == 0
+        assert "test_video.mp4" in result["registered"][0]
+
+    @patch("darwin.backend_v2.BackendV2.register_readonly_items")
+    def test_handles_blocked_items(
+        self,
+        mock_register,
+        remote_dataset: RemoteDatasetV2,
+        readonly_object_store,
+        tmp_path,
+    ):
+        """Test proper handling of blocked items in response."""
+        video_file = tmp_path / "duplicate_video.mp4"
+        video_file.write_text("video content")
+
+        mock_register.return_value = {
+            "items": [],
+            "blocked_items": [
+                {
+                    "name": "duplicate_video.mp4",
+                    "slots": [{"reason": "duplicate item"}],
+                }
+            ],
+        }
+
+        with patch.object(
+            remote_dataset,
+            "_process_video_file_for_readonly",
+            return_value={"fps": 30.0, "frame_count": 100},
+        ):
+            result = remote_dataset.register_single_slotted_readonly_videos(
+                object_store=readonly_object_store,
+                video_files=[str(video_file)],
+            )
+
+        assert len(result["registered"]) == 0
+        assert len(result["blocked"]) == 1
+        assert "duplicate" in result["blocked"][0]
+
+
+@pytest.mark.usefixtures("file_read_write_test")
+class TestRegisterMultiSlottedReadonlyVideos:
+    """Tests for register_multi_slotted_readonly_videos method."""
+
+    @pytest.fixture
+    def readonly_object_store(self):
+        return ObjectStore(
+            name="readonly-storage",
+            prefix="test_prefix",
+            readonly=True,
+            provider="aws",
+            default=False,
+            bucket="test-bucket",
+            region="us-east-1",
+        )
+
+    def test_raises_for_unsupported_provider(self, remote_dataset: RemoteDatasetV2):
+        """Test that unsupported storage providers raise ValueError."""
+        unsupported_store = ObjectStore(
+            name="test",
+            prefix="test_prefix",
+            readonly=True,
+            provider="unsupported",
+            default=False,
+            bucket="test-bucket",
+        )
+
+        with pytest.raises(ValueError) as exc_info:
+            remote_dataset.register_multi_slotted_readonly_videos(
+                object_store=unsupported_store,
+                video_files={"item1": ["video.mp4"]},
+            )
+        assert "Unsupported storage provider" in str(exc_info.value)
+
+    def test_raises_for_nonexistent_file(
+        self, remote_dataset: RemoteDatasetV2, readonly_object_store
+    ):
+        """Test that nonexistent files raise FileNotFoundError with item name."""
+        with pytest.raises(FileNotFoundError) as exc_info:
+            remote_dataset.register_multi_slotted_readonly_videos(
+                object_store=readonly_object_store,
+                video_files={"my_item": ["nonexistent.mp4"]},
+            )
+        assert "my_item" in str(exc_info.value)
+        assert "nonexistent.mp4" in str(exc_info.value)
+
+    @patch("darwin.backend_v2.BackendV2.register_readonly_items")
+    def test_registers_multi_slot_item(
+        self,
+        mock_register,
+        remote_dataset: RemoteDatasetV2,
+        readonly_object_store,
+        tmp_path,
+    ):
+        """Test successful registration of multi-slotted item."""
+        video1 = tmp_path / "front.mp4"
+        video2 = tmp_path / "back.mp4"
+        video1.write_text("front video")
+        video2.write_text("back video")
+
+        mock_register.return_value = {
+            "items": [{"id": "456", "name": "multi_view_scene"}],
+            "blocked_items": [],
+        }
+
+        with patch.object(
+            remote_dataset,
+            "_process_video_file_for_readonly",
+            return_value={"fps": 30.0, "frame_count": 100},
+        ):
+            result = remote_dataset.register_multi_slotted_readonly_videos(
+                object_store=readonly_object_store,
+                video_files={
+                    "multi_view_scene": [str(video1), str(video2)],
+                },
+                path="/scenes",
+            )
+
+        assert len(result["registered"]) == 1
+        assert "multi_view_scene" in result["registered"][0]
+
+    @patch("darwin.backend_v2.BackendV2.register_readonly_items")
+    def test_handles_duplicate_filenames_in_slots(
+        self,
+        mock_register,
+        remote_dataset: RemoteDatasetV2,
+        readonly_object_store,
+        tmp_path,
+    ):
+        """Test that duplicate filenames get proper suffixes."""
+        # Create two different files with same name in different dirs
+        dir1 = tmp_path / "dir1"
+        dir2 = tmp_path / "dir2"
+        dir1.mkdir()
+        dir2.mkdir()
+
+        video1 = dir1 / "video.mp4"
+        video2 = dir2 / "video.mp4"
+        video1.write_text("video 1")
+        video2.write_text("video 2")
+
+        # Capture the payload sent to register_readonly_items
+        captured_payload = {}
+
+        def capture_payload(payload, **kwargs):
+            captured_payload.update(payload)
+            return {
+                "items": [{"id": "789", "name": "item_with_dups"}],
+                "blocked_items": [],
+            }
+
+        mock_register.side_effect = capture_payload
+
+        with patch.object(
+            remote_dataset,
+            "_process_video_file_for_readonly",
+            return_value={"fps": 30.0, "frame_count": 100},
+        ):
+            remote_dataset.register_multi_slotted_readonly_videos(
+                object_store=readonly_object_store,
+                video_files={
+                    "item_with_dups": [str(video1), str(video2)],
+                },
+            )
+
+        # Verify the request payload has proper slot names
+        slots = captured_payload["items"][0]["slots"]
+        slot_names = [s["slot_name"] for s in slots]
+
+        # First file gets "video.mp4", second gets "video.mp4_1"
+        assert "video.mp4" in slot_names
+        assert "video.mp4_1" in slot_names
+
+
+@pytest.mark.usefixtures("file_read_write_test")
+class TestReadonlyVideoHelperMethods:
+    """Tests for helper methods used in readonly video registration."""
+
+    def test_validate_readonly_storage_accepts_aws(
+        self, remote_dataset: RemoteDatasetV2
+    ):
+        """Test that AWS provider is accepted."""
+        store = ObjectStore(
+            name="test",
+            prefix="p",
+            readonly=True,
+            provider="aws",
+            default=False,
+            bucket="b",
+        )
+        # Should not raise
+        remote_dataset._validate_readonly_storage(store)
+
+    def test_validate_readonly_storage_accepts_gcp(
+        self, remote_dataset: RemoteDatasetV2
+    ):
+        """Test that GCP provider is accepted."""
+        store = ObjectStore(
+            name="test",
+            prefix="p",
+            readonly=True,
+            provider="gcp",
+            default=False,
+            bucket="b",
+        )
+        remote_dataset._validate_readonly_storage(store)
+
+    def test_validate_readonly_storage_accepts_azure(
+        self, remote_dataset: RemoteDatasetV2
+    ):
+        """Test that Azure provider is accepted."""
+        store = ObjectStore(
+            name="test",
+            prefix="p",
+            readonly=True,
+            provider="azure",
+            default=False,
+            bucket="b",
+        )
+        remote_dataset._validate_readonly_storage(store)
+
+    def test_validate_readonly_storage_rejects_unknown(
+        self, remote_dataset: RemoteDatasetV2
+    ):
+        """Test that unknown providers are rejected."""
+        store = ObjectStore(
+            name="test",
+            prefix="p",
+            readonly=True,
+            provider="minio",
+            default=False,
+            bucket="b",
+        )
+        with pytest.raises(ValueError):
+            remote_dataset._validate_readonly_storage(store)
+
+    def test_extract_slot_metadata_removes_excluded_fields(
+        self, remote_dataset: RemoteDatasetV2
+    ):
+        """Test that name, path, storage_key are excluded from metadata."""
+        payload = {
+            "name": "video.mp4",
+            "path": "/videos",
+            "storage_key": "key/video.mp4",
+            "fps": 30.0,
+            "frame_count": 100,
+            "width": 1920,
+            "height": 1080,
+        }
+
+        result = remote_dataset._extract_slot_metadata(payload)
+
+        assert "name" not in result
+        assert "path" not in result
+        assert "storage_key" not in result
+        assert result["fps"] == 30.0
+        assert result["frame_count"] == 100
+
+    def test_extract_slot_metadata_renames_total_size_bytes(
+        self, remote_dataset: RemoteDatasetV2
+    ):
+        """Test that total_size_bytes is renamed to size_bytes."""
+        payload = {
+            "total_size_bytes": 1000000,
+            "fps": 30.0,
+        }
+
+        result = remote_dataset._extract_slot_metadata(payload)
+
+        assert "total_size_bytes" not in result
+        assert result["size_bytes"] == 1000000

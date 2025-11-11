@@ -88,6 +88,10 @@ medical = [ "nibabel", "connected-components-3d", "scipy",]
 ml = [ "torch", "torchvision", "scikit-learn", "albumentations", "scipy",]
 ocv = [ "opencv-python-headless",]
 test = [ "responses", "pytest", "flake8-pyproject",]
+storage_aws = [ "boto3",]
+storage_gcp = [ "google-cloud-storage",]
+storage_azure = [ "azure-storage-blob",]
+storage_all = [ "boto3", "google-cloud-storage", "azure-storage-blob",]
 
 [tool.poetry.scripts]
 darwin = "darwin.cli:main"

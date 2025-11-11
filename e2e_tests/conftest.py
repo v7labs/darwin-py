@@ -1,22 +1,29 @@
+import tempfile
 from os import environ
 from os.path import dirname, join
 from pathlib import Path
 from time import sleep
-from typing import List, Generator
+from typing import Generator, List
+
+try:
+    import boto3
+except ImportError:
+    boto3 = None  # type: ignore
 
 import dotenv
 import pytest
-import tempfile
 
+from darwin.client import Client
+from darwin.datatypes import ObjectStore
 from darwin.future.data_objects.typing import UnknownType
 from e2e_tests.exceptions import E2EEnvironmentVariableNotSet
-from e2e_tests.objects import ConfigValues, E2EDataset
 from e2e_tests.helpers import SERVER_WAIT_TIME, new_dataset  # noqa: F401
+from e2e_tests.objects import ConfigValues, E2EDataset
 from e2e_tests.setup_tests import (
     setup_annotation_classes,
     setup_datasets,
-    teardown_annotation_classes,
     setup_item_level_properties,
+    teardown_annotation_classes,
     teardown_item_level_properties,
     teardown_tests,
 )
@@ -144,3 +151,72 @@ def local_dataset(
     with tempfile.TemporaryDirectory() as temp_directory:
         new_dataset.directory = temp_directory
         yield new_dataset
+
+
+# --- Readonly Video Test Fixtures ---
+
+# Storage configuration for readonly video tests
+E2E_STORAGE_NAME = environ.get("E2E_STORAGE_NAME", "darwin-e2e-data")
+SOURCE_VIDEOS_PREFIX = "darwin-py/source-videos"
+ARTIFACTS_PREFIX = "darwin-py/tmp-video-artifacts"
+
+
+@pytest.fixture(scope="session")
+def s3_client():
+    """
+    Get boto3 S3 client for readonly video tests.
+
+    This fixture is session-scoped to reuse the client across tests.
+    """
+    if boto3 is None:
+        pytest.skip(
+            "boto3 not installed - install with: pip install darwin-py[storage_aws]"
+        )
+    region = environ.get("AWS_REGION", "eu-west-1")
+    return boto3.client("s3", region_name=region)
+
+
+@pytest.fixture(scope="session")
+def e2e_video_storage(config_values: ConfigValues):
+    """
+    Get the external storage configuration for E2E video tests.
+
+    Returns the ObjectStore configuration from Darwin for the storage
+    specified by E2E_STORAGE_NAME environment variable.
+    """
+
+    client = Client.from_api_key(api_key=config_values.api_key)
+
+    try:
+        connections = client.list_external_storage_connections(config_values.team_slug)
+    except Exception as e:
+        pytest.fail(f"Failed to list external storage connections: {e}")
+
+    storage = next((s for s in connections if s.name == E2E_STORAGE_NAME), None)
+    if storage is None:
+        available = [s.name for s in connections]
+        pytest.fail(
+            f"Storage '{E2E_STORAGE_NAME}' not found in team. Available: {available}"
+        )
+
+    return storage
+
+
+@pytest.fixture
+def artifacts_storage(e2e_video_storage):
+    """
+    Create a modified ObjectStore with custom prefix for video artifacts.
+
+    This ensures artifacts are uploaded to darwin-py/tmp-video-artifacts/
+    which has lifecycle expiration rules applied in S3.
+    """
+
+    return ObjectStore(
+        name=e2e_video_storage.name,
+        prefix=ARTIFACTS_PREFIX,
+        readonly=e2e_video_storage.readonly,
+        provider=e2e_video_storage.provider,
+        default=e2e_video_storage.default,
+        bucket=e2e_video_storage.bucket,
+        region=e2e_video_storage.region,
+    )

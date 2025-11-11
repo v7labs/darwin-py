@@ -11,9 +11,9 @@ from tenacity import RetryError, stop_after_attempt
 
 from darwin.client import (
     MAX_RETRIES,
+    AnnotatorReportGrouping,
     Client,
     JobPendingException,
-    AnnotatorReportGrouping,
 )
 from darwin.config import Config
 from darwin.dataset.remote_dataset import RemoteDataset
@@ -485,6 +485,8 @@ class TestGetExternalStorage:
                 "readonly": False,
                 "provider": "aws",
                 "default": True,
+                "bucket": "test-bucket",
+                "region": "us-east-1",
             }
         ]
 
@@ -499,6 +501,8 @@ class TestGetExternalStorage:
             readonly=False,
             provider="aws",
             default=True,
+            bucket="test-bucket",
+            region="us-east-1",
         )
 
         assert actual_storage.name == expected_storage.name
@@ -506,6 +510,8 @@ class TestGetExternalStorage:
         assert actual_storage.readonly == expected_storage.readonly
         assert actual_storage.provider == expected_storage.provider
         assert actual_storage.default == expected_storage.default
+        assert actual_storage.bucket == expected_storage.bucket
+        assert actual_storage.region == expected_storage.region
 
 
 @pytest.mark.usefixtures("file_read_write_test")
@@ -523,6 +529,8 @@ class TestListExternalStorageConnections:
                 "readonly": False,
                 "provider": "aws",
                 "default": True,
+                "bucket": "test-bucket-1",
+                "region": "us-east-1",
             },
             {
                 "name": "storage-name-2",
@@ -530,6 +538,7 @@ class TestListExternalStorageConnections:
                 "readonly": True,
                 "provider": "gcp",
                 "default": False,
+                "bucket": "test-bucket-2",
             },
         ]
 
@@ -547,6 +556,8 @@ class TestListExternalStorageConnections:
             readonly=False,
             provider="aws",
             default=True,
+            bucket="test-bucket-1",
+            region="us-east-1",
         )
         expected_storage_2 = ObjectStore(
             name="storage-name-2",
@@ -554,6 +565,8 @@ class TestListExternalStorageConnections:
             readonly=True,
             provider="gcp",
             default=False,
+            bucket="test-bucket-2",
+            region=None,
         )
 
         assert actual_storages[0].name == expected_storage_1.name
@@ -561,12 +574,16 @@ class TestListExternalStorageConnections:
         assert actual_storages[0].readonly == expected_storage_1.readonly
         assert actual_storages[0].provider == expected_storage_1.provider
         assert actual_storages[0].default == expected_storage_1.default
+        assert actual_storages[0].bucket == expected_storage_1.bucket
+        assert actual_storages[0].region == expected_storage_1.region
 
         assert actual_storages[1].name == expected_storage_2.name
         assert actual_storages[1].prefix == expected_storage_2.prefix
         assert actual_storages[1].readonly == expected_storage_2.readonly
         assert actual_storages[1].provider == expected_storage_2.provider
         assert actual_storages[1].default == expected_storage_2.default
+        assert actual_storages[1].bucket == expected_storage_2.bucket
+        assert actual_storages[1].region == expected_storage_2.region
 
 
 class TestClientRetry:

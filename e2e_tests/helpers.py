@@ -1,20 +1,26 @@
-from pathlib import Path
-from subprocess import run
-from time import sleep
-from typing import Optional, Union, Sequence
-
-from attr import dataclass
-from darwin.exceptions import DarwinException
 import datetime
 import json
 import re
+import time
 import uuid
+from pathlib import Path
+from subprocess import run
+from time import sleep
+from typing import Optional, Sequence, Union
+
+try:
+    import boto3
+except ImportError:
+    boto3 = None  # type: ignore
+
 import pytest
 import requests
-import time
-from e2e_tests.objects import E2EDataset, ConfigValues
-from darwin.dataset.release import Release, ReleaseStatus
+from attr import dataclass
+
 import darwin.datatypes as dt
+from darwin.dataset.release import Release, ReleaseStatus
+from darwin.exceptions import DarwinException
+from e2e_tests.objects import ConfigValues, E2EDataset
 
 
 @dataclass
@@ -328,3 +334,85 @@ def compare_directories(path: Path, expected_path: Path) -> None:
                 print(f"Actual file: {file}")
                 print(f"Actual Content: \n{content}")
                 assert False, f"File {file} does not match expected file"
+
+
+def cleanup_s3_prefix(bucket: str, prefix: str, region: str = "eu-west-1") -> int:
+    """
+    Delete all objects under a prefix in S3.
+
+    Used for cleaning up test artifacts after E2E tests complete.
+    Requires boto3 to be installed and AWS credentials to be configured.
+
+    Parameters
+    ----------
+    bucket : str
+        S3 bucket name
+    prefix : str
+        Prefix to delete objects under (e.g., "darwin-py/tmp-video-artifacts/")
+    region : str
+        AWS region (default: eu-west-1)
+
+    Returns
+    -------
+    int
+        Number of objects deleted
+    """
+    if boto3 is None:
+        print("Warning: boto3 not installed - cannot cleanup S3 prefix")
+        return 0
+
+    s3_client = boto3.client("s3", region_name=region)
+    deleted_count = 0
+
+    try:
+        paginator = s3_client.get_paginator("list_objects_v2")
+        for page in paginator.paginate(Bucket=bucket, Prefix=prefix):
+            objects = page.get("Contents", [])
+            if not objects:
+                continue
+
+            delete_keys = [{"Key": obj["Key"]} for obj in objects]
+            s3_client.delete_objects(
+                Bucket=bucket, Delete={"Objects": delete_keys, "Quiet": True}
+            )
+            deleted_count += len(delete_keys)
+
+    except Exception as e:
+        print(f"Warning: Failed to cleanup S3 prefix {prefix}: {e}")
+
+    return deleted_count
+
+
+def download_from_s3(
+    bucket: str, key: str, local_path: str, region: str = "eu-west-1"
+) -> bool:
+    """
+    Download a file from S3.
+
+    Parameters
+    ----------
+    bucket : str
+        S3 bucket name
+    key : str
+        S3 object key
+    local_path : str
+        Local path to save the file
+    region : str
+        AWS region (default: eu-west-1)
+
+    Returns
+    -------
+    bool
+        True if download succeeded, False otherwise
+    """
+    if boto3 is None:
+        print("Warning: boto3 not installed - cannot download from S3")
+        return False
+
+    try:
+        s3_client = boto3.client("s3", region_name=region)
+        s3_client.download_file(bucket, key, local_path)
+        return True
+    except Exception as e:
+        print(f"Failed to download s3://{bucket}/{key}: {e}")
+        return False

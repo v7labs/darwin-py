@@ -1253,19 +1253,11 @@ class Client:
         if name is None:
             for connection in connections:
                 if connection.default:
-                    if connection.readonly:
-                        raise ValueError(
-                            "The default external storage connection is read-only. darwin-py only supports read-write configuration.\n\nPlease use the REST API to register items from read-only storage: https://docs.v7labs.com/docs/registering-items-from-external-storage#read-only-registration"
-                        )
                     return connection
 
         # If a name is provided, return the connection with the given name
         for connection in connections:
             if connection.name == name:
-                if connection.readonly:
-                    raise ValueError(
-                        "The selected external storage connection is read-only. darwin-py only supports read-write configuraiton.\n\nPlease use the REST API to register items from read-only storage: https://docs.v7labs.com/docs/registering-items-from-external-storage#read-only-registration"
-                    )
                 return connection
 
         raise ValueError(
@@ -1298,6 +1290,8 @@ class Client:
                 readonly=connection["readonly"],
                 provider=connection["provider"],
                 default=connection["default"],
+                bucket=connection["bucket"],
+                region=connection.get("region"),
             )
             for connection in response
         ]
