@@ -57,6 +57,7 @@ def download_all_images_from_annotations(
     video_frames: bool = False,
     force_slots: bool = False,
     ignore_slots: bool = False,
+    team_slug: Optional[str] = None,
 ) -> Tuple[Callable[[], Iterable[Any]], int]:
     """
     Downloads all the images corresponding to a project.
@@ -82,6 +83,8 @@ def download_all_images_from_annotations(
     force_slots: bool, default: False
         Pulls all slots of items into deeper file structure ({prefix}/{item_name}/{slot_name}/{file_name})
         If False, all multi-slotted items and items with slots containing multiple source files will be downloaded as the deeper file structure
+    team_slug : Optional[str], default: None
+        The team slug to use for authentication when downloading files
 
     Returns
     -------
@@ -165,6 +168,7 @@ def download_all_images_from_annotations(
             video_frames,
             force_slots,
             ignore_slots,
+            team_slug,
         )
         download_functions.extend(file_download_functions)
 
@@ -183,6 +187,7 @@ def lazy_download_image_from_annotation(
     video_frames: bool,
     force_slots: bool,
     ignore_slots: bool = False,
+    team_slug: Optional[str] = None,
 ) -> Iterable[Callable[[], None]]:
     """
     Returns functions to download an image given an annotation. Same as `download_image_from_annotation`
@@ -204,6 +209,8 @@ def lazy_download_image_from_annotation(
         Pulls video frames images instead of video files
     force_slots: bool
         Pulls all slots of items into deeper file structure ({prefix}/{item_name}/{slot_name}/{file_name})
+    team_slug : Optional[str], default: None
+        The team slug to use for authentication when downloading files
 
     Raises
     ------
@@ -220,6 +227,7 @@ def lazy_download_image_from_annotation(
             video_frames,
             force_slots,
             ignore_slots,
+            team_slug,
         )
     else:
         console = Console()
@@ -235,6 +243,7 @@ def _download_image_from_json_annotation(
     video_frames: bool,
     force_slots: bool,
     ignore_slots: bool = False,
+    team_slug: Optional[str] = None,
 ) -> Iterable[Callable[[], None]]:
     annotation = parse_darwin_json(annotation_path, count=0)
     if annotation is None:
@@ -255,10 +264,11 @@ def _download_image_from_json_annotation(
                 annotation_path,
                 video_frames,
                 use_folders,
+                team_slug,
             )
         if force_slots:
             return _download_all_slots_from_json_annotation(
-                annotation, client, parent_path, video_frames
+                annotation, client, parent_path, video_frames, team_slug
             )
         else:
             return _download_single_slot_from_json_annotation(
@@ -268,6 +278,7 @@ def _download_image_from_json_annotation(
                 annotation_path,
                 video_frames,
                 use_folders,
+                team_slug,
             )
 
     return []
@@ -278,6 +289,7 @@ def _download_all_slots_from_json_annotation(
     client: "Client",
     parent_path: Path,
     video_frames: bool,
+    team_slug: Optional[str] = None,
 ) -> Iterable[Callable[[], None]]:
     generator = []
     for slot in annotation.slots:
@@ -294,7 +306,7 @@ def _download_all_slots_from_json_annotation(
             video_path: Path = slot_path
             video_path.mkdir(exist_ok=True, parents=True)
             if not slot.frame_urls:
-                segment_manifests = get_segment_manifests(slot, slot_path, client)
+                segment_manifests = get_segment_manifests(slot, slot_path, client, team_slug)
                 for index, manifest in enumerate(segment_manifests):
                     if slot.segments is None:
                         raise ValueError("No segments found")
@@ -307,6 +319,7 @@ def _download_all_slots_from_json_annotation(
                             client,
                             path,
                             manifest,
+                            team_slug,
                         )
                     )
             else:
@@ -314,7 +327,7 @@ def _download_all_slots_from_json_annotation(
                     path = video_path / f"{i:07d}.png"
                     generator.append(
                         functools.partial(
-                            _download_image, frame_url, path, client, slot
+                            _download_image, frame_url, path, client, slot, team_slug
                         )
                     )
         else:
@@ -327,6 +340,7 @@ def _download_all_slots_from_json_annotation(
                         upload.url,
                         file_path,
                         client,
+                        team_slug,
                     )
                 )
     return generator
@@ -339,6 +353,7 @@ def _download_single_slot_from_json_annotation(
     annotation_path: Path,
     video_frames: bool,
     use_folders: bool = True,
+    team_slug: Optional[str] = None,
 ) -> Iterable[Callable[[], None]]:
     slot = annotation.slots[0]
     generator = []
@@ -351,7 +366,7 @@ def _download_single_slot_from_json_annotation(
 
         # Indicates it's a long video and uses the segment and manifest
         if not slot.frame_urls:
-            segment_manifests = get_segment_manifests(slot, video_path, client)
+            segment_manifests = get_segment_manifests(slot, video_path, client, team_slug)
             for index, manifest in enumerate(segment_manifests):
                 if slot.segments is None:
                     raise ValueError("No segments found")
@@ -364,13 +379,14 @@ def _download_single_slot_from_json_annotation(
                         client,
                         path,
                         manifest,
+                        team_slug,
                     )
                 )
         else:
             for i, frame_url in enumerate(slot.frame_urls):
                 path = video_path / f"{i:07d}.png"
                 generator.append(
-                    functools.partial(_download_image, frame_url, path, client, slot)
+                    functools.partial(_download_image, frame_url, path, client, slot, team_slug)
                 )
     else:
         if len(slot.source_files) > 0:
@@ -395,6 +411,7 @@ def _download_single_slot_from_json_annotation(
                     image_url,
                     image_path,
                     client,
+                    team_slug,
                 )
             )
     return generator
@@ -418,7 +435,7 @@ def _update_local_path(annotation: AnnotationFile, url, local_path):
 
 
 def _download_image(
-    url: str, path: Path, client: "Client", slot: Optional[dt.Slot] = None
+    url: str, path: Path, client: "Client", slot: Optional[dt.Slot] = None, team_slug: Optional[str] = None
 ) -> None:
     if path.exists():
         return
@@ -431,10 +448,10 @@ def _download_image(
     while True:
         if "token" in url:
             response: requests.Response = client._get_raw_from_full_url(
-                url, stream=True
+                url, team_slug=team_slug, stream=True
             )
         else:
-            response = client._get_raw_from_full_url(url, stream=True)
+            response = client._get_raw_from_full_url(url, team_slug=team_slug, stream=True)
         # Correct status: download image
         if response.ok and has_json_content_type(response):
             # this branch is a workaround for edge case in V1 when video file from external storage could be registered
@@ -455,8 +472,8 @@ def _download_image(
         time.sleep(1)
 
 
-def _download_image_with_trace(annotation, image_url, image_path, client):
-    _download_image(image_url, image_path, client)
+def _download_image_with_trace(annotation, image_url, image_path, client, team_slug: Optional[str] = None):
+    _download_image(image_url, image_path, client, team_slug=team_slug)
     _update_local_path(annotation, image_url, image_path)
 
 
@@ -512,9 +529,9 @@ def _rg16_to_grayscale(path):
 
 
 def _download_and_extract_video_segment(
-    url: str, client: "Client", path: Path, manifest: dt.SegmentManifest
+    url: str, client: "Client", path: Path, manifest: dt.SegmentManifest, team_slug: Optional[str] = None
 ) -> None:
-    _download_video_segment_file(url, client, path)
+    _download_video_segment_file(url, client, path, team_slug)
     _extract_frames_from_segment(path, manifest)
     path.unlink()
 
@@ -552,9 +569,9 @@ def _extract_frames_from_segment(path: Path, manifest: dt.SegmentManifest) -> No
     cap.release()
 
 
-def _download_video_segment_file(url: str, client: "Client", path: Path) -> None:
+def _download_video_segment_file(url: str, client: "Client", path: Path, team_slug: Optional[str] = None) -> None:
     auth_token = "token" in url
-    response = client._get_raw_from_full_url(url, stream=True, auth_token=auth_token)
+    response = client._get_raw_from_full_url(url, team_slug=team_slug, stream=True, auth_token=auth_token)
     if not response.ok or (400 <= response.status_code <= 499):
         raise Exception(
             f"Request to ({url}) failed. Status code: {response.status_code}, content:\n{get_response_content(response)}."
@@ -566,13 +583,13 @@ def _download_video_segment_file(url: str, client: "Client", path: Path) -> None
 
 
 def download_manifest_txts(
-    urls: List[str], client: "Client", folder: Path
+    urls: List[str], client: "Client", folder: Path, team_slug: Optional[str] = None
 ) -> List[Path]:
     paths = []
     for index, url in enumerate(urls):
         auth_token = "token" in url
         response = client._get_raw_from_full_url(
-            url, stream=True, auth_token=auth_token
+            url, team_slug=team_slug, stream=True, auth_token=auth_token
         )
         if not response.ok or (400 <= response.status_code <= 499):
             raise Exception(
@@ -588,14 +605,14 @@ def download_manifest_txts(
 
 
 def get_segment_manifests(
-    slot: dt.Slot, parent_path: Path, client: "Client"
+    slot: dt.Slot, parent_path: Path, client: "Client", team_slug: Optional[str] = None
 ) -> List[dt.SegmentManifest]:
     with TemporaryDirectory(dir=parent_path) as tmpdirname:
         tmpdir = Path(tmpdirname)
         if slot.frame_manifest is None:
             raise ValueError("No frame manifest found")
         frame_urls = [item["url"] for item in slot.frame_manifest]
-        manifest_paths = download_manifest_txts(frame_urls, client, tmpdir)
+        manifest_paths = download_manifest_txts(frame_urls, client, tmpdir, team_slug)
         segment_manifests = _parse_manifests(manifest_paths, slot.name or "0")
     return segment_manifests
 

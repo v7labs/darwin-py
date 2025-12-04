@@ -396,6 +396,7 @@ class RemoteDataset(ABC):
             video_frames=video_frames,
             force_slots=force_slots,
             ignore_slots=ignore_slots,
+            team_slug=self.team,
         )
         if count == 0:
             return None, count
