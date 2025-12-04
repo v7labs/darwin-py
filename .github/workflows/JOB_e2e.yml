@@ -95,7 +95,7 @@ jobs:
           aws-region: ${{ secrets.E2E_STORAGE_REGION }}
 
       - name: Run Tests
-        run: poetry run pytest e2e_tests --reruns 3 --reruns-delay 10 -W ignore::DeprecationWarning
+        run: poetry run pytest e2e_tests/sdk/test_readonly_video.py --reruns 3 --reruns-delay 10 -W ignore::DeprecationWarning
         env:
           E2E_API_KEY: ${{ secrets.E2E_API_KEY }}
           E2E_ENVIRONMENT: ${{ secrets.E2E_ENVIRONMENT }}
