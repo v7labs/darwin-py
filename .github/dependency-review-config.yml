@@ -1,0 +1,8 @@
+# Dependency Review Configuration
+# See: https://github.com/actions/dependency-review-action
+
+fail-on-severity: moderate
+
+# Explicitly allowed vulnerabilities
+allow-ghsas:
+  - GHSA-pq67-6m6q-mj2v  # urllib3 1.26.x redirect issue - boto3 compatibility requirement
