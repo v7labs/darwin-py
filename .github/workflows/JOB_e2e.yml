@@ -85,9 +85,7 @@ jobs:
         run: choco install ffmpeg -y
 
       # Configure AWS credentials via OIDC for readonly video tests
-      # Only runs on ubuntu as OIDC is not well supported on Windows runners
       - name: Configure AWS credentials (OIDC)
-        if: matrix.os == 'ubuntu-latest'
         uses: aws-actions/configure-aws-credentials@ececac1a45f3b08a01d2dd070d28d111c5fe6722 # v4.1.0
         with:
           role-to-assume: ${{ secrets.E2E_VIDEO_AWS_ROLE }}
