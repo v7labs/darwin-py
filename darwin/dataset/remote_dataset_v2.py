@@ -1120,6 +1120,9 @@ class RemoteDatasetV2(RemoteDataset):
         """
         Build storage key prefix, handling None/empty prefix properly.
 
+        For Azure, the container name is extracted separately during client creation,
+        so we only use the path portion (after container/) in the storage key.
+
         Parameters
         ----------
         object_store : ObjectStore
@@ -1134,11 +1137,29 @@ class RemoteDatasetV2(RemoteDataset):
         str
             Storage key prefix (e.g., "prefix/item_uuid/files/slot_uuid" or
             "item_uuid/files/slot_uuid" if prefix is None/empty)
+            For Azure: "path/item_uuid/files/slot_uuid" (without container name)
         """
         base_path = f"{item_uuid}/files/{slot_uuid}"
-        if object_store.prefix:
-            return f"{object_store.prefix}/{base_path}"
-        return base_path
+
+        # For Azure, extract only the path portion (not container)
+        if object_store.provider == "azure":
+            if not object_store.prefix or object_store.prefix.strip() == "":
+                # Empty prefix - no path portion
+                return base_path
+            elif "/" in object_store.prefix:
+                # Extract path portion after container: "container/path" -> "path"
+                _, _, path_portion = object_store.prefix.partition("/")
+                if path_portion:
+                    return f"{path_portion}/{base_path}"
+                return base_path
+            else:
+                # No slash: prefix is just container name, no path portion
+                return base_path
+        else:
+            # For AWS/GCP, use full prefix as-is
+            if object_store.prefix:
+                return f"{object_store.prefix}/{base_path}"
+            return base_path
 
     def _process_video_file_for_readonly(
         self,
@@ -1250,7 +1271,8 @@ class RemoteDatasetV2(RemoteDataset):
                 )
 
             for item in response.get("blocked_items", []):
-                reason = item.get("slots", [{}])[0].get("reason", "unknown")
+                slots = item.get("slots", [])
+                reason = slots[0].get("reason", "unknown") if slots else "unknown"
                 results["blocked"].append(f"Item {item['name']} was blocked: {reason}")
 
         # Print results

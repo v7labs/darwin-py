@@ -23,6 +23,8 @@ on:
         required: true
       E2E_VIDEO_AWS_ROLE:
         required: true
+      E2E_STORAGE_NAME:
+        required: true
       E2E_STORAGE_REGION:
         required: true
 
@@ -69,9 +71,7 @@ jobs:
           poetry-version: ${{ matrix.poetry-version }}
       - name: Install dependencies
         run: |
-          poetry install --no-interaction --no-root --all-extras -vvv
-          pip install --editable ".[test,ml,medical,dev,ocv,storage_aws]"
-          pip install pytest
+          poetry install --no-interaction --all-extras -vvv
 
       # Install ffmpeg (required for readonly video registration)
       - name: Install ffmpeg (Ubuntu)
@@ -95,7 +95,7 @@ jobs:
           aws-region: ${{ secrets.E2E_STORAGE_REGION }}
 
       - name: Run Tests
-        run: python -m pytest e2e_tests --reruns 3 --reruns-delay 10 -W ignore::DeprecationWarning
+        run: poetry run pytest e2e_tests --reruns 3 --reruns-delay 10 -W ignore::DeprecationWarning
         env:
           E2E_API_KEY: ${{ secrets.E2E_API_KEY }}
           E2E_ENVIRONMENT: ${{ secrets.E2E_ENVIRONMENT }}

@@ -49,11 +49,11 @@ class TestCreateStorageClient:
     def azure_object_store(self):
         return ObjectStore(
             name="test-azure",
-            prefix="test/prefix",
+            prefix="test-container/test/prefix",  # Format: container/path
             readonly=True,
             provider="azure",
             default=False,
-            bucket="test-container",
+            bucket="test-account",  # Storage account name
             region=None,
         )
 
@@ -76,6 +76,10 @@ class TestCreateStorageClient:
         assert "Unsupported storage provider" in str(exc_info.value)
         assert "unsupported" in str(exc_info.value)
 
+    @pytest.mark.skipif(
+        not os.environ.get("RUN_CLOUD_STORAGE_TESTS"),
+        reason="boto3 not installed; set RUN_CLOUD_STORAGE_TESTS=1 to enable",
+    )
     @patch.dict(
         os.environ, {"AWS_ACCESS_KEY_ID": "test", "AWS_SECRET_ACCESS_KEY": "test"}
     )
@@ -136,6 +140,78 @@ class TestCreateStorageClient:
         assert isinstance(client, AzureStorageClient)
         assert client.prefix == "test/prefix"
 
+    @pytest.mark.skipif(
+        not os.environ.get("RUN_CLOUD_STORAGE_TESTS"),
+        reason="Azure storage module not installed; set RUN_CLOUD_STORAGE_TESTS=1 to enable",
+    )
+    @patch.dict(os.environ, {"AZURE_STORAGE_CONNECTION_STRING": "connection_string"})
+    @patch("azure.storage.blob.BlobServiceClient")
+    def test_azure_empty_prefix_defaults_to_data_container(self, mock_blob_client):
+        """Test that empty Azure prefix defaults to 'data' container per documentation."""
+        from darwin.dataset.storage_uploader import (
+            AzureStorageClient,
+            create_storage_client,
+        )
+
+        mock_service = MagicMock()
+        mock_container_client = MagicMock()
+        mock_blob_client.from_connection_string.return_value = mock_service
+        mock_service.get_container_client.return_value = mock_container_client
+
+        # Test with empty prefix
+        object_store = ObjectStore(
+            name="test-azure",
+            prefix="",  # Empty prefix
+            readonly=True,
+            provider="azure",
+            default=False,
+            bucket="test-account",
+            region=None,
+        )
+
+        client = create_storage_client(object_store)
+
+        # Should default to "data" container with empty prefix
+        mock_service.get_container_client.assert_called_once_with("data")
+        assert isinstance(client, AzureStorageClient)
+        assert client.prefix == ""
+
+    @pytest.mark.skipif(
+        not os.environ.get("RUN_CLOUD_STORAGE_TESTS"),
+        reason="Azure storage module not installed; set RUN_CLOUD_STORAGE_TESTS=1 to enable",
+    )
+    @patch.dict(os.environ, {"AZURE_STORAGE_CONNECTION_STRING": "connection_string"})
+    @patch("azure.storage.blob.BlobServiceClient")
+    def test_azure_prefix_without_slash_uses_as_container(self, mock_blob_client):
+        """Test that Azure prefix without slash is treated as container name."""
+        from darwin.dataset.storage_uploader import (
+            AzureStorageClient,
+            create_storage_client,
+        )
+
+        mock_service = MagicMock()
+        mock_container_client = MagicMock()
+        mock_blob_client.from_connection_string.return_value = mock_service
+        mock_service.get_container_client.return_value = mock_container_client
+
+        # Test with container name only (no slash)
+        object_store = ObjectStore(
+            name="test-azure",
+            prefix="mycontainer",  # Just container name
+            readonly=True,
+            provider="azure",
+            default=False,
+            bucket="test-account",
+            region=None,
+        )
+
+        client = create_storage_client(object_store)
+
+        # Should use prefix as container name with empty path
+        mock_service.get_container_client.assert_called_once_with("mycontainer")
+        assert isinstance(client, AzureStorageClient)
+        assert client.prefix == ""
+
 
 class TestS3StorageClient:
     """Tests for S3StorageClient."""
@@ -153,32 +229,28 @@ class TestS3StorageClient:
                     S3StorageClient(bucket="test", region=None, prefix="prefix")
                 assert "boto3" in str(exc_info.value)
 
-    @patch.dict(os.environ, {"AWS_SECRET_ACCESS_KEY": "test"}, clear=True)
-    def test_raises_value_error_when_access_key_missing(self):
-        """Test ValueError when AWS_ACCESS_KEY_ID is missing."""
+    @pytest.mark.skipif(
+        not os.environ.get("RUN_CLOUD_STORAGE_TESTS"),
+        reason="boto3 not installed; set RUN_CLOUD_STORAGE_TESTS=1 to enable",
+    )
+    @patch.dict(os.environ, {}, clear=True)
+    @patch("boto3.client")
+    def test_creates_client_without_explicit_env_vars(self, mock_boto3):
+        """Test that S3StorageClient can be created without explicit env vars (uses boto3 credential chain)."""
         from darwin.dataset.storage_uploader import S3StorageClient
 
-        # Clear AWS_ACCESS_KEY_ID to ensure it's not set
-        os.environ.pop("AWS_ACCESS_KEY_ID", None)
+        # Create client without AWS_ACCESS_KEY_ID or AWS_SECRET_ACCESS_KEY
+        # This should succeed - boto3 will handle credential resolution
+        client = S3StorageClient(bucket="test", region=None, prefix="prefix")
 
-        with pytest.raises(ValueError) as exc_info:
-            with patch("boto3.client"):
-                S3StorageClient(bucket="test", region=None, prefix="prefix")
-        assert "AWS_ACCESS_KEY_ID" in str(exc_info.value)
+        assert client.bucket == "test"
+        assert client.prefix == "prefix"
+        mock_boto3.assert_called_once_with("s3")
 
-    @patch.dict(os.environ, {"AWS_ACCESS_KEY_ID": "test"}, clear=True)
-    def test_raises_value_error_when_secret_key_missing(self):
-        """Test ValueError when AWS_SECRET_ACCESS_KEY is missing."""
-        from darwin.dataset.storage_uploader import S3StorageClient
-
-        # Clear AWS_SECRET_ACCESS_KEY to ensure it's not set
-        os.environ.pop("AWS_SECRET_ACCESS_KEY", None)
-
-        with pytest.raises(ValueError) as exc_info:
-            with patch("boto3.client"):
-                S3StorageClient(bucket="test", region=None, prefix="prefix")
-        assert "AWS_SECRET_ACCESS_KEY" in str(exc_info.value)
-
+    @pytest.mark.skipif(
+        not os.environ.get("RUN_CLOUD_STORAGE_TESTS"),
+        reason="boto3 not installed; set RUN_CLOUD_STORAGE_TESTS=1 to enable",
+    )
     @patch.dict(
         os.environ, {"AWS_ACCESS_KEY_ID": "test", "AWS_SECRET_ACCESS_KEY": "test"}
     )
@@ -190,6 +262,10 @@ class TestS3StorageClient:
         S3StorageClient(bucket="test", region="eu-west-1", prefix="prefix")
         mock_boto3.assert_called_once_with("s3", region_name="eu-west-1")
 
+    @pytest.mark.skipif(
+        not os.environ.get("RUN_CLOUD_STORAGE_TESTS"),
+        reason="boto3 not installed; set RUN_CLOUD_STORAGE_TESTS=1 to enable",
+    )
     @patch.dict(
         os.environ,
         {
@@ -206,6 +282,10 @@ class TestS3StorageClient:
         S3StorageClient(bucket="test", region=None, prefix="prefix")
         mock_boto3.assert_called_once_with("s3", region_name="ap-south-1")
 
+    @pytest.mark.skipif(
+        not os.environ.get("RUN_CLOUD_STORAGE_TESTS"),
+        reason="boto3 not installed; set RUN_CLOUD_STORAGE_TESTS=1 to enable",
+    )
     @patch.dict(
         os.environ, {"AWS_ACCESS_KEY_ID": "test", "AWS_SECRET_ACCESS_KEY": "test"}
     )
@@ -224,6 +304,10 @@ class TestS3StorageClient:
             "/path/to/file.txt", "test-bucket", "storage/key/file.txt", ExtraArgs={}
         )
 
+    @pytest.mark.skipif(
+        not os.environ.get("RUN_CLOUD_STORAGE_TESTS"),
+        reason="boto3 not installed; set RUN_CLOUD_STORAGE_TESTS=1 to enable",
+    )
     @patch.dict(
         os.environ, {"AWS_ACCESS_KEY_ID": "test", "AWS_SECRET_ACCESS_KEY": "test"}
     )
@@ -254,16 +338,22 @@ class TestGCSStorageClient:
     """Tests for GCSStorageClient."""
 
     @patch.dict(os.environ, {}, clear=True)
-    def test_raises_value_error_when_credentials_missing(self):
-        """Test ValueError when GOOGLE_APPLICATION_CREDENTIALS is missing."""
+    @patch("google.cloud.storage.Client")
+    def test_creates_client_without_explicit_env_vars(self, mock_storage_client):
+        """Test that GCSStorageClient can be created without explicit env vars (uses ADC chain)."""
         from darwin.dataset.storage_uploader import GCSStorageClient
 
-        os.environ.pop("GOOGLE_APPLICATION_CREDENTIALS", None)
+        mock_client = MagicMock()
+        mock_bucket = MagicMock()
+        mock_storage_client.return_value = mock_client
+        mock_client.bucket.return_value = mock_bucket
 
-        with pytest.raises(ValueError) as exc_info:
-            with patch("google.cloud.storage.Client"):
-                GCSStorageClient(bucket="test", prefix="prefix")
-        assert "GOOGLE_APPLICATION_CREDENTIALS" in str(exc_info.value)
+        # Create client without GOOGLE_APPLICATION_CREDENTIALS
+        # This should succeed - GCP SDK will handle credential resolution (ADC, gcloud, etc.)
+        client = GCSStorageClient(bucket="test-bucket", prefix="prefix")
+
+        assert client.prefix == "prefix"
+        mock_storage_client.assert_called_once()
 
     @patch.dict(os.environ, {"GOOGLE_APPLICATION_CREDENTIALS": "/path/to/creds.json"})
     @patch("google.cloud.storage.Client")
@@ -311,18 +401,50 @@ class TestAzureStorageClient:
     """Tests for AzureStorageClient."""
 
     @patch.dict(os.environ, {}, clear=True)
-    def test_raises_value_error_when_credentials_missing(self):
-        """Test ValueError when Azure credentials are missing."""
-        from darwin.dataset.storage_uploader import AzureStorageClient
+    @patch("azure.storage.blob.BlobServiceClient")
+    def test_creates_client_without_env_vars_using_default_credential(
+        self, mock_blob_service
+    ):
+        """Test that AzureStorageClient can be created without env vars using DefaultAzureCredential."""
+        import sys
 
+        # Clear all Azure env vars
         os.environ.pop("AZURE_STORAGE_CONNECTION_STRING", None)
-        os.environ.pop("AZURE_STORAGE_ACCOUNT_NAME", None)
         os.environ.pop("AZURE_STORAGE_ACCOUNT_KEY", None)
 
-        with pytest.raises(ValueError) as exc_info:
-            with patch("azure.storage.blob.BlobServiceClient"):
-                AzureStorageClient(container="test", prefix="prefix")
-        assert "AZURE_STORAGE" in str(exc_info.value)
+        mock_service = MagicMock()
+        mock_credential = MagicMock()
+        mock_default_credential_cls = MagicMock(return_value=mock_credential)
+
+        # Create a mock azure.identity module
+        mock_identity_module = MagicMock()
+        mock_identity_module.DefaultAzureCredential = mock_default_credential_cls
+
+        original_module = sys.modules.get("azure.identity")
+        sys.modules["azure.identity"] = mock_identity_module
+
+        try:
+            from darwin.dataset.storage_uploader import AzureStorageClient
+
+            mock_blob_service.return_value = mock_service
+
+            # Should succeed with account_name, using DefaultAzureCredential
+            client = AzureStorageClient(
+                account_name="test-account", container="test-container", prefix="prefix"
+            )
+
+            # Should use DefaultAzureCredential
+            mock_default_credential_cls.assert_called_once()
+            mock_blob_service.assert_called_once_with(
+                account_url="https://test-account.blob.core.windows.net",
+                credential=mock_credential,
+            )
+            assert client.prefix == "prefix"
+        finally:
+            if original_module is None:
+                sys.modules.pop("azure.identity", None)
+            else:
+                sys.modules["azure.identity"] = original_module
 
     @patch.dict(os.environ, {"AZURE_STORAGE_CONNECTION_STRING": "connection_string"})
     @patch("azure.storage.blob.BlobServiceClient")
@@ -333,21 +455,21 @@ class TestAzureStorageClient:
         mock_service = MagicMock()
         mock_blob_service.from_connection_string.return_value = mock_service
 
-        AzureStorageClient(container="test-container", prefix="prefix")
+        AzureStorageClient(
+            account_name="test-account", container="test-container", prefix="prefix"
+        )
         mock_blob_service.from_connection_string.assert_called_once_with(
             "connection_string"
         )
 
     @patch.dict(
         os.environ,
-        {"AZURE_STORAGE_ACCOUNT_NAME": "account", "AZURE_STORAGE_ACCOUNT_KEY": "key"},
+        {"AZURE_STORAGE_ACCOUNT_KEY": "key"},
         clear=True,
     )
     @patch("azure.storage.blob.BlobServiceClient")
-    def test_uses_account_name_and_key_when_no_connection_string(
-        self, mock_blob_service
-    ):
-        """Test that account name and key are used when connection string not provided."""
+    def test_uses_account_key_when_provided(self, mock_blob_service):
+        """Test that account key from env is used when connection string not provided."""
         from darwin.dataset.storage_uploader import AzureStorageClient
 
         mock_service = MagicMock()
@@ -356,9 +478,11 @@ class TestAzureStorageClient:
         # Ensure connection string is not set
         os.environ.pop("AZURE_STORAGE_CONNECTION_STRING", None)
 
-        AzureStorageClient(container="test-container", prefix="prefix")
+        AzureStorageClient(
+            account_name="test-account", container="test-container", prefix="prefix"
+        )
         mock_blob_service.assert_called_once_with(
-            account_url="https://account.blob.core.windows.net", credential="key"
+            account_url="https://test-account.blob.core.windows.net", credential="key"
         )
 
     @patch.dict(os.environ, {"AZURE_STORAGE_CONNECTION_STRING": "connection_string"})
@@ -378,7 +502,9 @@ class TestAzureStorageClient:
         mock_file = MagicMock()
         mock_open.return_value.__enter__.return_value = mock_file
 
-        client = AzureStorageClient(container="test-container", prefix="prefix")
+        client = AzureStorageClient(
+            account_name="test-account", container="test-container", prefix="prefix"
+        )
         client.upload_file("/path/to/file.txt", "storage/key/file.txt")
 
         mock_container_client.get_blob_client.assert_called_once_with(
@@ -410,7 +536,9 @@ class TestAzureStorageClient:
         mock_settings_instance = MagicMock()
         mock_content_settings.return_value = mock_settings_instance
 
-        client = AzureStorageClient(container="test-container", prefix="prefix")
+        client = AzureStorageClient(
+            account_name="test-account", container="test-container", prefix="prefix"
+        )
         client.upload_file("/path/to/file.ts.gz", "storage/key/file.ts.gz")
 
         mock_content_settings.assert_called_once_with(content_encoding="gzip")
@@ -770,6 +898,10 @@ class TestUploadArtifacts:
                 "tmpdir": tmpdir,
             }
 
+    @pytest.mark.skipif(
+        not os.environ.get("RUN_CLOUD_STORAGE_TESTS"),
+        reason="boto3 not installed; set RUN_CLOUD_STORAGE_TESTS=1 to enable",
+    )
     @patch.dict(
         os.environ, {"AWS_ACCESS_KEY_ID": "test", "AWS_SECRET_ACCESS_KEY": "test"}
     )
@@ -811,6 +943,10 @@ class TestUploadArtifacts:
         assert "prefix/item/files/slot/metadata.json" in storage_keys
         assert "prefix/item/files/slot/segments/segment_0.ts.gz" in storage_keys
 
+    @pytest.mark.skipif(
+        not os.environ.get("RUN_CLOUD_STORAGE_TESTS"),
+        reason="boto3 not installed; set RUN_CLOUD_STORAGE_TESTS=1 to enable",
+    )
     @patch.dict(
         os.environ, {"AWS_ACCESS_KEY_ID": "test", "AWS_SECRET_ACCESS_KEY": "test"}
     )
@@ -842,6 +978,10 @@ class TestUploadArtifacts:
                 max_workers=1,  # Use 1 worker to ensure deterministic failure
             )
 
+    @pytest.mark.skipif(
+        not os.environ.get("RUN_CLOUD_STORAGE_TESTS"),
+        reason="boto3 not installed; set RUN_CLOUD_STORAGE_TESTS=1 to enable",
+    )
     @patch.dict(
         os.environ, {"AWS_ACCESS_KEY_ID": "test", "AWS_SECRET_ACCESS_KEY": "test"}
     )
@@ -880,6 +1020,10 @@ class TestUploadArtifacts:
             # Should only upload the source file
             assert mock_s3_client.upload_file.call_count == 1
 
+    @pytest.mark.skipif(
+        not os.environ.get("RUN_CLOUD_STORAGE_TESTS"),
+        reason="boto3 not installed; set RUN_CLOUD_STORAGE_TESTS=1 to enable",
+    )
     @patch.dict(
         os.environ, {"AWS_ACCESS_KEY_ID": "test", "AWS_SECRET_ACCESS_KEY": "test"}
     )
@@ -961,6 +1105,10 @@ class TestEdgeCases:
                 is_retryable_error(mock_exception) is False
             ), f"Should be False for {status_code}"
 
+    @pytest.mark.skipif(
+        not os.environ.get("RUN_CLOUD_STORAGE_TESTS"),
+        reason="boto3 not installed; set RUN_CLOUD_STORAGE_TESTS=1 to enable",
+    )
     @patch.dict(
         os.environ, {"AWS_ACCESS_KEY_ID": "test", "AWS_SECRET_ACCESS_KEY": "test"}
     )

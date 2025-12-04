@@ -71,16 +71,6 @@ class S3StorageClient(StorageClient):
                 "boto3 is required for AWS S3 storage. Install with: pip install darwin-py[storage_aws]"
             )
 
-        # Check for required environment variables
-        if not os.getenv("AWS_ACCESS_KEY_ID"):
-            raise ValueError(
-                "AWS_ACCESS_KEY_ID environment variable is required for S3 uploads"
-            )
-        if not os.getenv("AWS_SECRET_ACCESS_KEY"):
-            raise ValueError(
-                "AWS_SECRET_ACCESS_KEY environment variable is required for S3 uploads"
-            )
-
         # Use region from ObjectStore if available, otherwise from env or default
         session_config = {}
         if region:
@@ -126,12 +116,6 @@ class GCSStorageClient(StorageClient):
                 "google-cloud-storage is required for GCS storage. Install with: pip install darwin-py[storage_gcp]"
             )
 
-        # Check for credentials
-        if not os.getenv("GOOGLE_APPLICATION_CREDENTIALS"):
-            raise ValueError(
-                "GOOGLE_APPLICATION_CREDENTIALS environment variable is required for GCS uploads"
-            )
-
         self.storage_client = storage.Client()
         self.bucket = self.storage_client.bucket(bucket)
         self.prefix = prefix
@@ -151,16 +135,18 @@ class GCSStorageClient(StorageClient):
 class AzureStorageClient(StorageClient):
     """Azure Blob Storage client implementation."""
 
-    def __init__(self, container: str, prefix: str):
+    def __init__(self, account_name: str, container: str, prefix: str):
         """
         Initialize Azure storage client.
 
         Parameters
         ----------
+        account_name : str
+            Azure storage account name
         container : str
             Azure container name
         prefix : str
-            Base prefix for all storage keys
+            Base prefix for all storage keys (within the container)
         """
         try:
             from azure.storage.blob import BlobServiceClient
@@ -169,25 +155,33 @@ class AzureStorageClient(StorageClient):
                 "azure-storage-blob is required for Azure storage. Install with: pip install darwin-py[storage_azure]"
             )
 
-        # Check for credentials
         connection_string = os.getenv("AZURE_STORAGE_CONNECTION_STRING")
-        account_name = os.getenv("AZURE_STORAGE_ACCOUNT_NAME")
         account_key = os.getenv("AZURE_STORAGE_ACCOUNT_KEY")
 
         if connection_string:
             self.blob_service_client = BlobServiceClient.from_connection_string(
                 connection_string
             )
-        elif account_name and account_key:
-            account_url = f"https://{account_name}.blob.core.windows.net"
-            self.blob_service_client = BlobServiceClient(
-                account_url=account_url, credential=account_key
-            )
         else:
-            raise ValueError(
-                "Either AZURE_STORAGE_CONNECTION_STRING or both AZURE_STORAGE_ACCOUNT_NAME "
-                "and AZURE_STORAGE_ACCOUNT_KEY environment variables are required for Azure uploads"
-            )
+            # Use account name from ObjectStore with either account key or DefaultAzureCredential
+            account_url = f"https://{account_name}.blob.core.windows.net"
+            if account_key:
+                # Use account key if provided
+                self.blob_service_client = BlobServiceClient(
+                    account_url=account_url, credential=account_key
+                )
+            else:
+                # Use DefaultAzureCredential (supports managed identity, Azure CLI, etc.)
+                try:
+                    from azure.identity import DefaultAzureCredential
+                except ImportError:
+                    raise ImportError(
+                        "azure-identity is required for DefaultAzureCredential. "
+                        "Install with: pip install darwin-py[storage_azure]"
+                    )
+                self.blob_service_client = BlobServiceClient(
+                    account_url=account_url, credential=DefaultAzureCredential()
+                )
 
         self.container_client = self.blob_service_client.get_container_client(container)
         self.prefix = prefix
@@ -238,8 +232,27 @@ def create_storage_client(object_store: ObjectStore) -> StorageClient:
     elif object_store.provider == "gcp":
         return GCSStorageClient(bucket=object_store.bucket, prefix=object_store.prefix)
     elif object_store.provider == "azure":
+        # For Azure: bucket field contains storage account name
+        # Prefix format: "container-name/folder-name"
+        # If blank, defaults to "data" container
+
+        if not object_store.prefix or object_store.prefix.strip() == "":
+            # Default to "data" container if prefix is blank
+            container = "data"
+            prefix = ""
+        elif "/" in object_store.prefix:
+            # Extract container from first segment: "container-name/folder-name"
+            container, _, prefix = object_store.prefix.partition("/")
+        else:
+            # No slash: treat entire prefix as container with empty path
+            # E.g., "mycontainer" → container="mycontainer", prefix=""
+            container = object_store.prefix
+            prefix = ""
+
         return AzureStorageClient(
-            container=object_store.bucket, prefix=object_store.prefix
+            account_name=object_store.bucket,
+            container=container,
+            prefix=prefix,
         )
     else:
         raise ValueError(

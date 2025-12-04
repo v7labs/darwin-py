@@ -2297,6 +2297,100 @@ class TestReadonlyVideoHelperMethods:
         with pytest.raises(ValueError):
             remote_dataset._validate_readonly_storage(store)
 
+    def test_build_storage_key_prefix_aws_with_prefix(
+        self, remote_dataset: RemoteDatasetV2
+    ):
+        """Test storage key prefix for AWS with prefix."""
+        store = ObjectStore(
+            name="test",
+            prefix="my-prefix",
+            readonly=True,
+            provider="aws",
+            default=False,
+            bucket="my-bucket",
+        )
+        result = remote_dataset._build_storage_key_prefix(store, "item123", "slot456")
+        assert result == "my-prefix/item123/files/slot456"
+
+    def test_build_storage_key_prefix_aws_without_prefix(
+        self, remote_dataset: RemoteDatasetV2
+    ):
+        """Test storage key prefix for AWS without prefix."""
+        store = ObjectStore(
+            name="test",
+            prefix="",
+            readonly=True,
+            provider="aws",
+            default=False,
+            bucket="my-bucket",
+        )
+        result = remote_dataset._build_storage_key_prefix(store, "item123", "slot456")
+        assert result == "item123/files/slot456"
+
+    def test_build_storage_key_prefix_azure_with_container_and_path(
+        self, remote_dataset: RemoteDatasetV2
+    ):
+        """Test storage key prefix for Azure with container and path."""
+        store = ObjectStore(
+            name="test",
+            prefix="mycontainer/myfolder",
+            readonly=True,
+            provider="azure",
+            default=False,
+            bucket="myaccount",
+        )
+        result = remote_dataset._build_storage_key_prefix(store, "item123", "slot456")
+        # Should NOT include container name (only path portion)
+        assert result == "myfolder/item123/files/slot456"
+
+    def test_build_storage_key_prefix_azure_with_container_only(
+        self, remote_dataset: RemoteDatasetV2
+    ):
+        """Test storage key prefix for Azure with container name only."""
+        store = ObjectStore(
+            name="test",
+            prefix="mycontainer",
+            readonly=True,
+            provider="azure",
+            default=False,
+            bucket="myaccount",
+        )
+        result = remote_dataset._build_storage_key_prefix(store, "item123", "slot456")
+        # Should exclude container name (no path portion)
+        assert result == "item123/files/slot456"
+
+    def test_build_storage_key_prefix_azure_empty_prefix(
+        self, remote_dataset: RemoteDatasetV2
+    ):
+        """Test storage key prefix for Azure with empty prefix."""
+        store = ObjectStore(
+            name="test",
+            prefix="",
+            readonly=True,
+            provider="azure",
+            default=False,
+            bucket="myaccount",
+        )
+        result = remote_dataset._build_storage_key_prefix(store, "item123", "slot456")
+        # Empty prefix means default "data" container, no path
+        assert result == "item123/files/slot456"
+
+    def test_build_storage_key_prefix_azure_with_nested_path(
+        self, remote_dataset: RemoteDatasetV2
+    ):
+        """Test storage key prefix for Azure with nested path."""
+        store = ObjectStore(
+            name="test",
+            prefix="mycontainer/path/to/folder",
+            readonly=True,
+            provider="azure",
+            default=False,
+            bucket="myaccount",
+        )
+        result = remote_dataset._build_storage_key_prefix(store, "item123", "slot456")
+        # Should exclude container, keep nested path
+        assert result == "path/to/folder/item123/files/slot456"
+
     def test_extract_slot_metadata_removes_excluded_fields(
         self, remote_dataset: RemoteDatasetV2
     ):

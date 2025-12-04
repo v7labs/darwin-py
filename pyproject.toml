@@ -71,6 +71,7 @@ orjson = "^3.8.5"
 pillow = "^10.1.0"
 pydantic = "^2.0.0"
 python = ">=3.9,<3.13"
+python-dotenv = "^1.0.0"
 pyyaml = "^6.0.1"
 requests = "^2.28.1"
 rich = "^13.0.1"
@@ -90,8 +91,8 @@ ocv = [ "opencv-python-headless",]
 test = [ "responses", "pytest", "flake8-pyproject",]
 storage_aws = [ "boto3",]
 storage_gcp = [ "google-cloud-storage",]
-storage_azure = [ "azure-storage-blob",]
-storage_all = [ "boto3", "google-cloud-storage", "azure-storage-blob",]
+storage_azure = [ "azure-storage-blob", "azure-identity",]
+storage_all = [ "boto3", "google-cloud-storage", "azure-storage-blob", "azure-identity",]
 
 [tool.poetry.scripts]
 darwin = "darwin.cli:main"
@@ -160,9 +161,21 @@ version = "^1.8.1"
 [tool.poetry.dependencies.mpire]
 version = "^2.7.0"
 
-[tool.poetry.dependencies.python-dotenv]
-python = ">3.9,<3.13"
-version = "^1.0.0"
+[tool.poetry.dependencies.boto3]
+optional = true
+version = "^1.35.0"
+
+[tool.poetry.dependencies.google-cloud-storage]
+optional = true
+version = "^2.18.0"
+
+[tool.poetry.dependencies.azure-storage-blob]
+optional = true
+version = "^12.23.0"
+
+[tool.poetry.dependencies.azure-identity]
+optional = true
+version = "^1.19.0"
 
 [tool.poetry.dependencies.opencv-python-headless]
 optional = true
