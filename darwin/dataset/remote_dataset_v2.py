@@ -900,7 +900,7 @@ class RemoteDatasetV2(RemoteDataset):
         ```
         """
         # Validation
-        self._validate_readonly_storage(object_store)
+        self._validate_object_store_provider(object_store)
 
         # Convert to Path objects and validate existence
         video_paths = [Path(vf) for vf in video_files]
@@ -1008,7 +1008,7 @@ class RemoteDatasetV2(RemoteDataset):
         ```
         """
         # Validation
-        self._validate_readonly_storage(object_store)
+        self._validate_object_store_provider(object_store)
 
         # Convert to Path objects and validate existence
         video_paths_by_item = {}
@@ -1093,9 +1093,9 @@ class RemoteDatasetV2(RemoteDataset):
             object_store=object_store,
         )
 
-    def _validate_readonly_storage(self, object_store: ObjectStore) -> None:
+    def _validate_object_store_provider(self, object_store: ObjectStore) -> None:
         """
-        Validate object store for readonly video registration.
+        Validate object store provider for readonly video registration.
 
         Parameters
         ----------
