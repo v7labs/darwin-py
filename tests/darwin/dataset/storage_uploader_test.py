@@ -548,147 +548,96 @@ class TestAzureStorageClient:
 
 
 class TestIsRetryableError:
-    """Tests for is_retryable_error helper function."""
+    """Tests for _is_retryable_error helper function.
 
-    # HTTP Status Code Tests - Retryable
+    Note: HTTP status code retries are handled by cloud SDKs internally.
+    Our retry layer only handles network-level connection/timeout errors.
+    """
 
-    @pytest.mark.parametrize(
-        "status_code",
-        [408, 429, 500, 502, 503, 504],
-    )
-    def test_returns_true_for_retryable_aws_status_codes(self, status_code):
-        """Test that retryable HTTP status codes from AWS are detected."""
-        from darwin.dataset.storage_uploader import is_retryable_error
-
-        mock_exception = Mock()
-        mock_exception.response = {"ResponseMetadata": {"HTTPStatusCode": status_code}}
-
-        assert is_retryable_error(mock_exception) is True
-
-    @pytest.mark.parametrize(
-        "status_code",
-        [408, 429, 500, 502, 503, 504],
-    )
-    def test_returns_true_for_retryable_gcp_status_codes(self, status_code):
-        """Test that retryable HTTP status codes from GCP are detected."""
-        from darwin.dataset.storage_uploader import is_retryable_error
-
-        mock_exception = Mock()
-        mock_exception.code = status_code
-        del mock_exception.response
-
-        assert is_retryable_error(mock_exception) is True
-
-    @pytest.mark.parametrize(
-        "status_code",
-        [408, 429, 500, 502, 503, 504],
-    )
-    def test_returns_true_for_retryable_azure_status_codes(self, status_code):
-        """Test that retryable HTTP status codes from Azure are detected."""
-        from darwin.dataset.storage_uploader import is_retryable_error
-
-        mock_exception = Mock()
-        mock_exception.status_code = status_code
-        del mock_exception.response
-        del mock_exception.code
-
-        assert is_retryable_error(mock_exception) is True
-
-    # HTTP Status Code Tests - Non-Retryable
-
-    @pytest.mark.parametrize(
-        "status_code",
-        [400, 401, 403, 404, 405, 409, 410, 422],
-    )
-    def test_returns_false_for_non_retryable_client_errors(self, status_code):
-        """Test that non-retryable client errors (4xx) are NOT retried."""
-        from darwin.dataset.storage_uploader import is_retryable_error
-
-        mock_exception = Mock()
-        mock_exception.response = {"ResponseMetadata": {"HTTPStatusCode": status_code}}
-
-        assert is_retryable_error(mock_exception) is False
-
-    # Connection and Timeout Error Tests
+    # Connection and Timeout Error Tests - Retryable
 
     def test_returns_true_for_connection_error(self):
         """Test that ConnectionError is retryable."""
-        from darwin.dataset.storage_uploader import is_retryable_error
+        from darwin.dataset.storage_uploader import _is_retryable_error
 
-        assert is_retryable_error(ConnectionError("Connection failed")) is True
+        assert _is_retryable_error(ConnectionError("Connection failed")) is True
 
     def test_returns_true_for_connection_reset_error(self):
         """Test that ConnectionResetError is retryable."""
-        from darwin.dataset.storage_uploader import is_retryable_error
+        from darwin.dataset.storage_uploader import _is_retryable_error
 
-        assert is_retryable_error(ConnectionResetError("Connection reset")) is True
+        assert _is_retryable_error(ConnectionResetError("Connection reset")) is True
 
     def test_returns_true_for_broken_pipe_error(self):
         """Test that BrokenPipeError is retryable."""
-        from darwin.dataset.storage_uploader import is_retryable_error
+        from darwin.dataset.storage_uploader import _is_retryable_error
 
-        assert is_retryable_error(BrokenPipeError("Broken pipe")) is True
+        assert _is_retryable_error(BrokenPipeError("Broken pipe")) is True
 
     def test_returns_true_for_timeout_error(self):
         """Test that TimeoutError is retryable."""
-        from darwin.dataset.storage_uploader import is_retryable_error
+        from darwin.dataset.storage_uploader import _is_retryable_error
 
-        assert is_retryable_error(TimeoutError("Operation timed out")) is True
+        assert _is_retryable_error(TimeoutError("Operation timed out")) is True
 
     def test_returns_true_for_socket_timeout(self):
         """Test that socket.timeout is retryable."""
         import socket
 
-        from darwin.dataset.storage_uploader import is_retryable_error
+        from darwin.dataset.storage_uploader import _is_retryable_error
 
-        assert is_retryable_error(socket.timeout("Socket timed out")) is True
+        assert _is_retryable_error(socket.timeout("Socket timed out")) is True
 
     def test_returns_true_for_wrapped_connection_error(self):
         """Test that wrapped connection errors in __cause__ are detected."""
-        from darwin.dataset.storage_uploader import is_retryable_error
+        from darwin.dataset.storage_uploader import _is_retryable_error
 
         # Create a wrapper exception with connection error as cause
         inner_error = ConnectionResetError("Connection reset")
         outer_error = Exception("Upload failed")
         outer_error.__cause__ = inner_error
 
-        assert is_retryable_error(outer_error) is True
+        assert _is_retryable_error(outer_error) is True
 
     # Non-Retryable Error Tests
 
     def test_returns_false_for_regular_exception(self):
-        """Test that regular exceptions without status codes return False."""
-        from darwin.dataset.storage_uploader import is_retryable_error
+        """Test that regular exceptions return False."""
+        from darwin.dataset.storage_uploader import _is_retryable_error
 
-        assert is_retryable_error(ValueError("test")) is False
+        assert _is_retryable_error(ValueError("test")) is False
 
     def test_returns_false_for_permission_error(self):
         """Test that PermissionError is NOT retryable."""
-        from darwin.dataset.storage_uploader import is_retryable_error
+        from darwin.dataset.storage_uploader import _is_retryable_error
 
-        assert is_retryable_error(PermissionError("Access denied")) is False
+        assert _is_retryable_error(PermissionError("Access denied")) is False
 
     def test_returns_false_for_file_not_found_error(self):
         """Test that FileNotFoundError is NOT retryable."""
-        from darwin.dataset.storage_uploader import is_retryable_error
+        from darwin.dataset.storage_uploader import _is_retryable_error
 
-        assert is_retryable_error(FileNotFoundError("File not found")) is False
+        assert _is_retryable_error(FileNotFoundError("File not found")) is False
 
     def test_returns_false_for_type_error(self):
         """Test that TypeError is NOT retryable."""
-        from darwin.dataset.storage_uploader import is_retryable_error
+        from darwin.dataset.storage_uploader import _is_retryable_error
 
-        assert is_retryable_error(TypeError("Invalid type")) is False
+        assert _is_retryable_error(TypeError("Invalid type")) is False
 
     def test_returns_false_for_key_error(self):
         """Test that KeyError is NOT retryable."""
-        from darwin.dataset.storage_uploader import is_retryable_error
+        from darwin.dataset.storage_uploader import _is_retryable_error
 
-        assert is_retryable_error(KeyError("Missing key")) is False
+        assert _is_retryable_error(KeyError("Missing key")) is False
 
 
 class TestUploadWithRetry:
-    """Tests for upload_with_retry function."""
+    """Tests for upload_with_retry function.
+
+    Note: HTTP status code retries (429, 5xx) are handled by cloud SDKs internally.
+    Our retry layer only handles network-level connection/timeout errors.
+    """
 
     def test_successful_upload_no_retry(self):
         """Test that successful uploads don't trigger retries."""
@@ -698,57 +647,6 @@ class TestUploadWithRetry:
         upload_with_retry(mock_client, "/path/to/file", "storage/key")
 
         mock_client.upload_file.assert_called_once_with("/path/to/file", "storage/key")
-
-    def test_retries_on_503_error(self):
-        """Test that 503 errors trigger retries."""
-        from darwin.dataset.storage_uploader import upload_with_retry
-
-        mock_client = MagicMock()
-
-        # Create a proper exception that will be raised
-        class Mock503Error(Exception):
-            def __init__(self):
-                self.response = {"ResponseMetadata": {"HTTPStatusCode": 503}}
-
-        call_count = [0]
-
-        def mock_upload(local_path, storage_key):
-            call_count[0] += 1
-            if call_count[0] < 3:
-                raise Mock503Error()
-            return None  # Success on third try
-
-        mock_client.upload_file.side_effect = mock_upload
-
-        with patch("darwin.dataset.storage_uploader.time.sleep"):  # Skip actual sleep
-            upload_with_retry(mock_client, "/path/to/file", "storage/key")
-
-        assert call_count[0] == 3
-
-    def test_retries_on_429_rate_limit_error(self):
-        """Test that 429 Too Many Requests errors trigger retries."""
-        from darwin.dataset.storage_uploader import upload_with_retry
-
-        mock_client = MagicMock()
-
-        class Mock429Error(Exception):
-            def __init__(self):
-                self.response = {"ResponseMetadata": {"HTTPStatusCode": 429}}
-
-        call_count = [0]
-
-        def mock_upload(local_path, storage_key):
-            call_count[0] += 1
-            if call_count[0] < 2:
-                raise Mock429Error()
-            return None
-
-        mock_client.upload_file.side_effect = mock_upload
-
-        with patch("darwin.dataset.storage_uploader.time.sleep"):
-            upload_with_retry(mock_client, "/path/to/file", "storage/key")
-
-        assert call_count[0] == 2
 
     def test_retries_on_connection_reset_error(self):
         """Test that ConnectionResetError triggers retries."""
@@ -766,7 +664,7 @@ class TestUploadWithRetry:
 
         mock_client.upload_file.side_effect = mock_upload
 
-        with patch("darwin.dataset.storage_uploader.time.sleep"):
+        with patch("tenacity.nap.time.sleep"):  # Skip actual sleep (tenacity's sleep)
             upload_with_retry(mock_client, "/path/to/file", "storage/key")
 
         assert call_count[0] == 2
@@ -787,7 +685,7 @@ class TestUploadWithRetry:
 
         mock_client.upload_file.side_effect = mock_upload
 
-        with patch("darwin.dataset.storage_uploader.time.sleep"):
+        with patch("tenacity.nap.time.sleep"):  # Skip actual sleep (tenacity's sleep)
             upload_with_retry(mock_client, "/path/to/file", "storage/key")
 
         assert call_count[0] == 2
@@ -817,61 +715,52 @@ class TestUploadWithRetry:
 
         assert mock_client.upload_file.call_count == 1
 
-    def test_does_not_retry_on_403_forbidden(self):
-        """Test that HTTP 403 Forbidden is NOT retried."""
+    def test_does_not_retry_on_file_not_found(self):
+        """Test that FileNotFoundError is NOT retried."""
         from darwin.dataset.storage_uploader import upload_with_retry
 
         mock_client = MagicMock()
+        mock_client.upload_file.side_effect = FileNotFoundError("File not found")
 
-        class Mock403Error(Exception):
-            def __init__(self):
-                self.response = {"ResponseMetadata": {"HTTPStatusCode": 403}}
-
-        mock_client.upload_file.side_effect = Mock403Error()
-
-        with pytest.raises(Exception):
-            upload_with_retry(mock_client, "/path/to/file", "storage/key")
-
-        assert mock_client.upload_file.call_count == 1
-
-    def test_does_not_retry_on_404_not_found(self):
-        """Test that HTTP 404 Not Found is NOT retried."""
-        from darwin.dataset.storage_uploader import upload_with_retry
-
-        mock_client = MagicMock()
-
-        class Mock404Error(Exception):
-            def __init__(self):
-                self.response = {"ResponseMetadata": {"HTTPStatusCode": 404}}
-
-        mock_client.upload_file.side_effect = Mock404Error()
-
-        with pytest.raises(Exception):
+        with pytest.raises(FileNotFoundError):
             upload_with_retry(mock_client, "/path/to/file", "storage/key")
 
         assert mock_client.upload_file.call_count == 1
 
     def test_respects_max_timeout(self):
-        """Test that retry loop respects max timeout."""
-        from darwin.dataset.storage_uploader import upload_with_retry
+        """Test that retry loop respects max timeout (30s configured).
+
+        This test verifies the stop_after_delay behavior by creating a
+        test-specific retry wrapper with a very short timeout.
+        """
+        from tenacity import (
+            retry,
+            retry_if_exception,
+            stop_after_delay,
+            wait_exponential_jitter,
+        )
+
+        from darwin.dataset.storage_uploader import _is_retryable_error
 
         mock_client = MagicMock()
+        mock_client.upload_file.side_effect = ConnectionResetError("Connection reset")
 
-        # Create a proper exception that will be raised
-        class Mock503Error(Exception):
-            def __init__(self):
-                self.response = {"ResponseMetadata": {"HTTPStatusCode": 503}}
+        # Create a test function with very short timeout (0.1 seconds)
+        @retry(
+            reraise=True,
+            wait=wait_exponential_jitter(initial=0.01, max=0.02, jitter=0),
+            stop=stop_after_delay(0.1),  # Very short timeout for testing
+            retry=retry_if_exception(_is_retryable_error),
+        )
+        def upload_with_short_timeout(client, local_path, storage_key):
+            client.upload_file(local_path, storage_key)
 
-        mock_client.upload_file.side_effect = Mock503Error()
+        # Should raise after timeout is exceeded (multiple retries with short delays)
+        with pytest.raises(ConnectionResetError):
+            upload_with_short_timeout(mock_client, "/path/to/file", "storage/key")
 
-        # Make time.time return values that exceed max_time
-        time_values = [0, 0, 101]  # Start, attempt, check timeout (exceeded 100s)
-        with patch(
-            "darwin.dataset.storage_uploader.time.time", side_effect=time_values
-        ):
-            with patch("darwin.dataset.storage_uploader.time.sleep"):
-                with pytest.raises(Exception):  # Should raise the 503 error
-                    upload_with_retry(mock_client, "/path/to/file", "storage/key")
+        # Verify multiple attempts were made before timeout
+        assert mock_client.upload_file.call_count >= 2
 
 
 class TestUploadArtifacts:
@@ -1070,40 +959,28 @@ class TestUploadArtifacts:
 class TestEdgeCases:
     """Tests for edge cases and error handling."""
 
-    def test_is_retryable_error_with_none_response_metadata(self):
-        """Test is_retryable_error when response has no ResponseMetadata."""
-        from darwin.dataset.storage_uploader import is_retryable_error
+    def test_retryable_error_with_deeply_nested_cause(self):
+        """Test _is_retryable_error with deeply nested exception cause chain."""
+        from darwin.dataset.storage_uploader import _is_retryable_error
 
-        mock_exception = Mock(spec=Exception)
-        mock_exception.response = {}  # No ResponseMetadata
+        # Create a chain: outer -> middle -> inner (ConnectionResetError)
+        inner = ConnectionResetError("Connection reset")
+        middle = RuntimeError("Wrapper")
+        middle.__cause__ = inner
+        outer = Exception("Outer wrapper")
+        outer.__cause__ = middle
 
-        assert is_retryable_error(mock_exception) is False
+        assert _is_retryable_error(outer) is True
 
-    def test_is_retryable_error_with_success_status_codes(self):
-        """Test is_retryable_error returns False for success codes."""
-        from darwin.dataset.storage_uploader import is_retryable_error
+    def test_retryable_error_with_non_retryable_wrapped(self):
+        """Test _is_retryable_error with non-retryable wrapped error."""
+        from darwin.dataset.storage_uploader import _is_retryable_error
 
-        for status_code in [200, 201, 204]:
-            mock_exception = Mock()
-            mock_exception.response = {
-                "ResponseMetadata": {"HTTPStatusCode": status_code}
-            }
-            assert (
-                is_retryable_error(mock_exception) is False
-            ), f"Should be False for {status_code}"
+        inner = ValueError("Bad value")
+        outer = Exception("Outer wrapper")
+        outer.__cause__ = inner
 
-    def test_is_retryable_error_with_non_retryable_client_errors(self):
-        """Test is_retryable_error returns False for non-retryable 4xx errors."""
-        from darwin.dataset.storage_uploader import is_retryable_error
-
-        for status_code in [400, 401, 403, 404, 405, 409, 410, 422]:
-            mock_exception = Mock()
-            mock_exception.response = {
-                "ResponseMetadata": {"HTTPStatusCode": status_code}
-            }
-            assert (
-                is_retryable_error(mock_exception) is False
-            ), f"Should be False for {status_code}"
+        assert _is_retryable_error(outer) is False
 
     @pytest.mark.skipif(
         not os.environ.get("RUN_CLOUD_STORAGE_TESTS"),

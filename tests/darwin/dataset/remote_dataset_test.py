@@ -2239,7 +2239,7 @@ class TestRegisterMultiSlottedReadonlyVideos:
 class TestReadonlyVideoHelperMethods:
     """Tests for helper methods used in readonly video registration."""
 
-    def test_validate_readonly_storage_accepts_aws(
+    def test_validate_object_store_provider_accepts_aws(
         self, remote_dataset: RemoteDatasetV2
     ):
         """Test that AWS provider is accepted."""
@@ -2252,9 +2252,9 @@ class TestReadonlyVideoHelperMethods:
             bucket="b",
         )
         # Should not raise
-        remote_dataset._validate_readonly_storage(store)
+        remote_dataset._validate_object_store_provider(store)
 
-    def test_validate_readonly_storage_accepts_gcp(
+    def test_validate_object_store_provider_accepts_gcp(
         self, remote_dataset: RemoteDatasetV2
     ):
         """Test that GCP provider is accepted."""
@@ -2266,9 +2266,9 @@ class TestReadonlyVideoHelperMethods:
             default=False,
             bucket="b",
         )
-        remote_dataset._validate_readonly_storage(store)
+        remote_dataset._validate_object_store_provider(store)
 
-    def test_validate_readonly_storage_accepts_azure(
+    def test_validate_object_store_provider_accepts_azure(
         self, remote_dataset: RemoteDatasetV2
     ):
         """Test that Azure provider is accepted."""
@@ -2280,9 +2280,9 @@ class TestReadonlyVideoHelperMethods:
             default=False,
             bucket="b",
         )
-        remote_dataset._validate_readonly_storage(store)
+        remote_dataset._validate_object_store_provider(store)
 
-    def test_validate_readonly_storage_rejects_unknown(
+    def test_validate_object_store_provider_rejects_unknown(
         self, remote_dataset: RemoteDatasetV2
     ):
         """Test that unknown providers are rejected."""
@@ -2295,7 +2295,7 @@ class TestReadonlyVideoHelperMethods:
             bucket="b",
         )
         with pytest.raises(ValueError):
-            remote_dataset._validate_readonly_storage(store)
+            remote_dataset._validate_object_store_provider(store)
 
     def test_build_storage_key_prefix_aws_with_prefix(
         self, remote_dataset: RemoteDatasetV2

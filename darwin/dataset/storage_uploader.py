@@ -1,28 +1,29 @@
 """
 Storage uploader module for uploading video artifacts to external cloud storage.
 
-Supports AWS S3, Google Cloud Storage, and Azure Blob Storage with exponential
-backoff retry logic for transient failures.
+Supports AWS S3, Google Cloud Storage, and Azure Blob Storage
+
+Note on retry strategy:
+- All cloud SDKs are configured to use their built-in robust retry logic for
+  transient HTTP errors (429, 5xx) and internal timeouts.
+- We add a thin outer retry layer using `tenacity` ONLY for immediate network-level
+  failures (ConnectionError, socket.timeout) that may occur before SDK logic engages.
 """
 
 import os
-import random
 import socket
-import time
 from abc import ABC, abstractmethod
 from concurrent.futures import ThreadPoolExecutor
-from typing import Optional, Set
+from typing import Optional
+
+from tenacity import (
+    retry,
+    retry_if_exception,
+    stop_after_delay,
+    wait_exponential_jitter,
+)
 
 from darwin.datatypes import ObjectStore
-
-# Retryable HTTP status codes:
-# - 408: Request Timeout
-# - 429: Too Many Requests (rate limiting)
-# - 500: Internal Server Error
-# - 502: Bad Gateway
-# - 503: Service Unavailable
-# - 504: Gateway Timeout
-RETRYABLE_STATUS_CODES: Set[int] = {408, 429, 500, 502, 503, 504}
 
 
 class StorageClient(ABC):
@@ -49,7 +50,13 @@ class StorageClient(ABC):
 
 
 class S3StorageClient(StorageClient):
-    """AWS S3 storage client implementation."""
+    """AWS S3 storage client implementation.
+
+    Uses boto3's "standard" retry mode for consistent retry behavior:
+    - 5 attempts total (1 initial + 4 retries)
+    - Exponential backoff with jitter
+    - Retries on throttling (429), server errors (5xx), and transient connection errors
+    """
 
     def __init__(self, bucket: str, region: Optional[str], prefix: str):
         """
@@ -66,6 +73,7 @@ class S3StorageClient(StorageClient):
         """
         try:
             import boto3
+            from botocore.config import Config
         except ImportError:
             raise ImportError(
                 "boto3 is required for AWS S3 storage. Install with: pip install darwin-py[storage_aws]"
@@ -78,7 +86,14 @@ class S3StorageClient(StorageClient):
         elif os.getenv("AWS_REGION"):
             session_config["region_name"] = os.getenv("AWS_REGION")
 
-        self.s3_client = boto3.client("s3", **session_config)
+        retry_config = Config(
+            retries={
+                "mode": "standard",  # Recommended mode with exponential backoff
+                "max_attempts": 5,  # 5 attempts (1 initial + 4 retries)
+            }
+        )
+
+        self.s3_client = boto3.client("s3", config=retry_config, **session_config)
         self.bucket = bucket
         self.prefix = prefix
 
@@ -96,7 +111,13 @@ class S3StorageClient(StorageClient):
 
 
 class GCSStorageClient(StorageClient):
-    """Google Cloud Storage client implementation."""
+    """Google Cloud Storage client implementation.
+
+    Uses google-cloud-storage's built-in retry (DEFAULT_RETRY):
+    - Retries on 429, 500, 502, 503, 504 errors
+    - Exponential backoff with jitter
+    - upload_from_filename() uses DEFAULT_RETRY automatically
+    """
 
     def __init__(self, bucket: str, prefix: str):
         """
@@ -133,7 +154,13 @@ class GCSStorageClient(StorageClient):
 
 
 class AzureStorageClient(StorageClient):
-    """Azure Blob Storage client implementation."""
+    """Azure Blob Storage client implementation.
+
+    Uses azure-storage-blob's built-in ExponentialRetry policy:
+    - 5 retry attempts with exponential backoff
+    - Initial backoff ~0.8s, max ~60s
+    - Retries on 429, 500, 502, 503, 504 errors
+    """
 
     def __init__(self, account_name: str, container: str, prefix: str):
         """
@@ -149,18 +176,21 @@ class AzureStorageClient(StorageClient):
             Base prefix for all storage keys (within the container)
         """
         try:
-            from azure.storage.blob import BlobServiceClient
+            from azure.storage.blob import BlobServiceClient, ExponentialRetry
         except ImportError:
             raise ImportError(
                 "azure-storage-blob is required for Azure storage. Install with: pip install darwin-py[storage_azure]"
             )
+
+        # Configure retry policy: 5 attempts, exponential backoff
+        retry_policy = ExponentialRetry(max_tries=5)
 
         connection_string = os.getenv("AZURE_STORAGE_CONNECTION_STRING")
         account_key = os.getenv("AZURE_STORAGE_ACCOUNT_KEY")
 
         if connection_string:
             self.blob_service_client = BlobServiceClient.from_connection_string(
-                connection_string
+                connection_string, retry_policy=retry_policy
             )
         else:
             # Use account name from ObjectStore with either account key or DefaultAzureCredential
@@ -168,7 +198,9 @@ class AzureStorageClient(StorageClient):
             if account_key:
                 # Use account key if provided
                 self.blob_service_client = BlobServiceClient(
-                    account_url=account_url, credential=account_key
+                    account_url=account_url,
+                    credential=account_key,
+                    retry_policy=retry_policy,
                 )
             else:
                 # Use DefaultAzureCredential (supports managed identity, Azure CLI, etc.)
@@ -180,7 +212,9 @@ class AzureStorageClient(StorageClient):
                         "Install with: pip install darwin-py[storage_azure]"
                     )
                 self.blob_service_client = BlobServiceClient(
-                    account_url=account_url, credential=DefaultAzureCredential()
+                    account_url=account_url,
+                    credential=DefaultAzureCredential(),
+                    retry_policy=retry_policy,
                 )
 
         self.container_client = self.blob_service_client.get_container_client(container)
@@ -261,48 +295,16 @@ def create_storage_client(object_store: ObjectStore) -> StorageClient:
         )
 
 
-def _get_http_status_code(exception: Exception) -> Optional[int]:
+def _is_retryable_error(exception: Exception) -> bool:
     """
-    Extract HTTP status code from cloud provider exceptions.
+    Check if an exception is a transient network error that should be retried.
 
-    Handles exception patterns from AWS boto3, GCP, and Azure SDKs.
+    This is a thin outer retry layer. Cloud SDKs handle most transient errors
+    internally (429, 5xx). We retry only on:
+    - Connection errors (ConnectionError, ConnectionResetError, BrokenPipeError)
+    - Timeout errors (TimeoutError, socket.timeout)
 
-    Parameters
-    ----------
-    exception : Exception
-        Exception to check
-
-    Returns
-    -------
-    Optional[int]
-        HTTP status code if found, None otherwise
-    """
-    # AWS boto3 - ClientError has response dict
-    if hasattr(exception, "response") and isinstance(exception.response, dict):
-        status_code = exception.response.get("ResponseMetadata", {}).get(
-            "HTTPStatusCode"
-        )
-        if status_code is not None:
-            return int(status_code)
-
-    # GCP - exceptions have code attribute (integer)
-    if hasattr(exception, "code"):
-        code = exception.code
-        if isinstance(code, int):
-            return code
-
-    # Azure - HttpResponseError has status_code attribute
-    if hasattr(exception, "status_code"):
-        status_code = exception.status_code
-        if isinstance(status_code, int):
-            return status_code
-
-    return None
-
-
-def _is_connection_or_timeout_error(exception: Exception) -> bool:
-    """
-    Check if exception is a connection or timeout error.
+    These can occur at network level before/after SDK retry logic.
 
     Parameters
     ----------
@@ -312,72 +314,32 @@ def _is_connection_or_timeout_error(exception: Exception) -> bool:
     Returns
     -------
     bool
-        True if exception is a connection or timeout error
+        True if exception should be retried
     """
-    # Check for Python's built-in network/timeout errors
-    # ConnectionError includes: ConnectionResetError, BrokenPipeError, etc.
+    # Retryable network/connection errors
     if isinstance(exception, (ConnectionError, TimeoutError, socket.timeout)):
         return True
 
-    # Check the exception cause chain (SDKs often wrap underlying errors)
-    cause = getattr(exception, "__cause__", None)
+    # Check wrapped cause (SDKs often wrap underlying errors)
+    cause = exception.__cause__
     if cause is not None and cause is not exception:
-        return _is_connection_or_timeout_error(cause)
+        return _is_retryable_error(cause)
 
     return False
 
 
-def is_retryable_error(exception: Exception) -> bool:
-    """
-    Check if an exception is a transient error that should be retried.
-
-    Retryable errors include:
-    - HTTP status codes: 408 (Request Timeout), 429 (Too Many Requests),
-      500 (Internal Server Error), 502 (Bad Gateway), 503 (Service Unavailable),
-      504 (Gateway Timeout)
-    - Network errors: ConnectionError, ConnectionResetError, BrokenPipeError
-    - Timeout errors: TimeoutError, socket.timeout
-
-    Non-retryable errors (will NOT be retried):
-    - Client errors: 400 (Bad Request), 401 (Unauthorized), 403 (Forbidden),
-      404 (Not Found), etc.
-    - Permission errors
-    - File not found errors
-    - Authentication/Authorization errors
-    - Any other error not explicitly listed as retryable
-
-    Parameters
-    ----------
-    exception : Exception
-        Exception to check
-
-    Returns
-    -------
-    bool
-        True if exception is a transient error that should be retried
-    """
-    # Check for retryable HTTP status codes first
-    status_code = _get_http_status_code(exception)
-    if status_code is not None:
-        return status_code in RETRYABLE_STATUS_CODES
-
-    # Check for connection or timeout errors
-    if _is_connection_or_timeout_error(exception):
-        return True
-
-    return False
-
-
+@retry(
+    reraise=True,
+    wait=wait_exponential_jitter(initial=0.5, max=5, jitter=1),
+    stop=stop_after_delay(30),
+    retry=retry_if_exception(_is_retryable_error),
+)
 def upload_with_retry(client: StorageClient, local_path: str, storage_key: str) -> None:
     """
-    Upload file with exponential backoff retry logic.
+    Upload file with retry for connection/timeout errors.
 
-    Retry behavior:
-    - Exponential backoff with 20% randomization
-    - Cap delay at 5 seconds
-    - Total timeout at 100 seconds
-    - Retry on transient errors (HTTP 408/429/5xx, connection errors, timeouts)
-    - Abort immediately on non-transient errors (HTTP 4xx, permission errors, etc.)
+    Cloud SDKs handle HTTP-level retries (429, 5xx) internally.
+    This adds an outer retry layer for network-level failures.
 
     Parameters
     ----------
@@ -393,39 +355,7 @@ def upload_with_retry(client: StorageClient, local_path: str, storage_key: str) 
     Exception
         If upload fails after retries or on non-retryable error
     """
-    max_delay = 5.0
-    max_time = 100.0
-    base_delay = 0.1
-    jitter_factor = 0.2
-
-    start_time = time.time()
-    attempt = 0
-
-    while True:
-        try:
-            client.upload_file(local_path, storage_key)
-            return  # Success
-        except Exception as e:
-            # Only retry on transient errors
-            if not is_retryable_error(e):
-                raise
-
-            # Check timeout
-            elapsed = time.time() - start_time
-            if elapsed >= max_time:
-                raise
-
-            # Calculate delay with jitter
-            delay = min(base_delay * (2**attempt), max_delay)
-            jitter = random.uniform(-jitter_factor, jitter_factor)
-            delay = delay * (1 + jitter)
-
-            print(
-                f"Upload to {storage_key} failed (transient error) on attempt {attempt}; retrying in {delay:.2f} seconds..."
-            )
-
-            time.sleep(delay)
-            attempt += 1
+    client.upload_file(local_path, storage_key)
 
 
 def upload_artifacts(
