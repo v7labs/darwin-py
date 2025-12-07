@@ -5,4 +5,7 @@ fail-on-severity: moderate
 
 # Explicitly allowed vulnerabilities
 allow-ghsas:
-  - GHSA-pq67-6m6q-mj2v  # urllib3 1.26.x redirect issue - boto3 compatibility requirement
+  # urllib3 1.26.x redirect issue - boto3 with python 3.9 compatibility requirement
+  - GHSA-2xpw-w6gg-jr37
+  - GHSA-gm62-xv2j-4w53
+  - GHSA-pq67-6m6q-mj2v 
