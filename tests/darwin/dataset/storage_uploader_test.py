@@ -245,7 +245,11 @@ class TestS3StorageClient:
 
         assert client.bucket == "test"
         assert client.prefix == "prefix"
-        mock_boto3.assert_called_once_with("s3")
+        # Should be called with 's3' and a config object for retry policy
+        mock_boto3.assert_called_once()
+        call_args = mock_boto3.call_args
+        assert call_args[0][0] == "s3"
+        assert "config" in call_args[1]
 
     @pytest.mark.skipif(
         not os.environ.get("RUN_CLOUD_STORAGE_TESTS"),
@@ -260,7 +264,12 @@ class TestS3StorageClient:
         from darwin.dataset.storage_uploader import S3StorageClient
 
         S3StorageClient(bucket="test", region="eu-west-1", prefix="prefix")
-        mock_boto3.assert_called_once_with("s3", region_name="eu-west-1")
+        # Should be called with 's3', config, and region_name
+        mock_boto3.assert_called_once()
+        call_args = mock_boto3.call_args
+        assert call_args[0][0] == "s3"
+        assert "config" in call_args[1]
+        assert call_args[1]["region_name"] == "eu-west-1"
 
     @pytest.mark.skipif(
         not os.environ.get("RUN_CLOUD_STORAGE_TESTS"),
@@ -280,7 +289,12 @@ class TestS3StorageClient:
         from darwin.dataset.storage_uploader import S3StorageClient
 
         S3StorageClient(bucket="test", region=None, prefix="prefix")
-        mock_boto3.assert_called_once_with("s3", region_name="ap-south-1")
+        # Should be called with 's3', config, and region_name from env
+        mock_boto3.assert_called_once()
+        call_args = mock_boto3.call_args
+        assert call_args[0][0] == "s3"
+        assert "config" in call_args[1]
+        assert call_args[1]["region_name"] == "ap-south-1"
 
     @pytest.mark.skipif(
         not os.environ.get("RUN_CLOUD_STORAGE_TESTS"),
@@ -435,10 +449,15 @@ class TestAzureStorageClient:
 
             # Should use DefaultAzureCredential
             mock_default_credential_cls.assert_called_once()
-            mock_blob_service.assert_called_once_with(
-                account_url="https://test-account.blob.core.windows.net",
-                credential=mock_credential,
+            # Should be called with account_url, credential, and retry_policy
+            mock_blob_service.assert_called_once()
+            call_args = mock_blob_service.call_args
+            assert (
+                call_args[1]["account_url"]
+                == "https://test-account.blob.core.windows.net"
             )
+            assert call_args[1]["credential"] == mock_credential
+            assert "retry_policy" in call_args[1]
             assert client.prefix == "prefix"
         finally:
             if original_module is None:
@@ -458,9 +477,11 @@ class TestAzureStorageClient:
         AzureStorageClient(
             account_name="test-account", container="test-container", prefix="prefix"
         )
-        mock_blob_service.from_connection_string.assert_called_once_with(
-            "connection_string"
-        )
+        # Should be called with connection_string and retry_policy
+        mock_blob_service.from_connection_string.assert_called_once()
+        call_args = mock_blob_service.from_connection_string.call_args
+        assert call_args[0][0] == "connection_string"
+        assert "retry_policy" in call_args[1]
 
     @patch.dict(
         os.environ,
@@ -481,9 +502,14 @@ class TestAzureStorageClient:
         AzureStorageClient(
             account_name="test-account", container="test-container", prefix="prefix"
         )
-        mock_blob_service.assert_called_once_with(
-            account_url="https://test-account.blob.core.windows.net", credential="key"
+        # Should be called with account_url, credential, and retry_policy
+        mock_blob_service.assert_called_once()
+        call_args = mock_blob_service.call_args
+        assert (
+            call_args[1]["account_url"] == "https://test-account.blob.core.windows.net"
         )
+        assert call_args[1]["credential"] == "key"
+        assert "retry_policy" in call_args[1]
 
     @patch.dict(os.environ, {"AZURE_STORAGE_CONNECTION_STRING": "connection_string"})
     @patch("azure.storage.blob.BlobServiceClient")
