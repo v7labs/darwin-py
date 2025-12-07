@@ -10,6 +10,7 @@ Note on retry strategy:
   failures (ConnectionError, socket.timeout) that may occur before SDK logic engages.
 """
 
+import mimetypes
 import os
 import socket
 from abc import ABC, abstractmethod
@@ -183,7 +184,7 @@ class AzureStorageClient(StorageClient):
             )
 
         # Configure retry policy: 5 attempts, exponential backoff
-        retry_policy = ExponentialRetry(max_tries=5)
+        retry_policy = ExponentialRetry(retry_total=5)
 
         connection_string = os.getenv("AZURE_STORAGE_CONNECTION_STRING")
         account_key = os.getenv("AZURE_STORAGE_ACCOUNT_KEY")
@@ -222,20 +223,28 @@ class AzureStorageClient(StorageClient):
 
     def upload_file(self, local_path: str, storage_key: str) -> None:
         """Upload file to Azure Blob Storage."""
+        from azure.storage.blob import ContentSettings
 
         blob_client = self.container_client.get_blob_client(storage_key)
 
-        # Handle gzip content encoding
-        content_settings = {}
-        if local_path.endswith(".gz"):
-            from azure.storage.blob import ContentSettings
+        # Detect content type from file extension
+        content_type, _ = mimetypes.guess_type(local_path)
 
-            content_settings = {
-                "content_settings": ContentSettings(content_encoding="gzip")
-            }
+        # Build content settings
+        settings_kwargs = {}
+        if content_type:
+            settings_kwargs["content_type"] = content_type
+        if local_path.endswith(".gz"):
+            settings_kwargs["content_encoding"] = "gzip"
+
+        content_settings = (
+            ContentSettings(**settings_kwargs) if settings_kwargs else None
+        )
 
         with open(local_path, "rb") as data:
-            blob_client.upload_blob(data, overwrite=True, **content_settings)
+            blob_client.upload_blob(
+                data, overwrite=True, content_settings=content_settings
+            )
 
 
 def create_storage_client(object_store: ObjectStore) -> StorageClient:
