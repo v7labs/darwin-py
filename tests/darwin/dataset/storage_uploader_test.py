@@ -577,7 +577,7 @@ class TestAzureStorageClient:
             account_name="test-account", container="test-container", prefix="prefix"
         )
 
-        with patch("builtins.open", mock_open()) as mock_file_open:
+        with patch("builtins.open", mock_open()):
             client.upload_file("/path/to/file.ts.gz", "storage/key/file.ts.gz")
 
         # .gz files should always have content_encoding set to gzip
