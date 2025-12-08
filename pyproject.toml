@@ -83,11 +83,15 @@ tenacity = "^8.5.0"
 natsort = "^8.4.0"
 
 [tool.poetry.extras]
-dev = [ "black", "isort", "flake8", "mypy", "debugpy", "responses", "pytest", "flake8-pyproject", "pytest-rerunfailures", "ruff", "validate-pyproject",]
+dev = [ "black", "isort", "flake8", "mypy", "debugpy", "responses", "pytest", "flake8-pyproject", "pytest-rerunfailures", "ruff", "validate-pyproject", "python-dotenv",]
 medical = [ "nibabel", "connected-components-3d", "scipy",]
 ml = [ "torch", "torchvision", "scikit-learn", "albumentations", "scipy",]
 ocv = [ "opencv-python-headless",]
-test = [ "responses", "pytest", "flake8-pyproject",]
+test = [ "responses", "pytest", "flake8-pyproject", "python-dotenv",]
+storage_aws = [ "boto3",]
+storage_gcp = [ "google-cloud-storage",]
+storage_azure = [ "azure-storage-blob", "azure-identity",]
+storage_all = [ "boto3", "google-cloud-storage", "azure-storage-blob", "azure-identity",]
 
 [tool.poetry.scripts]
 darwin = "darwin.cli:main"
@@ -159,6 +163,22 @@ version = "^2.7.0"
 [tool.poetry.dependencies.python-dotenv]
 python = ">3.9,<3.13"
 version = "^1.0.0"
+
+[tool.poetry.dependencies.boto3]
+optional = true
+version = "^1.42.3"
+
+[tool.poetry.dependencies.google-cloud-storage]
+optional = true
+version = "^2.18.0"
+
+[tool.poetry.dependencies.azure-storage-blob]
+optional = true
+version = "^12.23.0"
+
+[tool.poetry.dependencies.azure-identity]
+optional = true
+version = "^1.19.0"
 
 [tool.poetry.dependencies.opencv-python-headless]
 optional = true

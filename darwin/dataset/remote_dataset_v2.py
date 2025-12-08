@@ -1,21 +1,25 @@
 import json
+import tempfile
 from pathlib import Path
 from typing import (
     TYPE_CHECKING,
     Any,
     Dict,
+    Iterable,
     Iterator,
     List,
     Optional,
     Sequence,
     Tuple,
     Union,
-    Iterable,
 )
+from uuid import uuid4
+
 from pydantic import ValidationError
 
 from darwin.dataset import RemoteDataset
 from darwin.dataset.release import Release
+from darwin.dataset.storage_uploader import upload_artifacts
 from darwin.dataset.upload_manager import (
     FileUploadCallback,
     ItemMergeMode,
@@ -42,13 +46,14 @@ from darwin.datatypes import (
 )
 from darwin.exceptions import NotFound, UnknownExportVersion
 from darwin.exporter.formats.darwin import build_image_annotation
+from darwin.extractor.video import extract_artifacts
 from darwin.item import DatasetItem
 from darwin.item_sorter import ItemSorter
 from darwin.utils import (
-    SUPPORTED_EXTENSIONS,
-    PRESERVE_FOLDERS_KEY,
     AS_FRAMES_KEY,
     EXTRACT_VIEWS_KEY,
+    PRESERVE_FOLDERS_KEY,
+    SUPPORTED_EXTENSIONS,
     find_files,
     urljoin,
 )
@@ -840,6 +845,473 @@ class RemoteDatasetV2(RemoteDataset):
                 print(f"  - {item}")
         print(f"Reistration complete. Check your items in the dataset: {self.slug}")
         return results
+
+    def register_single_slotted_readonly_videos(
+        self,
+        object_store: ObjectStore,
+        video_files: List[Union[str, Path]],
+        path: str = "/",
+        fps: float = 0.0,
+        segment_length: int = 2,
+        repair: bool = False,
+    ) -> Dict[str, List[str]]:
+        """
+        Register videos as single-slotted items from readonly storage.
+        Creates one item per video file.
+
+        Parameters
+        ----------
+        object_store : ObjectStore
+            Readonly external storage configuration.
+            Get via: client.get_external_storage()
+        video_files : List[Union[str, Path]]
+            List of video file paths to register
+        path : str
+            Path in dataset where items will be stored (default "/")
+        fps : float
+            Target FPS for frame extraction (0.0 = native fps)
+        segment_length : int
+            HLS segment length in seconds
+        repair : bool
+            Attempt video repair if errors detected
+
+        Returns
+        -------
+        Dict[str, List[str]]
+            {
+                "registered": ["Item video1.mp4 registered with ID 123", ...],
+                "blocked": ["Item video2.mp4 blocked: duplicate", ...]
+            }
+
+        Example
+        -------
+        ```python
+        storage = client.get_external_storage(
+            team_slug="my-team",
+            name="my-readonly-storage",
+        )
+
+        results = dataset.register_single_slotted_readonly_videos(
+            object_store=storage,
+            video_files=["video1.mp4", "video2.mp4"],
+            path="/recordings",
+            fps=1.0
+        )
+        ```
+        """
+        # Validation
+        self._validate_object_store_provider(object_store)
+
+        # Convert to Path objects and validate existence
+        video_paths = [Path(vf) for vf in video_files]
+        for video_path in video_paths:
+            if not video_path.exists():
+                raise FileNotFoundError(f"Video file not found: {video_path}")
+
+        items_to_register = []
+
+        # Process each video as a separate item
+        for video_path in video_paths:
+            # Generate new UUIDs for each video
+            item_uuid = str(uuid4())
+            slot_uuid = str(uuid4())
+            storage_key_prefix = self._build_storage_key_prefix(
+                object_store, item_uuid, slot_uuid
+            )
+
+            # Extract, upload, and get metadata
+            slot_metadata = self._process_video_file_for_readonly(
+                video_path=video_path,
+                object_store=object_store,
+                storage_key_prefix=storage_key_prefix,
+                fps=fps,
+                segment_length=segment_length,
+                repair=repair,
+            )
+
+            # Build item payload
+            slot_dict = {
+                "slot_name": video_path.name,
+                "storage_key": f"{storage_key_prefix}/{video_path.name}",
+                "file_name": video_path.name,
+                **slot_metadata,
+            }
+
+            item_dict = {
+                "name": video_path.name,
+                "path": path,
+                "slots": [slot_dict],
+            }
+            items_to_register.append(item_dict)
+
+        # Submit registration
+        return self._submit_readonly_registration(
+            items_to_register=items_to_register,
+            object_store=object_store,
+        )
+
+    def register_multi_slotted_readonly_videos(
+        self,
+        object_store: ObjectStore,
+        video_files: Dict[str, List[Union[str, Path]]],
+        path: str = "/",
+        fps: float = 0.0,
+        segment_length: int = 2,
+        repair: bool = False,
+    ) -> Dict[str, List[str]]:
+        """
+        Register videos as multi-slotted items from readonly storage.
+        Creates one item per dictionary key, with multiple slots per item.
+        Slot names are derived from filenames. If the same filename appears
+        multiple times in an item, number suffixes are added (e.g., video.mp4,
+        video.mp4_1, video.mp4_2).
+
+        Parameters
+        ----------
+        object_store : ObjectStore
+            Readonly external storage configuration
+        video_files : Dict[str, List[Union[str, Path]]]
+            Dictionary mapping item_name to list of video file paths.
+            Each item gets multiple slots (one per video).
+        path : str
+            Path in dataset where items will be stored (default "/")
+        fps : float
+            Target FPS for frame extraction (0.0 = native fps)
+        segment_length : int
+            HLS segment length in seconds
+        repair : bool
+            Attempt video repair if errors detected
+
+        Returns
+        -------
+        Dict[str, List[str]]
+            Registration results
+
+        Example
+        -------
+        ```python
+        storage = client.get_external_storage(allow_readonly=True)
+
+        results = dataset.register_multi_slotted_readonly_videos(
+            object_store=storage,
+            video_files={
+                "multi_view_scene_1": ["videos/front.mp4", "videos/back.mp4"],
+                "multi_view_scene_2": [
+                    "videos/front.mp4",  # Will become slot "front.mp4"
+                    "videos/back.mp4",   # Will become slot "back.mp4"
+                    "other/front.mp4",   # Will become slot "front.mp4_1" (duplicate filename)
+                ]
+            },
+            path="/recordings",
+            fps=1.0
+        )
+        ```
+        """
+        # Validation
+        self._validate_object_store_provider(object_store)
+
+        # Convert to Path objects and validate existence
+        video_paths_by_item = {}
+        for item_name, video_list in video_files.items():
+            video_paths_by_item[item_name] = [Path(vf) for vf in video_list]
+            for video_path in video_paths_by_item[item_name]:
+                if not video_path.exists():
+                    raise FileNotFoundError(
+                        f"Video file not found for item {item_name}: {video_path}"
+                    )
+
+        items_to_register = []
+
+        for item_name, video_paths in video_paths_by_item.items():
+            # Build slot name mapping with deduplication suffixes
+            slot_name_counts = {}  # Track filename occurrences
+            slot_info_list = []  # [(video_path, slot_name)]
+
+            for video_path in video_paths:
+                base_slot_name = video_path.name
+                if base_slot_name not in slot_name_counts:
+                    slot_name_counts[base_slot_name] = 0
+                    slot_name = base_slot_name
+                else:
+                    slot_name_counts[base_slot_name] += 1
+                    slot_name = f"{base_slot_name}_{slot_name_counts[base_slot_name]}"
+
+                slot_info_list.append((video_path, slot_name))
+
+            # Generate new item_uuid
+            item_uuid = str(uuid4())
+
+            # Build unique files map with slot UUIDs using absolute path as key
+            unique_files = {}  # {absolute_path: (video_path, slot_uuid)}
+            path_to_metadata = {}  # {absolute_path: metadata}
+
+            for video_path, slot_name in slot_info_list:
+                abs_path = str(video_path.absolute())
+
+                if abs_path not in unique_files:
+                    slot_uuid = str(uuid4())
+                    unique_files[abs_path] = (video_path, slot_uuid)
+
+            # Process each unique file
+            for abs_path, (video_path, slot_uuid) in unique_files.items():
+                storage_key_prefix = self._build_storage_key_prefix(
+                    object_store, item_uuid, slot_uuid
+                )
+                slot_metadata = self._process_video_file_for_readonly(
+                    video_path=video_path,
+                    object_store=object_store,
+                    storage_key_prefix=storage_key_prefix,
+                    fps=fps,
+                    segment_length=segment_length,
+                    repair=repair,
+                )
+                path_to_metadata[abs_path] = slot_metadata
+
+            # Build slots for this item
+            slots = []
+            for video_path, slot_name in slot_info_list:
+                abs_path = str(video_path.absolute())
+                _, slot_uuid = unique_files[abs_path]
+                storage_key_prefix = self._build_storage_key_prefix(
+                    object_store, item_uuid, slot_uuid
+                )
+
+                slot_dict = {
+                    "slot_name": slot_name,
+                    "storage_key": f"{storage_key_prefix}/{video_path.name}",
+                    "file_name": video_path.name,
+                    **path_to_metadata[abs_path],
+                }
+                slots.append(slot_dict)
+
+            item_dict = {"name": item_name, "path": path, "slots": slots}
+            items_to_register.append(item_dict)
+
+        # Submit registration
+        return self._submit_readonly_registration(
+            items_to_register=items_to_register,
+            object_store=object_store,
+        )
+
+    def _validate_object_store_provider(self, object_store: ObjectStore) -> None:
+        """
+        Validate object store provider for readonly video registration.
+
+        Parameters
+        ----------
+        object_store : ObjectStore
+            Storage configuration to validate
+
+        Raises
+        ------
+        ValueError
+            If provider is not supported
+        """
+
+        if object_store.provider not in ["aws", "gcp", "azure"]:
+            raise ValueError(
+                f"Unsupported storage provider: {object_store.provider}. "
+                f"Supported providers: aws, gcp, azure"
+            )
+
+    def _build_storage_key_prefix(
+        self, object_store: ObjectStore, item_uuid: str, slot_uuid: str
+    ) -> str:
+        """
+        Build storage key prefix, handling None/empty prefix properly.
+
+        For Azure, the container name is extracted separately during client creation,
+        so we only use the path portion (after container/) in the storage key.
+
+        Parameters
+        ----------
+        object_store : ObjectStore
+            Storage configuration
+        item_uuid : str
+            UUID for the item
+        slot_uuid : str
+            UUID for the slot
+
+        Returns
+        -------
+        str
+            Storage key prefix (e.g., "prefix/item_uuid/files/slot_uuid" or
+            "item_uuid/files/slot_uuid" if prefix is None/empty)
+            For Azure: "path/item_uuid/files/slot_uuid" (without container name)
+        """
+        base_path = f"{item_uuid}/files/{slot_uuid}"
+
+        # For Azure, extract only the path portion (not container)
+        if object_store.provider == "azure":
+            if not object_store.prefix or object_store.prefix.strip() == "":
+                # Empty prefix - no path portion
+                return base_path
+            elif "/" in object_store.prefix:
+                # Extract path portion after container: "container/path" -> "path"
+                _, _, path_portion = object_store.prefix.partition("/")
+                if path_portion:
+                    return f"{path_portion}/{base_path}"
+                return base_path
+            else:
+                # No slash: prefix is just container name, no path portion
+                return base_path
+        else:
+            # For AWS/GCP, use full prefix as-is
+            if object_store.prefix:
+                return f"{object_store.prefix}/{base_path}"
+            return base_path
+
+    def _process_video_file_for_readonly(
+        self,
+        video_path: Path,
+        object_store: ObjectStore,
+        storage_key_prefix: str,
+        fps: float,
+        segment_length: int,
+        repair: bool,
+    ) -> Dict:
+        """
+        Process a single video file: extract artifacts, upload to storage.
+
+        Parameters
+        ----------
+        video_path : Path
+            Path to video file
+        object_store : ObjectStore
+            Storage configuration
+        storage_key_prefix : str
+            Storage key prefix for the artifacts
+        fps : float
+            Target FPS
+        segment_length : int
+            Segment length in seconds
+        repair : bool
+            Whether to repair video
+
+        Returns
+        -------
+        Dict
+            Slot metadata from registration payload
+        """
+        with tempfile.TemporaryDirectory(prefix="darwin_video_") as tmp_dir:
+            artifacts_dir = Path(tmp_dir)
+
+            # Extract artifacts
+            print(f"\nExtracting artifacts for {video_path.name}...")
+            extract_artifacts(
+                source_file=str(video_path),
+                output_dir=str(artifacts_dir),
+                storage_key_prefix=storage_key_prefix,
+                fps=fps,
+                segment_length=segment_length,
+                repair=repair,
+                save_metadata=True,
+            )
+
+            # Upload to storage
+            print(f"\nUploading artifacts for {video_path.name}...")
+            upload_artifacts(
+                object_store=object_store,
+                local_artifacts_dir=str(artifacts_dir),
+                source_file=str(video_path),
+                storage_key_prefix=storage_key_prefix,
+            )
+
+            # Load metadata before temp directory is cleaned up
+            metadata_file = artifacts_dir / "metadata.json"
+            with open(metadata_file, "r") as f:
+                metadata = json.load(f)
+
+            registration_payload = metadata["registration_payload"]
+            return self._extract_slot_metadata(registration_payload)
+
+    def _submit_readonly_registration(
+        self,
+        items_to_register: List[Dict],
+        object_store: ObjectStore,
+    ) -> Dict[str, List[str]]:
+        """
+        Submit readonly registration to Darwin.
+
+        Parameters
+        ----------
+        items_to_register : List[Dict]
+            List of item dictionaries to register
+        object_store : ObjectStore
+            Storage configuration
+
+        Returns
+        -------
+        Dict[str, List[str]]
+            Registration results with registered and blocked items
+        """
+        results = {"registered": [], "blocked": []}
+
+        # Register in chunks of 10
+        chunk_size = 10
+        chunked_items = chunk_items(items_to_register, chunk_size)
+        print(
+            f"Registering {len(items_to_register)} items in chunks of {chunk_size}..."
+        )
+
+        for chunk in chunked_items:
+            payload = {
+                "items": chunk,
+                "dataset_slug": self.slug,
+                "storage_slug": object_store.name,
+            }
+
+            response = self.client.api_v2.register_readonly_items(
+                payload=payload, team_slug=self.team
+            )
+
+            for item in response.get("items", []):
+                results["registered"].append(
+                    f"Item {item['name']} registered with item ID {item['id']}"
+                )
+
+            for item in response.get("blocked_items", []):
+                slots = item.get("slots", [])
+                reason = slots[0].get("reason", "unknown") if slots else "unknown"
+                results["blocked"].append(f"Item {item['name']} was blocked: {reason}")
+
+        # Print results
+        print(
+            f"{len(results['registered'])} of {len(items_to_register)} items registered successfully"
+        )
+        if results["blocked"]:
+            print("The following items were blocked:")
+            for item in results["blocked"]:
+                print(f"  - {item}")
+
+        return results
+
+    def _extract_slot_metadata(self, registration_payload: Dict) -> Dict:
+        """
+        Extract slot-specific metadata from registration payload.
+
+        Parameters
+        ----------
+        registration_payload : Dict
+            Full registration payload from extract_artifacts
+
+        Returns
+        -------
+        Dict
+            Slot-specific metadata fields
+        """
+        # Exclude fields that are computed separately
+        exclude_fields = {"name", "path", "storage_key"}
+
+        metadata = {
+            k: v for k, v in registration_payload.items() if k not in exclude_fields
+        }
+
+        # Rename total_size_bytes to size_bytes for slots
+        if "total_size_bytes" in metadata:
+            metadata["size_bytes"] = metadata.pop("total_size_bytes")
+
+        return metadata
 
 
 def _find_files_to_upload_as_multi_file_items(

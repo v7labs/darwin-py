@@ -27,6 +27,7 @@ except ImportError:
 
 if TYPE_CHECKING:
     from darwin.client import Client
+
 from darwin.future.data_objects.properties import (
     FullProperty,
     PropertyGranularity,
@@ -1582,6 +1583,8 @@ class ObjectStore:
         readonly (bool): Whether the storage configuration is read-only or not
         provider (str): The cloud provider (aws, azure, or gcp)
         default (bool): Whether the storage connection is the default one
+        bucket (str): The storage bucket/container name
+        region (Optional[str]): The AWS region (optional, primarily for AWS)
     """
 
     def __init__(
@@ -1591,18 +1594,22 @@ class ObjectStore:
         readonly: bool,
         provider: str,
         default: bool,
+        bucket: str,
+        region: Optional[str] = None,
     ) -> None:
         self.name = name
         self.prefix = prefix
         self.readonly = readonly
         self.provider = provider
         self.default = default
+        self.bucket = bucket
+        self.region = region
 
     def __str__(self) -> str:
-        return f"Storage configuration:\n- Name: {self.name}\n- Prefix: {self.prefix}\n- Readonly: {self.readonly}\n- Provider: {self.provider}\n- Default: {self.default}"
+        return f"Storage configuration:\n- Name: {self.name}\n- Prefix: {self.prefix}\n- Readonly: {self.readonly}\n- Provider: {self.provider}\n- Default: {self.default}\n- Bucket: {self.bucket}\n- Region: {self.region}"
 
     def __repr__(self) -> str:
-        return f"ObjectStore(name={self.name}, prefix={self.prefix}, readonly={self.readonly}, provider={self.provider})"
+        return f"ObjectStore(name={self.name}, prefix={self.prefix}, readonly={self.readonly}, provider={self.provider}, bucket={self.bucket}, region={self.region})"
 
 
 class StorageKeyDictModel(BaseModel):

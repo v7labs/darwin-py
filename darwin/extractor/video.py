@@ -650,7 +650,7 @@ def extract_artifacts(
         dirs["segments_low"], f"{storage_key_prefix}/segments/low"
     )
 
-    console.print("\nSaving metadata...")
+    console.print("\nSaving metadata...\n")
 
     source_file_name = os.path.basename(source_file)
 

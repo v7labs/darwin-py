@@ -2,6 +2,7 @@ name: E2E Tests
 
 permissions:
   contents: read
+  id-token: write # Required for OIDC authentication with AWS
 
 on:
   schedule:
@@ -20,16 +21,23 @@ on:
         required: true
       E2E_TEAM:
         required: true
+      E2E_VIDEO_AWS_ROLE:
+        required: true
+      E2E_STORAGE_NAME:
+        required: true
+      E2E_STORAGE_REGION:
+        required: true
 
 concurrency:
   group: e2e-tests-${{ (github.event_name == 'repository_dispatch' && 'backend-triggered') || github.ref }}
-  cancel-in-progress: false  # Don't cancel running E2E tests, just queue them
+  cancel-in-progress: false # Don't cancel running E2E tests, just queue them
 
 jobs:
   e2e:
     name: End to End Testing
     permissions:
       contents: read
+      id-token: write # Required for OIDC authentication with AWS
     strategy:
       fail-fast: false
       matrix:
@@ -63,15 +71,35 @@ jobs:
           poetry-version: ${{ matrix.poetry-version }}
       - name: Install dependencies
         run: |
-          poetry install --no-interaction --no-root --all-extras -vvv
-          pip install --editable ".[test,ml,medical,dev,ocv]"
-          pip install pytest
+          poetry install --no-interaction --all-extras -vvv
+
+      # Install ffmpeg (required for readonly video registration)
+      - name: Install ffmpeg (Ubuntu)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
+      - name: Install ffmpeg (Windows)
+        if: matrix.os == 'windows-latest'
+        run: choco install ffmpeg -y
+
+      # Configure AWS credentials via OIDC for readonly video tests
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@ececac1a45f3b08a01d2dd070d28d111c5fe6722 # v4.1.0
+        with:
+          role-to-assume: ${{ secrets.E2E_VIDEO_AWS_ROLE }}
+          role-session-name: darwin-py-e2e-tests
+          aws-region: ${{ secrets.E2E_STORAGE_REGION }}
+
       - name: Run Tests
-        run: python -m pytest e2e_tests --reruns 3 --reruns-delay 10 -W ignore::DeprecationWarning
+        run: poetry run pytest e2e_tests --reruns 3 --reruns-delay 10 -W ignore::DeprecationWarning
         env:
           E2E_API_KEY: ${{ secrets.E2E_API_KEY }}
           E2E_ENVIRONMENT: ${{ secrets.E2E_ENVIRONMENT }}
           E2E_TEAM: ${{ secrets.E2E_TEAM }}
+          E2E_STORAGE_NAME: ${{ secrets.E2E_STORAGE_NAME }}
+          AWS_REGION: ${{ secrets.E2E_STORAGE_REGION }}
 
   slack-notifier:
     name: Slack Notifier Bot
