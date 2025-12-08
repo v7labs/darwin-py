@@ -161,7 +161,7 @@ version = "^1.8.1"
 version = "^2.7.0"
 
 [tool.poetry.dependencies.python-dotenv]
-python = ">3.9,<3.13"
+python = ">=3.9,<3.13"
 version = "^1.0.0"
 
 [tool.poetry.dependencies.boto3]
