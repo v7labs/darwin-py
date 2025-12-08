@@ -51,12 +51,11 @@ jobs:
           timeout_minutes: 10
           max_attempts: 3
           command: |
-            bash -c "pip install poetry pytest && \
-                     poetry install --no-interaction --no-root -vvv --all-extras && \
-                     poetry install --no-interaction --no-root --all-extras -vvv && \
+            bash -c "pip install poetry && \
+                     poetry install --no-interaction --no-root -vvv --extras dev && \
                      pip install wheel && \
                      pip install --upgrade setuptools && \
-                     pip install --editable '.[test,ml,medical,dev, ocv]'"
+                     pip install --editable '.[dev]'"
 
       - name: Set bump type and test mode
         run: |

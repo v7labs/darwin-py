@@ -3346,4 +3346,4 @@ test = ["pytest", "python-dotenv", "responses"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.9,<3.13"
-content-hash = "9fa9387ee8c0c821f048885a58d12e3205e5b1ea18ebcecda43933e6a12c2fb2"
+content-hash = "abe713ba428d43ddbc59278ab2ca5c39bac7c9b43bb502d5b9afa355bc131d6e"
