@@ -3333,7 +3333,7 @@ test = ["big-O", "importlib-resources", "jaraco.functools", "jaraco.itertools", 
 type = ["pytest-mypy"]
 
 [extras]
-dev = ["black", "debugpy", "isort", "mypy", "pytest", "pytest-rerunfailures", "responses", "ruff", "validate-pyproject"]
+dev = ["black", "debugpy", "isort", "mypy", "pytest", "pytest-rerunfailures", "python-dotenv", "responses", "ruff", "validate-pyproject"]
 medical = ["connected-components-3d", "nibabel", "scipy"]
 ml = ["albumentations", "scikit-learn", "scipy", "torch", "torchvision"]
 ocv = ["opencv-python-headless"]
@@ -3341,9 +3341,9 @@ storage-all = ["azure-identity", "azure-storage-blob", "boto3", "google-cloud-st
 storage-aws = ["boto3"]
 storage-azure = ["azure-identity", "azure-storage-blob"]
 storage-gcp = ["google-cloud-storage"]
-test = ["pytest", "responses"]
+test = ["pytest", "python-dotenv", "responses"]
 
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.9,<3.13"
-content-hash = "c76bc1932ac6161593ad68b10475661799ab5336961aef9a5ab72f723c98b2bb"
+content-hash = "9fa9387ee8c0c821f048885a58d12e3205e5b1ea18ebcecda43933e6a12c2fb2"

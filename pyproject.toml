@@ -71,7 +71,6 @@ orjson = "^3.8.5"
 pillow = "^10.1.0"
 pydantic = "^2.0.0"
 python = ">=3.9,<3.13"
-python-dotenv = "^1.0.0"
 pyyaml = "^6.0.1"
 requests = "^2.28.1"
 rich = "^13.0.1"
@@ -84,11 +83,11 @@ tenacity = "^8.5.0"
 natsort = "^8.4.0"
 
 [tool.poetry.extras]
-dev = [ "black", "isort", "flake8", "mypy", "debugpy", "responses", "pytest", "flake8-pyproject", "pytest-rerunfailures", "ruff", "validate-pyproject",]
+dev = [ "black", "isort", "flake8", "mypy", "debugpy", "responses", "pytest", "flake8-pyproject", "pytest-rerunfailures", "ruff", "validate-pyproject", "python-dotenv",]
 medical = [ "nibabel", "connected-components-3d", "scipy",]
 ml = [ "torch", "torchvision", "scikit-learn", "albumentations", "scipy",]
 ocv = [ "opencv-python-headless",]
-test = [ "responses", "pytest", "flake8-pyproject",]
+test = [ "responses", "pytest", "flake8-pyproject", "python-dotenv",]
 storage_aws = [ "boto3",]
 storage_gcp = [ "google-cloud-storage",]
 storage_azure = [ "azure-storage-blob", "azure-identity",]
@@ -160,6 +159,10 @@ version = "^1.8.1"
 
 [tool.poetry.dependencies.mpire]
 version = "^2.7.0"
+
+[tool.poetry.dependencies.python-dotenv]
+python = ">3.9,<3.13"
+version = "^1.0.0"
 
 [tool.poetry.dependencies.boto3]
 optional = true
