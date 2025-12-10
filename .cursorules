@@ -1,7 +1,7 @@
 # Darwin-py Development Rules
 
 ## Environment Setup
-- Python version: 3.9-3.12 (currently using 3.12.12 via asdf)
+- Python version: 3.9-3.12 (managed via pyenv)
 - Package manager: Poetry
 - Virtual environment: `.venv` (managed by Poetry)
 
@@ -9,8 +9,11 @@
 
 ### Setup (first time only)
 ```bash
-# Set Python version (if using asdf)
-asdf set python 3.12.12
+# Install Python version (if not already installed)
+pyenv install 3.12
+
+# Set Python version for this project
+pyenv local 3.12
 
 # Install dependencies (installs all extras: test, ml, medical, dev)
 poetry install --all-extras
@@ -101,8 +104,9 @@ poetry run python -m darwin.cli --help
    - E2E tests: Require credentials in `e2e_tests/.env`
 
 3. **Python Version Management**:
-   - Uses asdf (not pyenv) for version management
-   - Set local version: `asdf set python 3.12.12`
+   - Uses pyenv for version management (see `docs/DEV.md` for full setup instructions)
+   - Set local version: `pyenv local 3.12` (or `pyenv local 3.10`, etc.)
+   - Install a version: `pyenv install 3.12`
    - Check version: `python --version`
 
 4. **Poetry Commands**:
