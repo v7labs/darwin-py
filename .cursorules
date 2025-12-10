@@ -1,0 +1,130 @@
+# Darwin-py Development Rules
+
+## Environment Setup
+- Python version: 3.9-3.12 (currently using 3.12.12 via asdf)
+- Package manager: Poetry
+- Virtual environment: `.venv` (managed by Poetry)
+
+## Quick Commands
+
+### Setup (first time only)
+```bash
+# Set Python version (if using asdf)
+asdf set python 3.12.12
+
+# Install dependencies (installs all extras: test, ml, medical, dev)
+poetry install --all-extras
+
+# Build package
+poetry build
+```
+
+### Optional: Install FFmpeg (for video artifact extraction tests)
+Some video tests require FFmpeg 5+. If you encounter FFmpeg-related test failures:
+```bash
+# Download and install FFmpeg 6.0+ (or higher)
+mkdir -p $HOME/.local/bin
+cd $HOME/.local/bin
+wget -O ffmpeg.tar.xz "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz"
+tar -xf ffmpeg.tar.xz --strip-components=1
+rm ffmpeg.tar.xz
+# Add to PATH permanently (add to ~/.bashrc or ~/.zshrc)
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
+export PATH="$HOME/.local/bin:$PATH"
+cd -
+```
+
+### Running Tests
+
+#### Unit Tests
+```bash
+# Run all unit tests
+poetry run pytest
+
+# Run specific test file
+poetry run pytest tests/darwin/path/to/test_file.py
+
+# Run with verbose output
+poetry run pytest -v
+
+# Run specific test
+poetry run pytest tests/darwin/path/to/test_file.py::test_function_name
+```
+
+#### E2E Tests
+```bash
+# Setup: Copy .env.example to .env and populate variables
+cp e2e_tests/.env.example e2e_tests/.env
+# Edit e2e_tests/.env with:
+# - E2E_ENVIRONMENT=<server_url>
+# - E2E_API_KEY=<api_key>
+# - E2E_TEAM=<team_slug>
+
+# Run e2e tests
+poetry run pytest e2e_tests
+```
+
+### Code Quality
+```bash
+# Format code
+poetry run black .
+
+# Lint code
+poetry run ruff check .
+
+# Type checking
+poetry run mypy darwin
+```
+
+### Building and Installing
+```bash
+# Build package
+poetry build
+
+# Install locally in development mode
+poetry install
+
+# Run darwin CLI
+poetry run darwin --help
+poetry run python -m darwin.cli --help
+```
+
+## Important Notes
+
+1. **Never modify .py code** - The user has confirmed all code works. If tests fail, it's due to:
+   - Missing environment variables (for e2e tests)
+   - Missing system dependencies (e.g., FFmpeg version 5+ required for video tests)
+   - Environment setup issues
+
+2. **Test Results**:
+   - Unit tests: 1026 passed, 6 skipped (all pass with FFmpeg 7.0.2+ installed)
+   - E2E tests: Require credentials in `e2e_tests/.env`
+
+3. **Python Version Management**:
+   - Uses asdf (not pyenv) for version management
+   - Set local version: `asdf set python 3.12.12`
+   - Check version: `python --version`
+
+4. **Poetry Commands**:
+   - Always use `poetry run` prefix when running commands outside poetry shell
+   - Or activate shell: `poetry shell` then run commands directly
+
+5. **Virtual Environment**:
+   - Located at `.venv/`
+   - Managed automatically by Poetry
+   - Don't manually activate - use `poetry run` or `poetry shell`
+
+## Common Issues
+
+- **FFmpeg version**: Some video tests require FFmpeg 5+. If system has version 4 or lower, install FFmpeg 6.0+ (see setup instructions above). Without it, 6 video artifact extraction tests will fail. After installation, ensure `$HOME/.local/bin` is in your PATH.
+- **E2E credentials**: Tests will fail without proper `.env` file in `e2e_tests/` directory.
+- **Python version**: Must be 3.9-3.12. Check with `python --version`.
+- **System dependencies**: May need build tools (make, gcc, etc.) for some Python packages. Install with: `sudo apt-get install -y make build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev`
+
+## File Structure
+- `tests/` - Unit tests
+- `e2e_tests/` - End-to-end tests (require credentials)
+- `darwin/` - Main package code
+- `.venv/` - Virtual environment (gitignored)
+- `dist/` - Built packages (gitignored)
+
