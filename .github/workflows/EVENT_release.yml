@@ -63,11 +63,17 @@ jobs:
     uses: ./.github/workflows/JOB_tests.yml
 
   run_e2e:
+    permissions:
+      id-token: write
+      contents: read
     uses: ./.github/workflows/JOB_e2e.yml
     secrets:
       E2E_API_KEY: ${{ secrets.E2E_API_KEY }}
       E2E_ENVIRONMENT: ${{ secrets.E2E_ENVIRONMENT }}
       E2E_TEAM: ${{ secrets.E2E_TEAM }}
+      E2E_VIDEO_AWS_ROLE: ${{ secrets.E2E_VIDEO_AWS_ROLE }}
+      E2E_STORAGE_NAME: ${{ secrets.E2E_STORAGE_NAME }}
+      E2E_STORAGE_REGION: ${{ secrets.E2E_STORAGE_REGION }}
 
   release:
     needs: [run_tests, run_e2e]
@@ -117,7 +123,7 @@ jobs:
         run: |
           sudo rm -rf /usr/local/lib/android  # will release about 10 GB if you don't need Android
           sudo rm -rf /usr/share/dotnet # will release about 20GB if you don't need .NET
-          
+
       - name: Harden Runner
         uses: step-security/harden-runner@4d991eb9b905ef189e4c376166672c3f2f230481 # v2.11.0
         with:
