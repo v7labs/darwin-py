@@ -52,6 +52,7 @@ from darwin.item_sorter import ItemSorter
 from darwin.utils import (
     AS_FRAMES_KEY,
     EXTRACT_VIEWS_KEY,
+    NATIVE_VIDEO_EXTENSIONS,
     PRESERVE_FOLDERS_KEY,
     SUPPORTED_EXTENSIONS,
     find_files,
@@ -659,6 +660,155 @@ class RemoteDatasetV2(RemoteDataset):
                 preserve_folders,
             )
             return results
+
+    def register_locally_processed(
+        self,
+        object_store: ObjectStore,
+        files: Union[List[Union[str, Path]], Dict[str, List[Union[str, Path]]]],
+        path: str = "/",
+        fps: float = 0.0,
+        segment_length: int = 2,
+        repair: bool = False,
+        multi_slotted: bool = False,
+    ) -> Dict[str, List[str]]:
+        """
+        Register locally preprocessed files to Darwin dataset using external storage.
+
+        This function processes local files (extracting HLS artifacts, thumbnails, etc.),
+        uploads them to the configured external storage, and registers them with Darwin.
+        Files are preprocessed locally rather than on Darwin's servers.
+
+        Parameters
+        ----------
+        object_store : ObjectStore
+            Readonly external storage configuration.
+            Get via: client.get_external_storage() with appropriate provider credentials.
+        files : List[Union[str, Path]] | Dict[str, List[Union[str, Path]]]
+            Either:
+            - Single-slotted items: A list of video file paths (one item per video)
+            - Multi-slotted items: A dictionary with keys as item names and values
+              as lists of video file paths (multiple slots per item)
+        path : str, default: "/"
+            Path in dataset where items will be stored.
+        fps : float, default: 0.0
+            Target FPS for frame extraction. 0.0 means native fps.
+        segment_length : int, default: 2
+            HLS segment length in seconds.
+        repair : bool, default: False
+            Attempt video repair if errors are detected.
+        multi_slotted : bool, default: False
+            Specify whether the items are multi-slotted or not.
+
+        Returns
+        -------
+        Dict[str, List[str]]
+            A dictionary with the list of registered and blocked files:
+            {
+                "registered": ["Item video1.mp4 registered with ID 123", ...],
+                "blocked": ["Item video2.mp4 blocked: duplicate", ...]
+            }
+
+        Raises
+        ------
+        ValueError
+            If the type of ``files``:
+            - Isn't List when ``multi_slotted`` is False.
+            - Isn't Dict when ``multi_slotted`` is True.
+            If any file does not have a supported extension.
+
+        Example
+        -------
+        ```python
+        storage = client.get_external_storage(
+            team_slug="my-team",
+            name="my-readonly-storage",
+        )
+
+        # Single-slotted: one item per video
+        results = dataset.register_locally_processed(
+            object_store=storage,
+            files=["video1.mp4", "video2.mp4"],
+            path="/recordings",
+            fps=1.0
+        )
+
+        # Multi-slotted: multiple videos per item
+        results = dataset.register_locally_processed(
+            object_store=storage,
+            files={
+                "scene_1": ["front.mp4", "back.mp4"],
+                "scene_2": ["camera1.mp4", "camera2.mp4"],
+            },
+            path="/scenes",
+            fps=1.0,
+            multi_slotted=True
+        )
+        ```
+        """
+        if multi_slotted:
+            if not isinstance(files, dict):
+                raise ValueError(
+                    "files must be a dictionary when multi_slotted=True. "
+                    "Example: {'item_name': ['video1.mp4', 'video2.mp4']}"
+                )
+            for file_list in files.values():
+                self._validate_supported_file_extensions(file_list)
+            results = self.register_multi_slotted_readonly_videos(
+                object_store=object_store,
+                video_files=files,  # type: ignore
+                path=path,
+                fps=fps,
+                segment_length=segment_length,
+                repair=repair,
+            )
+        else:
+            if not isinstance(files, list):
+                raise ValueError(
+                    "files must be a list when multi_slotted=False. "
+                    "Example: ['video1.mp4', 'video2.mp4']"
+                )
+            self._validate_supported_file_extensions(files)
+            results = self.register_single_slotted_readonly_videos(
+                object_store=object_store,
+                video_files=files,  # type: ignore
+                path=path,
+                fps=fps,
+                segment_length=segment_length,
+                repair=repair,
+            )
+
+        return results
+
+    def _validate_supported_file_extensions(
+        self,
+        files: List[Union[str, Path]],
+    ) -> None:
+        """
+        Validate that all provided files have supported file extensions.
+
+        Currently only native video files are supported for local preprocessing.
+        In the future, this method will be extended to support other file types.
+
+        Parameters
+        ----------
+        files : List[Union[str, Path]]
+            Files to validate
+
+        Raises
+        ------
+        ValueError
+            If any file does not have a supported extension.
+        """
+        for file_path in files:
+            filename = str(file_path).lower()
+            is_supported = any(
+                filename.endswith(ext.lower()) for ext in NATIVE_VIDEO_EXTENSIONS
+            )
+            if not is_supported:
+                raise ValueError(
+                    f"The file '{file_path}' is not supported. "
+                    f"Supported extensions: {', '.join(NATIVE_VIDEO_EXTENSIONS)}"
+                )
 
     def register_single_slotted(
         self,
