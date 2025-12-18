@@ -96,7 +96,7 @@ class TestVideoArtifactExtraction:
             "total_size_bytes": 61859,
             "name": "test_video.mp4",
             "path": "/",
-            "hq_frames_extension": "png",
+            "storage_sections_key_extension": "png",
         }
 
         # Verify the result structure matches exactly
@@ -318,8 +318,8 @@ class TestVideoArtifactExtraction:
         # Verify HQ sections are still present
         assert payload["storage_sections_key_prefix"] == "test/prefix/sections/high"
 
-        # Verify hq_frames_extension is PNG by default
-        assert payload["hq_frames_extension"] == "png"
+        # Verify storage_sections_key_extension is PNG by default
+        assert payload["storage_sections_key_extension"] == "png"
 
         # Verify HQ frames are generated
         hq_frames = list((output_dir / "sections" / "high").glob("*.png"))
@@ -347,9 +347,9 @@ class TestVideoArtifactExtraction:
 
         payload = result["registration_payload"]
 
-        # Verify hq_frames_extension is jpg
+        # Verify storage_sections_key_extension is jpg
         assert (
-            payload["hq_frames_extension"] == "jpg"
+            payload["storage_sections_key_extension"] == "jpg"
         ), "Primary frames extension should be jpg when quality is set"
 
         # Verify LQ sections key prefix is still present (default extract_preview_frames=True)
@@ -390,8 +390,8 @@ class TestVideoArtifactExtraction:
         # Verify LQ sections key prefix is NOT in payload
         assert "storage_low_quality_sections_key_prefix" not in payload
 
-        # Verify hq_frames_extension is jpg
-        assert payload["hq_frames_extension"] == "jpg"
+        # Verify storage_sections_key_extension is jpg
+        assert payload["storage_sections_key_extension"] == "jpg"
 
         # Verify HQ frames are JPEG
         hq_frames = list((output_dir / "sections" / "high").glob("*.jpg"))
@@ -403,10 +403,10 @@ class TestVideoArtifactExtraction:
             lq_frames = list(lq_frames_dir.glob("*"))
             assert len(lq_frames) == 0, "Should have no LQ frames"
 
-    def test_extract_artifacts_default_has_hq_frames_extension(
+    def test_extract_artifacts_default_has_storage_sections_key_extension(
         self, data_dir, output_dir
     ):
-        """Test that default extraction includes hq_frames_extension field"""
+        """Test that default extraction includes storage_sections_key_extension field"""
         source_file = data_dir / "test_video.mp4"
 
         result = extract_artifacts(
@@ -420,9 +420,9 @@ class TestVideoArtifactExtraction:
 
         payload = result["registration_payload"]
 
-        # Verify hq_frames_extension is present and set to png by default
-        assert "hq_frames_extension" in payload
-        assert payload["hq_frames_extension"] == "png"
+        # Verify storage_sections_key_extension is present and set to png by default
+        assert "storage_sections_key_extension" in payload
+        assert payload["storage_sections_key_extension"] == "png"
 
         # Verify LQ sections key prefix is still present by default
         assert "storage_low_quality_sections_key_prefix" in payload

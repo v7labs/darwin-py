@@ -687,7 +687,7 @@ def extract_artifacts(
     source_file_name = os.path.basename(source_file)
 
     # Determine HQ frames extension
-    hq_frames_extension = "png" if primary_frames_quality == 1 else "jpg"
+    storage_sections_key_extension = "png" if primary_frames_quality == 1 else "jpg"
 
     # Prepare final metadata
     registration_payload = {
@@ -714,12 +714,12 @@ def extract_artifacts(
         },
         "storage_key": f"{storage_key_prefix}/{source_file_name}",
         "storage_sections_key_prefix": f"{storage_key_prefix}/sections/high",
+        "storage_sections_key_extension": storage_sections_key_extension,
         "storage_frames_manifest_key": f"{storage_key_prefix}/frames_manifest.txt",
         "storage_thumbnail_key": f"{storage_key_prefix}/thumbnail.jpg",
         "total_size_bytes": source_file_size,
         "name": source_file_name,
         "path": "/",
-        "hq_frames_extension": hq_frames_extension,
     }
 
     # Conditionally include LQ sections key prefix
