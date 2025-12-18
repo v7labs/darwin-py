@@ -670,6 +670,8 @@ class RemoteDatasetV2(RemoteDataset):
         segment_length: int = 2,
         repair: bool = False,
         multi_slotted: bool = False,
+        include_lq_frames: bool = True,
+        hq_frames_quality: Optional[int] = 1,
     ) -> Dict[str, List[str]]:
         """
         Register locally preprocessed files to Darwin dataset using external storage.
@@ -698,6 +700,14 @@ class RemoteDatasetV2(RemoteDataset):
             Attempt video repair if errors are detected.
         multi_slotted : bool, default: False
             Specify whether the items are multi-slotted or not.
+        include_lq_frames : bool, default: True
+            If True, extract and include low-quality frames for faster preview.
+            If False, skip LQ frame extraction to reduce processing time and storage.
+        hq_frames_quality : Optional[int], default: 1
+            Quality setting for high-quality frames.
+            1 (default) means use PNG format (lossless, larger files).
+            Lower values mean use JPEG with that quality (2=best, 31=worst).
+            Lower values produce better quality but larger files.
 
         Returns
         -------
@@ -743,6 +753,14 @@ class RemoteDatasetV2(RemoteDataset):
             fps=1.0,
             multi_slotted=True
         )
+
+        # Skip LQ frames and use JPEG for HQ frames
+        results = dataset.register_locally_processed(
+            object_store=storage,
+            files=["video.mp4"],
+            include_lq_frames=False,
+            hq_frames_quality=5  # High quality JPEG
+        )
         ```
         """
         if multi_slotted:
@@ -760,6 +778,8 @@ class RemoteDatasetV2(RemoteDataset):
                 fps=fps,
                 segment_length=segment_length,
                 repair=repair,
+                include_lq_frames=include_lq_frames,
+                hq_frames_quality=hq_frames_quality,
             )
         else:
             if not isinstance(files, list):
@@ -775,6 +795,8 @@ class RemoteDatasetV2(RemoteDataset):
                 fps=fps,
                 segment_length=segment_length,
                 repair=repair,
+                include_lq_frames=include_lq_frames,
+                hq_frames_quality=hq_frames_quality,
             )
 
         return results
@@ -1004,6 +1026,8 @@ class RemoteDatasetV2(RemoteDataset):
         fps: float = 0.0,
         segment_length: int = 2,
         repair: bool = False,
+        include_lq_frames: bool = True,
+        hq_frames_quality: Optional[int] = 1,
     ) -> Dict[str, List[str]]:
         """
         Register videos as single-slotted items from readonly storage.
@@ -1024,6 +1048,13 @@ class RemoteDatasetV2(RemoteDataset):
             HLS segment length in seconds
         repair : bool
             Attempt video repair if errors detected
+        include_lq_frames : bool, default: True
+            If True, extract and include low-quality frames.
+            If False, skip LQ frame extraction.
+        hq_frames_quality : Optional[int], default: 1
+            Quality setting for high-quality frames.
+            1 means use PNG format.
+            Lower integer value means use JPEG with that quality (2=best, 31=worst).
 
         Returns
         -------
@@ -1077,6 +1108,8 @@ class RemoteDatasetV2(RemoteDataset):
                 fps=fps,
                 segment_length=segment_length,
                 repair=repair,
+                include_lq_frames=include_lq_frames,
+                hq_frames_quality=hq_frames_quality,
             )
 
             # Build item payload
@@ -1108,6 +1141,8 @@ class RemoteDatasetV2(RemoteDataset):
         fps: float = 0.0,
         segment_length: int = 2,
         repair: bool = False,
+        include_lq_frames: bool = True,
+        hq_frames_quality: Optional[int] = 1,
     ) -> Dict[str, List[str]]:
         """
         Register videos as multi-slotted items from readonly storage.
@@ -1131,6 +1166,13 @@ class RemoteDatasetV2(RemoteDataset):
             HLS segment length in seconds
         repair : bool
             Attempt video repair if errors detected
+        include_lq_frames : bool, default: True
+            If True, extract and include low-quality frames.
+            If False, skip LQ frame extraction.
+        hq_frames_quality : Optional[int], default: 1
+            Quality setting for high-quality frames.
+            1 means use PNG format.
+            Lower integer value means use JPEG with that quality (2=best, 31=worst).
 
         Returns
         -------
@@ -1214,6 +1256,8 @@ class RemoteDatasetV2(RemoteDataset):
                     fps=fps,
                     segment_length=segment_length,
                     repair=repair,
+                    include_lq_frames=include_lq_frames,
+                    hq_frames_quality=hq_frames_quality,
                 )
                 path_to_metadata[abs_path] = slot_metadata
 
@@ -1319,6 +1363,8 @@ class RemoteDatasetV2(RemoteDataset):
         fps: float,
         segment_length: int,
         repair: bool,
+        include_lq_frames: bool = True,
+        hq_frames_quality: Optional[int] = 1,
     ) -> Dict:
         """
         Process a single video file: extract artifacts, upload to storage.
@@ -1337,6 +1383,13 @@ class RemoteDatasetV2(RemoteDataset):
             Segment length in seconds
         repair : bool
             Whether to repair video
+        include_lq_frames : bool, default: True
+            If True, extract and include low-quality frames.
+            If False, skip LQ frame extraction.
+        hq_frames_quality : Optional[int], default: 1
+            Quality setting for high-quality frames.
+            1 means use PNG format.
+            Lower integer value means use JPEG with that quality (2=best, 31=worst).
 
         Returns
         -------
@@ -1356,6 +1409,8 @@ class RemoteDatasetV2(RemoteDataset):
                 segment_length=segment_length,
                 repair=repair,
                 save_metadata=True,
+                include_lq_frames=include_lq_frames,
+                hq_frames_quality=hq_frames_quality,
             )
 
             # Upload to storage

@@ -2624,3 +2624,171 @@ class TestRegisterLocallyPreprocessed:
 
         # Should raise ValueError for invalid extensions, not FileNotFoundError
         assert "not supported" in str(exc_info.value)
+
+    @patch("darwin.backend_v2.BackendV2.register_readonly_items")
+    def test_passes_include_lq_frames_parameter(
+        self,
+        mock_register,
+        remote_dataset: RemoteDatasetV2,
+        readonly_object_store,
+        tmp_path,
+    ):
+        """Test that include_lq_frames parameter is passed correctly."""
+        video_file = tmp_path / "test.mp4"
+        video_file.write_text("video content")
+
+        mock_register.return_value = {
+            "items": [{"id": "123", "name": "test.mp4"}],
+            "blocked_items": [],
+        }
+
+        with patch.object(
+            remote_dataset,
+            "_process_video_file_for_readonly",
+            return_value={"fps": 30.0, "frame_count": 100},
+        ) as mock_process:
+            remote_dataset.register_locally_processed(
+                object_store=readonly_object_store,
+                files=[str(video_file)],
+                include_lq_frames=False,
+            )
+
+            # Verify include_lq_frames was passed to _process_video_file_for_readonly
+            call_kwargs = mock_process.call_args[1]
+            assert call_kwargs["include_lq_frames"] is False
+
+    @patch("darwin.backend_v2.BackendV2.register_readonly_items")
+    def test_passes_hq_frames_quality_parameter(
+        self,
+        mock_register,
+        remote_dataset: RemoteDatasetV2,
+        readonly_object_store,
+        tmp_path,
+    ):
+        """Test that hq_frames_quality parameter is passed correctly."""
+        video_file = tmp_path / "test.mp4"
+        video_file.write_text("video content")
+
+        mock_register.return_value = {
+            "items": [{"id": "123", "name": "test.mp4"}],
+            "blocked_items": [],
+        }
+
+        with patch.object(
+            remote_dataset,
+            "_process_video_file_for_readonly",
+            return_value={"fps": 30.0, "frame_count": 100},
+        ) as mock_process:
+            remote_dataset.register_locally_processed(
+                object_store=readonly_object_store,
+                files=[str(video_file)],
+                hq_frames_quality=5,
+            )
+
+            # Verify hq_frames_quality was passed to _process_video_file_for_readonly
+            call_kwargs = mock_process.call_args[1]
+            assert call_kwargs["hq_frames_quality"] == 5
+
+    @patch("darwin.backend_v2.BackendV2.register_readonly_items")
+    def test_passes_both_new_parameters(
+        self,
+        mock_register,
+        remote_dataset: RemoteDatasetV2,
+        readonly_object_store,
+        tmp_path,
+    ):
+        """Test that both include_lq_frames and hq_frames_quality are passed correctly."""
+        video_file = tmp_path / "test.mp4"
+        video_file.write_text("video content")
+
+        mock_register.return_value = {
+            "items": [{"id": "123", "name": "test.mp4"}],
+            "blocked_items": [],
+        }
+
+        with patch.object(
+            remote_dataset,
+            "_process_video_file_for_readonly",
+            return_value={"fps": 30.0, "frame_count": 100},
+        ) as mock_process:
+            remote_dataset.register_locally_processed(
+                object_store=readonly_object_store,
+                files=[str(video_file)],
+                include_lq_frames=False,
+                hq_frames_quality=10,
+            )
+
+            # Verify both parameters were passed
+            call_kwargs = mock_process.call_args[1]
+            assert call_kwargs["include_lq_frames"] is False
+            assert call_kwargs["hq_frames_quality"] == 10
+
+    @patch("darwin.backend_v2.BackendV2.register_readonly_items")
+    def test_multi_slotted_passes_new_parameters(
+        self,
+        mock_register,
+        remote_dataset: RemoteDatasetV2,
+        readonly_object_store,
+        tmp_path,
+    ):
+        """Test that new parameters are passed correctly for multi-slotted items."""
+        video1 = tmp_path / "front.mp4"
+        video2 = tmp_path / "back.mp4"
+        video1.write_text("front video")
+        video2.write_text("back video")
+
+        mock_register.return_value = {
+            "items": [{"id": "456", "name": "multi_view"}],
+            "blocked_items": [],
+        }
+
+        with patch.object(
+            remote_dataset,
+            "_process_video_file_for_readonly",
+            return_value={"fps": 30.0, "frame_count": 100},
+        ) as mock_process:
+            remote_dataset.register_locally_processed(
+                object_store=readonly_object_store,
+                files={"multi_view": [str(video1), str(video2)]},
+                multi_slotted=True,
+                include_lq_frames=False,
+                hq_frames_quality=5,
+            )
+
+            # All calls should have the new parameters
+            for call in mock_process.call_args_list:
+                call_kwargs = call[1]
+                assert call_kwargs["include_lq_frames"] is False
+                assert call_kwargs["hq_frames_quality"] == 5
+
+    @patch("darwin.backend_v2.BackendV2.register_readonly_items")
+    def test_default_values_for_new_parameters(
+        self,
+        mock_register,
+        remote_dataset: RemoteDatasetV2,
+        readonly_object_store,
+        tmp_path,
+    ):
+        """Test that default values are used when new parameters are not specified."""
+        video_file = tmp_path / "test.mp4"
+        video_file.write_text("video content")
+
+        mock_register.return_value = {
+            "items": [{"id": "123", "name": "test.mp4"}],
+            "blocked_items": [],
+        }
+
+        with patch.object(
+            remote_dataset,
+            "_process_video_file_for_readonly",
+            return_value={"fps": 30.0, "frame_count": 100},
+        ) as mock_process:
+            remote_dataset.register_locally_processed(
+                object_store=readonly_object_store,
+                files=[str(video_file)],
+            )
+
+            # Verify default values were used
+            call_kwargs = mock_process.call_args[1]
+            assert call_kwargs["include_lq_frames"] is True
+            assert call_kwargs["hq_frames_quality"] == 1
