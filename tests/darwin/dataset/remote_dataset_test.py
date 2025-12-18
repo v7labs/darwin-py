@@ -2426,3 +2426,369 @@ class TestReadonlyVideoHelperMethods:
 
         assert "total_size_bytes" not in result
         assert result["size_bytes"] == 1000000
+
+
+@pytest.mark.usefixtures("file_read_write_test")
+class TestRegisterLocallyPreprocessed:
+    """Tests for register_locally_processed method."""
+
+    @pytest.fixture
+    def readonly_object_store(self):
+        return ObjectStore(
+            name="readonly-storage",
+            prefix="test_prefix",
+            readonly=True,
+            provider="aws",
+            default=False,
+            bucket="test-bucket",
+            region="us-east-1",
+        )
+
+    def test_raises_for_unsupported_extension_single_slotted(
+        self, remote_dataset: RemoteDatasetV2, readonly_object_store
+    ):
+        """Test that unsupported files raise ValueError in single-slotted mode."""
+        with pytest.raises(ValueError) as exc_info:
+            remote_dataset.register_locally_processed(
+                object_store=readonly_object_store,
+                files=["image.png", "video.mp4"],
+                multi_slotted=False,
+            )
+        assert "image.png" in str(exc_info.value)
+        assert "not supported" in str(exc_info.value)
+
+    def test_raises_for_unsupported_extension_multi_slotted(
+        self, remote_dataset: RemoteDatasetV2, readonly_object_store
+    ):
+        """Test that unsupported files raise ValueError in multi-slotted mode."""
+        with pytest.raises(ValueError) as exc_info:
+            remote_dataset.register_locally_processed(
+                object_store=readonly_object_store,
+                files={
+                    "item1": ["video.mp4", "image.jpg"],
+                },
+                multi_slotted=True,
+            )
+        assert "image.jpg" in str(exc_info.value)
+        assert "not supported" in str(exc_info.value)
+
+    def test_accepts_valid_video_extensions(
+        self, remote_dataset: RemoteDatasetV2, readonly_object_store, tmp_path
+    ):
+        """Test that valid video extensions pass validation."""
+        # Create test files
+        video1 = tmp_path / "test.mp4"
+        video2 = tmp_path / "test.mov"
+        video1.write_text("video content")
+        video2.write_text("video content")
+
+        with patch.object(
+            remote_dataset,
+            "register_single_slotted_readonly_videos",
+            return_value={"registered": ["test.mp4"], "blocked": []},
+        ) as mock_register:
+            result = remote_dataset.register_locally_processed(
+                object_store=readonly_object_store,
+                files=[str(video1), str(video2)],
+                multi_slotted=False,
+            )
+
+            mock_register.assert_called_once()
+            assert "registered" in result
+
+    def test_accepts_all_native_video_extensions(
+        self, remote_dataset: RemoteDatasetV2, readonly_object_store
+    ):
+        """Test that all native video extensions pass validation."""
+        from darwin.utils import NATIVE_VIDEO_EXTENSIONS
+
+        video_files = [f"video{ext}" for ext in NATIVE_VIDEO_EXTENSIONS]
+
+        # Should not raise - all extensions are valid
+        remote_dataset._validate_supported_file_extensions(video_files)
+
+    def test_case_insensitive_extension_validation(
+        self, remote_dataset: RemoteDatasetV2, readonly_object_store
+    ):
+        """Test that extension validation is case-insensitive."""
+        video_files = ["video.MP4", "video.Mov", "video.AVI"]
+
+        # Should not raise - case insensitive validation
+        remote_dataset._validate_supported_file_extensions(video_files)
+
+    def test_raises_for_wrong_type_single_slotted(
+        self, remote_dataset: RemoteDatasetV2, readonly_object_store
+    ):
+        """Test that ValueError is raised when dict is passed with multi_slotted=False."""
+        with pytest.raises(ValueError) as exc_info:
+            remote_dataset.register_locally_processed(
+                object_store=readonly_object_store,
+                files={"item": ["video.mp4"]},
+                multi_slotted=False,
+            )
+        assert "must be a list" in str(exc_info.value)
+
+    def test_raises_for_wrong_type_multi_slotted(
+        self, remote_dataset: RemoteDatasetV2, readonly_object_store
+    ):
+        """Test that ValueError is raised when list is passed with multi_slotted=True."""
+        with pytest.raises(ValueError) as exc_info:
+            remote_dataset.register_locally_processed(
+                object_store=readonly_object_store,
+                files=["video.mp4"],
+                multi_slotted=True,
+            )
+        assert "must be a dictionary" in str(exc_info.value)
+
+    @patch("darwin.backend_v2.BackendV2.register_readonly_items")
+    def test_single_slotted_passes_correct_parameters(
+        self,
+        mock_register,
+        remote_dataset: RemoteDatasetV2,
+        readonly_object_store,
+        tmp_path,
+    ):
+        """Test that single-slotted registration passes correct parameters."""
+        video_file = tmp_path / "test.mp4"
+        video_file.write_text("video content")
+
+        mock_register.return_value = {
+            "items": [{"id": "123", "name": "test.mp4"}],
+            "blocked_items": [],
+        }
+
+        with patch.object(
+            remote_dataset,
+            "_process_video_file_for_readonly",
+            return_value={"fps": 30.0, "frame_count": 100},
+        ):
+            result = remote_dataset.register_locally_processed(
+                object_store=readonly_object_store,
+                files=[str(video_file)],
+                path="/custom/path",
+                fps=2.0,
+                segment_length=5,
+                repair=True,
+                multi_slotted=False,
+            )
+
+        assert "registered" in result
+        assert "blocked" in result
+
+    @patch("darwin.backend_v2.BackendV2.register_readonly_items")
+    def test_multi_slotted_passes_correct_parameters(
+        self,
+        mock_register,
+        remote_dataset: RemoteDatasetV2,
+        readonly_object_store,
+        tmp_path,
+    ):
+        """Test that multi-slotted registration passes correct parameters."""
+        video1 = tmp_path / "front.mp4"
+        video2 = tmp_path / "back.mp4"
+        video1.write_text("front video")
+        video2.write_text("back video")
+
+        mock_register.return_value = {
+            "items": [{"id": "456", "name": "multi_view"}],
+            "blocked_items": [],
+        }
+
+        with patch.object(
+            remote_dataset,
+            "_process_video_file_for_readonly",
+            return_value={"fps": 30.0, "frame_count": 100},
+        ):
+            result = remote_dataset.register_locally_processed(
+                object_store=readonly_object_store,
+                files={"multi_view": [str(video1), str(video2)]},
+                path="/scenes",
+                fps=1.0,
+                multi_slotted=True,
+            )
+
+        assert "registered" in result
+        assert "blocked" in result
+
+    def test_raises_for_unsupported_extension_before_file_check(
+        self, remote_dataset: RemoteDatasetV2, readonly_object_store
+    ):
+        """Test that extension validation happens before file existence check."""
+        # These files don't exist, but validation should catch them first
+        with pytest.raises(ValueError) as exc_info:
+            remote_dataset.register_locally_processed(
+                object_store=readonly_object_store,
+                files=["nonexistent.txt", "also_missing.doc"],
+                multi_slotted=False,
+            )
+
+        # Should raise ValueError for invalid extensions, not FileNotFoundError
+        assert "not supported" in str(exc_info.value)
+
+    @patch("darwin.backend_v2.BackendV2.register_readonly_items")
+    def test_passes_extract_preview_frames_parameter(
+        self,
+        mock_register,
+        remote_dataset: RemoteDatasetV2,
+        readonly_object_store,
+        tmp_path,
+    ):
+        """Test that extract_preview_frames parameter is passed correctly."""
+        video_file = tmp_path / "test.mp4"
+        video_file.write_text("video content")
+
+        mock_register.return_value = {
+            "items": [{"id": "123", "name": "test.mp4"}],
+            "blocked_items": [],
+        }
+
+        with patch.object(
+            remote_dataset,
+            "_process_video_file_for_readonly",
+            return_value={"fps": 30.0, "frame_count": 100},
+        ) as mock_process:
+            remote_dataset.register_locally_processed(
+                object_store=readonly_object_store,
+                files=[str(video_file)],
+                extract_preview_frames=False,
+            )
+
+            # Verify extract_preview_frames was passed to _process_video_file_for_readonly
+            call_kwargs = mock_process.call_args[1]
+            assert call_kwargs["extract_preview_frames"] is False
+
+    @patch("darwin.backend_v2.BackendV2.register_readonly_items")
+    def test_passes_primary_frames_quality_parameter(
+        self,
+        mock_register,
+        remote_dataset: RemoteDatasetV2,
+        readonly_object_store,
+        tmp_path,
+    ):
+        """Test that primary_frames_quality parameter is passed correctly."""
+        video_file = tmp_path / "test.mp4"
+        video_file.write_text("video content")
+
+        mock_register.return_value = {
+            "items": [{"id": "123", "name": "test.mp4"}],
+            "blocked_items": [],
+        }
+
+        with patch.object(
+            remote_dataset,
+            "_process_video_file_for_readonly",
+            return_value={"fps": 30.0, "frame_count": 100},
+        ) as mock_process:
+            remote_dataset.register_locally_processed(
+                object_store=readonly_object_store,
+                files=[str(video_file)],
+                primary_frames_quality=5,
+            )
+
+            # Verify primary_frames_quality was passed to _process_video_file_for_readonly
+            call_kwargs = mock_process.call_args[1]
+            assert call_kwargs["primary_frames_quality"] == 5
+
+    @patch("darwin.backend_v2.BackendV2.register_readonly_items")
+    def test_passes_both_new_parameters(
+        self,
+        mock_register,
+        remote_dataset: RemoteDatasetV2,
+        readonly_object_store,
+        tmp_path,
+    ):
+        """Test that both extract_preview_frames and primary_frames_quality are passed correctly."""
+        video_file = tmp_path / "test.mp4"
+        video_file.write_text("video content")
+
+        mock_register.return_value = {
+            "items": [{"id": "123", "name": "test.mp4"}],
+            "blocked_items": [],
+        }
+
+        with patch.object(
+            remote_dataset,
+            "_process_video_file_for_readonly",
+            return_value={"fps": 30.0, "frame_count": 100},
+        ) as mock_process:
+            remote_dataset.register_locally_processed(
+                object_store=readonly_object_store,
+                files=[str(video_file)],
+                extract_preview_frames=False,
+                primary_frames_quality=10,
+            )
+
+            # Verify both parameters were passed
+            call_kwargs = mock_process.call_args[1]
+            assert call_kwargs["extract_preview_frames"] is False
+            assert call_kwargs["primary_frames_quality"] == 10
+
+    @patch("darwin.backend_v2.BackendV2.register_readonly_items")
+    def test_multi_slotted_passes_new_parameters(
+        self,
+        mock_register,
+        remote_dataset: RemoteDatasetV2,
+        readonly_object_store,
+        tmp_path,
+    ):
+        """Test that new parameters are passed correctly for multi-slotted items."""
+        video1 = tmp_path / "front.mp4"
+        video2 = tmp_path / "back.mp4"
+        video1.write_text("front video")
+        video2.write_text("back video")
+
+        mock_register.return_value = {
+            "items": [{"id": "456", "name": "multi_view"}],
+            "blocked_items": [],
+        }
+
+        with patch.object(
+            remote_dataset,
+            "_process_video_file_for_readonly",
+            return_value={"fps": 30.0, "frame_count": 100},
+        ) as mock_process:
+            remote_dataset.register_locally_processed(
+                object_store=readonly_object_store,
+                files={"multi_view": [str(video1), str(video2)]},
+                multi_slotted=True,
+                extract_preview_frames=False,
+                primary_frames_quality=5,
+            )
+
+            # All calls should have the new parameters
+            for call in mock_process.call_args_list:
+                call_kwargs = call[1]
+                assert call_kwargs["extract_preview_frames"] is False
+                assert call_kwargs["primary_frames_quality"] == 5
+
+    @patch("darwin.backend_v2.BackendV2.register_readonly_items")
+    def test_default_values_for_new_parameters(
+        self,
+        mock_register,
+        remote_dataset: RemoteDatasetV2,
+        readonly_object_store,
+        tmp_path,
+    ):
+        """Test that default values are used when new parameters are not specified."""
+        video_file = tmp_path / "test.mp4"
+        video_file.write_text("video content")
+
+        mock_register.return_value = {
+            "items": [{"id": "123", "name": "test.mp4"}],
+            "blocked_items": [],
+        }
+
+        with patch.object(
+            remote_dataset,
+            "_process_video_file_for_readonly",
+            return_value={"fps": 30.0, "frame_count": 100},
+        ) as mock_process:
+            remote_dataset.register_locally_processed(
+                object_store=readonly_object_store,
+                files=[str(video_file)],
+            )
+
+            # Verify default values were used
+            call_kwargs = mock_process.call_args[1]
+            assert call_kwargs["extract_preview_frames"] is True
+            assert call_kwargs["primary_frames_quality"] == 1

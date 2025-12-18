@@ -3,7 +3,6 @@ import sys
 from datetime import datetime, timedelta, timezone
 from unittest.mock import call, patch
 
-from darwin.datatypes import AnnotatorReportGrouping
 import pytest
 import responses
 from rich.console import Console
@@ -19,6 +18,7 @@ from darwin.client import Client
 from darwin.config import Config
 from darwin.dataset import RemoteDataset
 from darwin.dataset.remote_dataset_v2 import RemoteDatasetV2
+from darwin.datatypes import AnnotatorReportGrouping
 from darwin.options import Options
 from darwin.utils import BLOCKED_UPLOAD_ERROR_ALREADY_EXISTS
 from tests.fixtures import *
@@ -452,6 +452,99 @@ class TestExtractVideo:
                 repair=False,
                 storage_key_prefix="test/prefix",
                 save_metadata=True,
+                extract_preview_frames=True,
+                primary_frames_quality=1,
+            )
+
+    def test_extract_video_with_extract_preview_frames_false(self, tmp_path):
+        """Test video extraction with extract_preview_frames=False"""
+        source_file = "test_video.mp4"
+        output_dir = str(tmp_path)
+
+        with patch("darwin.extractor.video.extract_artifacts") as mock_extract:
+            mock_extract.return_value = {}
+
+            extract_video_artifacts(
+                source_file,
+                output_dir,
+                storage_key_prefix="test/prefix",
+                fps=30.0,
+                segment_length=2,
+                repair=False,
+                extract_preview_frames=False,
+            )
+
+            mock_extract.assert_called_once_with(
+                source_file=source_file,
+                output_dir=output_dir,
+                fps=30.0,
+                segment_length=2,
+                repair=False,
+                storage_key_prefix="test/prefix",
+                save_metadata=True,
+                extract_preview_frames=False,
+                primary_frames_quality=1,
+            )
+
+    def test_extract_video_with_primary_frames_quality(self, tmp_path):
+        """Test video extraction with primary_frames_quality set"""
+        source_file = "test_video.mp4"
+        output_dir = str(tmp_path)
+
+        with patch("darwin.extractor.video.extract_artifacts") as mock_extract:
+            mock_extract.return_value = {}
+
+            extract_video_artifacts(
+                source_file,
+                output_dir,
+                storage_key_prefix="test/prefix",
+                fps=30.0,
+                segment_length=2,
+                repair=False,
+                primary_frames_quality=5,
+            )
+
+            mock_extract.assert_called_once_with(
+                source_file=source_file,
+                output_dir=output_dir,
+                fps=30.0,
+                segment_length=2,
+                repair=False,
+                storage_key_prefix="test/prefix",
+                save_metadata=True,
+                extract_preview_frames=True,
+                primary_frames_quality=5,
+            )
+
+    def test_extract_video_with_both_new_parameters(self, tmp_path):
+        """Test video extraction with both new parameters"""
+        source_file = "test_video.mp4"
+        output_dir = str(tmp_path)
+
+        with patch("darwin.extractor.video.extract_artifacts") as mock_extract:
+            mock_extract.return_value = {}
+
+            extract_video_artifacts(
+                source_file,
+                output_dir,
+                storage_key_prefix="test/prefix",
+                fps=30.0,
+                segment_length=2,
+                repair=False,
+                extract_preview_frames=False,
+                primary_frames_quality=10,
+            )
+
+            mock_extract.assert_called_once_with(
+                source_file=source_file,
+                output_dir=output_dir,
+                fps=30.0,
+                segment_length=2,
+                repair=False,
+                storage_key_prefix="test/prefix",
+                save_metadata=True,
+                extract_preview_frames=False,
+                primary_frames_quality=10,
             )
 
 

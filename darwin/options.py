@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Any, Optional, Tuple
 
 import argcomplete
+
 from darwin.datatypes import AnnotatorReportGrouping
 
 
@@ -625,6 +626,17 @@ class Options:
             "--repair",
             action="store_true",
             help="Checks video for errors and attempts to repair them",
+        )
+        parser_video.add_argument(
+            "--no-preview-frames",
+            action="store_true",
+            help="Skip extraction of preview frames (used for playback scrubbing)",
+        )
+        parser_video.add_argument(
+            "--primary-frames-quality",
+            type=int,
+            default=1,
+            help="Quality for primary display frames (2=best JPEG, 31=worst). Default 1 uses PNG",
         )
 
         argcomplete.autocomplete(self.parser)

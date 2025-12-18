@@ -74,6 +74,16 @@ SUPPORTED_VIDEO_EXTENSIONS = [
     ".ndpi",
     ".rvg",
 ]
+
+# Native video formats suitable for HLS extraction (local preprocessing)
+NATIVE_VIDEO_EXTENSIONS = [
+    ".avi",
+    ".mov",
+    ".mp4",
+    ".mkv",
+    ".hevc",
+]
+
 SUPPORTED_EXTENSIONS = SUPPORTED_IMAGE_EXTENSIONS + SUPPORTED_VIDEO_EXTENSIONS
 
 # Define incompatible `item_merge_mode` arguments

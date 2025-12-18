@@ -390,10 +390,30 @@ def _get_frames_timestamps(source_file: str) -> List[float]:
 
 
 def _extract_frames(
-    source_file: str, output_dir: str, downsampling_step: float, quality: str
+    source_file: str,
+    output_dir: str,
+    downsampling_step: float,
+    quality: int,
 ):
-    """Extract frames using ffmpeg with optional downsampling"""
-    frame_ext = "png" if quality == "high" else "jpg"
+    """Extract frames using ffmpeg with optional downsampling.
+
+    Parameters
+    ----------
+    source_file : str
+        Path to source video file
+    output_dir : str
+        Directory to store extracted frames
+    downsampling_step : float
+        Downsampling step for frame extraction
+    quality : int
+        Quality level: 1 for high quality png, 2-31 for lower quality jpeg
+    """
+    # Determine extension based on quality settings
+    if quality == 1:
+        frame_ext = "png"
+    else:
+        frame_ext = "jpg"
+
     frame_pattern = os.path.join(output_dir, f"%09d.{frame_ext}")
 
     cmd = [
@@ -411,8 +431,9 @@ def _extract_frames(
         "image2",
     ]
 
-    if quality == "low":
-        cmd.extend(["-q", "5"])
+    # Add quality flag for JPEG
+    if quality > 1:
+        cmd.extend(["-q", str(quality)])
 
     if downsampling_step > 1:
         # Use select filter to precisely control what frames are extracted
@@ -565,6 +586,8 @@ def extract_artifacts(
     segment_length: int = 2,
     repair: bool = False,
     save_metadata: bool = False,
+    extract_preview_frames: bool = True,
+    primary_frames_quality: int = 1,
 ) -> Dict:
     """
     Extracts video artifacts including segments, frames, thumbnail for
@@ -578,6 +601,12 @@ def extract_artifacts(
         segment_length: Length of each segment in seconds, defaults to 2
         repair: If True, attempt to repair video if errors are detected, defaults to False
         save_metadata: If True, save metadata to a file, defaults to False
+        extract_preview_frames: If True (default), extract preview frames used for
+            playback scrubbing. If False, skip extraction (system will use video
+            segments for preview, which is less precise).
+        primary_frames_quality: Quality setting for primary display frames.
+            1 (default) means use PNG format (lossless).
+            2-31 means use JPEG with that quality (2=best, 31=worst).
 
     Returns:
         Dict containing metadata and paths to generated artifacts
@@ -617,8 +646,11 @@ def extract_artifacts(
 
     console.print("\nExtracting frames...")
 
-    _extract_frames(source_file, dirs["sections_high"], downsampling_step, "high")
-    _extract_frames(source_file, dirs["sections_low"], downsampling_step, "low")
+    _extract_frames(
+        source_file, dirs["sections_high"], downsampling_step, primary_frames_quality
+    )
+    if extract_preview_frames:
+        _extract_frames(source_file, dirs["sections_low"], downsampling_step, 5)
 
     console.print("\nCreating frames manifest...")
 
@@ -654,42 +686,53 @@ def extract_artifacts(
 
     source_file_name = os.path.basename(source_file)
 
+    # Determine HQ frames extension
+    storage_sections_key_extension = "png" if primary_frames_quality == 1 else "jpg"
+
     # Prepare final metadata
+    registration_payload = {
+        "type": "video",
+        "width": metadata["width"],
+        "height": metadata["height"],
+        "native_fps": metadata["native_fps"],
+        "fps": fps,
+        "visible_frames": manifest_metadata["visible_frames"],
+        "total_frames": manifest_metadata["total_frames"],
+        # After item registration with this payload,
+        # DARWIN will use storage keys from HLS indexes and fields defined below
+        # to create signed URLs and fetch files from storage.
+        # Therefore, the storage key must be correct.
+        "hls_segments": {
+            "high_quality": {
+                "index": hq_hls_index,
+                "bitrate": segments_metadata["bitrates"]["high"],
+            },
+            "low_quality": {
+                "index": lq_hls_index,
+                "bitrate": segments_metadata["bitrates"]["low"],
+            },
+        },
+        "storage_key": f"{storage_key_prefix}/{source_file_name}",
+        "storage_sections_key_prefix": f"{storage_key_prefix}/sections/high",
+        "storage_sections_key_extension": storage_sections_key_extension,
+        "storage_frames_manifest_key": f"{storage_key_prefix}/frames_manifest.txt",
+        "storage_thumbnail_key": f"{storage_key_prefix}/thumbnail.jpg",
+        "total_size_bytes": source_file_size,
+        "name": source_file_name,
+        "path": "/",
+    }
+
+    # Conditionally include LQ sections key prefix
+    if extract_preview_frames:
+        registration_payload["storage_low_quality_sections_key_prefix"] = (
+            f"{storage_key_prefix}/sections/low"
+        )
+
     result_metadata = {
         "repaired": repaired,
         "source_file": source_file,
         "storage_key_prefix": storage_key_prefix,
-        "registration_payload": {
-            "type": "video",
-            "width": metadata["width"],
-            "height": metadata["height"],
-            "native_fps": metadata["native_fps"],
-            "fps": fps,
-            "visible_frames": manifest_metadata["visible_frames"],
-            "total_frames": manifest_metadata["total_frames"],
-            # After item registration with this payload,
-            # DARWIN will use storage keys from HLS indexes and fields defined below
-            # to create signed URLs and fetch files from storage.
-            # Therefore, the storage key must be correct.
-            "hls_segments": {
-                "high_quality": {
-                    "index": hq_hls_index,
-                    "bitrate": segments_metadata["bitrates"]["high"],
-                },
-                "low_quality": {
-                    "index": lq_hls_index,
-                    "bitrate": segments_metadata["bitrates"]["low"],
-                },
-            },
-            "storage_key": f"{storage_key_prefix}/{source_file_name}",
-            "storage_sections_key_prefix": f"{storage_key_prefix}/sections/high",
-            "storage_low_quality_sections_key_prefix": f"{storage_key_prefix}/sections/low",
-            "storage_frames_manifest_key": f"{storage_key_prefix}/frames_manifest.txt",
-            "storage_thumbnail_key": f"{storage_key_prefix}/thumbnail.jpg",
-            "total_size_bytes": source_file_size,
-            "name": source_file_name,
-            "path": "/",
-        },
+        "registration_payload": registration_payload,
     }
 
     # Add audio peaks key if audio was extracted

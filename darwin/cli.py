@@ -6,11 +6,11 @@ from argparse import ArgumentParser, Namespace
 from pathlib import Path
 
 import requests.exceptions
-from darwin.datatypes import AnnotatorReportGrouping
 from rich.console import Console
 
 import darwin.cli_functions as f
 from darwin import __version__
+from darwin.datatypes import AnnotatorReportGrouping
 from darwin.exceptions import GracefulExit, InvalidTeam, Unauthenticated, Unauthorized
 from darwin.options import Options
 
@@ -111,6 +111,8 @@ def _run(args: Namespace, parser: ArgumentParser) -> None:
                 fps=args.fps,
                 segment_length=args.segment_length,
                 repair=args.repair,
+                extract_preview_frames=not args.no_preview_frames,
+                primary_frames_quality=args.primary_frames_quality,
             )
         else:
             parser.print_help()

@@ -52,6 +52,7 @@ from darwin.item_sorter import ItemSorter
 from darwin.utils import (
     AS_FRAMES_KEY,
     EXTRACT_VIEWS_KEY,
+    NATIVE_VIDEO_EXTENSIONS,
     PRESERVE_FOLDERS_KEY,
     SUPPORTED_EXTENSIONS,
     find_files,
@@ -660,6 +661,176 @@ class RemoteDatasetV2(RemoteDataset):
             )
             return results
 
+    def register_locally_processed(
+        self,
+        object_store: ObjectStore,
+        files: Union[List[Union[str, Path]], Dict[str, List[Union[str, Path]]]],
+        path: str = "/",
+        fps: float = 0.0,
+        segment_length: int = 2,
+        repair: bool = False,
+        multi_slotted: bool = False,
+        extract_preview_frames: bool = True,
+        primary_frames_quality: int = 1,
+    ) -> Dict[str, List[str]]:
+        """
+        Register locally preprocessed files to Darwin dataset using external storage.
+
+        This function processes local files (extracting HLS artifacts, thumbnails, etc.),
+        uploads them to the configured external storage, and registers them with Darwin.
+        Files are preprocessed locally rather than on Darwin's servers.
+
+        Parameters
+        ----------
+        object_store : ObjectStore
+            Readonly external storage configuration.
+            Get via: client.get_external_storage() with appropriate provider credentials.
+        files : List[Union[str, Path]] | Dict[str, List[Union[str, Path]]]
+            Either:
+            - Single-slotted items: A list of video file paths (one item per video)
+            - Multi-slotted items: A dictionary with keys as item names and values
+              as lists of video file paths (multiple slots per item)
+        path : str, default: "/"
+            Path in dataset where items will be stored.
+        fps : float, default: 0.0
+            Target FPS for frame extraction. 0.0 means native fps.
+        segment_length : int, default: 2
+            HLS segment length in seconds.
+        repair : bool, default: False
+            Attempt video repair if errors are detected.
+        multi_slotted : bool, default: False
+            Specify whether the items are multi-slotted or not.
+        extract_preview_frames : bool, default: True
+            If True, extract preview frames for playback scrubbing.
+            If False, skip extraction (system will use video segments for preview).
+        primary_frames_quality : Optional[int], default: 1
+            Quality setting for primary display frames.
+            1 (default) means use PNG format (lossless).
+            2-31 means use JPEG with that quality (2=best, 31=worst).
+
+        Returns
+        -------
+        Dict[str, List[str]]
+            A dictionary with the list of registered and blocked files:
+            {
+                "registered": ["Item video1.mp4 registered with ID 123", ...],
+                "blocked": ["Item video2.mp4 blocked: duplicate", ...]
+            }
+
+        Raises
+        ------
+        ValueError
+            If the type of ``files``:
+            - Isn't List when ``multi_slotted`` is False.
+            - Isn't Dict when ``multi_slotted`` is True.
+            If any file does not have a supported extension.
+
+        Example
+        -------
+        ```python
+        storage = client.get_external_storage(
+            team_slug="my-team",
+            name="my-readonly-storage",
+        )
+
+        # Single-slotted: one item per video
+        results = dataset.register_locally_processed(
+            object_store=storage,
+            files=["video1.mp4", "video2.mp4"],
+            path="/recordings",
+            fps=1.0
+        )
+
+        # Multi-slotted: multiple videos per item
+        results = dataset.register_locally_processed(
+            object_store=storage,
+            files={
+                "scene_1": ["front.mp4", "back.mp4"],
+                "scene_2": ["camera1.mp4", "camera2.mp4"],
+            },
+            path="/scenes",
+            fps=1.0,
+            multi_slotted=True
+        )
+
+        # Skip preview frames and use JPEG for primary frames
+        results = dataset.register_locally_processed(
+            object_store=storage,
+            files=["video.mp4"],
+            extract_preview_frames=False,
+            primary_frames_quality=5  # High quality JPEG
+        )
+        ```
+        """
+        if multi_slotted:
+            if not isinstance(files, dict):
+                raise ValueError(
+                    "files must be a dictionary when multi_slotted=True. "
+                    "Example: {'item_name': ['video1.mp4', 'video2.mp4']}"
+                )
+            for file_list in files.values():
+                self._validate_supported_file_extensions(file_list)
+            results = self.register_multi_slotted_readonly_videos(
+                object_store=object_store,
+                video_files=files,  # type: ignore
+                path=path,
+                fps=fps,
+                segment_length=segment_length,
+                repair=repair,
+                extract_preview_frames=extract_preview_frames,
+                primary_frames_quality=primary_frames_quality,
+            )
+        else:
+            if not isinstance(files, list):
+                raise ValueError(
+                    "files must be a list when multi_slotted=False. "
+                    "Example: ['video1.mp4', 'video2.mp4']"
+                )
+            self._validate_supported_file_extensions(files)
+            results = self.register_single_slotted_readonly_videos(
+                object_store=object_store,
+                video_files=files,  # type: ignore
+                path=path,
+                fps=fps,
+                segment_length=segment_length,
+                repair=repair,
+                extract_preview_frames=extract_preview_frames,
+                primary_frames_quality=primary_frames_quality,
+            )
+
+        return results
+
+    def _validate_supported_file_extensions(
+        self,
+        files: List[Union[str, Path]],
+    ) -> None:
+        """
+        Validate that all provided files have supported file extensions.
+
+        Currently only native video files are supported for local preprocessing.
+        In the future, this method will be extended to support other file types.
+
+        Parameters
+        ----------
+        files : List[Union[str, Path]]
+            Files to validate
+
+        Raises
+        ------
+        ValueError
+            If any file does not have a supported extension.
+        """
+        for file_path in files:
+            filename = str(file_path).lower()
+            is_supported = any(
+                filename.endswith(ext.lower()) for ext in NATIVE_VIDEO_EXTENSIONS
+            )
+            if not is_supported:
+                raise ValueError(
+                    f"The file '{file_path}' is not supported. "
+                    f"Supported extensions: {', '.join(NATIVE_VIDEO_EXTENSIONS)}"
+                )
+
     def register_single_slotted(
         self,
         object_store: ObjectStore,
@@ -854,6 +1025,8 @@ class RemoteDatasetV2(RemoteDataset):
         fps: float = 0.0,
         segment_length: int = 2,
         repair: bool = False,
+        extract_preview_frames: bool = True,
+        primary_frames_quality: int = 1,
     ) -> Dict[str, List[str]]:
         """
         Register videos as single-slotted items from readonly storage.
@@ -874,6 +1047,13 @@ class RemoteDatasetV2(RemoteDataset):
             HLS segment length in seconds
         repair : bool
             Attempt video repair if errors detected
+        extract_preview_frames : bool, default: True
+            If True, extract preview frames for playback scrubbing.
+            If False, skip extraction (system will use video segments).
+        primary_frames_quality : Optional[int], default: 1
+            Quality setting for primary display frames.
+            1 means use PNG format (lossless).
+            2-31 means use JPEG with that quality (2=best, 31=worst).
 
         Returns
         -------
@@ -927,6 +1107,8 @@ class RemoteDatasetV2(RemoteDataset):
                 fps=fps,
                 segment_length=segment_length,
                 repair=repair,
+                extract_preview_frames=extract_preview_frames,
+                primary_frames_quality=primary_frames_quality,
             )
 
             # Build item payload
@@ -958,6 +1140,8 @@ class RemoteDatasetV2(RemoteDataset):
         fps: float = 0.0,
         segment_length: int = 2,
         repair: bool = False,
+        extract_preview_frames: bool = True,
+        primary_frames_quality: int = 1,
     ) -> Dict[str, List[str]]:
         """
         Register videos as multi-slotted items from readonly storage.
@@ -981,6 +1165,13 @@ class RemoteDatasetV2(RemoteDataset):
             HLS segment length in seconds
         repair : bool
             Attempt video repair if errors detected
+        extract_preview_frames : bool, default: True
+            If True, extract preview frames for playback scrubbing.
+            If False, skip extraction (system will use video segments).
+        primary_frames_quality : Optional[int], default: 1
+            Quality setting for primary display frames.
+            1 means use PNG format (lossless).
+            2-31 means use JPEG with that quality (2=best, 31=worst).
 
         Returns
         -------
@@ -1064,6 +1255,8 @@ class RemoteDatasetV2(RemoteDataset):
                     fps=fps,
                     segment_length=segment_length,
                     repair=repair,
+                    extract_preview_frames=extract_preview_frames,
+                    primary_frames_quality=primary_frames_quality,
                 )
                 path_to_metadata[abs_path] = slot_metadata
 
@@ -1169,6 +1362,8 @@ class RemoteDatasetV2(RemoteDataset):
         fps: float,
         segment_length: int,
         repair: bool,
+        extract_preview_frames: bool = True,
+        primary_frames_quality: int = 1,
     ) -> Dict:
         """
         Process a single video file: extract artifacts, upload to storage.
@@ -1187,6 +1382,13 @@ class RemoteDatasetV2(RemoteDataset):
             Segment length in seconds
         repair : bool
             Whether to repair video
+        extract_preview_frames : bool, default: True
+            If True, extract preview frames for playback scrubbing.
+            If False, skip extraction (system will use video segments).
+        primary_frames_quality : Optional[int], default: 1
+            Quality setting for primary display frames.
+            1 means use PNG format (lossless).
+            2-31 means use JPEG with that quality (2=best, 31=worst).
 
         Returns
         -------
@@ -1206,6 +1408,8 @@ class RemoteDatasetV2(RemoteDataset):
                 segment_length=segment_length,
                 repair=repair,
                 save_metadata=True,
+                extract_preview_frames=extract_preview_frames,
+                primary_frames_quality=primary_frames_quality,
             )
 
             # Upload to storage
