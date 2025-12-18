@@ -452,12 +452,12 @@ class TestExtractVideo:
                 repair=False,
                 storage_key_prefix="test/prefix",
                 save_metadata=True,
-                include_lq_frames=True,
-                hq_frames_quality=1,
+                extract_preview_frames=True,
+                primary_frames_quality=1,
             )
 
-    def test_extract_video_with_include_lq_frames_false(self, tmp_path):
-        """Test video extraction with include_lq_frames=False"""
+    def test_extract_video_with_extract_preview_frames_false(self, tmp_path):
+        """Test video extraction with extract_preview_frames=False"""
         source_file = "test_video.mp4"
         output_dir = str(tmp_path)
 
@@ -471,7 +471,7 @@ class TestExtractVideo:
                 fps=30.0,
                 segment_length=2,
                 repair=False,
-                include_lq_frames=False,
+                extract_preview_frames=False,
             )
 
             mock_extract.assert_called_once_with(
@@ -482,12 +482,12 @@ class TestExtractVideo:
                 repair=False,
                 storage_key_prefix="test/prefix",
                 save_metadata=True,
-                include_lq_frames=False,
-                hq_frames_quality=1,
+                extract_preview_frames=False,
+                primary_frames_quality=1,
             )
 
-    def test_extract_video_with_hq_frames_quality(self, tmp_path):
-        """Test video extraction with hq_frames_quality set"""
+    def test_extract_video_with_primary_frames_quality(self, tmp_path):
+        """Test video extraction with primary_frames_quality set"""
         source_file = "test_video.mp4"
         output_dir = str(tmp_path)
 
@@ -501,7 +501,7 @@ class TestExtractVideo:
                 fps=30.0,
                 segment_length=2,
                 repair=False,
-                hq_frames_quality=5,
+                primary_frames_quality=5,
             )
 
             mock_extract.assert_called_once_with(
@@ -512,8 +512,8 @@ class TestExtractVideo:
                 repair=False,
                 storage_key_prefix="test/prefix",
                 save_metadata=True,
-                include_lq_frames=True,
-                hq_frames_quality=5,
+                extract_preview_frames=True,
+                primary_frames_quality=5,
             )
 
     def test_extract_video_with_both_new_parameters(self, tmp_path):
@@ -531,8 +531,8 @@ class TestExtractVideo:
                 fps=30.0,
                 segment_length=2,
                 repair=False,
-                include_lq_frames=False,
-                hq_frames_quality=10,
+                extract_preview_frames=False,
+                primary_frames_quality=10,
             )
 
             mock_extract.assert_called_once_with(
@@ -543,8 +543,8 @@ class TestExtractVideo:
                 repair=False,
                 storage_key_prefix="test/prefix",
                 save_metadata=True,
-                include_lq_frames=False,
-                hq_frames_quality=10,
+                extract_preview_frames=False,
+                primary_frames_quality=10,
             )
 
 

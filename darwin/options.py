@@ -628,15 +628,15 @@ class Options:
             help="Checks video for errors and attempts to repair them",
         )
         parser_video.add_argument(
-            "--no-lq-frames",
+            "--no-preview-frames",
             action="store_true",
-            help="Skip extraction of low-quality frames",
+            help="Skip extraction of preview frames (used for playback scrubbing)",
         )
         parser_video.add_argument(
-            "--hq-frames-quality",
+            "--primary-frames-quality",
             type=int,
             default=1,
-            help="JPEG quality for HQ frames (2=best, 31=worst). If not set, uses PNG (1)",
+            help="Quality for primary display frames (2=best JPEG, 31=worst). Default 1 uses PNG",
         )
 
         argcomplete.autocomplete(self.parser)

@@ -294,8 +294,8 @@ class TestVideoArtifactExtraction:
             durations_3s
         ), "Should have more 1-second segments than 3-second segments"
 
-    def test_extract_artifacts_include_lq_frames_false(self, data_dir, output_dir):
-        """Test artifact extraction with include_lq_frames=False skips LQ frames"""
+    def test_extract_artifacts_extract_preview_frames_false(self, data_dir, output_dir):
+        """Test artifact extraction with extract_preview_frames=False skips preview frames"""
         source_file = data_dir / "test_video.mp4"
 
         result = extract_artifacts(
@@ -305,7 +305,7 @@ class TestVideoArtifactExtraction:
             fps=30.0,
             segment_length=2,
             repair=False,
-            include_lq_frames=False,
+            extract_preview_frames=False,
         )
 
         payload = result["registration_payload"]
@@ -313,7 +313,7 @@ class TestVideoArtifactExtraction:
         # Verify LQ sections key prefix is NOT in payload
         assert (
             "storage_low_quality_sections_key_prefix" not in payload
-        ), "LQ sections key prefix should not be in payload when include_lq_frames=False"
+        ), "LQ sections key prefix should not be in payload when extract_preview_frames=False"
 
         # Verify HQ sections are still present
         assert payload["storage_sections_key_prefix"] == "test/prefix/sections/high"
@@ -331,8 +331,8 @@ class TestVideoArtifactExtraction:
             lq_frames = list(lq_frames_dir.glob("*.jpg"))
             assert len(lq_frames) == 0, "Should have no LQ frames"
 
-    def test_extract_artifacts_hq_frames_quality_jpeg(self, data_dir, output_dir):
-        """Test artifact extraction with hq_frames_quality produces JPEG frames"""
+    def test_extract_artifacts_primary_frames_quality_jpeg(self, data_dir, output_dir):
+        """Test artifact extraction with primary_frames_quality produces JPEG frames"""
         source_file = data_dir / "test_video.mp4"
 
         result = extract_artifacts(
@@ -342,7 +342,7 @@ class TestVideoArtifactExtraction:
             fps=30.0,
             segment_length=2,
             repair=False,
-            hq_frames_quality=5,  # High quality JPEG
+            primary_frames_quality=5,  # High quality JPEG
         )
 
         payload = result["registration_payload"]
@@ -350,9 +350,9 @@ class TestVideoArtifactExtraction:
         # Verify hq_frames_extension is jpg
         assert (
             payload["hq_frames_extension"] == "jpg"
-        ), "HQ frames extension should be jpg when quality is set"
+        ), "Primary frames extension should be jpg when quality is set"
 
-        # Verify LQ sections key prefix is still present (default include_lq_frames=True)
+        # Verify LQ sections key prefix is still present (default extract_preview_frames=True)
         assert (
             payload["storage_low_quality_sections_key_prefix"]
             == "test/prefix/sections/low"
@@ -371,7 +371,7 @@ class TestVideoArtifactExtraction:
         assert len(lq_frames) == 150, "Should have 150 LQ JPEG frames"
 
     def test_extract_artifacts_both_options_combined(self, data_dir, output_dir):
-        """Test artifact extraction with both include_lq_frames=False and hq_frames_quality"""
+        """Test artifact extraction with both extract_preview_frames=False and primary_frames_quality"""
         source_file = data_dir / "test_video.mp4"
 
         result = extract_artifacts(
@@ -381,8 +381,8 @@ class TestVideoArtifactExtraction:
             fps=30.0,
             segment_length=2,
             repair=False,
-            include_lq_frames=False,
-            hq_frames_quality=10,  # JPEG quality
+            extract_preview_frames=False,
+            primary_frames_quality=10,  # JPEG quality
         )
 
         payload = result["registration_payload"]

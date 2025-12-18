@@ -586,8 +586,8 @@ def extract_artifacts(
     segment_length: int = 2,
     repair: bool = False,
     save_metadata: bool = False,
-    include_lq_frames: bool = True,
-    hq_frames_quality: Optional[int] = 1,
+    extract_preview_frames: bool = True,
+    primary_frames_quality: int = 1,
 ) -> Dict:
     """
     Extracts video artifacts including segments, frames, thumbnail for
@@ -601,11 +601,12 @@ def extract_artifacts(
         segment_length: Length of each segment in seconds, defaults to 2
         repair: If True, attempt to repair video if errors are detected, defaults to False
         save_metadata: If True, save metadata to a file, defaults to False
-        include_lq_frames: If True (default), extract and include low-quality frames.
-            If False, skip LQ frame extraction and omit from registration payload.
-        hq_frames_quality: Quality setting for high-quality frames.
-            1 (default) means use PNG format.
-            Integer value means use JPEG with that quality (2=best, 31=worst).
+        extract_preview_frames: If True (default), extract preview frames used for
+            playback scrubbing. If False, skip extraction (system will use video
+            segments for preview, which is less precise).
+        primary_frames_quality: Quality setting for primary display frames.
+            1 (default) means use PNG format (lossless).
+            2-31 means use JPEG with that quality (2=best, 31=worst).
 
     Returns:
         Dict containing metadata and paths to generated artifacts
@@ -646,9 +647,9 @@ def extract_artifacts(
     console.print("\nExtracting frames...")
 
     _extract_frames(
-        source_file, dirs["sections_high"], downsampling_step, hq_frames_quality
+        source_file, dirs["sections_high"], downsampling_step, primary_frames_quality
     )
-    if include_lq_frames:
+    if extract_preview_frames:
         _extract_frames(source_file, dirs["sections_low"], downsampling_step, 5)
 
     console.print("\nCreating frames manifest...")
@@ -686,7 +687,7 @@ def extract_artifacts(
     source_file_name = os.path.basename(source_file)
 
     # Determine HQ frames extension
-    hq_frames_extension = "png" if hq_frames_quality == 1 else "jpg"
+    hq_frames_extension = "png" if primary_frames_quality == 1 else "jpg"
 
     # Prepare final metadata
     registration_payload = {
@@ -722,7 +723,7 @@ def extract_artifacts(
     }
 
     # Conditionally include LQ sections key prefix
-    if include_lq_frames:
+    if extract_preview_frames:
         registration_payload["storage_low_quality_sections_key_prefix"] = (
             f"{storage_key_prefix}/sections/low"
         )

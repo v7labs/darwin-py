@@ -111,8 +111,8 @@ def _run(args: Namespace, parser: ArgumentParser) -> None:
                 fps=args.fps,
                 segment_length=args.segment_length,
                 repair=args.repair,
-                include_lq_frames=not args.no_lq_frames,
-                hq_frames_quality=args.hq_frames_quality,
+                extract_preview_frames=not args.no_preview_frames,
+                primary_frames_quality=args.primary_frames_quality,
             )
         else:
             parser.print_help()

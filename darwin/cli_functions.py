@@ -1503,8 +1503,8 @@ def extract_video_artifacts(
     segment_length: int = 2,
     repair: bool = False,
     save_metadata: bool = True,
-    include_lq_frames: bool = True,
-    hq_frames_quality: Optional[int] = 1,
+    extract_preview_frames: bool = True,
+    primary_frames_quality: int = 1,
 ) -> None:
     """
     Generate video artifacts (segments, sections, thumbnail, frames manifest).
@@ -1525,10 +1525,10 @@ def extract_video_artifacts(
         Whether to attempt to repair video if errors are detected, by default False
     save_metadata : bool, optional
         Whether to save metadata to a file, by default False
-    include_lq_frames : bool, optional
-        Whether to extract low-quality frames, by default True
-    hq_frames_quality : Optional[int], optional
-        JPEG quality for HQ frames (2=best, 31=worst). If 1, uses PNG, by default 1
+    extract_preview_frames : bool, optional
+        Whether to extract preview frames for playback scrubbing, by default True
+    primary_frames_quality : Optional[int], optional
+        Quality for primary display frames (2=best JPEG, 31=worst). If 1, uses PNG, by default 1
     """
 
     video.extract_artifacts(
@@ -1539,6 +1539,6 @@ def extract_video_artifacts(
         segment_length=segment_length,
         repair=repair,
         save_metadata=save_metadata,
-        include_lq_frames=include_lq_frames,
-        hq_frames_quality=hq_frames_quality,
+        extract_preview_frames=extract_preview_frames,
+        primary_frames_quality=primary_frames_quality,
     )
