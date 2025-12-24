@@ -559,8 +559,8 @@ class TestPullDataset:
             client_mock.get_remote_dataset.return_value = remote_dataset
             client_mock.newer_darwin_version = None
 
-            with patch.object(remote_dataset, "get_release") as get_release_mock:
-                with patch.object(remote_dataset, "pull") as pull_mock:
+            with patch.object(remote_dataset, "get_release"):
+                with patch.object(remote_dataset, "pull"):
                     pull_dataset(dataset_identifier, team=override_team)
 
                     # Verify get_remote_dataset was called with the overridden team
@@ -582,8 +582,8 @@ class TestPullDataset:
             client_mock.get_remote_dataset.return_value = remote_dataset
             client_mock.newer_darwin_version = None
 
-            with patch.object(remote_dataset, "get_release") as get_release_mock:
-                with patch.object(remote_dataset, "pull") as pull_mock:
+            with patch.object(remote_dataset, "get_release"):
+                with patch.object(remote_dataset, "pull"):
                     pull_dataset(dataset_identifier, team=override_team)
 
                     # Verify get_remote_dataset was called with the overridden team
@@ -604,8 +604,8 @@ class TestPullDataset:
             client_mock.get_remote_dataset.return_value = remote_dataset
             client_mock.newer_darwin_version = None
 
-            with patch.object(remote_dataset, "get_release") as get_release_mock:
-                with patch.object(remote_dataset, "pull") as pull_mock:
+            with patch.object(remote_dataset, "get_release"):
+                with patch.object(remote_dataset, "pull"):
                     pull_dataset(dataset_identifier)
 
                     # Verify get_remote_dataset was called with the original team
