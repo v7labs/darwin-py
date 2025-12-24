@@ -257,6 +257,12 @@ class Options:
             "dataset", type=str, help="Remote dataset name to download."
         )
         parser_pull.add_argument(
+            "-t",
+            "--team",
+            type=str,
+            help="Overrides the team to use for the operation. If not provided, the team will be inferred from the dataset slug.",
+        )
+        parser_pull.add_argument(
             "--only-annotations",
             action="store_true",
             help="Download only annotations and no corresponding images.",

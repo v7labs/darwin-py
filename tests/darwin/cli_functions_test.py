@@ -11,6 +11,7 @@ from darwin import cli
 from darwin.cli_functions import (
     delete_files,
     extract_video_artifacts,
+    pull_dataset,
     set_file_status,
     upload_data,
 )
@@ -546,6 +547,72 @@ class TestExtractVideo:
                 extract_preview_frames=False,
                 primary_frames_quality=10,
             )
+
+
+class TestPullDataset:
+    def test_overrides_team_slug(self, remote_dataset: RemoteDataset):
+        dataset_identifier = "old-team/test-dataset:xyz"
+        override_team = "new-team"
+
+        with patch("darwin.cli_functions._load_client") as load_client_mock:
+            client_mock = load_client_mock.return_value
+            client_mock.get_remote_dataset.return_value = remote_dataset
+            client_mock.newer_darwin_version = None
+
+            with patch.object(remote_dataset, "get_release"):
+                with patch.object(remote_dataset, "pull"):
+                    pull_dataset(dataset_identifier, team=override_team)
+
+                    # Verify get_remote_dataset was called with the overridden team
+                    called_identifier = client_mock.get_remote_dataset.call_args.kwargs[
+                        "dataset_identifier"
+                    ]
+                    assert called_identifier.team_slug == override_team
+                    assert called_identifier.dataset_slug == "test-dataset"
+                    assert called_identifier.version == "xyz"
+
+    def test_overrides_team_slug_no_team_in_identifier(
+        self, remote_dataset: RemoteDataset
+    ):
+        dataset_identifier = "test-dataset:xyz"
+        override_team = "new-team"
+
+        with patch("darwin.cli_functions._load_client") as load_client_mock:
+            client_mock = load_client_mock.return_value
+            client_mock.get_remote_dataset.return_value = remote_dataset
+            client_mock.newer_darwin_version = None
+
+            with patch.object(remote_dataset, "get_release"):
+                with patch.object(remote_dataset, "pull"):
+                    pull_dataset(dataset_identifier, team=override_team)
+
+                    # Verify get_remote_dataset was called with the overridden team
+                    called_identifier = client_mock.get_remote_dataset.call_args.kwargs[
+                        "dataset_identifier"
+                    ]
+                    assert called_identifier.team_slug == override_team
+                    assert called_identifier.dataset_slug == "test-dataset"
+                    assert called_identifier.version == "xyz"
+
+    def test_uses_original_team_slug_if_no_override(
+        self, remote_dataset: RemoteDataset
+    ):
+        dataset_identifier = "old-team/test-dataset:xyz"
+
+        with patch("darwin.cli_functions._load_client") as load_client_mock:
+            client_mock = load_client_mock.return_value
+            client_mock.get_remote_dataset.return_value = remote_dataset
+            client_mock.newer_darwin_version = None
+
+            with patch.object(remote_dataset, "get_release"):
+                with patch.object(remote_dataset, "pull"):
+                    pull_dataset(dataset_identifier)
+
+                    # Verify get_remote_dataset was called with the original team
+                    called_identifier = client_mock.get_remote_dataset.call_args.kwargs[
+                        "dataset_identifier"
+                    ]
+                    assert called_identifier.team_slug == "old-team"
 
 
 class TestReportAnnotators:
