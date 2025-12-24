@@ -865,7 +865,7 @@ class Client:
         str
             The default base url.
         """
-        return os.getenv("DARWIN_BASE_URL", "http://darwin.v7labs.com")
+        return os.getenv("DARWIN_BASE_URL", "https://darwin.v7labs.com")
 
     def _get_headers(
         self,
