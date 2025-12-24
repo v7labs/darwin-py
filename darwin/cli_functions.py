@@ -358,6 +358,7 @@ def pull_dataset(
     retry: bool = False,
     retry_timeout: int = 600,
     retry_interval: int = 10,
+    team: Optional[str] = None,
 ) -> None:
     """
     Downloads a remote dataset (images and annotations) in the datasets directory.
@@ -384,12 +385,18 @@ def pull_dataset(
         If retrying, total time to wait for the release to be ready for download
     retry_interval: int
         If retrying, time to wait between retries of checking if the release is ready for download.
+    team: Optional[str]
+        Specify the team to use for the operation.
     """
-    version: str = DatasetIdentifier.parse(dataset_slug).version or "latest"
+    identifier: DatasetIdentifier = DatasetIdentifier.parse(dataset_slug)
+    if team:
+        identifier.team_slug = team
+
+    version: str = identifier.version or "latest"
     client: Client = _load_client(maybe_guest=True)
     try:
         dataset: RemoteDataset = client.get_remote_dataset(
-            dataset_identifier=dataset_slug
+            dataset_identifier=identifier
         )
     except NotFound:
         _error(
