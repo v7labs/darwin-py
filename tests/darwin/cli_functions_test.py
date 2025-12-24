@@ -571,7 +571,9 @@ class TestPullDataset:
                     assert called_identifier.dataset_slug == "test-dataset"
                     assert called_identifier.version == "xyz"
 
-    def test_overrides_team_slug_no_team_in_identifier(self, remote_dataset: RemoteDataset):
+    def test_overrides_team_slug_no_team_in_identifier(
+        self, remote_dataset: RemoteDataset
+    ):
         dataset_identifier = "test-dataset:xyz"
         override_team = "new-team"
 
@@ -592,7 +594,9 @@ class TestPullDataset:
                     assert called_identifier.dataset_slug == "test-dataset"
                     assert called_identifier.version == "xyz"
 
-    def test_uses_original_team_slug_if_no_override(self, remote_dataset: RemoteDataset):
+    def test_uses_original_team_slug_if_no_override(
+        self, remote_dataset: RemoteDataset
+    ):
         dataset_identifier = "old-team/test-dataset:xyz"
 
         with patch("darwin.cli_functions._load_client") as load_client_mock:
