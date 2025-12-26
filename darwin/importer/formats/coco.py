@@ -132,6 +132,7 @@ def parse_annotation(
         )
         return []
 
+
     if len(segmentation) == 0 and len(annotation["bbox"]) == 4:
         x, y, w, h = map(int, annotation["bbox"])
         return [dt.make_bounding_box(category["name"], x, y, w, h)]
@@ -141,7 +142,13 @@ def parse_annotation(
         and len(annotation["bbox"][0]) == 4
     ):
         x, y, w, h = map(int, annotation["bbox"][0])
-        return [dt.make_bounding_box(category["name"], x, y, w, h)]
+        return_annotations = [dt.make_bounding_box(category["name"], x, y, w, h)]
+        if "extra" in annotation:
+            if "attributes" in annotation["extra"]:
+                return_annotations[0].subs.append(dt.make_attributes(annotation["extra"]["attributes"]))
+
+        return return_annotations 
+
     elif isinstance(segmentation, dict):
         logger.warn(
             "warning, converting complex coco rle mask to polygon, could take some time"
@@ -167,7 +174,12 @@ def parse_annotation(
                 except StopIteration:
                     break
             paths.append(path)
-        return [dt.make_polygon(category["name"], paths)]
+        return_annotations = [dt.make_polygon(category["name"], paths)]
+        if "extra" in annotation:
+            if "attributes" in annotation["extra"]:
+                return_annotations[0].subs.append(dt.make_attributes(annotation["extra"]["attributes"]))
+
+        return return_annotations 
     elif isinstance(segmentation, list):
         paths = segmentation if isinstance(segmentation[0], list) else [segmentation]
         point_paths = []
@@ -181,7 +193,11 @@ def parse_annotation(
                 except StopIteration:
                     break
             point_paths.append(point_path)
-        return [dt.make_polygon(category["name"], point_paths)]
+        return_annotations = [dt.make_polygon(category["name"], point_paths)]
+        if "extra" in annotation:
+            if "attributes" in annotation["extra"]:
+                return_annotations[0].subs.append(dt.make_attributes(annotation["extra"]["attributes"]))
+        return return_annotations 
     else:
         return []
 
