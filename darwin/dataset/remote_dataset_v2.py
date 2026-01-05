@@ -16,7 +16,6 @@ from typing import (
 from uuid import uuid4
 
 from pydantic import ValidationError
-
 from darwin.dataset import RemoteDataset
 from darwin.dataset.release import Release
 from darwin.dataset.storage_uploader import upload_artifacts
@@ -1504,9 +1503,10 @@ class RemoteDatasetV2(RemoteDataset):
         Dict
             Slot-specific metadata fields
         """
-        # Fields that are common to all ReadOnly slot types (Image, Sequence, Video)
-        # according to the backend schema. These stay at the root of the slot object.
-        common_slot_fields = {
+        # Canonical Darwin backend schema for readonly videos in this SDK:
+        # - videos are registered via `slots[].sections[]` (not width/height at slot root)
+        # - sections contain width/height + storage_hq_key (+ optional storage_lq_key)
+        allowed_slot_fields = {
             "type",
             "fps",
             "as_frames",
@@ -1517,33 +1517,86 @@ class RemoteDatasetV2(RemoteDataset):
             "storage_thumbnail_key",
             "size_bytes",
             "tags",
+            "sections",
         }
 
-        # Exclude fields that are handled separately
-        exclude_fields = {"name", "path", "storage_key"}
+        # Exclude fields that belong to the item, not the slot.
+        # Note: `storage_key` is a slot field, so we keep it.
+        exclude_fields = {"name", "path"}
 
-        root_payload = {}
-        metadata = {}
+        slot_payload: Dict[str, Any] = {}
+
+        def _maybe_build_sections() -> Optional[List[Dict[str, Any]]]:
+            if registration_payload.get("type") != "video":
+                return None
+
+            width = registration_payload.get("width")
+            height = registration_payload.get("height")
+            visible_frames = registration_payload.get("visible_frames")
+            hq_prefix = registration_payload.get("storage_sections_key_prefix")
+            ext = registration_payload.get("storage_sections_key_extension", "png")
+            lq_prefix = registration_payload.get(
+                "storage_low_quality_sections_key_prefix"
+            )
+
+            if not (
+                isinstance(width, int)
+                and isinstance(height, int)
+                and isinstance(visible_frames, int)
+                and isinstance(hq_prefix, str)
+                and isinstance(ext, str)
+            ):
+                return None
+
+            # NOTE: This can be large (one section per extracted frame). This matches how
+            # `darwin/extractor/video.py` writes frames: `%09d.{ext}` starting at 0.
+            sections: List[Dict[str, Any]] = []
+            for i in range(visible_frames):
+                section: Dict[str, Any] = {
+                    "section_index": i + 1,
+                    "width": width,
+                    "height": height,
+                    "storage_hq_key": f"{hq_prefix}/{i:09d}.{ext}",
+                }
+                if isinstance(lq_prefix, str) and lq_prefix:
+                    # Low quality frames are extracted as JPEGs in extractor/video.py
+                    section["storage_lq_key"] = f"{lq_prefix}/{i:09d}.jpg"
+                sections.append(section)
+
+            return sections
 
         for k, v in registration_payload.items():
             if k in exclude_fields:
                 continue
 
-            # Rename total_size_bytes to size_bytes if it's at the root
-            key_to_check = "size_bytes" if k == "total_size_bytes" else k
+            # extractor/video.py uses total_size_bytes; backend expects size_bytes.
+            key_to_write = "size_bytes" if k == "total_size_bytes" else k
 
-            if key_to_check in common_slot_fields:
-                root_payload[key_to_check] = v
-            else:
-                metadata[k] = v
+            if key_to_write in allowed_slot_fields:
+                slot_payload[key_to_write] = v
 
-        # Ensure total_size_bytes is renamed to size_bytes if it ended up in metadata
-        if "total_size_bytes" in metadata:
-            metadata["size_bytes"] = metadata.pop("total_size_bytes")
+        # For videos, build canonical `sections` list and drop video root fields.
+        built_sections = _maybe_build_sections()
+        if built_sections is not None:
+            slot_payload["sections"] = built_sections
 
-        # Return the root fields, with all other fields (like width, height, hls_segments)
-        # nested in 'metadata' to avoid validation errors on some backend versions.
-        return {**root_payload, "metadata": metadata}
+            # Ensure we don't accidentally send root video fields that this backend rejects.
+            for k in [
+                "width",
+                "height",
+                "native_fps",
+                "visible_frames",
+                "total_frames",
+                "hls_segments",
+                "storage_sections_key_prefix",
+                "storage_sections_key_extension",
+                "storage_low_quality_sections_key_prefix",
+                "storage_frames_manifest_key",
+                "storage_audio_peaks_key",
+            ]:
+                slot_payload.pop(k, None)
+
+        return slot_payload
 
 
 def _find_files_to_upload_as_multi_file_items(
