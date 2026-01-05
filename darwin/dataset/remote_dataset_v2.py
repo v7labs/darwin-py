@@ -1527,6 +1527,15 @@ class RemoteDatasetV2(RemoteDataset):
         slot_payload: Dict[str, Any] = {}
 
         def _maybe_build_sections() -> Optional[List[Dict[str, Any]]]:
+            """
+            Build `slots[].sections[]` for readonly video registration.
+
+            Reads the required inputs from the enclosing `registration_payload`. Returns `None`
+            when the payload is not a video or when the extraction metadata is incomplete/invalid
+            (missing or wrong-typed: `width`, `height`, `visible_frames`, `storage_sections_key_prefix`).
+            Otherwise returns a list with one entry per extracted preview frame, with 1-indexed
+            `section_index` and storage keys that match the extractor's `%09d` naming.
+            """
             if registration_payload.get("type") != "video":
                 return None
 
