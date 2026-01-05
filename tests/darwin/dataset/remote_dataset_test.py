@@ -2394,7 +2394,7 @@ class TestReadonlyVideoHelperMethods:
     def test_extract_slot_metadata_removes_excluded_fields(
         self, remote_dataset: RemoteDatasetV2
     ):
-        """Test that name, path, storage_key are excluded from metadata."""
+        """Test that common fields stay at the root, and extra fields move to metadata."""
         payload = {
             "name": "video.mp4",
             "path": "/videos",
@@ -2403,6 +2403,8 @@ class TestReadonlyVideoHelperMethods:
             "frame_count": 100,
             "width": 1920,
             "height": 1080,
+            "storage_thumbnail_key": "thumb.jpg",
+            "type": "video",
         }
 
         result = remote_dataset._extract_slot_metadata(payload)
@@ -2410,16 +2412,24 @@ class TestReadonlyVideoHelperMethods:
         assert "name" not in result
         assert "path" not in result
         assert "storage_key" not in result
+        assert result["type"] == "video"
         assert result["fps"] == 30.0
-        assert result["frame_count"] == 100
+        assert result["storage_thumbnail_key"] == "thumb.jpg"
+        
+        # Verify fields rejected by backend at the root are now in metadata
+        assert "width" not in result
+        assert "height" not in result
+        assert result["metadata"]["width"] == 1920
+        assert result["metadata"]["height"] == 1080
+        assert result["metadata"]["frame_count"] == 100
 
     def test_extract_slot_metadata_renames_total_size_bytes(
         self, remote_dataset: RemoteDatasetV2
     ):
-        """Test that total_size_bytes is renamed to size_bytes."""
+        """Test that total_size_bytes is renamed to size_bytes and stays at the root."""
         payload = {
             "total_size_bytes": 1000000,
-            "fps": 30.0,
+            "type": "video",
         }
 
         result = remote_dataset._extract_slot_metadata(payload)

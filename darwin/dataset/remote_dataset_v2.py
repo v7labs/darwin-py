@@ -1504,18 +1504,46 @@ class RemoteDatasetV2(RemoteDataset):
         Dict
             Slot-specific metadata fields
         """
-        # Exclude fields that are computed separately
-        exclude_fields = {"name", "path", "storage_key"}
-
-        metadata = {
-            k: v for k, v in registration_payload.items() if k not in exclude_fields
+        # Fields that are common to all ReadOnly slot types (Image, Sequence, Video)
+        # according to the backend schema. These stay at the root of the slot object.
+        common_slot_fields = {
+            "type",
+            "fps",
+            "as_frames",
+            "extract_views",
+            "storage_key",
+            "file_name",
+            "slot_name",
+            "storage_thumbnail_key",
+            "size_bytes",
+            "tags",
         }
 
-        # Rename total_size_bytes to size_bytes for slots
+        # Exclude fields that are handled separately
+        exclude_fields = {"name", "path", "storage_key"}
+
+        root_payload = {}
+        metadata = {}
+
+        for k, v in registration_payload.items():
+            if k in exclude_fields:
+                continue
+
+            # Rename total_size_bytes to size_bytes if it's at the root
+            key_to_check = "size_bytes" if k == "total_size_bytes" else k
+
+            if key_to_check in common_slot_fields:
+                root_payload[key_to_check] = v
+            else:
+                metadata[k] = v
+
+        # Ensure total_size_bytes is renamed to size_bytes if it ended up in metadata
         if "total_size_bytes" in metadata:
             metadata["size_bytes"] = metadata.pop("total_size_bytes")
 
-        return metadata
+        # Return the root fields, with all other fields (like width, height, hls_segments)
+        # nested in 'metadata' to avoid validation errors on some backend versions.
+        return {**root_payload, "metadata": metadata}
 
 
 def _find_files_to_upload_as_multi_file_items(
