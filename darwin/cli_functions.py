@@ -2,6 +2,7 @@ import argparse
 import concurrent.futures
 import datetime
 import json
+import logging
 import os
 import sys
 import traceback
@@ -74,6 +75,10 @@ from darwin.utils import (
     validate_file_against_schema,
 )
 
+# Single source of truth for Darwin CLI configuration path.
+DARWIN_CONFIG_PATH: Path = Path.home() / ".darwin" / "config.yaml"
+_log = logging.getLogger("darwin")
+
 
 def validate_api_key(api_key: str) -> None:
     """
@@ -124,7 +129,7 @@ def authenticate(
 
     try:
         client = Client.from_api_key(api_key=api_key)
-        config_path = Path.home() / ".darwin" / "config.yaml"
+        config_path = DARWIN_CONFIG_PATH
         config_path.parent.mkdir(exist_ok=True)
 
         if default_team is None:
@@ -449,22 +454,67 @@ def _load_client_for_dataset_pull(
     If the user targets a specific team (via `--team` or `team/dataset:version`) and they have
     multiple teams authenticated, prefer the config's API key for that team even if DARWIN_API_KEY
     is set in the environment (which otherwise pins auth to a single team).
+
+    Parameters
+    ----------
+    identifier : DatasetIdentifier
+        Parsed dataset identifier (may contain a `team_slug`) used to choose which team credentials
+        to use for the pull.
+    maybe_guest : bool, default: False
+        If True, allows falling back to a guest client when the config is missing.
+
+    Returns
+    -------
+    Client
+        A Darwin client configured to authenticate as the appropriate team for dataset pull.
     """
     api_key = os.getenv("DARWIN_API_KEY")
-    config_path = Path.home() / ".darwin" / "config.yaml"
+    config_path = DARWIN_CONFIG_PATH
 
     if identifier.team_slug:
         try:
             config = Config(config_path)
-            has_team_key = bool(config.get(f"teams/{identifier.team_slug}/api_key"))
-        except Exception:
-            has_team_key = False
+        except (OSError, ValueError) as e:
+            _log.debug(
+                "Failed to load Darwin config at %s for dataset pull (team=%s).",
+                str(config_path),
+                identifier.team_slug,
+                exc_info=e,
+            )
+            config = None
 
-        if has_team_key:
-            return Client.from_config(config_path, team_slug=identifier.team_slug)
-        if api_key:
-            return Client.from_api_key(api_key)
-        return Client.from_config(config_path, team_slug=identifier.team_slug)
+        has_team_key = False
+        if config is not None:
+            try:
+                has_team_key = bool(config.get(f"teams/{identifier.team_slug}/api_key"))
+            except Exception as e:
+                # Config.get() can fail if config contents are malformed. Don't hide the reason.
+                _log.debug(
+                    "Failed reading team api_key from Darwin config for dataset pull (team=%s).",
+                    identifier.team_slug,
+                    exc_info=e,
+                )
+                has_team_key = False
+
+        try:
+            if has_team_key:
+                return Client.from_config(config_path, team_slug=identifier.team_slug)
+            if api_key:
+                return Client.from_api_key(api_key)
+        except MissingConfig:
+            if maybe_guest:
+                return Client.from_guest()
+            _error("Authenticate first")
+        except InvalidLogin:
+            _error("Please re-authenticate")
+        except Unauthenticated:
+            _error("Please re-authenticate")
+
+        _error(
+            f"No API key configured for team '{identifier.team_slug}'. "
+            "Please authenticate for this team (e.g. `darwin authenticate --default_team <team>`) "
+            "or set DARWIN_API_KEY."
+        )
 
     # No team context; keep existing behavior.
     return _load_client(maybe_guest=maybe_guest)
@@ -1483,7 +1533,7 @@ def _error(message: str) -> NoReturn:
 
 
 def _config() -> Config:
-    return Config(Path.home() / ".darwin" / "config.yaml")
+    return Config(DARWIN_CONFIG_PATH)
 
 
 def _load_client(
@@ -1510,8 +1560,7 @@ def _load_client(
         if api_key:
             return Client.from_api_key(api_key)
 
-        config_dir = Path.home() / ".darwin" / "config.yaml"
-        return Client.from_config(config_dir, team_slug=team_slug)
+        return Client.from_config(DARWIN_CONFIG_PATH, team_slug=team_slug)
     except MissingConfig:
         if maybe_guest:
             return Client.from_guest()
