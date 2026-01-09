@@ -2394,7 +2394,7 @@ class TestReadonlyVideoHelperMethods:
     def test_extract_slot_metadata_removes_excluded_fields(
         self, remote_dataset: RemoteDatasetV2
     ):
-        """Test that name, path, storage_key are excluded from metadata."""
+        """Test that item fields are excluded and readonly video uses `sections` schema."""
         payload = {
             "name": "video.mp4",
             "path": "/videos",
@@ -2403,23 +2403,45 @@ class TestReadonlyVideoHelperMethods:
             "frame_count": 100,
             "width": 1920,
             "height": 1080,
+            "storage_thumbnail_key": "thumb.jpg",
+            "storage_sections_key_prefix": "prefix/sections/high",
+            "storage_sections_key_extension": "jpg",
+            "storage_low_quality_sections_key_prefix": "prefix/sections/low",
+            "visible_frames": 2,
+            "type": "video",
         }
 
         result = remote_dataset._extract_slot_metadata(payload)
 
         assert "name" not in result
         assert "path" not in result
-        assert "storage_key" not in result
+        assert result["type"] == "video"
         assert result["fps"] == 30.0
-        assert result["frame_count"] == 100
+        assert result["storage_thumbnail_key"] == "thumb.jpg"
+        assert result["storage_key"] == "key/video.mp4"
+
+        # For videos, we register via `sections` (and do not include width/height at slot root)
+        assert "width" not in result
+        assert "height" not in result
+        assert "sections" in result
+        assert len(result["sections"]) == 2
+        assert result["sections"][0]["section_index"] == 1
+        assert result["sections"][0]["width"] == 1920
+        assert result["sections"][0]["height"] == 1080
+        assert result["sections"][0]["storage_hq_key"].endswith("/000000000.jpg")
+        assert result["sections"][0]["storage_lq_key"].endswith("/000000000.jpg")
+
+        # Unknown/extra fields are dropped (not nested into metadata)
+        assert "frame_count" not in result
+        assert "metadata" not in result
 
     def test_extract_slot_metadata_renames_total_size_bytes(
         self, remote_dataset: RemoteDatasetV2
     ):
-        """Test that total_size_bytes is renamed to size_bytes."""
+        """Test that total_size_bytes is renamed to size_bytes and stays at the root."""
         payload = {
             "total_size_bytes": 1000000,
-            "fps": 30.0,
+            "type": "video",
         }
 
         result = remote_dataset._extract_slot_metadata(payload)
