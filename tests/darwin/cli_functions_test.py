@@ -1,7 +1,7 @@
 import builtins
 import sys
 from datetime import datetime, timedelta, timezone
-from unittest.mock import call, patch
+from unittest.mock import ANY, call, patch
 
 import pytest
 import responses
@@ -550,12 +550,21 @@ class TestExtractVideo:
 
 
 class TestPullDataset:
-    def test_overrides_team_slug(self, remote_dataset: RemoteDataset):
+    def test_allows_override_team_when_it_mismatches_identifier_team(
+        self, remote_dataset: RemoteDataset
+    ):
         dataset_identifier = "old-team/test-dataset:xyz"
         override_team = "new-team"
 
-        with patch("darwin.cli_functions._load_client") as load_client_mock:
-            client_mock = load_client_mock.return_value
+        with (
+            patch("darwin.cli_functions.os.getenv", return_value=None),
+            patch("darwin.cli_functions.Config") as config_cls_mock,
+            patch("darwin.cli_functions.Client.from_config") as from_config_mock,
+        ):
+            config_inst = config_cls_mock.return_value
+            config_inst.get.return_value = "team_specific_key"
+
+            client_mock = from_config_mock.return_value
             client_mock.get_remote_dataset.return_value = remote_dataset
             client_mock.newer_darwin_version = None
 
@@ -563,13 +572,41 @@ class TestPullDataset:
                 with patch.object(remote_dataset, "pull"):
                     pull_dataset(dataset_identifier, team=override_team)
 
-                    # Verify get_remote_dataset was called with the overridden team
-                    called_identifier = client_mock.get_remote_dataset.call_args.kwargs[
-                        "dataset_identifier"
-                    ]
-                    assert called_identifier.team_slug == override_team
-                    assert called_identifier.dataset_slug == "test-dataset"
-                    assert called_identifier.version == "xyz"
+            called_identifier = client_mock.get_remote_dataset.call_args.kwargs[
+                "dataset_identifier"
+            ]
+            assert called_identifier.team_slug == override_team
+            assert called_identifier.dataset_slug == "test-dataset"
+            assert called_identifier.version == "xyz"
+
+    def test_allows_override_team_when_it_matches_identifier_team(
+        self, remote_dataset: RemoteDataset
+    ):
+        dataset_identifier = "old-team/test-dataset:xyz"
+        override_team = "old-team"
+
+        with (
+            patch("darwin.cli_functions.os.getenv", return_value=None),
+            patch("darwin.cli_functions.Config") as config_cls_mock,
+            patch("darwin.cli_functions.Client.from_config") as from_config_mock,
+        ):
+            config_inst = config_cls_mock.return_value
+            config_inst.get.return_value = "team_specific_key"
+
+            client_mock = from_config_mock.return_value
+            client_mock.get_remote_dataset.return_value = remote_dataset
+            client_mock.newer_darwin_version = None
+
+            with patch.object(remote_dataset, "get_release"):
+                with patch.object(remote_dataset, "pull"):
+                    pull_dataset(dataset_identifier, team=override_team)
+
+            called_identifier = client_mock.get_remote_dataset.call_args.kwargs[
+                "dataset_identifier"
+            ]
+            assert called_identifier.team_slug == override_team
+            assert called_identifier.dataset_slug == "test-dataset"
+            assert called_identifier.version == "xyz"
 
     def test_overrides_team_slug_no_team_in_identifier(
         self, remote_dataset: RemoteDataset
@@ -577,8 +614,15 @@ class TestPullDataset:
         dataset_identifier = "test-dataset:xyz"
         override_team = "new-team"
 
-        with patch("darwin.cli_functions._load_client") as load_client_mock:
-            client_mock = load_client_mock.return_value
+        with (
+            patch("darwin.cli_functions.os.getenv", return_value=None),
+            patch("darwin.cli_functions.Config") as config_cls_mock,
+            patch("darwin.cli_functions.Client.from_config") as from_config_mock,
+        ):
+            config_inst = config_cls_mock.return_value
+            config_inst.get.return_value = "team_specific_key"
+
+            client_mock = from_config_mock.return_value
             client_mock.get_remote_dataset.return_value = remote_dataset
             client_mock.newer_darwin_version = None
 
@@ -586,20 +630,86 @@ class TestPullDataset:
                 with patch.object(remote_dataset, "pull"):
                     pull_dataset(dataset_identifier, team=override_team)
 
-                    # Verify get_remote_dataset was called with the overridden team
-                    called_identifier = client_mock.get_remote_dataset.call_args.kwargs[
-                        "dataset_identifier"
-                    ]
-                    assert called_identifier.team_slug == override_team
-                    assert called_identifier.dataset_slug == "test-dataset"
-                    assert called_identifier.version == "xyz"
+            # Verify get_remote_dataset was called with the overridden team
+            called_identifier = client_mock.get_remote_dataset.call_args.kwargs[
+                "dataset_identifier"
+            ]
+            assert called_identifier.team_slug == override_team
+            assert called_identifier.dataset_slug == "test-dataset"
+            assert called_identifier.version == "xyz"
 
     def test_uses_original_team_slug_if_no_override(
         self, remote_dataset: RemoteDataset
     ):
         dataset_identifier = "old-team/test-dataset:xyz"
 
-        with patch("darwin.cli_functions._load_client") as load_client_mock:
+        with (
+            patch("darwin.cli_functions.os.getenv", return_value=None),
+            patch("darwin.cli_functions.Config") as config_cls_mock,
+            patch("darwin.cli_functions.Client.from_config") as from_config_mock,
+        ):
+            config_inst = config_cls_mock.return_value
+            config_inst.get.return_value = "team_specific_key"
+
+            client_mock = from_config_mock.return_value
+            client_mock.get_remote_dataset.return_value = remote_dataset
+            client_mock.newer_darwin_version = None
+
+            with patch.object(remote_dataset, "get_release"):
+                with patch.object(remote_dataset, "pull"):
+                    pull_dataset(dataset_identifier)
+
+            # Verify get_remote_dataset was called with the original team
+            called_identifier = client_mock.get_remote_dataset.call_args.kwargs[
+                "dataset_identifier"
+            ]
+            assert called_identifier.team_slug == "old-team"
+
+
+class TestPullDatasetTeamAuthSelection:
+    def test_prefers_config_over_env_when_team_specified(
+        self, remote_dataset: RemoteDataset
+    ):
+        """
+        Regression (pull-only): when pulling from a specific team in a multi-team setup, prefer
+        the config's team key even if DARWIN_API_KEY is set (which otherwise pins auth to one team).
+        """
+        dataset_identifier = "old-team/test-dataset:xyz"
+        override_team = "new-team"
+
+        with (
+            patch("darwin.cli_functions.os.getenv", return_value="env_api_key"),
+            patch("darwin.cli_functions.Config") as config_cls_mock,
+            patch("darwin.cli_functions.Client.from_config") as from_config_mock,
+            patch("darwin.cli_functions.Client.from_api_key") as from_api_key_mock,
+        ):
+            config_inst = config_cls_mock.return_value
+            config_inst.get.return_value = "team_specific_key"
+
+            client_mock = from_config_mock.return_value
+            client_mock.get_remote_dataset.return_value = remote_dataset
+            client_mock.newer_darwin_version = None
+
+            with patch.object(remote_dataset, "get_release"):
+                with patch.object(remote_dataset, "pull"):
+                    pull_dataset(dataset_identifier, team=override_team)
+
+            from_config_mock.assert_called_with(ANY, team_slug=override_team)
+            from_api_key_mock.assert_not_called()
+
+    def test_no_team_in_identifier_and_no_override_uses_load_client(
+        self, remote_dataset: RemoteDataset
+    ):
+        """
+        If the identifier has no team slug and no --team override is provided, dataset pull should
+        fall back to the existing _load_client behavior.
+        """
+        dataset_identifier = "test-dataset:xyz"
+
+        with (
+            patch("darwin.cli_functions.os.getenv", return_value=None),
+            patch("darwin.cli_functions._load_client") as load_client_mock,
+        ):
             client_mock = load_client_mock.return_value
             client_mock.get_remote_dataset.return_value = remote_dataset
             client_mock.newer_darwin_version = None
@@ -608,11 +718,53 @@ class TestPullDataset:
                 with patch.object(remote_dataset, "pull"):
                     pull_dataset(dataset_identifier)
 
-                    # Verify get_remote_dataset was called with the original team
-                    called_identifier = client_mock.get_remote_dataset.call_args.kwargs[
-                        "dataset_identifier"
-                    ]
-                    assert called_identifier.team_slug == "old-team"
+            load_client_mock.assert_called_once_with(maybe_guest=True)
+
+    def test_pull_errors_if_team_is_specified_but_no_team_api_key_and_no_env_key(
+        self, remote_dataset: RemoteDataset
+    ):
+        dataset_identifier = "old-team/test-dataset:xyz"
+        override_team = "new-team"
+
+        with (
+            patch("darwin.cli_functions.os.getenv", return_value=None),
+            patch("darwin.cli_functions.Config") as config_cls_mock,
+        ):
+            config_inst = config_cls_mock.return_value
+            config_inst.get.return_value = None
+
+            with pytest.raises(SystemExit):
+                pull_dataset(dataset_identifier, team=override_team)
+
+    def test_pull_falls_back_to_env_api_key_if_team_key_missing_in_config(
+        self, remote_dataset: RemoteDataset
+    ):
+        """
+        If the team is specified (via --team or identifier) but the config does not contain a key
+        for that team, and DARWIN_API_KEY is set, fall back to Client.from_api_key.
+        """
+        dataset_identifier = "old-team/test-dataset:xyz"
+        override_team = "new-team"
+
+        with (
+            patch("darwin.cli_functions.os.getenv", return_value="env_api_key"),
+            patch("darwin.cli_functions.Config") as config_cls_mock,
+            patch("darwin.cli_functions.Client.from_config") as from_config_mock,
+            patch("darwin.cli_functions.Client.from_api_key") as from_api_key_mock,
+        ):
+            config_inst = config_cls_mock.return_value
+            config_inst.get.return_value = None
+
+            client_mock = from_api_key_mock.return_value
+            client_mock.get_remote_dataset.return_value = remote_dataset
+            client_mock.newer_darwin_version = None
+
+            with patch.object(remote_dataset, "get_release"):
+                with patch.object(remote_dataset, "pull"):
+                    pull_dataset(dataset_identifier, team=override_team)
+
+            from_api_key_mock.assert_called_once_with("env_api_key")
+            from_config_mock.assert_not_called()
 
 
 class TestReportAnnotators:

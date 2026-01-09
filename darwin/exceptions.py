@@ -193,10 +193,14 @@ class NotFound(Exception):
         name: str
             The name of the resource.
         """
-        super().__init__()
+        # NOTE: This exception can be raised inside multiprocessing workers (e.g. during uploads).
+        # Exceptions are pickled/unpickled when transferred between processes, and the default
+        # reconstruction uses `Exception.args`. Ensure `name` is included so that unpickling
+        # can call `NotFound(name)` successfully.
+        super().__init__(name)
         self.name = name
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"Not found: '{self.name}'"
 
 
