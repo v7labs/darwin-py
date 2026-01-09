@@ -390,10 +390,13 @@ def pull_dataset(
     """
     identifier: DatasetIdentifier = DatasetIdentifier.parse(dataset_slug)
     if team:
+        # Allow explicit overrides. This is important when users are authenticated to multiple
+        # teams and want to pull a dataset/release from a non-default team, or when identifiers
+        # contain a stale/incorrect team slug.
         identifier.team_slug = team
 
     version: str = identifier.version or "latest"
-    client: Client = _load_client(maybe_guest=True)
+    client: Client = _load_client_for_dataset_pull(identifier, maybe_guest=True)
     try:
         dataset: RemoteDataset = client.get_remote_dataset(
             dataset_identifier=identifier
@@ -435,6 +438,36 @@ def pull_dataset(
         _error(str(e))
 
     print(f"Dataset {release.identifier} downloaded at {dataset.local_path} .")
+
+
+def _load_client_for_dataset_pull(
+    identifier: DatasetIdentifier, *, maybe_guest: bool = False
+) -> Client:
+    """
+    Pull-only client selection.
+
+    If the user targets a specific team (via `--team` or `team/dataset:version`) and they have
+    multiple teams authenticated, prefer the config's API key for that team even if DARWIN_API_KEY
+    is set in the environment (which otherwise pins auth to a single team).
+    """
+    api_key = os.getenv("DARWIN_API_KEY")
+    config_path = Path.home() / ".darwin" / "config.yaml"
+
+    if identifier.team_slug:
+        try:
+            config = Config(config_path)
+            has_team_key = bool(config.get(f"teams/{identifier.team_slug}/api_key"))
+        except Exception:
+            has_team_key = False
+
+        if has_team_key:
+            return Client.from_config(config_path, team_slug=identifier.team_slug)
+        if api_key:
+            return Client.from_api_key(api_key)
+        return Client.from_config(config_path, team_slug=identifier.team_slug)
+
+    # No team context; keep existing behavior.
+    return _load_client(maybe_guest=maybe_guest)
 
 
 def split(
@@ -1475,11 +1508,10 @@ def _load_client(
     try:
         api_key = os.getenv("DARWIN_API_KEY")
         if api_key:
-            client = Client.from_api_key(api_key)
-        else:
-            config_dir = Path.home() / ".darwin" / "config.yaml"
-            client = Client.from_config(config_dir, team_slug=team_slug)
-        return client
+            return Client.from_api_key(api_key)
+
+        config_dir = Path.home() / ".darwin" / "config.yaml"
+        return Client.from_config(config_dir, team_slug=team_slug)
     except MissingConfig:
         if maybe_guest:
             return Client.from_guest()
