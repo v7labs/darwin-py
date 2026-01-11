@@ -1,5 +1,5 @@
 # Use an official Python runtime as a parent image
-FROM python:3.13-slim@sha256:21e39cf1815802d4c6f89a0d3a166cc67ce58f95b6d1639e68a394c99310d2e5
+FROM python:3.14.1-slim@sha256:9200f77df642830fcded51b873dde4d8f0643b46713823ee0c104df955107ee3
 
 # Environment variables
 ARG YOUR_ENV
