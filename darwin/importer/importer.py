@@ -340,7 +340,7 @@ def _get_slot_names(remote_file: DatasetItem) -> List[str]:
     List[str]
         A list of slot names associated with the item
     """
-    if not remote_file.layout:
+    if not remote_file.layout or remote_file.layout.get("version") is None:
         if getattr(remote_file, "slots", None):
             slot_names = [
                 slot["slot_name"] for slot in remote_file.slots if "slot_name" in slot
@@ -350,7 +350,7 @@ def _get_slot_names(remote_file: DatasetItem) -> List[str]:
         return ["0"]
 
     layout_version = remote_file.layout.get("version")
-    if layout_version is None:
+    if layout_version == 1 or layout_version == 2:
         if getattr(remote_file, "slots", None):
             slot_names = [
                 slot["slot_name"] for slot in remote_file.slots if "slot_name" in slot
@@ -358,8 +358,6 @@ def _get_slot_names(remote_file: DatasetItem) -> List[str]:
             if slot_names:
                 return slot_names
         return ["0"]
-    if layout_version == 1 or layout_version == 2:
-        return [slot["slot_name"] for slot in remote_file.slots]
     elif layout_version == 3:
         return list(remote_file.layout["slots_grid"][0][0])
 

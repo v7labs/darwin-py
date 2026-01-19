@@ -2473,7 +2473,7 @@ class TestReadonlyVideoHelperMethods:
         payload = {
             "name": "video.mp4",
             "path": "/videos",
-            "storage_key": "key/video.mp4",  # Invalid for ReadOnlyVideoSlot
+            "storage_key": "key/video.mp4",  # Required for ReadOnlyVideoSlot
             "fps": 30.0,  # Invalid for ReadOnlyVideoSlot (use native_fps)
             "as_frames": False,  # Invalid for ReadOnlyVideoSlot
             "native_fps": 29.97,
@@ -2595,6 +2595,7 @@ class TestReadonlyVideoHelperMethods:
             "visible_frames": 100,
             "total_frames": 100,
             "hls_segments": {"high_quality": {"index": "test", "bitrate": 5000000}},
+            "storage_key": "bucket/path/to/video.mp4",
             "storage_sections_key_prefix": "prefix/high",
             "storage_thumbnail_key": "thumb.jpg",
             "storage_frames_manifest_key": "manifest.txt",
