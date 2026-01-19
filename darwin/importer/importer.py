@@ -297,10 +297,14 @@ def _get_remote_files_ready_for_import(
                 )
             else:
                 slot_names = _get_slot_names(remote_file)
+                layout = remote_file.layout
+                if layout is None and len(slot_names) > 1:
+                    # Default to V1 layout for multi-slot items lacking layout data
+                    layout = {"version": 1}
                 remote_files[remote_file.full_path] = {
                     "item_id": remote_file.id,
                     "slot_names": slot_names,
-                    "layout": remote_file.layout,
+                    "layout": layout,
                 }
     if remote_files_not_ready_for_import:
         console = Console(theme=_console_theme())
@@ -336,7 +340,28 @@ def _get_slot_names(remote_file: DatasetItem) -> List[str]:
     List[str]
         A list of slot names associated with the item
     """
-    layout_version = remote_file.layout["version"]
+    if not remote_file.layout:
+        if getattr(remote_file, "slots", None):
+            slot_names = [
+                slot["slot_name"]
+                for slot in remote_file.slots
+                if "slot_name" in slot
+            ]
+            if slot_names:
+                return slot_names
+        return ["0"]
+
+    layout_version = remote_file.layout.get("version")
+    if layout_version is None:
+        if getattr(remote_file, "slots", None):
+            slot_names = [
+                slot["slot_name"]
+                for slot in remote_file.slots
+                if "slot_name" in slot
+            ]
+            if slot_names:
+                return slot_names
+        return ["0"]
     if layout_version == 1 or layout_version == 2:
         return [slot["slot_name"] for slot in remote_file.slots]
     elif layout_version == 3:
