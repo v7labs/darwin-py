@@ -298,9 +298,11 @@ def _get_remote_files_ready_for_import(
             else:
                 slot_names = _get_slot_names(remote_file)
                 layout = remote_file.layout
-                if layout is None and len(slot_names) > 1:
+                if len(slot_names) > 1 and (
+                    layout is None or layout.get("version") is None
+                ):
                     # Default to V1 layout for multi-slot items lacking layout data
-                    layout = {"version": 1}
+                    layout = {**(layout or {}), "version": 1}
                 remote_files[remote_file.full_path] = {
                     "item_id": remote_file.id,
                     "slot_names": slot_names,
@@ -359,7 +361,8 @@ def _get_slot_names(remote_file: DatasetItem) -> List[str]:
                 return slot_names
         return ["0"]
     elif layout_version == 3:
-        return list(remote_file.layout["slots_grid"][0][0])
+        slot_names = list(remote_file.layout["slots_grid"][0][0])
+        return slot_names or ["0"]
 
 
 def _resolve_annotation_classes(

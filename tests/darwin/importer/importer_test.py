@@ -339,6 +339,31 @@ def test__get_remote_files_ready_for_import_defaults_layout_for_multislot() -> N
     }
 
 
+def test__get_remote_files_ready_for_import_defaults_layout_for_multislot_missing_version() -> (
+    None
+):
+    mock_dataset = Mock()
+    mock_dataset.fetch_remote_files.return_value = [
+        Mock(
+            full_path="path/to/file1",
+            id="file1_id",
+            layout={"foo": "bar"},
+            slots=[{"slot_name": "slot-a"}, {"slot_name": "slot-b"}],
+            status="new",
+        )
+    ]
+
+    result = _get_remote_files_ready_for_import(mock_dataset, ["file1"])
+
+    assert result == {
+        "path/to/file1": {
+            "item_id": "file1_id",
+            "slot_names": ["slot-a", "slot-b"],
+            "layout": {"foo": "bar", "version": 1},
+        }
+    }
+
+
 def test__get_remote_files_ready_for_import_raises_with_statuses_not_ready_for_import() -> (
     None
 ):
