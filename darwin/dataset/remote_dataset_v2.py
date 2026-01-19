@@ -410,7 +410,7 @@ class RemoteDatasetV2(RemoteDataset):
             The ``DatasetItem``\\s whose status will change.
         """
 
-        (workflow_id, stages) = self._fetch_stages("dataset")
+        workflow_id, stages = self._fetch_stages("dataset")
         if not stages:
             raise ValueError("Dataset's workflow is missing a dataset stage")
 
@@ -430,7 +430,7 @@ class RemoteDatasetV2(RemoteDataset):
         items : Iterable[DatasetItem]
             The ``DatasetItem``\\s to be completed.
         """
-        (workflow_id, stages) = self._fetch_stages("complete")
+        workflow_id, stages = self._fetch_stages("complete")
         if not stages:
             raise ValueError("Dataset's workflow is missing a complete stage")
 

@@ -597,7 +597,7 @@ class TestFetchRemoteFiles:
 
         assert isinstance(actual, types.GeneratorType)
 
-        (item_1, item_2) = list(actual)
+        item_1, item_2 = list(actual)
 
         assert responses.assert_call_count(url, 1) is True
 

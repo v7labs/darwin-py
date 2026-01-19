@@ -343,9 +343,7 @@ def _get_slot_names(remote_file: DatasetItem) -> List[str]:
     if not remote_file.layout:
         if getattr(remote_file, "slots", None):
             slot_names = [
-                slot["slot_name"]
-                for slot in remote_file.slots
-                if "slot_name" in slot
+                slot["slot_name"] for slot in remote_file.slots if "slot_name" in slot
             ]
             if slot_names:
                 return slot_names
@@ -355,9 +353,7 @@ def _get_slot_names(remote_file: DatasetItem) -> List[str]:
     if layout_version is None:
         if getattr(remote_file, "slots", None):
             slot_names = [
-                slot["slot_name"]
-                for slot in remote_file.slots
-                if "slot_name" in slot
+                slot["slot_name"] for slot in remote_file.slots if "slot_name" in slot
             ]
             if slot_names:
                 return slot_names
