@@ -410,7 +410,7 @@ class RemoteDatasetV2(RemoteDataset):
             The ``DatasetItem``\\s whose status will change.
         """
 
-        (workflow_id, stages) = self._fetch_stages("dataset")
+        workflow_id, stages = self._fetch_stages("dataset")
         if not stages:
             raise ValueError("Dataset's workflow is missing a dataset stage")
 
@@ -430,7 +430,7 @@ class RemoteDatasetV2(RemoteDataset):
         items : Iterable[DatasetItem]
             The ``DatasetItem``\\s to be completed.
         """
-        (workflow_id, stages) = self._fetch_stages("complete")
+        workflow_id, stages = self._fetch_stages("complete")
         if not stages:
             raise ValueError("Dataset's workflow is missing a complete stage")
 
@@ -1493,6 +1493,9 @@ class RemoteDatasetV2(RemoteDataset):
         """
         Extract slot-specific metadata from registration payload.
 
+        Transforms the payload from `darwin/extractor/video.py` into the format
+        expected by the Darwin backend's `register_existing_readonly` endpoint.
+
         Parameters
         ----------
         registration_payload : Dict
@@ -1502,108 +1505,142 @@ class RemoteDatasetV2(RemoteDataset):
         -------
         Dict
             Slot-specific metadata fields
+
+        Notes
+        -----
+        Dispatches to type-specific extraction methods:
+        - Videos: `_extract_video_slot_metadata()` -> ReadOnlyVideoSlot schema
+        - Images: `_extract_image_slot_metadata()` -> ReadOnlyImageSlot schema
         """
-        # Canonical Darwin backend schema for readonly videos in this SDK:
-        # - videos are registered via `slots[].sections[]` (not width/height at slot root)
-        # - sections contain width/height + storage_hq_key (+ optional storage_lq_key)
-        allowed_slot_fields = {
-            "type",
-            "fps",
-            "as_frames",
-            "extract_views",
-            "storage_key",
-            "file_name",
-            "slot_name",
-            "storage_thumbnail_key",
-            "size_bytes",
-            "tags",
-            "sections",
+        if registration_payload.get("type") == "video":
+            return self._extract_video_slot_metadata(registration_payload)
+        return self._extract_image_slot_metadata(registration_payload)
+
+    def _extract_video_slot_metadata(self, registration_payload: Dict) -> Dict:
+        """
+        Extract video slot metadata for ReadOnlyVideoSlot schema.
+
+        The ReadOnlyVideoSlot schema uses root-level video fields (width, height,
+        native_fps, visible_frames, total_frames, hls_segments, etc.) for a compact
+        payload that doesn't grow with frame count.
+
+        Parameters
+        ----------
+        registration_payload : Dict
+            Full registration payload from video extractor
+
+        Returns
+        -------
+        Dict
+            Video slot metadata conforming to ReadOnlyVideoSlot schema
+
+        Notes
+        -----
+        The extractor generates some fields that are NOT valid for ReadOnlyVideoSlot:
+        - `fps`: Use `native_fps` only (fps is for upload-based registration)
+        - `as_frames`: Not in ReadOnlyVideoSlot schema
+        """
+        # Fields that belong to the item level, not the slot
+        item_level_fields = {"name", "path"}
+
+        # Fields that are INVALID for ReadOnlyVideoSlot but may be in extractor output
+        invalid_fields = {
+            "fps",  # Use native_fps only; fps is for upload-based registration
+            "as_frames",  # Not in ReadOnlyVideoSlot schema
         }
 
-        # Exclude fields that belong to the item, not the slot.
-        # Note: `storage_key` is a slot field, so we keep it.
-        exclude_fields = {"name", "path"}
+        # Valid fields for ReadOnlyVideoSlot (videos with pre-processed HLS + frames)
+        # Required: slot_name, file_name, storage_key, width, height, native_fps,
+        #           visible_frames, total_frames, hls_segments, storage_sections_key_prefix,
+        #           storage_thumbnail_key, storage_frames_manifest_key
+        # Note: slot_name and file_name are provided by the caller when registering items.
+        # Optional: storage_sections_key_extension (default: "png"),
+        #           storage_low_quality_sections_key_prefix, storage_audio_peaks_key, size_bytes
+        valid_fields = {
+            "type",
+            "slot_name",
+            "file_name",
+            "storage_key",
+            "width",
+            "height",
+            "native_fps",
+            "visible_frames",
+            "total_frames",
+            "hls_segments",
+            "storage_sections_key_prefix",
+            "storage_sections_key_extension",
+            "storage_low_quality_sections_key_prefix",
+            "storage_frames_manifest_key",
+            "storage_thumbnail_key",
+            "storage_audio_peaks_key",
+            "size_bytes",
+        }
 
         slot_payload: Dict[str, Any] = {}
 
-        def _maybe_build_sections() -> Optional[List[Dict[str, Any]]]:
-            """
-            Build `slots[].sections[]` for readonly video registration.
-
-            Reads the required inputs from the enclosing `registration_payload`. Returns `None`
-            when the payload is not a video or when the extraction metadata is incomplete/invalid
-            (missing or wrong-typed: `width`, `height`, `visible_frames`, `storage_sections_key_prefix`).
-            Otherwise returns a list with one entry per extracted preview frame, with 1-indexed
-            `section_index` and storage keys that match the extractor's `%09d` naming.
-            """
-            if registration_payload.get("type") != "video":
-                return None
-
-            width = registration_payload.get("width")
-            height = registration_payload.get("height")
-            visible_frames = registration_payload.get("visible_frames")
-            hq_prefix = registration_payload.get("storage_sections_key_prefix")
-            ext = registration_payload.get("storage_sections_key_extension", "png")
-            lq_prefix = registration_payload.get(
-                "storage_low_quality_sections_key_prefix"
-            )
-
-            if not (
-                isinstance(width, int)
-                and isinstance(height, int)
-                and isinstance(visible_frames, int)
-                and isinstance(hq_prefix, str)
-                and isinstance(ext, str)
-            ):
-                return None
-
-            # NOTE: This can be large (one section per extracted frame). This matches how
-            # `darwin/extractor/video.py` writes frames: `%09d.{ext}` starting at 0.
-            sections: List[Dict[str, Any]] = []
-            for i in range(visible_frames):
-                section: Dict[str, Any] = {
-                    "section_index": i + 1,
-                    "width": width,
-                    "height": height,
-                    "storage_hq_key": f"{hq_prefix}/{i:09d}.{ext}",
-                }
-                if isinstance(lq_prefix, str) and lq_prefix:
-                    # Low quality frames are extracted as JPEGs in extractor/video.py
-                    section["storage_lq_key"] = f"{lq_prefix}/{i:09d}.jpg"
-                sections.append(section)
-
-            return sections
-
         for k, v in registration_payload.items():
-            if k in exclude_fields:
+            if k in item_level_fields:
+                continue
+            if k in invalid_fields:
                 continue
 
-            # extractor/video.py uses total_size_bytes; backend expects size_bytes.
+            # Rename total_size_bytes to size_bytes (extractor vs backend naming)
             key_to_write = "size_bytes" if k == "total_size_bytes" else k
 
-            if key_to_write in allowed_slot_fields:
+            if key_to_write in valid_fields:
                 slot_payload[key_to_write] = v
 
-        # For videos, build canonical `sections` list and drop video root fields.
-        built_sections = _maybe_build_sections()
-        if built_sections is not None:
-            slot_payload["sections"] = built_sections
+        return slot_payload
 
-            # Ensure we don't accidentally send root video fields that this backend rejects.
-            for k in [
-                "width",
-                "height",
-                "native_fps",
-                "visible_frames",
-                "total_frames",
-                "hls_segments",
-                "storage_sections_key_prefix",
-                "storage_sections_key_extension",
-                "storage_low_quality_sections_key_prefix",
-                "storage_frames_manifest_key",
-                "storage_audio_peaks_key",
-            ]:
-                slot_payload.pop(k, None)
+    def _extract_image_slot_metadata(self, registration_payload: Dict) -> Dict:
+        """
+        Extract image slot metadata for ReadOnlyImageSlot schema.
+
+        Parameters
+        ----------
+        registration_payload : Dict
+            Full registration payload for an image
+
+        Returns
+        -------
+        Dict
+            Image slot metadata conforming to ReadOnlyImageSlot schema
+
+        Notes
+        -----
+        The `storage_key` field is CRITICAL for images - without it, the backend
+        cannot locate the file on external storage, causing items to stay in
+        "Processing" state and blocking annotation import.
+        """
+        # Fields that belong to the item level, not the slot
+        item_level_fields = {"name", "path"}
+
+        # Valid fields for ReadOnlyImageSlot
+        # Required: slot_name, file_name, storage_key (to locate the file)
+        # Note: slot_name and file_name are provided by the caller when registering items.
+        # Optional: width, height, storage_thumbnail_key, size_bytes
+        valid_fields = {
+            "type",
+            "slot_name",
+            "file_name",
+            "storage_key",  # CRITICAL: Required for backend to locate the file
+            "width",
+            "height",
+            "storage_thumbnail_key",
+            "size_bytes",
+        }
+
+        slot_payload: Dict[str, Any] = {}
+
+        for k, v in registration_payload.items():
+            if k in item_level_fields:
+                continue
+
+            # Rename total_size_bytes to size_bytes (extractor vs backend naming)
+            key_to_write = "size_bytes" if k == "total_size_bytes" else k
+
+            if key_to_write in valid_fields:
+                slot_payload[key_to_write] = v
 
         return slot_payload
 

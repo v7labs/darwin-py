@@ -316,6 +316,54 @@ def test__get_remote_files_ready_for_import_succeeds() -> None:
         assert mock_get_slot_names.call_count == 5
 
 
+def test__get_remote_files_ready_for_import_defaults_layout_for_multislot() -> None:
+    mock_dataset = Mock()
+    mock_dataset.fetch_remote_files.return_value = [
+        Mock(
+            full_path="path/to/file1",
+            id="file1_id",
+            layout=None,
+            slots=[{"slot_name": "slot-a"}, {"slot_name": "slot-b"}],
+            status="new",
+        )
+    ]
+
+    result = _get_remote_files_ready_for_import(mock_dataset, ["file1"])
+
+    assert result == {
+        "path/to/file1": {
+            "item_id": "file1_id",
+            "slot_names": ["slot-a", "slot-b"],
+            "layout": {"version": 1},
+        }
+    }
+
+
+def test__get_remote_files_ready_for_import_defaults_layout_for_multislot_missing_version() -> (
+    None
+):
+    mock_dataset = Mock()
+    mock_dataset.fetch_remote_files.return_value = [
+        Mock(
+            full_path="path/to/file1",
+            id="file1_id",
+            layout={"foo": "bar"},
+            slots=[{"slot_name": "slot-a"}, {"slot_name": "slot-b"}],
+            status="new",
+        )
+    ]
+
+    result = _get_remote_files_ready_for_import(mock_dataset, ["file1"])
+
+    assert result == {
+        "path/to/file1": {
+            "item_id": "file1_id",
+            "slot_names": ["slot-a", "slot-b"],
+            "layout": {"foo": "bar", "version": 1},
+        }
+    }
+
+
 def test__get_remote_files_ready_for_import_raises_with_statuses_not_ready_for_import() -> (
     None
 ):
@@ -367,11 +415,28 @@ def test__get_slot_names() -> None:
     mock_remote_file_without_slots_v3.layout = {"version": 3, "slots_grid": [[[]]]}
     mock_remote_file_without_slots_v3.slots = []
 
+    mock_remote_file_no_layout_with_slots = Mock()
+    mock_remote_file_no_layout_with_slots.layout = None
+    mock_remote_file_no_layout_with_slots.slots = [
+        {"slot_name": "slot-a"},
+        {"slot_name": "slot-b"},
+    ]
+
+    mock_remote_file_no_layout_no_slots = Mock()
+    mock_remote_file_no_layout_no_slots.layout = None
+    mock_remote_file_no_layout_no_slots.slots = []
+
     assert _get_slot_names(mock_remote_file_with_slots_v1) == ["1", "2"]
-    assert _get_slot_names(mock_remote_file_without_slots_v1) == []
+    assert _get_slot_names(mock_remote_file_without_slots_v1) == ["0"]
 
     assert _get_slot_names(mock_remote_file_with_slots_v3) == ["1", "2"]
-    assert _get_slot_names(mock_remote_file_without_slots_v3) == []
+    assert _get_slot_names(mock_remote_file_without_slots_v3) == ["0"]
+
+    assert _get_slot_names(mock_remote_file_no_layout_with_slots) == [
+        "slot-a",
+        "slot-b",
+    ]
+    assert _get_slot_names(mock_remote_file_no_layout_no_slots) == ["0"]
 
 
 def test__resolve_annotation_classes() -> None:

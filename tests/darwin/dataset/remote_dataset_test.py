@@ -597,7 +597,7 @@ class TestFetchRemoteFiles:
 
         assert isinstance(actual, types.GeneratorType)
 
-        (item_1, item_2) = list(actual)
+        item_1, item_2 = list(actual)
 
         assert responses.assert_call_count(url, 1) is True
 
@@ -2234,6 +2234,73 @@ class TestRegisterMultiSlottedReadonlyVideos:
         assert "video.mp4" in slot_names
         assert "video.mp4_1" in slot_names
 
+    @patch("darwin.backend_v2.BackendV2.register_readonly_items")
+    def test_preserves_slot_names_with_extracted_metadata(
+        self,
+        mock_register,
+        remote_dataset: RemoteDatasetV2,
+        readonly_object_store,
+        tmp_path,
+    ):
+        """Regression: extracted slot metadata must not override caller slot_name."""
+        dir1 = tmp_path / "dir1"
+        dir2 = tmp_path / "dir2"
+        dir1.mkdir()
+        dir2.mkdir()
+
+        video1 = dir1 / "video.mp4"
+        video2 = dir2 / "video.mp4"
+        video1.write_text("video 1")
+        video2.write_text("video 2")
+
+        captured_payload = {}
+
+        def capture_payload(payload, **kwargs):
+            captured_payload.update(payload)
+            return {
+                "items": [{"id": "101", "name": "item_with_dups"}],
+                "blocked_items": [],
+            }
+
+        mock_register.side_effect = capture_payload
+
+        registration_payload = {
+            "type": "video",
+            "width": 1920,
+            "height": 1080,
+            "native_fps": 30.0,
+            "visible_frames": 2,
+            "total_frames": 2,
+            "hls_segments": {
+                "high_quality": {"index": "#EXTM3U\nsegment1.ts", "bitrate": 5000000},
+                "low_quality": {"index": "#EXTM3U\nsegment1.ts", "bitrate": 1000000},
+            },
+            "storage_sections_key_prefix": "prefix/sections/high",
+            "storage_frames_manifest_key": "prefix/frames_manifest.txt",
+            "storage_thumbnail_key": "thumb.jpg",
+            "storage_key": "prefix/video.mp4",
+            "name": "video.mp4",
+            "path": "/",
+        }
+
+        def process_video_for_readonly(*_, **__):
+            return remote_dataset._extract_slot_metadata(registration_payload)
+
+        with patch.object(
+            remote_dataset,
+            "_process_video_file_for_readonly",
+            side_effect=process_video_for_readonly,
+        ):
+            remote_dataset.register_multi_slotted_readonly_videos(
+                object_store=readonly_object_store,
+                video_files={"item_with_dups": [str(video1), str(video2)]},
+            )
+
+        slots = captured_payload["items"][0]["slots"]
+        slot_names = [s["slot_name"] for s in slots]
+
+        assert slot_names == ["video.mp4", "video.mp4_1"]
+
 
 @pytest.mark.usefixtures("file_read_write_test")
 class TestReadonlyVideoHelperMethods:
@@ -2391,63 +2458,156 @@ class TestReadonlyVideoHelperMethods:
         # Should exclude container, keep nested path
         assert result == "path/to/folder/item123/files/slot456"
 
-    def test_extract_slot_metadata_removes_excluded_fields(
+    def test_extract_slot_metadata_uses_readonly_video_slot_schema(
         self, remote_dataset: RemoteDatasetV2
     ):
-        """Test that item fields are excluded and readonly video uses `sections` schema."""
+        """Test that video registration uses ReadOnlyVideoSlot schema (root-level fields).
+
+        The backend supports two schemas for readonly registration:
+        - ReadOnlyVideoSlot: root-level video fields (preferred, compact)
+        - ReadOnlySequenceSlot: sections[] array (payload grows with frame count)
+
+        We use ReadOnlyVideoSlot which keeps width/height/hls_segments/storage_key at root
+        and removes invalid fields: fps, as_frames.
+        """
         payload = {
             "name": "video.mp4",
             "path": "/videos",
-            "storage_key": "key/video.mp4",
-            "fps": 30.0,
-            "frame_count": 100,
+            "storage_key": "key/video.mp4",  # Required for ReadOnlyVideoSlot
+            "fps": 30.0,  # Invalid for ReadOnlyVideoSlot (use native_fps)
+            "as_frames": False,  # Invalid for ReadOnlyVideoSlot
+            "native_fps": 29.97,
+            "frame_count": 100,  # Unknown field
             "width": 1920,
             "height": 1080,
+            "visible_frames": 100,
+            "total_frames": 100,
             "storage_thumbnail_key": "thumb.jpg",
             "storage_sections_key_prefix": "prefix/sections/high",
             "storage_sections_key_extension": "jpg",
             "storage_low_quality_sections_key_prefix": "prefix/sections/low",
-            "visible_frames": 2,
+            "storage_frames_manifest_key": "prefix/frames_manifest.txt",
+            "hls_segments": {
+                "high_quality": {"index": "hq.m3u8", "bitrate": 5000000},
+                "low_quality": {"index": "lq.m3u8", "bitrate": 1000000},
+            },
             "type": "video",
         }
 
         result = remote_dataset._extract_slot_metadata(payload)
 
+        # Item-level fields are excluded
         assert "name" not in result
         assert "path" not in result
-        assert result["type"] == "video"
-        assert result["fps"] == 30.0
-        assert result["storage_thumbnail_key"] == "thumb.jpg"
+
+        # Invalid ReadOnlyVideoSlot fields are removed
+        assert "fps" not in result, "fps is invalid for ReadOnlyVideoSlot"
+        assert "as_frames" not in result, "as_frames is invalid for ReadOnlyVideoSlot"
+
+        # storage_key is valid and required for ReadOnlyVideoSlot
         assert result["storage_key"] == "key/video.mp4"
 
-        # For videos, we register via `sections` (and do not include width/height at slot root)
-        assert "width" not in result
-        assert "height" not in result
-        assert "sections" in result
-        assert len(result["sections"]) == 2
-        assert result["sections"][0]["section_index"] == 1
-        assert result["sections"][0]["width"] == 1920
-        assert result["sections"][0]["height"] == 1080
-        assert result["sections"][0]["storage_hq_key"].endswith("/000000000.jpg")
-        assert result["sections"][0]["storage_lq_key"].endswith("/000000000.jpg")
+        # Valid ReadOnlyVideoSlot fields are preserved at root
+        assert result["type"] == "video"
+        assert result["width"] == 1920
+        assert result["height"] == 1080
+        assert result["native_fps"] == 29.97
+        assert result["visible_frames"] == 100
+        assert result["total_frames"] == 100
+        assert result["storage_thumbnail_key"] == "thumb.jpg"
+        assert result["storage_sections_key_prefix"] == "prefix/sections/high"
+        assert result["storage_sections_key_extension"] == "jpg"
+        assert (
+            result["storage_low_quality_sections_key_prefix"] == "prefix/sections/low"
+        )
+        assert result["storage_frames_manifest_key"] == "prefix/frames_manifest.txt"
+        assert result["hls_segments"] == payload["hls_segments"]
 
-        # Unknown/extra fields are dropped (not nested into metadata)
+        # No sections array (using ReadOnlyVideoSlot, not ReadOnlySequenceSlot)
+        assert "sections" not in result
+
+        # Unknown fields are dropped
         assert "frame_count" not in result
-        assert "metadata" not in result
 
     def test_extract_slot_metadata_renames_total_size_bytes(
         self, remote_dataset: RemoteDatasetV2
     ):
-        """Test that total_size_bytes is renamed to size_bytes and stays at the root."""
+        """Test that total_size_bytes is renamed to size_bytes."""
         payload = {
             "total_size_bytes": 1000000,
             "type": "video",
+            "width": 1920,
+            "height": 1080,
         }
 
         result = remote_dataset._extract_slot_metadata(payload)
 
         assert "total_size_bytes" not in result
         assert result["size_bytes"] == 1000000
+
+    def test_extract_slot_metadata_handles_image_type(
+        self, remote_dataset: RemoteDatasetV2
+    ):
+        """Test that image registration uses appropriate fields including storage_key.
+
+        storage_key is CRITICAL for images - without it, the backend cannot locate
+        the file on external storage, causing items to stay in "Processing" state
+        and blocking annotation import.
+        """
+        payload = {
+            "name": "image.jpg",
+            "path": "/images",
+            "type": "image",
+            "storage_key": "bucket/path/to/image.jpg",  # Critical for backend to find the file
+            "width": 4000,
+            "height": 3000,
+            "storage_thumbnail_key": "thumb.jpg",
+            "total_size_bytes": 5000000,
+        }
+
+        result = remote_dataset._extract_slot_metadata(payload)
+
+        # Item-level fields excluded
+        assert "name" not in result
+        assert "path" not in result
+
+        # storage_key is REQUIRED for images (backend needs it to locate the file)
+        assert result["storage_key"] == "bucket/path/to/image.jpg"
+
+        # Valid image fields preserved
+        assert result["type"] == "image"
+        assert result["width"] == 4000
+        assert result["height"] == 3000
+        assert result["storage_thumbnail_key"] == "thumb.jpg"
+        assert result["size_bytes"] == 5000000
+
+    def test_extract_slot_metadata_does_not_add_missing_required_fields(
+        self, remote_dataset: RemoteDatasetV2
+    ):
+        """Test that slot_name and file_name are not added by slot metadata extraction."""
+        payload = {
+            "name": "test_video.mp4",
+            "path": "/videos",
+            "type": "video",
+            "width": 1920,
+            "height": 1080,
+            "native_fps": 30.0,
+            "visible_frames": 100,
+            "total_frames": 100,
+            "hls_segments": {"high_quality": {"index": "test", "bitrate": 5000000}},
+            "storage_key": "bucket/path/to/video.mp4",
+            "storage_sections_key_prefix": "prefix/high",
+            "storage_thumbnail_key": "thumb.jpg",
+            "storage_frames_manifest_key": "manifest.txt",
+            "total_size_bytes": 1000000,
+            # Note: slot_name and file_name are NOT in the payload
+        }
+
+        result = remote_dataset._extract_slot_metadata(payload)
+
+        # slot_name and file_name are not injected here
+        assert "slot_name" not in result
+        assert "file_name" not in result
 
 
 @pytest.mark.usefixtures("file_read_write_test")

@@ -297,10 +297,16 @@ def _get_remote_files_ready_for_import(
                 )
             else:
                 slot_names = _get_slot_names(remote_file)
+                layout = remote_file.layout
+                if len(slot_names) > 1 and (
+                    layout is None or layout.get("version") is None
+                ):
+                    # Default to V1 layout for multi-slot items lacking layout data
+                    layout = {**(layout or {}), "version": 1}
                 remote_files[remote_file.full_path] = {
                     "item_id": remote_file.id,
                     "slot_names": slot_names,
-                    "layout": remote_file.layout,
+                    "layout": layout,
                 }
     if remote_files_not_ready_for_import:
         console = Console(theme=_console_theme())
@@ -336,11 +342,27 @@ def _get_slot_names(remote_file: DatasetItem) -> List[str]:
     List[str]
         A list of slot names associated with the item
     """
-    layout_version = remote_file.layout["version"]
+    if not remote_file.layout or remote_file.layout.get("version") is None:
+        if getattr(remote_file, "slots", None):
+            slot_names = [
+                slot["slot_name"] for slot in remote_file.slots if "slot_name" in slot
+            ]
+            if slot_names:
+                return slot_names
+        return ["0"]
+
+    layout_version = remote_file.layout.get("version")
     if layout_version == 1 or layout_version == 2:
-        return [slot["slot_name"] for slot in remote_file.slots]
+        if getattr(remote_file, "slots", None):
+            slot_names = [
+                slot["slot_name"] for slot in remote_file.slots if "slot_name" in slot
+            ]
+            if slot_names:
+                return slot_names
+        return ["0"]
     elif layout_version == 3:
-        return list(remote_file.layout["slots_grid"][0][0])
+        slot_names = list(remote_file.layout["slots_grid"][0][0])
+        return slot_names or ["0"]
 
 
 def _resolve_annotation_classes(
