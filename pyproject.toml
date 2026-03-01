@@ -147,7 +147,7 @@ version = "^1.5"
 
 [tool.poetry.dependencies.responses]
 optional = true
-version = "^0.25.0"
+version = ">=0.25,<0.27"
 
 [tool.poetry.dependencies.pytest]
 optional = true
@@ -190,11 +190,11 @@ version = "^12.0"
 
 [tool.poetry.dependencies.ruff]
 optional = true
-version = ">=0.4.7,<0.10.0"
+version = ">=0.4.7,<0.16.0"
 
 [tool.poetry.dependencies.validate-pyproject]
 optional = true
-version = ">=0.15,<0.24"
+version = ">=0.15,<0.26"
 
 [tool.ruff.lint.per-file-ignores]
 "**/{tests,docs,tools}/*" = [ "E402", "F403",]
