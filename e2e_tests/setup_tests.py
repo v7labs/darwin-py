@@ -108,7 +108,12 @@ def add_properties_to_class(
             "granularity": f"{text_granularity}",
             "property_values": [],
         }
-        requests.post(url, json=payload, headers=headers)
+        response = requests.post(url, json=payload, headers=headers)
+        if not response.ok:
+            print(
+                f"Warning: failed to add text property '{text_granularity}-text-1' "
+                f"to class {annotation_class_info.get('id')} - {response.status_code} - {response.text}"
+            )
 
     for property_type in ["single_select", "multi_select"]:
         payload = {
@@ -121,7 +126,12 @@ def add_properties_to_class(
             ],
             "annotation_class_id": annotation_class_info["id"],
         }
-        requests.post(url, json=payload, headers=headers)
+        response = requests.post(url, json=payload, headers=headers)
+        if not response.ok:
+            print(
+                f"Warning: failed to add {property_type} property to class "
+                f"{annotation_class_info.get('id')} - {response.status_code} - {response.text}"
+            )
 
 
 def generate_random_string(
@@ -304,6 +314,15 @@ def create_item_level_property(
             {"color": "rgba(255,92,0,1.0)", "value": "2"},
         ]
     response = requests.post(url, json=payload, headers=headers)
+    if not response.ok:
+        if response.status_code == 422 and "already exists" in response.text:
+            raise DataAlreadyExists(
+                f"Item-level property '{name}' already exists - {response.status_code} - {response.text}"
+            )
+        raise E2EException(
+            f"Failed to create item-level property '{name}' ({item_level_property_type}) "
+            f"- {response.status_code} - {response.text}"
+        )
     parsed_response = response.json()
     return E2EItemLevelProperty(
         name=parsed_response["name"],
@@ -775,7 +794,13 @@ def teardown_item_level_properties(
     response = api_call(
         "get", f"{host}/api/v2/teams/{team_slug}/properties", None, config.api_key
     )
-    all_properties = response.json()["properties"]
+    if not response.ok:
+        print(
+            f"Warning: failed to list properties for teardown "
+            f"- {response.status_code} - {response.text}"
+        )
+        return
+    all_properties = response.json().get("properties", [])
     all_item_level_properties = (
         all_properties  # Code to filter response for item-level properties
     )
