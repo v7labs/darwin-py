@@ -8,6 +8,7 @@ from e2e_tests.helpers import (
     assert_cli,
     run_cli_command,
     export_release,
+    wait_until_items_processed,
 )
 from e2e_tests.objects import E2EDataset, ConfigValues
 from e2e_tests.cli.test_import import compare_annotations_export
@@ -192,8 +193,8 @@ def test_full_cycle_nifti(
         f"darwin dataset push {local_dataset.name} {pull_dir}/images --preserve-folders"
     )
     assert_cli(result, 0)
-    # we are uploading 3 DICOM images which need to be extracted asynchronously
-    time.sleep(SERVER_WAIT_TIME * 3)
+    # DICOM images need to be extracted asynchronously; poll until ready
+    wait_until_items_processed(config_values, local_dataset.id, timeout=60)
 
     result = run_cli_command(
         f"darwin dataset import {local_dataset.name} {annotation_format} {pull_dir}/releases/{first_release_name}/annotations"
