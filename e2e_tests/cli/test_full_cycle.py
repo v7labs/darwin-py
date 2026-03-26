@@ -1,13 +1,12 @@
 import os
 import shutil
-import time
 from pathlib import Path
 
 from e2e_tests.helpers import (
-    SERVER_WAIT_TIME,
     assert_cli,
     run_cli_command,
     export_release,
+    wait_until_items_processed,
 )
 from e2e_tests.objects import E2EDataset, ConfigValues
 from e2e_tests.cli.test_import import compare_annotations_export
@@ -97,6 +96,7 @@ def test_full_cycle_images(
         f"darwin dataset push {local_dataset.name} {pull_dir}/images --preserve-folders"
     )
     assert_cli(result, 0)
+    wait_until_items_processed(config_values, local_dataset.id, timeout=60)
     result = run_cli_command(
         f"darwin dataset import {local_dataset.name} {annotation_format} {pull_dir}/releases/{first_release_name}/annotations"
     )
@@ -168,7 +168,7 @@ def test_full_cycle_nifti(
 
     # Populate the dataset with items and annotations
     local_dataset.register_read_only_items(config_values, item_type)
-    time.sleep(SERVER_WAIT_TIME)
+    wait_until_items_processed(config_values, local_dataset.id, timeout=60)
 
     result = run_cli_command(
         f"darwin dataset import {local_dataset.name} {annotation_format} {annotations_import_dir}"
@@ -192,8 +192,7 @@ def test_full_cycle_nifti(
         f"darwin dataset push {local_dataset.name} {pull_dir}/images --preserve-folders"
     )
     assert_cli(result, 0)
-    # we are uploading 3 DICOM images which need to be extracted asynchronously
-    time.sleep(SERVER_WAIT_TIME * 3)
+    wait_until_items_processed(config_values, local_dataset.id, timeout=60)
 
     result = run_cli_command(
         f"darwin dataset import {local_dataset.name} {annotation_format} {pull_dir}/releases/{first_release_name}/annotations"
@@ -288,6 +287,7 @@ def test_full_cycle_video(
         f"darwin dataset push {local_dataset.name} {pull_dir}/images --preserve-folders"
     )
     assert_cli(result, 0)
+    wait_until_items_processed(config_values, local_dataset.id, timeout=60)
     result = run_cli_command(
         f"darwin dataset import {local_dataset.name} {annotation_format} {pull_dir}/releases/{first_release_name}/annotations"
     )
@@ -386,6 +386,7 @@ def test_full_cycle_multi_slotted_item(
         f"darwin dataset push {local_dataset.name} {tmp_push_dir} --item-merge-mode slots"
     )
     assert_cli(result, 0)
+    wait_until_items_processed(config_values, local_dataset.id, timeout=60)
     result = run_cli_command(
         f"darwin dataset import {local_dataset.name} {annotation_format} {pull_dir}/releases/{first_release_name}/annotations"
     )
@@ -484,6 +485,7 @@ def test_full_cycle_multi_channel_item(
         f"darwin dataset push {local_dataset.name} {tmp_push_dir} --item-merge-mode channels"
     )
     assert_cli(result, 0)
+    wait_until_items_processed(config_values, local_dataset.id, timeout=60)
     result = run_cli_command(
         f"darwin dataset import {local_dataset.name} {annotation_format} {pull_dir}/releases/{first_release_name}/annotations"
     )
