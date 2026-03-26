@@ -1207,9 +1207,7 @@ def _parse_darwin_raster_annotation(annotation: dict) -> Optional[dt.Annotation]
         slot_names=slot_names or [],
         id=id,
     )
-
-    if "properties" in annotation:
-        new_annotation.properties = _parse_properties(annotation["properties"])
+    _apply_sub_annotations(annotation, new_annotation)
 
     return new_annotation
 
