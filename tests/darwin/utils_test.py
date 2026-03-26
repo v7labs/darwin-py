@@ -1227,6 +1227,123 @@ class TestParseDarwinMaskAnnotation:
 
         assert annotation.data["sparse_rle"] is None
 
+    def test_parses_mask_annotation_with_properties(self) -> None:
+        raw = {
+            "id": "abc123",
+            "name": "my_mask",
+            "mask": {"sparse_rle": None},
+            "slot_names": ["0"],
+            "properties": [
+                {"name": "color", "value": "red"},
+                {"name": "size", "value": "large", "frame_index": 0},
+            ],
+        }
+        annotation = _parse_darwin_mask_annotation(raw)
+
+        assert annotation is not None
+        assert annotation.properties is not None
+        assert len(annotation.properties) == 2
+        assert annotation.properties[0].name == "color"
+        assert annotation.properties[0].value == "red"
+        assert annotation.properties[0].frame_index == "global"
+        assert annotation.properties[1].name == "size"
+        assert annotation.properties[1].value == "large"
+        assert annotation.properties[1].frame_index == 0
+
+    def test_parses_mask_annotation_with_attributes(self) -> None:
+        raw = {
+            "id": "abc123",
+            "name": "my_mask",
+            "mask": {"sparse_rle": None},
+            "slot_names": ["0"],
+            "attributes": ["attr_1", "attr_2"],
+        }
+        annotation = _parse_darwin_mask_annotation(raw)
+
+        assert annotation is not None
+        assert len(annotation.subs) == 1
+        assert annotation.subs[0].annotation_type == "attributes"
+        assert annotation.subs[0].data == ["attr_1", "attr_2"]
+
+    def test_parses_mask_annotation_with_instance_id(self) -> None:
+        raw = {
+            "id": "abc123",
+            "name": "my_mask",
+            "mask": {"sparse_rle": None},
+            "slot_names": ["0"],
+            "instance_id": {"value": 42},
+        }
+        annotation = _parse_darwin_mask_annotation(raw)
+
+        assert annotation is not None
+        assert len(annotation.subs) == 1
+        assert annotation.subs[0].annotation_type == "instance_id"
+        assert annotation.subs[0].data == 42
+
+    def test_parses_mask_annotation_with_text(self) -> None:
+        raw = {
+            "id": "abc123",
+            "name": "my_mask",
+            "mask": {"sparse_rle": None},
+            "slot_names": ["0"],
+            "text": {"text": "some text"},
+        }
+        annotation = _parse_darwin_mask_annotation(raw)
+
+        assert annotation is not None
+        assert len(annotation.subs) == 1
+        assert annotation.subs[0].annotation_type == "text"
+        assert annotation.subs[0].data == "some text"
+
+    def test_parses_mask_annotation_with_annotators_and_reviewers(self) -> None:
+        raw = {
+            "id": "abc123",
+            "name": "my_mask",
+            "mask": {"sparse_rle": None},
+            "slot_names": ["0"],
+            "annotators": [{"full_name": "John Doe", "email": "john@example.com"}],
+            "reviewers": [{"full_name": "Jane Doe", "email": "jane@example.com"}],
+        }
+        annotation = _parse_darwin_mask_annotation(raw)
+
+        assert annotation is not None
+        assert annotation.annotators is not None
+        assert len(annotation.annotators) == 1
+        assert annotation.annotators[0].name == "John Doe"
+        assert annotation.annotators[0].email == "john@example.com"
+        assert annotation.reviewers is not None
+        assert len(annotation.reviewers) == 1
+        assert annotation.reviewers[0].name == "Jane Doe"
+        assert annotation.reviewers[0].email == "jane@example.com"
+
+    def test_parses_mask_annotation_with_all_sub_annotations(self) -> None:
+        raw = {
+            "id": "abc123",
+            "name": "my_mask",
+            "mask": {"sparse_rle": None},
+            "slot_names": ["0"],
+            "properties": [{"name": "color", "value": "red"}],
+            "attributes": ["attr_1"],
+            "instance_id": {"value": 7},
+            "text": {"text": "hello"},
+            "directional_vector": {"angle": 1.5, "length": 10.0},
+            "annotators": [{"full_name": "John Doe", "email": "john@example.com"}],
+        }
+        annotation = _parse_darwin_mask_annotation(raw)
+
+        assert annotation is not None
+        assert annotation.properties is not None
+        assert len(annotation.properties) == 1
+        assert annotation.properties[0].name == "color"
+
+        sub_types = [sub.annotation_type for sub in annotation.subs]
+        assert "attributes" in sub_types
+        assert "instance_id" in sub_types
+        assert "text" in sub_types
+        assert "directional_vector" in sub_types
+
+        assert annotation.annotators is not None
+
     # Sad paths
     @pytest.mark.parametrize("parameter_name", ["id", "name", "mask", "slot_names"])
     def test_raises_value_error_for_missing_top_level_fields(
@@ -1252,3 +1369,43 @@ class TestParseDarwinMaskAnnotation:
         annotation["mask"]["sparse_rle"] = "invalid"
         with pytest.raises(ValueError):
             _parse_darwin_raster_annotation(annotation)
+
+
+class TestParseDarwinRasterAnnotationProperties:
+    def test_parses_raster_annotation_with_properties(self) -> None:
+        raw = {
+            "id": "raster123",
+            "name": "my_raster",
+            "raster_layer": {
+                "dense_rle": "ABCD",
+                "mask_annotation_ids_mapping": {"1": 1},
+                "total_pixels": 100,
+            },
+            "slot_names": ["0"],
+            "properties": [
+                {"name": "quality", "value": "good"},
+            ],
+        }
+        annotation = _parse_darwin_raster_annotation(raw)
+
+        assert annotation is not None
+        assert annotation.properties is not None
+        assert len(annotation.properties) == 1
+        assert annotation.properties[0].name == "quality"
+        assert annotation.properties[0].value == "good"
+
+    def test_raster_annotation_without_properties_has_none_properties(self) -> None:
+        raw = {
+            "id": "raster123",
+            "name": "my_raster",
+            "raster_layer": {
+                "dense_rle": "ABCD",
+                "mask_annotation_ids_mapping": {"1": 1},
+                "total_pixels": 100,
+            },
+            "slot_names": ["0"],
+        }
+        annotation = _parse_darwin_raster_annotation(raw)
+
+        assert annotation is not None
+        assert annotation.properties is None

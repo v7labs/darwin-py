@@ -1202,6 +1202,9 @@ def _parse_darwin_raster_annotation(annotation: dict) -> Optional[dt.Annotation]
         id=id,
     )
 
+    if "properties" in annotation:
+        new_annotation.properties = _parse_properties(annotation["properties"])
+
     return new_annotation
 
 
@@ -1223,6 +1226,36 @@ def _parse_darwin_mask_annotation(annotation: dict) -> Optional[dt.Annotation]:
         slot_names=slot_names or [],
         id=id,
     )
+
+    if "instance_id" in annotation:
+        new_annotation.subs.append(
+            dt.make_instance_id(annotation["instance_id"]["value"])
+        )
+    if "attributes" in annotation:
+        new_annotation.subs.append(dt.make_attributes(annotation["attributes"]))
+    if "text" in annotation:
+        new_annotation.subs.append(dt.make_text(annotation["text"]["text"]))
+    if "inference" in annotation:
+        new_annotation.subs.append(
+            dt.make_opaque_sub("inference", annotation["inference"])
+        )
+    if "directional_vector" in annotation:
+        new_annotation.subs.append(
+            dt.make_opaque_sub("directional_vector", annotation["directional_vector"])
+        )
+    if "measures" in annotation:
+        new_annotation.subs.append(
+            dt.make_opaque_sub("measures", annotation["measures"])
+        )
+
+    if annotation.get("annotators") is not None:
+        new_annotation.annotators = _parse_annotators(annotation["annotators"])
+
+    if annotation.get("reviewers") is not None:
+        new_annotation.reviewers = _parse_annotators(annotation["reviewers"])
+
+    if "properties" in annotation:
+        new_annotation.properties = _parse_properties(annotation["properties"])
 
     return new_annotation
 
