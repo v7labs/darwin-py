@@ -772,6 +772,40 @@ def _parse_darwin_video(
     return annotation_file
 
 
+def _apply_sub_annotations(
+    annotation: Dict[str, Any], parsed_annotation: dt.Annotation
+) -> None:
+    if "instance_id" in annotation:
+        parsed_annotation.subs.append(
+            dt.make_instance_id(annotation["instance_id"]["value"])
+        )
+    if "attributes" in annotation:
+        parsed_annotation.subs.append(dt.make_attributes(annotation["attributes"]))
+    if "text" in annotation:
+        parsed_annotation.subs.append(dt.make_text(annotation["text"]["text"]))
+    if "inference" in annotation:
+        parsed_annotation.subs.append(
+            dt.make_opaque_sub("inference", annotation["inference"])
+        )
+    if "directional_vector" in annotation:
+        parsed_annotation.subs.append(
+            dt.make_opaque_sub("directional_vector", annotation["directional_vector"])
+        )
+    if "measures" in annotation:
+        parsed_annotation.subs.append(
+            dt.make_opaque_sub("measures", annotation["measures"])
+        )
+
+    if annotation.get("annotators") is not None:
+        parsed_annotation.annotators = _parse_annotators(annotation["annotators"])
+
+    if annotation.get("reviewers") is not None:
+        parsed_annotation.reviewers = _parse_annotators(annotation["reviewers"])
+
+    if "properties" in annotation:
+        parsed_annotation.properties = _parse_properties(annotation["properties"])
+
+
 def _parse_darwin_annotation(
     annotation: Dict[str, Any],
     only_keyframes: bool = False,
@@ -880,35 +914,7 @@ def _parse_darwin_annotation(
 
     if "id" in annotation:
         main_annotation.id = annotation["id"]
-    if "instance_id" in annotation:
-        main_annotation.subs.append(
-            dt.make_instance_id(annotation["instance_id"]["value"])
-        )
-    if "attributes" in annotation:
-        main_annotation.subs.append(dt.make_attributes(annotation["attributes"]))
-    if "text" in annotation:
-        main_annotation.subs.append(dt.make_text(annotation["text"]["text"]))
-    if "inference" in annotation:
-        main_annotation.subs.append(
-            dt.make_opaque_sub("inference", annotation["inference"])
-        )
-    if "directional_vector" in annotation:
-        main_annotation.subs.append(
-            dt.make_opaque_sub("directional_vector", annotation["directional_vector"])
-        )
-    if "measures" in annotation:
-        main_annotation.subs.append(
-            dt.make_opaque_sub("measures", annotation["measures"])
-        )
-
-    if annotation.get("annotators") is not None:
-        main_annotation.annotators = _parse_annotators(annotation["annotators"])
-
-    if annotation.get("reviewers") is not None:
-        main_annotation.reviewers = _parse_annotators(annotation["reviewers"])
-
-    if "properties" in annotation:
-        main_annotation.properties = _parse_properties(annotation["properties"])
+    _apply_sub_annotations(annotation, main_annotation)
 
     return main_annotation
 
@@ -1201,6 +1207,7 @@ def _parse_darwin_raster_annotation(annotation: dict) -> Optional[dt.Annotation]
         slot_names=slot_names or [],
         id=id,
     )
+    _apply_sub_annotations(annotation, new_annotation)
 
     return new_annotation
 
@@ -1223,6 +1230,7 @@ def _parse_darwin_mask_annotation(annotation: dict) -> Optional[dt.Annotation]:
         slot_names=slot_names or [],
         id=id,
     )
+    _apply_sub_annotations(annotation, new_annotation)
 
     return new_annotation
 

@@ -325,6 +325,26 @@ def assert_all_expected_mask_instances_present(
 
     assert not mask_instances_to_match
 
+    expected_masks = [
+        a for a in expected_annotations if a.annotation_class.annotation_type == "mask"
+    ]
+    actual_masks = [
+        a for a in actual_annotations if a.annotation_class.annotation_type == "mask"
+    ]
+    for expected_mask in expected_masks:
+        if expected_mask.properties:
+            matching_actual = next(
+                (
+                    a
+                    for a in actual_masks
+                    if a.annotation_class.name == expected_mask.annotation_class.name
+                    and a.slot_names == expected_mask.slot_names
+                ),
+                None,
+            )
+            assert matching_actual is not None
+            assert_same_annotation_properties(expected_mask, matching_actual)
+
 
 def run_import_test(
     local_dataset: E2EDataset,

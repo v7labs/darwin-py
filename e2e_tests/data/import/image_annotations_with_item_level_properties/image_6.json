@@ -302,7 +302,23 @@
       "id": "108f0fd2-f6ea-4659-9aa4-1038a8c473ec",
       "mask": {},
       "name": "test_mask_with_subtypes_and_properties",
-      "properties": [],
+      "properties": [
+        {
+          "frame_index": 0,
+          "name": "multi_select-1",
+          "value": "1"
+        },
+        {
+          "frame_index": 0,
+          "name": "multi_select-1",
+          "value": "2"
+        },
+        {
+          "frame_index": 0,
+          "name": "single_select-1",
+          "value": "1"
+        }
+      ],
       "slot_names": [
         "0"
       ]
