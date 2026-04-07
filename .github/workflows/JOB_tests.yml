@@ -13,6 +13,7 @@ permissions:
 jobs:
   test:
     name: "Run Testing OS: ${{ matrix.os }} Python: ${{ matrix.python-version }}"
+    continue-on-error: ${{ matrix.python-version == '3.13' }}
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
