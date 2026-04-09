@@ -2,7 +2,9 @@ from ast import Tuple
 
 import numpy as np
 import pytest
-import torch
+
+torch = pytest.importorskip("torch")
+
 from albumentations import BboxParams, Compose, HorizontalFlip, Resize
 from PIL import Image
 
