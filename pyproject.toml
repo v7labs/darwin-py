@@ -78,7 +78,7 @@ toml = "^0.10.2"
 tqdm = "^4.64.1"
 types-pyyaml = "^6.0.12.9"
 types-requests = "^2.28.11.8"
-upolygon = "0.1.11"
+upolygon = "^0.2.1"
 tenacity = "^8.5.0"
 natsort = "^8.4.0"
 
@@ -115,7 +115,7 @@ version = "^1.5.0"
 
 [tool.poetry.dependencies.scipy]
 optional = true
-version = "^1.13.1"
+version = "^1.14.0"
 
 [tool.poetry.dependencies.albumentations]
 optional = true
