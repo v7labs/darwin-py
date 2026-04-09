@@ -111,27 +111,22 @@ version = "^3.10.3"
 
 [tool.poetry.dependencies.scikit-learn]
 optional = true
-python = ">=3.9,<3.13"
 version = "^1.5.0"
 
 [tool.poetry.dependencies.scipy]
 optional = true
-python = ">=3.9,<3.13"
 version = "^1.13.1"
 
 [tool.poetry.dependencies.albumentations]
 optional = true
-python = ">=3.9,<3.13"
 version = "^1.4.21"
 
 [tool.poetry.dependencies.torch]
 optional = true
-python = ">=3.10,<3.13"
 version = "^2.5.1"
 
 [tool.poetry.dependencies.torchvision]
 optional = true
-python = ">=3.10,<3.13"
 version = "^0.20.1"
 
 [tool.poetry.dependencies.black]
@@ -163,7 +158,6 @@ version = "^1.8.1"
 version = "^2.7.0"
 
 [tool.poetry.dependencies.python-dotenv]
-python = ">=3.9,<3.13"
 version = "^1.0.0"
 
 [tool.poetry.dependencies.boto3]

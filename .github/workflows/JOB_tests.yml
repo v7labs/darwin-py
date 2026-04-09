@@ -38,14 +38,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Python 3.13 is temporarily non-blocking
-        if: matrix.python-version == '3.13'
-        shell: bash
-        run: |
-          echo "Skipping dependency install and tests for Python 3.13 until upolygon publishes compatible wheels."
-
       - name: Install dependencies with retry
-        if: matrix.python-version != '3.13'
         uses: nick-invision/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08
         with:
           timeout_minutes: 10
@@ -59,24 +52,23 @@ jobs:
                      pip install --editable '.[test,ml,medical,dev,ocv,storage_aws,storage_gcp,storage_azure]'"
 
       - name: Install ffmpeg (Ubuntu)
-        if: matrix.os == 'ubuntu-latest' && matrix.python-version != '3.13'
+        if: matrix.os == 'ubuntu-latest'
         shell: bash
         run: |
           sudo apt-get update
           sudo apt-get install -y ffmpeg
 
       - name: Install ffmpeg (macOS)
-        if: matrix.os == 'macos-latest' && matrix.python-version != '3.13'
+        if: matrix.os == 'macos-latest'
         shell: bash
         run: brew install ffmpeg
 
       - name: Install ffmpeg (Windows)
-        if: matrix.os == 'windows-latest' && matrix.python-version != '3.13'
+        if: matrix.os == 'windows-latest'
         shell: pwsh
         run: choco install ffmpeg -y
 
       - name: Run pytest
-        if: matrix.python-version != '3.13'
         shell: bash # Stops Windows hosts from using PowerShell
         env:
           RUN_CLOUD_STORAGE_TESTS: "1"
