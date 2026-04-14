@@ -304,19 +304,24 @@ def exclude_annotations_of_type(
     ]
 
 
-def _compare_images_by_pixels(file_a: Path, file_b: Path) -> bool:
+def _compare_images_by_pixels(file_a: Path, file_b: Path) -> None:
     """Compare two image files by their decoded pixel data, ignoring
     compression differences (e.g. zlib vs zlib-ng in different Pillow versions).
-    """
-    try:
-        import numpy as np
-        from PIL import Image
 
-        arr_a = np.array(Image.open(file_a))
-        arr_b = np.array(Image.open(file_b))
-        return np.array_equal(arr_a, arr_b)
-    except Exception:
-        return False
+    Raises AssertionError with a descriptive message on mismatch or if files
+    cannot be opened.
+    """
+    import numpy as np
+    from PIL import Image
+
+    img_a = Image.open(file_a)
+    img_b = Image.open(file_b)
+    arr_a = np.array(img_a)
+    arr_b = np.array(img_b)
+    assert np.array_equal(arr_a, arr_b), (
+        f"Image pixel data mismatch:\n  {file_a}\n  {file_b}\n"
+        f"  shapes: {arr_a.shape} vs {arr_b.shape}"
+    )
 
 
 _IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".bmp", ".tiff", ".tif", ".webp"}
@@ -342,9 +347,7 @@ def compare_directories(path: Path, expected_path: Path) -> None:
 
             # For images, compare decoded pixel data to tolerate compression differences
             if file.suffix.lower() in _IMAGE_EXTENSIONS:
-                assert _compare_images_by_pixels(
-                    file, expected_file
-                ), f"Image pixel data mismatch: {file} vs {expected_file}"
+                _compare_images_by_pixels(file, expected_file)
                 continue
 
             # Compare non-image files by raw bytes
