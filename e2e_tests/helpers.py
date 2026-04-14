@@ -304,6 +304,24 @@ def exclude_annotations_of_type(
     ]
 
 
+def _compare_images_by_pixels(file_a: Path, file_b: Path) -> bool:
+    """Compare two image files by their decoded pixel data, ignoring
+    compression differences (e.g. zlib vs zlib-ng in different Pillow versions).
+    """
+    try:
+        import numpy as np
+        from PIL import Image
+
+        arr_a = np.array(Image.open(file_a))
+        arr_b = np.array(Image.open(file_b))
+        return np.array_equal(arr_a, arr_b)
+    except Exception:
+        return False
+
+
+_IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".bmp", ".tiff", ".tif", ".webp"}
+
+
 def compare_directories(path: Path, expected_path: Path) -> None:
     """
     Compare two directories recursively
@@ -320,15 +338,24 @@ def compare_directories(path: Path, expected_path: Path) -> None:
                 # Ignore hidden files
                 continue
 
-            # Compare files
+            expected_file = expected_path / file.name
+
+            # For images, compare decoded pixel data to tolerate compression differences
+            if file.suffix.lower() in _IMAGE_EXTENSIONS:
+                assert _compare_images_by_pixels(
+                    file, expected_file
+                ), f"Image pixel data mismatch: {file} vs {expected_file}"
+                continue
+
+            # Compare non-image files by raw bytes
             with file.open("rb") as f:
                 content = f.read()
 
-            with Path(expected_path / file.name).open("rb") as f:
+            with expected_file.open("rb") as f:
                 expected_content = f.read()
 
             if content != expected_content:
-                print(f"Expected file: {expected_path / file.name}")
+                print(f"Expected file: {expected_file}")
                 print(f"Expected Content: \n{expected_content}")
                 print("---------------------")
                 print(f"Actual file: {file}")
