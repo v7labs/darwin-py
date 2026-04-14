@@ -1,15 +1,9 @@
-import sys
 from pathlib import Path
 
 import pytest
 
 import darwin.datatypes as dt
 from darwin.exporter.formats import coco
-
-_SKIP_WIN_PY313 = pytest.mark.skipif(
-    sys.platform == "win32" and sys.version_info >= (3, 13),
-    reason="upolygon rle_encode dtype mismatch with numpy 2.x on Windows",
-)
 
 
 class TestBuildAnnotations:
@@ -37,7 +31,6 @@ class TestBuildAnnotations:
             "extra"
         ] == {"instance_id": 1}
 
-    @_SKIP_WIN_PY313
     def test_complex_polygon(self, annotation_file: dt.AnnotationFile):
         polygon = dt.Annotation(
             dt.AnnotationClass("polygon_class", "polygon"),
