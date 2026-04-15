@@ -126,12 +126,10 @@ version = "^1.4.21"
 [tool.poetry.dependencies.torch]
 optional = true
 version = "^2.5.1"
-python = ">=3.10,<3.13"
 
 [tool.poetry.dependencies.torchvision]
 optional = true
 version = "^0.20.1"
-python = ">=3.10,<3.13"
 
 [tool.poetry.dependencies.black]
 optional = true
