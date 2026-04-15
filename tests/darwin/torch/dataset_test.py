@@ -5,8 +5,7 @@ from unittest.mock import patch
 
 import numpy as np
 import pytest
-
-torch = pytest.importorskip("torch")
+import torch
 
 from darwin.config import Config
 from darwin.torch.dataset import (

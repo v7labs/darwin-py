@@ -4,8 +4,6 @@ from zipfile import ZipFile
 
 import pytest
 
-pytest.importorskip("torch")
-
 from darwin.dataset.split_manager import split_dataset
 from darwin.torch.dataset import (
     ClassificationDataset,

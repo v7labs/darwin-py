@@ -2,8 +2,7 @@ from typing import List, Tuple
 
 import numpy as np
 import pytest
-
-torch = pytest.importorskip("torch")
+import torch
 
 from darwin.torch.utils import clamp_bbox_to_image_size, flatten_masks_by_category
 from tests.fixtures import *
