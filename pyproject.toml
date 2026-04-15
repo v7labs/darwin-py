@@ -13,7 +13,7 @@ license = "MIT"
 name = "darwin-py"
 readme = "README.md"
 repository = "https://github.com/v7labs/darwin-py"
-version = "3.4.5"
+version = "3.5.0"
 [[tool.poetry.packages]]
 include = "darwin"
 
@@ -81,8 +81,6 @@ types-requests = "^2.28.11.8"
 upolygon = "^0.2.2"
 tenacity = "^8.5.0"
 natsort = "^8.4.0"
-flake8 = {version = "^7", optional = true}
-flake8-pyproject = {version = "^1", optional = true}
 
 [tool.poetry.extras]
 dev = [ "black", "isort", "flake8", "mypy", "debugpy", "responses", "pytest", "flake8-pyproject", "pytest-rerunfailures", "ruff", "validate-pyproject", "python-dotenv",]
@@ -101,6 +99,14 @@ darwin = "darwin.cli:main"
 [tool.ruff.lint]
 ignore = [ "E203", "E402", "E501", "C901",]
 select = [ "E", "F", "C",]
+
+[tool.poetry.dependencies.flake8]
+version = "^7"
+optional = true
+
+[tool.poetry.dependencies.flake8-pyproject]
+version = "^1"
+optional = true
 
 [tool.poetry.dependencies.nibabel]
 optional = true
