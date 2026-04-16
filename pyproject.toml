@@ -139,7 +139,7 @@ version = "^0.23.0"
 
 [tool.poetry.dependencies.black]
 optional = true
-version = "^24.4.2"
+version = ">=24.4.2,<27.0.0"
 
 [tool.poetry.dependencies.isort]
 optional = true
