@@ -8,11 +8,7 @@ updates:
       github-actions:
         patterns:
           - '*'
-    reviewers:
-      - "saurbhc"
-      - "umbertoDifa"
-      - "aleksandar-ivic"
-    open-pull-requests-limit: 1
+    open-pull-requests-limit: 5
     labels:
       - "github-actions-updates"
 
@@ -21,7 +17,6 @@ updates:
     schedule:
       interval: "monthly"
     ignore:
-      # For all packages, ignore all major updates
       - dependency-name: "*"
         update-types:
           - "version-update:semver-major"
@@ -29,11 +24,7 @@ updates:
       python-requirements:
         patterns:
           - '*'
-    reviewers:
-      - "saurbhc"
-      - "umbertoDifa"
-      - "aleksandar-ivic"
-    open-pull-requests-limit: 1
+    open-pull-requests-limit: 5
     labels:
       - "dependencies"
 
