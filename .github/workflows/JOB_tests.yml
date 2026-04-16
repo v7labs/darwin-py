@@ -26,7 +26,7 @@ jobs:
           sudo rm -rf /usr/local/lib/android  # will release about 10 GB if you don't need Android
           sudo rm -rf /usr/share/dotnet # will release about 20GB if you don't need .NET
       - name: Harden Runner
-        uses: step-security/harden-runner@4d991eb9b905ef189e4c376166672c3f2f230481 # v2.18.0
+        uses: step-security/harden-runner@6c3c2f2c1c457b00c10c4848d6f5491db3b629df # v2.18.0
         with:
           egress-policy: audit
 
@@ -39,7 +39,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies with retry
-        uses: nick-invision/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08
+        uses: nick-invision/retry@ad984534de44a9489a53aefd81eb77f87c70dc60
         with:
           timeout_minutes: 10
           max_attempts: 3
