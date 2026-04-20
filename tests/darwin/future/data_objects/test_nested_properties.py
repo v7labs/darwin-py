@@ -22,6 +22,7 @@ from darwin.future.data_objects.properties import (
     get_visible_properties,
 )
 from darwin.importer.importer import (
+    _enrich_properties_with_metadata_values,
     _import_properties,
     _remap_property_for_create,
     _topologically_sort_properties_to_create,
@@ -219,6 +220,60 @@ class TestTopologicalSort:
         )
         with pytest.raises(ValueError):
             _topologically_sort_properties_to_create([a, b])
+
+
+class TestEnrichWithMetadataValues:
+    def test_appends_missing_metadata_values_for_class_level_property(self) -> None:
+        from darwin.datatypes import Property as MetadataProperty
+
+        prop = _make_property(
+            id_="p",
+            name="Defect Type",
+            type_="multi_select",
+            property_values=[
+                PropertyValue(id="src-contamination-id", value="Contamination")
+            ],
+        )
+        metadata_cls_prop_lookup = {
+            ("test_class", "Defect Type"): MetadataProperty(
+                name="Defect Type",
+                type="multi_select",
+                required=False,
+                property_values=[
+                    {"id": "src-contamination-id", "value": "Contamination"},
+                    {"id": "src-scratch-id", "value": "Scratch"},
+                ],
+                granularity=PropertyGranularity.annotation,
+            )
+        }
+        _enrich_properties_with_metadata_values(
+            [prop],
+            metadata_cls_prop_lookup=metadata_cls_prop_lookup,
+            metadata_item_prop_lookup={},
+            annotation_class_ids_map={("test_class", "polygon"): "1"},
+        )
+        values = {pv.value for pv in prop.property_values}
+        assert values == {"Contamination", "Scratch"}
+        # Preserves the source id on the newly appended value so that
+        # children referencing it via trigger_condition.property_value_ids
+        # can be remapped after the parent is created on the server.
+        new_scratch = next(pv for pv in prop.property_values if pv.value == "Scratch")
+        assert new_scratch.id == "src-scratch-id"
+
+    def test_no_op_when_metadata_missing(self) -> None:
+        prop = _make_property(
+            id_="p",
+            name="Defect Type",
+            type_="multi_select",
+            property_values=[PropertyValue(id="x", value="x")],
+        )
+        _enrich_properties_with_metadata_values(
+            [prop],
+            metadata_cls_prop_lookup={},
+            metadata_item_prop_lookup={},
+            annotation_class_ids_map={("test_class", "polygon"): "1"},
+        )
+        assert [pv.value for pv in prop.property_values] == ["x"]
 
 
 class TestRemapPropertyForCreate:
@@ -465,6 +520,40 @@ class TestGetVisibleProperties:
     def test_missing_definition_is_passed_through(self) -> None:
         selected = [SelectedProperty(name="Unknown", value="x")]
         assert get_visible_properties(selected, []) == selected
+
+    def test_cycle_in_parent_references_does_not_recurse_forever(self) -> None:
+        # Pathological input: A's parent is B and B's parent is A. The
+        # backend rejects this at create time, but the public utility must
+        # fail gracefully (treat as hidden) rather than RecursionError.
+        a = FullProperty(
+            id="a-id",
+            name="A",
+            type="single_select",
+            required=False,
+            annotation_class_id=1,
+            property_values=[PropertyValue(id="a-val", value="a")],
+            granularity=PropertyGranularity.annotation,
+            parent_property_id="b-id",
+            trigger_condition=TriggerCondition(type="any_value"),
+        )
+        b = FullProperty(
+            id="b-id",
+            name="B",
+            type="single_select",
+            required=False,
+            annotation_class_id=1,
+            property_values=[PropertyValue(id="b-val", value="b")],
+            granularity=PropertyGranularity.annotation,
+            parent_property_id="a-id",
+            trigger_condition=TriggerCondition(type="any_value"),
+        )
+        selected = [
+            SelectedProperty(name="A", value="a"),
+            SelectedProperty(name="B", value="b"),
+        ]
+        # Must return without raising. Both are hidden because neither has
+        # a reachable root.
+        assert get_visible_properties(selected, [a, b]) == []
 
     def test_any_value_child_hidden_when_parent_has_no_selection(self) -> None:
         parent = FullProperty(

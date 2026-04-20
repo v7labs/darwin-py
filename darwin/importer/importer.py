@@ -605,6 +605,62 @@ def _topologically_sort_properties_to_create(
     return ordered
 
 
+def _enrich_properties_with_metadata_values(
+    properties_to_create: List[FullProperty],
+    metadata_cls_prop_lookup: Dict[Tuple[str, str], Property],
+    metadata_item_prop_lookup: Dict[str, Dict[str, Any]],
+    annotation_class_ids_map: AnnotationClassIdsMap,
+) -> None:
+    """
+    Ensures that each property about to be created sends every value declared
+    for it in ``.v7/metadata.json`` — not only the values referenced by the
+    current batch of annotations. This is required so that a child property
+    whose ``trigger_condition.property_value_ids`` points at a parent value
+    that no annotation happens to use can still be remapped to the
+    destination team's ID after the parent is created.
+
+    Mutates ``properties_to_create`` in place; each property's
+    ``property_values`` is extended (appending only values whose value-string
+    is not already present).
+    """
+    class_name_by_id: Dict[int, str] = {}
+    for (class_name, _annotation_type), class_id in annotation_class_ids_map.items():
+        class_name_by_id[int(class_id)] = class_name
+
+    for prop in properties_to_create:
+        metadata_values: Optional[List[Dict[str, Any]]] = None
+        if prop.granularity == PropertyGranularity.item:
+            m_item = metadata_item_prop_lookup.get(prop.name)
+            if m_item is not None:
+                metadata_values = m_item.get("property_values") or []
+        else:
+            class_name = class_name_by_id.get(prop.annotation_class_id or -1)
+            if class_name is None:
+                continue
+            m_cls = metadata_cls_prop_lookup.get((class_name, prop.name))
+            if m_cls is not None:
+                metadata_values = m_cls.property_values or []
+
+        if not metadata_values:
+            continue
+
+        existing_values = {
+            pv.value for pv in (prop.property_values or []) if pv.value is not None
+        }
+        if prop.property_values is None:
+            prop.property_values = []
+        for m_value in metadata_values:
+            if m_value.get("value") in existing_values:
+                continue
+            prop.property_values.append(
+                PropertyValue(
+                    id=m_value.get("id"),
+                    value=m_value.get("value"),
+                    color=m_value.get("color") or "auto",
+                )
+            )
+
+
 def _record_created_property_id_mapping(
     source: FullProperty,
     created: FullProperty,
@@ -1000,6 +1056,16 @@ def _import_properties(
 
     created_properties = []
     if properties_to_create:
+        # Ensure every value declared in metadata is sent on the initial
+        # create so that children whose trigger_condition references any of
+        # those values (including values no annotation happens to use) can
+        # be remapped to the destination team's IDs.
+        _enrich_properties_with_metadata_values(
+            properties_to_create,
+            metadata_cls_prop_lookup,
+            metadata_item_prop_lookup,
+            annotation_class_ids_map,
+        )
         # Create parents before children so that nested ``parent_property_id``
         # references can be resolved as we go.
         properties_to_create = _topologically_sort_properties_to_create(

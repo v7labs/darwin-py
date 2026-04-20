@@ -314,25 +314,39 @@ def get_visible_properties(
         selected_by_parent_name.setdefault(selected.name, []).append(selected)
 
     visibility_cache: Dict[str, bool] = {}
+    # Tracks definitions currently being evaluated on the call stack so that
+    # a pathological (cyclic) ``parent_property_id`` graph doesn't cause
+    # unbounded recursion. The backend enforces acyclicity on create, but
+    # this utility is public and may be invoked on arbitrary inputs.
+    visiting: set = set()
 
     def is_visible(definition: FullProperty) -> bool:
         if definition.id is not None and definition.id in visibility_cache:
             return visibility_cache[definition.id]
+        if definition.id is not None and definition.id in visiting:
+            # Cycle detected — treat as hidden rather than recursing forever.
+            return False
 
-        if definition.parent_property_id is None:
-            result = True
-        else:
-            parent_definition = definitions_by_id.get(definition.parent_property_id)
-            if parent_definition is None or definition.trigger_condition is None:
-                result = False
-            elif not is_visible(parent_definition):
-                result = False
+        if definition.id is not None:
+            visiting.add(definition.id)
+        try:
+            if definition.parent_property_id is None:
+                result = True
             else:
-                result = _matches_trigger(
-                    definition.trigger_condition,
-                    parent_definition,
-                    selected_by_parent_name.get(parent_definition.name, []),
-                )
+                parent_definition = definitions_by_id.get(definition.parent_property_id)
+                if parent_definition is None or definition.trigger_condition is None:
+                    result = False
+                elif not is_visible(parent_definition):
+                    result = False
+                else:
+                    result = _matches_trigger(
+                        definition.trigger_condition,
+                        parent_definition,
+                        selected_by_parent_name.get(parent_definition.name, []),
+                    )
+        finally:
+            if definition.id is not None:
+                visiting.discard(definition.id)
 
         if definition.id is not None:
             visibility_cache[definition.id] = result
