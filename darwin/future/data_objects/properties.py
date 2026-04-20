@@ -182,7 +182,18 @@ class FullProperty(DefaultDarwin):
             # Only the API-shape UUID representation is sent; ``values``
             # (name-based) is stripped because it is an SDK-local convenience.
             include_fields["trigger_condition"] = {"type", "property_value_ids"}
-        return self.model_dump(mode="json", include=include_fields)
+        payload = self.model_dump(mode="json", include=include_fields)
+        # Strip ``property_value_ids: null`` from ``any_value`` triggers
+        # because the BE's OpenAPI schema declares the field as a
+        # non-nullable array. Sending ``null`` fails schema validation with
+        # an opaque error; omitting the key is the documented shape.
+        trigger_payload = payload.get("trigger_condition")
+        if (
+            isinstance(trigger_payload, dict)
+            and trigger_payload.get("property_value_ids") is None
+        ):
+            trigger_payload.pop("property_value_ids", None)
+        return payload
 
     def to_update_endpoint(self) -> Tuple[str, dict]:
         if self.id is None:

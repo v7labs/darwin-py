@@ -126,6 +126,20 @@ class TestFullPropertyEndpoints:
             "property_value_ids": ["val-uuid"],
         }
 
+    def test_create_endpoint_any_value_omits_property_value_ids(self) -> None:
+        # BE OpenAPI schema declares ``property_value_ids`` as a non-nullable
+        # array; sending ``null`` fails schema validation. Omitting the key
+        # is the documented shape for ``any_value`` triggers.
+        prop = _make_property(
+            name="child",
+            parent_name="Parent",
+            trigger_condition=TriggerCondition(type="any_value"),
+        )
+        prop.parent_property_id = "parent-uuid"
+        body = prop.to_create_endpoint()
+        assert body["trigger_condition"] == {"type": "any_value"}
+        assert "property_value_ids" not in body["trigger_condition"]
+
     def test_create_endpoint_rejects_unresolved_parent(self) -> None:
         # ``parent_name`` without ``parent_property_id`` means the importer
         # hasn't resolved the name against the server yet — sending it as-is
