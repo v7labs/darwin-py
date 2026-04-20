@@ -74,9 +74,9 @@ def assert_nested_metadata_round_trips(
 
     for child in nested_children_first:
         key = (child["class"], child["name"])
-        assert key in second_by_key, (
-            f"Nested child property '{child['name']}' missing from second export"
-        )
+        assert (
+            key in second_by_key
+        ), f"Nested child property '{child['name']}' missing from second export"
         second_child = second_by_key[key]
 
         assert (
@@ -693,9 +693,9 @@ def test_full_cycle_nested_properties(
         / ".v7"
         / "metadata.json"
     )
-    assert first_metadata_path.is_file(), (
-        f"Expected metadata.json to be present after pull at {first_metadata_path}"
-    )
+    assert (
+        first_metadata_path.is_file()
+    ), f"Expected metadata.json to be present after pull at {first_metadata_path}"
 
     local_dataset.delete_items(config_values)
 

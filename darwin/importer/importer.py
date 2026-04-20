@@ -1240,7 +1240,9 @@ def _create_update_item_properties(
     create_properties = []
     update_properties = []
     for item_prop_name, m_prop in item_properties.items():
-        m_prop_value_dicts: List[Dict[str, Any]] = m_prop.get("property_values", []) or []
+        m_prop_value_dicts: List[Dict[str, Any]] = (
+            m_prop.get("property_values", []) or []
+        )
         m_prop_values = [prop_val["value"] for prop_val in m_prop_value_dicts]
 
         # If the property exists in the team, check that all values are present

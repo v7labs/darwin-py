@@ -650,7 +650,6 @@ class TestE2EFixture:
         )
 
     def test_metadata_fixture_is_self_consistent(self) -> None:
-        from pathlib import Path
 
         fixture = self._fixture_root() / ".v7" / "metadata.json"
         assert fixture.is_file(), f"fixture missing: {fixture}"
@@ -674,15 +673,9 @@ class TestE2EFixture:
 
         # Every child points to an existing parent id and every value_match
         # trigger references at least one value present on the parent.
-        all_props = [
-            prop for klass in classes for prop in (klass.properties or [])
-        ] + [
+        all_props = [prop for klass in classes for prop in (klass.properties or [])] + [
             parse_property_classes(
-                {
-                    "classes": [
-                        {"name": "__item__", "type": "item", "properties": [p]}
-                    ]
-                }
+                {"classes": [{"name": "__item__", "type": "item", "properties": [p]}]}
             )[0].properties[0]
             for p in raw["properties"]
         ]
@@ -724,7 +717,6 @@ class TestE2EFixture:
         # declared in the metadata fixture — the E2E round-trip otherwise
         # cannot possibly succeed.
         import json as _json
-        from pathlib import Path
 
         fixture_root = self._fixture_root()
         metadata = _json.loads((fixture_root / ".v7" / "metadata.json").read_text())
@@ -741,9 +733,9 @@ class TestE2EFixture:
                     f"'{selected['name']}'"
                 )
         for selected in annotation_file.get("properties", []):
-            assert selected["name"] in item_prop_names, (
-                f"item references unknown item property '{selected['name']}'"
-            )
+            assert (
+                selected["name"] in item_prop_names
+            ), f"item references unknown item property '{selected['name']}'"
 
 
 class TestImportPropertiesNestedIntegration:
@@ -810,7 +802,6 @@ class TestImportPropertiesNestedIntegration:
     ) -> None:
         client = Mock()
         client.default_team = "test_team"
-        team_slug = "test_team"
         annotation_class_ids_map = {("test_class", "polygon"): "123"}
         annotations = [
             dt.Annotation(
@@ -855,7 +846,9 @@ class TestImportPropertiesNestedIntegration:
         created_payloads: List[FullProperty] = []
         created_server_properties: List[FullProperty] = []
 
-        def fake_create_property(*, team_slug: str, params: FullProperty) -> FullProperty:
+        def fake_create_property(
+            *, team_slug: str, params: FullProperty
+        ) -> FullProperty:
             assert isinstance(params, FullProperty)
             created_payloads.append(params)
             server_prop = params.model_copy()
