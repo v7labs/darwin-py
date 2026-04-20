@@ -33,6 +33,7 @@ from darwin.future.data_objects.properties import (
     PropertyGranularity,
     PropertyType,
     SelectedProperty,
+    TriggerCondition,
 )
 from darwin.path_utils import construct_full_path, is_properties_enabled, parse_metadata
 
@@ -492,6 +493,20 @@ class Property:
     # Granularity of the property
     granularity: PropertyGranularity = PropertyGranularity("section")
 
+    # Source property ID, as present in ``.v7/metadata.json``. ``None`` when
+    # the metadata did not include the id (older exports). Used by the
+    # importer to remap ``parent_property_id`` references from the source
+    # team to the destination team.
+    id: Optional[str] = None
+
+    # ID of the parent property in the source team. ``None`` for top-level
+    # properties.
+    parent_property_id: Optional[str] = None
+
+    # Trigger condition for a nested property. ``None`` for top-level
+    # properties.
+    trigger_condition: Optional[TriggerCondition] = None
+
 
 @dataclass
 class PropertyClass:
@@ -532,6 +547,13 @@ def parse_property_classes(metadata: dict[str, Any]) -> list[PropertyClass]:
                 property_values=p["property_values"],
                 description=p.get("description"),
                 granularity=PropertyGranularity(p.get("granularity", "section")),
+                id=p.get("id"),
+                parent_property_id=p.get("parent_property_id"),
+                trigger_condition=(
+                    TriggerCondition.model_validate(p["trigger_condition"])
+                    if p.get("trigger_condition") is not None
+                    else None
+                ),
             )
             for p in metadata_cls["properties"]
         ]

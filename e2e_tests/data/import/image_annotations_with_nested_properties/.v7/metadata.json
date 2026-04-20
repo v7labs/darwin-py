@@ -1,0 +1,125 @@
+{
+  "version": "1.0",
+  "schema_ref": "https://darwin-public.s3.eu-west-1.amazonaws.com/darwin_json/metadata/1.0/schema.json",
+  "classes": [
+    {
+      "name": "nested_bbox",
+      "type": "bounding_box",
+      "description": null,
+      "color": "rgba(255,0,255,1.0)",
+      "sub_types": [],
+      "properties": [
+        {
+          "id": "src-ann-child-id",
+          "name": "annotation_level_child",
+          "type": "single_select",
+          "description": "",
+          "required": false,
+          "granularity": "annotation",
+          "property_values": [
+            {
+              "id": "src-ann-child-femur-id",
+              "value": "Femur",
+              "color": "rgba(200,255,0,1.0)"
+            }
+          ],
+          "parent_property_id": "src-ann-parent-id",
+          "trigger_condition": {
+            "type": "value_match",
+            "property_value_ids": ["src-ann-parent-fracture-id"]
+          }
+        },
+        {
+          "id": "src-sec-child-id",
+          "name": "section_level_child",
+          "type": "multi_select",
+          "description": "",
+          "required": false,
+          "granularity": "section",
+          "property_values": [
+            {
+              "id": "src-sec-child-rotated-id",
+              "value": "Rotated",
+              "color": "rgba(100,100,100,1.0)"
+            }
+          ],
+          "parent_property_id": "src-sec-parent-id",
+          "trigger_condition": {
+            "type": "any_value"
+          }
+        },
+        {
+          "id": "src-ann-parent-id",
+          "name": "annotation_level_parent",
+          "type": "single_select",
+          "description": "",
+          "required": false,
+          "granularity": "annotation",
+          "property_values": [
+            {
+              "id": "src-ann-parent-fracture-id",
+              "value": "Fracture",
+              "color": "rgba(0,255,0,1.0)"
+            },
+            {
+              "id": "src-ann-parent-normal-id",
+              "value": "Normal",
+              "color": "rgba(0,0,255,1.0)"
+            }
+          ],
+          "parent_property_id": null,
+          "trigger_condition": null
+        },
+        {
+          "id": "src-sec-parent-id",
+          "name": "section_level_parent",
+          "type": "multi_select",
+          "description": "",
+          "required": false,
+          "granularity": "section",
+          "property_values": [
+            {
+              "id": "src-sec-parent-left-id",
+              "value": "LeftHand",
+              "color": "rgba(200,100,0,1.0)"
+            }
+          ],
+          "parent_property_id": null,
+          "trigger_condition": null
+        }
+      ]
+    }
+  ],
+  "properties": [
+    {
+      "id": "src-item-child-id",
+      "name": "item_level_child",
+      "type": "single_select",
+      "description": "",
+      "required": false,
+      "granularity": "item",
+      "property_values": [
+        {
+          "id": "src-item-child-yes-id",
+          "value": "Yes",
+          "color": "rgba(0,255,255,1.0)"
+        }
+      ],
+      "parent_property_id": "src-item-parent-id",
+      "trigger_condition": {
+        "type": "any_value"
+      }
+    },
+    {
+      "id": "src-item-parent-id",
+      "name": "item_level_parent",
+      "type": "text",
+      "description": "",
+      "required": false,
+      "granularity": "item",
+      "property_values": [],
+      "parent_property_id": null,
+      "trigger_condition": null
+    }
+  ]
+}

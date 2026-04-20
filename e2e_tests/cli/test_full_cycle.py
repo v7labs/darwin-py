@@ -1,6 +1,8 @@
+import json
 import os
 import shutil
 from pathlib import Path
+from typing import Any, Dict, List
 
 from e2e_tests.helpers import (
     assert_cli,
@@ -11,6 +13,118 @@ from e2e_tests.helpers import (
 from e2e_tests.objects import E2EDataset, ConfigValues
 from e2e_tests.cli.test_import import compare_annotations_export
 from e2e_tests.cli.test_push import extract_and_push
+
+
+def _load_metadata(metadata_path: Path) -> Dict[str, Any]:
+    with open(metadata_path, "r") as f:
+        return json.load(f)
+
+
+def _flatten_properties_with_parents(
+    metadata: Dict[str, Any],
+) -> List[Dict[str, Any]]:
+    """
+    Collapses a parsed ``metadata.json`` into a flat list of property
+    definitions across class-level and item-level, keyed by ``name`` so we
+    can cross-reference them between exports without relying on server-side
+    IDs (which are regenerated on each import).
+    """
+    flat: List[Dict[str, Any]] = []
+    for klass in metadata.get("classes", []):
+        for prop in klass.get("properties", []):
+            flat.append({"class": klass["name"], **prop})
+    for prop in metadata.get("properties", []):
+        flat.append({"class": None, **prop})
+    return flat
+
+
+def assert_nested_metadata_round_trips(
+    first_metadata_path: Path, second_metadata_path: Path
+) -> None:
+    """
+    Asserts that class-level and item-level nested property metadata are
+    preserved across a push/pull round-trip. Concretely, for every property
+    that has a ``parent_property_id`` in the first export, the second
+    export must contain a property with the same name whose trigger
+    condition matches the first, and whose parent resolves (by name) to
+    the same parent property.
+    """
+    first = _load_metadata(first_metadata_path)
+    second = _load_metadata(second_metadata_path)
+
+    first_flat = _flatten_properties_with_parents(first)
+    second_flat = _flatten_properties_with_parents(second)
+
+    by_id_first = {p["id"]: p for p in first_flat if p.get("id")}
+    by_id_second = {p["id"]: p for p in second_flat if p.get("id")}
+
+    # ``(class, name) -> property`` lookup is used on the second export to
+    # cross-reference each child by semantic identity rather than by the
+    # server-generated UUIDs, which are regenerated on each import.
+    second_by_key = {(p["class"], p["name"]): p for p in second_flat}
+
+    nested_children_first = [
+        p for p in first_flat if p.get("parent_property_id") is not None
+    ]
+    assert nested_children_first, (
+        "Test setup error: first metadata export does not contain any nested "
+        "property (parent_property_id). The fixture must include at least "
+        "one nested property to make this assertion meaningful."
+    )
+
+    for child in nested_children_first:
+        key = (child["class"], child["name"])
+        assert key in second_by_key, (
+            f"Nested child property '{child['name']}' missing from second export"
+        )
+        second_child = second_by_key[key]
+
+        assert (
+            second_child.get("parent_property_id") is not None
+        ), f"Child '{child['name']}' lost its parent reference on round-trip"
+
+        # Resolve both parent IDs to their (class, name) keys and require
+        # them to match. This avoids comparing the regenerated UUIDs
+        # directly while still proving that the nesting link was preserved.
+        first_parent = by_id_first.get(child["parent_property_id"])
+        second_parent = by_id_second.get(second_child["parent_property_id"])
+        assert first_parent is not None, (
+            f"Child '{child['name']}' references unknown parent "
+            f"{child['parent_property_id']} in first export"
+        )
+        assert second_parent is not None, (
+            f"Child '{child['name']}' references unknown parent "
+            f"{second_child['parent_property_id']} in second export"
+        )
+        assert (first_parent["class"], first_parent["name"]) == (
+            second_parent["class"],
+            second_parent["name"],
+        ), f"Parent of '{child['name']}' changed on round-trip"
+
+        # Trigger condition type must match. For ``value_match``, the set of
+        # parent values referenced must also match (again resolved by value
+        # string to sidestep server-generated UUIDs).
+        first_trigger = child.get("trigger_condition") or {}
+        second_trigger = second_child.get("trigger_condition") or {}
+        assert first_trigger.get("type") == second_trigger.get(
+            "type"
+        ), f"Trigger type of '{child['name']}' changed on round-trip"
+
+        if first_trigger.get("type") == "value_match":
+            first_parent_value_names = {
+                pv["value"]
+                for pv in first_parent.get("property_values") or []
+                if pv.get("id") in (first_trigger.get("property_value_ids") or [])
+            }
+            second_parent_value_names = {
+                pv["value"]
+                for pv in second_parent.get("property_values") or []
+                if pv.get("id") in (second_trigger.get("property_value_ids") or [])
+            }
+            assert first_parent_value_names == second_parent_value_names, (
+                f"value_match trigger values for '{child['name']}' changed "
+                "on round-trip"
+            )
 
 
 def copy_files_to_flat_directory(source_dir, target_dir):
@@ -519,3 +633,114 @@ def test_full_cycle_multi_channel_item(
         base_slot="image_1.jpg",
         unzip=False,
     )
+
+
+def test_full_cycle_nested_properties(
+    local_dataset: E2EDataset,
+    config_values: ConfigValues,
+):
+    """
+    Full round-trip for nested properties at all three granularities.
+
+    Steps:
+    - 1: Registers files from external storage to a dataset
+    - 2: Imports annotations and metadata.json that declare a nested property
+         hierarchy at item, section, and annotation granularity (with children
+         deliberately listed before their parents in metadata.json to exercise
+         the importer's topological sort).
+    - 3: Creates and pulls a first release
+    - 4: Deletes all items
+    - 5: Re-pushes the pulled files and re-imports from the pulled release
+    - 6: Creates and pulls a second release
+    - 7: Asserts annotation + item property values survive the round-trip
+         (via compare_annotations_export) and that metadata.json nesting
+         structure (parent_property_id + trigger_condition) is preserved
+         across exports (via assert_nested_metadata_round_trips).
+    """
+    item_type = "single_slotted"
+    annotation_format = "darwin"
+    first_release_name = "first_release"
+    second_release_name = "second_release"
+    pull_dir = Path(
+        f"{Path.home()}/.darwin/datasets/{config_values.team_slug}/{local_dataset.slug}"
+    )
+    annotations_import_dir = (
+        Path(__file__).parents[1]
+        / "data"
+        / "import"
+        / "image_annotations_with_nested_properties"
+    )
+
+    local_dataset.register_read_only_items(config_values, item_type)
+    result = run_cli_command(
+        f"darwin dataset import {local_dataset.name} {annotation_format} {annotations_import_dir}"
+    )
+    assert_cli(result, 0)
+
+    original_release = export_release(
+        annotation_format, local_dataset, config_values, release_name=first_release_name
+    )
+    result = run_cli_command(
+        f"darwin dataset pull {local_dataset.name}:{original_release.name}"
+    )
+    assert_cli(result, 0)
+
+    first_metadata_path = (
+        pull_dir
+        / "releases"
+        / first_release_name
+        / "annotations"
+        / ".v7"
+        / "metadata.json"
+    )
+    assert first_metadata_path.is_file(), (
+        f"Expected metadata.json to be present after pull at {first_metadata_path}"
+    )
+
+    local_dataset.delete_items(config_values)
+
+    result = run_cli_command(
+        f"darwin dataset push {local_dataset.name} {pull_dir}/images --preserve-folders"
+    )
+    assert_cli(result, 0)
+    wait_until_items_processed(config_values, local_dataset.id, timeout=60)
+    result = run_cli_command(
+        f"darwin dataset import {local_dataset.name} {annotation_format} "
+        f"{pull_dir}/releases/{first_release_name}/annotations"
+    )
+    assert_cli(result, 0)
+
+    shutil.rmtree(f"{pull_dir}/images")
+
+    new_release = export_release(
+        annotation_format,
+        local_dataset,
+        config_values,
+        release_name=second_release_name,
+    )
+    result = run_cli_command(
+        f"darwin dataset pull {local_dataset.name}:{new_release.name}"
+    )
+    assert_cli(result, 0)
+
+    second_metadata_path = (
+        pull_dir
+        / "releases"
+        / second_release_name
+        / "annotations"
+        / ".v7"
+        / "metadata.json"
+    )
+
+    # Per-annotation and per-item property values must match across the
+    # round-trip (unchanged assertion reused from flat-property tests).
+    compare_annotations_export(
+        Path(f"{pull_dir}/releases/{first_release_name}/annotations"),
+        Path(f"{pull_dir}/releases/{second_release_name}/annotations"),
+        item_type,
+        unzip=False,
+    )
+
+    # Nesting-specific assertion: parent/child links and trigger conditions
+    # survive the export -> import -> export cycle.
+    assert_nested_metadata_round_trips(first_metadata_path, second_metadata_path)
