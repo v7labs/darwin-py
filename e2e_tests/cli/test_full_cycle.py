@@ -43,33 +43,24 @@ def assert_nested_metadata_round_trips(
 ) -> None:
     """
     Asserts that class-level and item-level nested property metadata are
-    preserved across a push/pull round-trip. Concretely, for every property
-    that has a ``parent_property_id`` in the first export, the second
-    export must contain a property with the same name whose trigger
-    condition matches the first, and whose parent resolves (by name) to
-    the same parent property.
+    preserved across a push/pull round-trip. Every nested child in the first
+    export must also be nested in the second export with the same
+    ``parent_name`` and a matching trigger condition (``type`` plus, for
+    ``value_match``, the set of referenced parent value names).
     """
-    first = _load_metadata(first_metadata_path)
-    second = _load_metadata(second_metadata_path)
+    first_flat = _flatten_properties_with_parents(_load_metadata(first_metadata_path))
+    second_flat = _flatten_properties_with_parents(_load_metadata(second_metadata_path))
 
-    first_flat = _flatten_properties_with_parents(first)
-    second_flat = _flatten_properties_with_parents(second)
-
-    by_id_first = {p["id"]: p for p in first_flat if p.get("id")}
-    by_id_second = {p["id"]: p for p in second_flat if p.get("id")}
-
-    # ``(class, name) -> property`` lookup is used on the second export to
-    # cross-reference each child by semantic identity rather than by the
-    # server-generated UUIDs, which are regenerated on each import.
+    # ``(class, name) -> property`` lookup lets us cross-reference properties
+    # across exports by their semantic identity (name), consistent with how
+    # darwin-py identifies properties everywhere else.
     second_by_key = {(p["class"], p["name"]): p for p in second_flat}
 
-    nested_children_first = [
-        p for p in first_flat if p.get("parent_property_id") is not None
-    ]
+    nested_children_first = [p for p in first_flat if p.get("parent_name") is not None]
     assert nested_children_first, (
         "Test setup error: first metadata export does not contain any nested "
-        "property (parent_property_id). The fixture must include at least "
-        "one nested property to make this assertion meaningful."
+        "property (parent_name). The fixture must include at least one "
+        "nested property to make this assertion meaningful."
     )
 
     for child in nested_children_first:
@@ -79,49 +70,21 @@ def assert_nested_metadata_round_trips(
         ), f"Nested child property '{child['name']}' missing from second export"
         second_child = second_by_key[key]
 
-        assert (
-            second_child.get("parent_property_id") is not None
-        ), f"Child '{child['name']}' lost its parent reference on round-trip"
-
-        # Resolve both parent IDs to their (class, name) keys and require
-        # them to match. This avoids comparing the regenerated UUIDs
-        # directly while still proving that the nesting link was preserved.
-        first_parent = by_id_first.get(child["parent_property_id"])
-        second_parent = by_id_second.get(second_child["parent_property_id"])
-        assert first_parent is not None, (
-            f"Child '{child['name']}' references unknown parent "
-            f"{child['parent_property_id']} in first export"
+        assert second_child.get("parent_name") == child["parent_name"], (
+            f"Child '{child['name']}' lost or changed its parent_name "
+            f"on round-trip: {child['parent_name']!r} -> "
+            f"{second_child.get('parent_name')!r}"
         )
-        assert second_parent is not None, (
-            f"Child '{child['name']}' references unknown parent "
-            f"{second_child['parent_property_id']} in second export"
-        )
-        assert (first_parent["class"], first_parent["name"]) == (
-            second_parent["class"],
-            second_parent["name"],
-        ), f"Parent of '{child['name']}' changed on round-trip"
 
-        # Trigger condition type must match. For ``value_match``, the set of
-        # parent values referenced must also match (again resolved by value
-        # string to sidestep server-generated UUIDs).
         first_trigger = child.get("trigger_condition") or {}
         second_trigger = second_child.get("trigger_condition") or {}
         assert first_trigger.get("type") == second_trigger.get(
             "type"
         ), f"Trigger type of '{child['name']}' changed on round-trip"
-
         if first_trigger.get("type") == "value_match":
-            first_parent_value_names = {
-                pv["value"]
-                for pv in first_parent.get("property_values") or []
-                if pv.get("id") in (first_trigger.get("property_value_ids") or [])
-            }
-            second_parent_value_names = {
-                pv["value"]
-                for pv in second_parent.get("property_values") or []
-                if pv.get("id") in (second_trigger.get("property_value_ids") or [])
-            }
-            assert first_parent_value_names == second_parent_value_names, (
+            assert set(first_trigger.get("values") or []) == set(
+                second_trigger.get("values") or []
+            ), (
                 f"value_match trigger values for '{child['name']}' changed "
                 "on round-trip"
             )

@@ -1,5 +1,5 @@
-"""Unit tests for nested-property SDK support (parent_property_id, trigger_condition,
-topological sort, and visibility filtering).
+"""Unit tests for nested-property SDK support (parent_name, trigger_condition,
+topological sort, name-to-UUID resolution, and visibility filtering).
 """
 
 import json
@@ -11,7 +11,7 @@ from unittest.mock import Mock
 import pytest
 
 import darwin.datatypes as dt
-from darwin.datatypes import parse_property_classes
+from darwin.datatypes import TeamPropertyLookups, parse_property_classes
 from darwin.future.data_objects.properties import (
     FullProperty,
     MetaDataClass,
@@ -24,123 +24,138 @@ from darwin.future.data_objects.properties import (
 from darwin.importer.importer import (
     _enrich_properties_with_metadata_values,
     _import_properties,
-    _remap_property_for_create,
+    _resolve_parent_for_create,
     _topologically_sort_properties_to_create,
 )
 
 
 def _make_property(
     *,
-    id_: str,
     name: str,
+    id_: Optional[str] = None,
     type_: str = "single_select",
     property_values: Optional[List[PropertyValue]] = None,
-    parent_property_id: Optional[str] = None,
+    parent_name: Optional[str] = None,
     trigger_condition: Optional[TriggerCondition] = None,
+    annotation_class_id: Optional[int] = 1,
+    granularity: PropertyGranularity = PropertyGranularity.annotation,
 ) -> FullProperty:
     return FullProperty(
         id=id_,
         name=name,
         type=type_,
         required=False,
-        annotation_class_id=1,
+        annotation_class_id=annotation_class_id,
         slug="team-slug",
         property_values=property_values or [],
-        granularity=PropertyGranularity.annotation,
-        parent_property_id=parent_property_id,
+        granularity=granularity,
+        parent_name=parent_name,
         trigger_condition=trigger_condition,
     )
 
 
 class TestTriggerCondition:
-    def test_value_match_requires_ids(self) -> None:
-        with pytest.raises(ValueError):
-            TriggerCondition(type="value_match", property_value_ids=[])
-
-    def test_value_match_rejects_none_ids(self) -> None:
+    def test_value_match_requires_values_or_ids(self) -> None:
         with pytest.raises(ValueError):
             TriggerCondition(type="value_match")
 
-    def test_value_match_accepts_ids(self) -> None:
-        cond = TriggerCondition(type="value_match", property_value_ids=["abc"])
-        assert cond.property_value_ids == ["abc"]
-
-    def test_any_value_does_not_require_ids(self) -> None:
-        cond = TriggerCondition(type="any_value")
+    def test_value_match_accepts_values(self) -> None:
+        cond = TriggerCondition(type="value_match", values=["Fracture"])
+        assert cond.values == ["Fracture"]
         assert cond.property_value_ids is None
 
-    def test_any_value_rejects_non_empty_ids(self) -> None:
-        # TDD 14.2 / line 988: any_value + property_value_ids must be rejected.
+    def test_value_match_accepts_property_value_ids(self) -> None:
+        cond = TriggerCondition(type="value_match", property_value_ids=["abc-uuid"])
+        assert cond.property_value_ids == ["abc-uuid"]
+        assert cond.values is None
+
+    def test_value_match_accepts_both_names_and_ids(self) -> None:
+        # Both representations coexisting is not an error; callers may
+        # hydrate names alongside API-returned UUIDs.
+        cond = TriggerCondition(
+            type="value_match",
+            values=["Fracture"],
+            property_value_ids=["abc-uuid"],
+        )
+        assert cond.values == ["Fracture"]
+        assert cond.property_value_ids == ["abc-uuid"]
+
+    def test_any_value_does_not_require_ids_or_values(self) -> None:
+        cond = TriggerCondition(type="any_value")
+        assert cond.property_value_ids is None
+        assert cond.values is None
+
+    def test_any_value_rejects_non_empty_values(self) -> None:
+        with pytest.raises(ValueError):
+            TriggerCondition(type="any_value", values=["Fracture"])
+
+    def test_any_value_rejects_non_empty_property_value_ids(self) -> None:
         with pytest.raises(ValueError):
             TriggerCondition(type="any_value", property_value_ids=["abc"])
 
-    def test_any_value_accepts_empty_ids_list(self) -> None:
-        # Empty list is semantically equivalent to None — must be accepted.
-        cond = TriggerCondition(type="any_value", property_value_ids=[])
-        assert not cond.property_value_ids
-
     def test_rejects_unknown_type(self) -> None:
-        # TDD 14.2: trigger_condition.type unknown string must be invalid.
         with pytest.raises(Exception):  # pydantic ValidationError
             TriggerCondition(type="bogus_type")  # type: ignore[arg-type]
 
 
 class TestFullPropertyEndpoints:
     def test_create_endpoint_omits_nesting_when_absent(self) -> None:
-        prop = _make_property(id_="1", name="top")
+        prop = _make_property(name="top")
         body = prop.to_create_endpoint()
         assert "parent_property_id" not in body
+        assert "parent_name" not in body  # SDK-local field, never sent to API
         assert "trigger_condition" not in body
 
-    def test_create_endpoint_includes_nesting_when_present(self) -> None:
+    def test_create_endpoint_sends_parent_property_id_and_uuid_trigger(self) -> None:
         prop = _make_property(
-            id_="2",
             name="child",
-            parent_property_id="parent-id",
+            parent_name="Parent",
             trigger_condition=TriggerCondition(
-                type="value_match", property_value_ids=["val-id"]
+                type="value_match",
+                values=["Fracture"],
+                property_value_ids=["val-uuid"],
             ),
         )
+        prop.parent_property_id = "parent-uuid"
         body = prop.to_create_endpoint()
-        assert body["parent_property_id"] == "parent-id"
+        assert body["parent_property_id"] == "parent-uuid"
+        # Name-based ``values`` is an SDK-local convenience and must not leak
+        # into the API payload.
         assert body["trigger_condition"] == {
             "type": "value_match",
-            "property_value_ids": ["val-id"],
+            "property_value_ids": ["val-uuid"],
         }
+
+    def test_create_endpoint_rejects_unresolved_parent(self) -> None:
+        # ``parent_name`` without ``parent_property_id`` means the importer
+        # hasn't resolved the name against the server yet — sending it as-is
+        # would lose the nesting silently.
+        prop = _make_property(
+            name="child",
+            parent_name="Parent",
+            trigger_condition=TriggerCondition(type="any_value"),
+        )
+        with pytest.raises(ValueError):
+            prop.to_create_endpoint()
+
+    def test_create_endpoint_rejects_parent_without_trigger(self) -> None:
+        prop = _make_property(name="child")
+        prop.parent_property_id = "parent-uuid"
+        with pytest.raises(ValueError):
+            prop.to_create_endpoint()
 
     def test_update_endpoint_excludes_immutable_nesting_fields(self) -> None:
         prop = _make_property(
             id_="3",
             name="child",
-            parent_property_id="parent-id",
             trigger_condition=TriggerCondition(type="any_value"),
+            parent_name="Parent",
         )
+        prop.parent_property_id = "parent-uuid"
         _, body = prop.to_update_endpoint()
         assert "parent_property_id" not in body
         assert "trigger_condition" not in body
         assert "granularity" not in body
-
-    def test_create_endpoint_rejects_parent_without_trigger(self) -> None:
-        # TDD 14.2: parent_property_id set but trigger_condition nil -> invalid.
-        prop = _make_property(
-            id_="4",
-            name="child",
-            parent_property_id="parent-id",
-            trigger_condition=None,
-        )
-        with pytest.raises(ValueError):
-            prop.to_create_endpoint()
-
-    def test_create_endpoint_rejects_trigger_without_parent(self) -> None:
-        # TDD 14.2: trigger_condition set but parent_property_id nil -> invalid.
-        prop = _make_property(
-            id_="5",
-            name="child",
-            parent_property_id=None,
-            trigger_condition=TriggerCondition(type="any_value"),
-        )
-        with pytest.raises(ValueError):
-            prop.to_create_endpoint()
 
 
 class TestTopologicalSort:
@@ -148,100 +163,96 @@ class TestTopologicalSort:
         assert _topologically_sort_properties_to_create([]) == []
 
     def test_parent_always_precedes_child(self) -> None:
-        parent = _make_property(id_="p", name="parent")
+        parent = _make_property(name="parent")
         child = _make_property(
-            id_="c",
             name="child",
-            parent_property_id="p",
+            parent_name="parent",
             trigger_condition=TriggerCondition(type="any_value"),
         )
-
         ordered = _topologically_sort_properties_to_create([child, parent])
-        assert [p.id for p in ordered] == ["p", "c"]
+        assert [p.name for p in ordered] == ["parent", "child"]
 
     def test_deep_chain_is_ordered(self) -> None:
-        root = _make_property(id_="r", name="root")
+        root = _make_property(name="root")
         mid = _make_property(
-            id_="m",
             name="mid",
-            parent_property_id="r",
+            parent_name="root",
             trigger_condition=TriggerCondition(type="any_value"),
         )
         leaf = _make_property(
-            id_="l",
             name="leaf",
-            parent_property_id="m",
+            parent_name="mid",
             trigger_condition=TriggerCondition(type="any_value"),
         )
-
         ordered = _topologically_sort_properties_to_create([leaf, mid, root])
-        assert [p.id for p in ordered] == ["r", "m", "l"]
+        assert [p.name for p in ordered] == ["root", "mid", "leaf"]
 
     def test_siblings_preserve_input_order(self) -> None:
-        root = _make_property(id_="r", name="root")
+        root = _make_property(name="root")
         a = _make_property(
-            id_="a",
             name="a",
-            parent_property_id="r",
+            parent_name="root",
             trigger_condition=TriggerCondition(type="any_value"),
         )
         b = _make_property(
-            id_="b",
             name="b",
-            parent_property_id="r",
+            parent_name="root",
             trigger_condition=TriggerCondition(type="any_value"),
         )
-
         ordered = _topologically_sort_properties_to_create([a, b, root])
-        assert [p.id for p in ordered] == ["r", "a", "b"]
+        assert [p.name for p in ordered] == ["root", "a", "b"]
 
     def test_unknown_parent_treated_as_root(self) -> None:
         orphan = _make_property(
-            id_="o",
             name="orphan",
-            parent_property_id="unknown-parent",
+            parent_name="unknown",
             trigger_condition=TriggerCondition(type="any_value"),
         )
         ordered = _topologically_sort_properties_to_create([orphan])
-        assert [p.id for p in ordered] == ["o"]
+        assert [p.name for p in ordered] == ["orphan"]
 
     def test_cycle_raises(self) -> None:
         a = _make_property(
-            id_="a",
             name="a",
-            parent_property_id="b",
+            parent_name="b",
             trigger_condition=TriggerCondition(type="any_value"),
         )
         b = _make_property(
-            id_="b",
             name="b",
-            parent_property_id="a",
+            parent_name="a",
             trigger_condition=TriggerCondition(type="any_value"),
         )
         with pytest.raises(ValueError):
             _topologically_sort_properties_to_create([a, b])
 
+    def test_item_level_and_class_level_do_not_interleave(self) -> None:
+        # A class-level property named "Shared" and an item-level property
+        # with the same name should not be treated as the same node.
+        class_level = _make_property(name="Shared")
+        item_level = _make_property(
+            name="Shared",
+            annotation_class_id=None,
+            granularity=PropertyGranularity.item,
+        )
+        ordered = _topologically_sort_properties_to_create([class_level, item_level])
+        assert ordered == [class_level, item_level]
+
 
 class TestEnrichWithMetadataValues:
     def test_appends_missing_metadata_values_for_class_level_property(self) -> None:
-        from darwin.datatypes import Property as MetadataProperty
-
         prop = _make_property(
-            id_="p",
             name="Defect Type",
             type_="multi_select",
-            property_values=[
-                PropertyValue(id="src-contamination-id", value="Contamination")
-            ],
+            property_values=[PropertyValue(value="Contamination")],
         )
         metadata_cls_prop_lookup = {
-            ("test_class", "Defect Type"): MetadataProperty(
+            ("test_class", "Defect Type"): dt.Property(
                 name="Defect Type",
                 type="multi_select",
                 required=False,
                 property_values=[
-                    {"id": "src-contamination-id", "value": "Contamination"},
-                    {"id": "src-scratch-id", "value": "Scratch"},
+                    {"value": "Contamination"},
+                    {"value": "Scratch"},
                 ],
                 granularity=PropertyGranularity.annotation,
             )
@@ -254,18 +265,12 @@ class TestEnrichWithMetadataValues:
         )
         values = {pv.value for pv in prop.property_values}
         assert values == {"Contamination", "Scratch"}
-        # Preserves the source id on the newly appended value so that
-        # children referencing it via trigger_condition.property_value_ids
-        # can be remapped after the parent is created on the server.
-        new_scratch = next(pv for pv in prop.property_values if pv.value == "Scratch")
-        assert new_scratch.id == "src-scratch-id"
 
     def test_no_op_when_metadata_missing(self) -> None:
         prop = _make_property(
-            id_="p",
             name="Defect Type",
             type_="multi_select",
-            property_values=[PropertyValue(id="x", value="x")],
+            property_values=[PropertyValue(value="x")],
         )
         _enrich_properties_with_metadata_values(
             [prop],
@@ -276,52 +281,132 @@ class TestEnrichWithMetadataValues:
         assert [pv.value for pv in prop.property_values] == ["x"]
 
 
-class TestRemapPropertyForCreate:
-    def test_remaps_parent_id(self) -> None:
+def _fake_team_property_lookups(
+    annotation_properties=None, item_properties=None
+) -> TeamPropertyLookups:
+    lookups = TeamPropertyLookups.__new__(TeamPropertyLookups)
+    lookups.annotation_properties = annotation_properties or {}
+    lookups.item_properties = item_properties or {}
+    lookups._client = Mock()  # type: ignore[attr-defined]
+    lookups._team_slug = "test_team"  # type: ignore[attr-defined]
+    return lookups
+
+
+class TestResolveParentForCreate:
+    def test_returns_as_is_for_top_level(self) -> None:
+        prop = _make_property(name="top")
+        resolved = _resolve_parent_for_create(prop, _fake_team_property_lookups())
+        assert resolved is prop
+
+    def test_resolves_class_level_parent_name_and_trigger_values(self) -> None:
+        parent_on_server = FullProperty(
+            id="new-parent-id",
+            name="Defect Type",
+            type="multi_select",
+            required=False,
+            annotation_class_id=1,
+            property_values=[
+                PropertyValue(id="new-cont-id", value="Contamination"),
+                PropertyValue(id="new-scratch-id", value="Scratch"),
+            ],
+            granularity=PropertyGranularity.annotation,
+        )
+        lookups = _fake_team_property_lookups(
+            annotation_properties={("Defect Type", 1): parent_on_server}
+        )
         child = _make_property(
-            id_="c",
-            name="c",
-            parent_property_id="old-p",
+            name="Contamination Source",
+            parent_name="Defect Type",
+            trigger_condition=TriggerCondition(
+                type="value_match", values=["Contamination"]
+            ),
+        )
+        resolved = _resolve_parent_for_create(child, lookups)
+        assert resolved.parent_property_id == "new-parent-id"
+        assert resolved.trigger_condition is not None
+        assert resolved.trigger_condition.property_value_ids == ["new-cont-id"]
+        # The original (name-based) ``trigger_condition.values`` is dropped
+        # from the API-ready copy to avoid double-encoding.
+        assert resolved.trigger_condition.values is None
+
+    def test_resolves_any_value_trigger(self) -> None:
+        parent_on_server = FullProperty(
+            id="notes-id",
+            name="Notes",
+            type="text",
+            required=False,
+            annotation_class_id=1,
+            granularity=PropertyGranularity.annotation,
+        )
+        lookups = _fake_team_property_lookups(
+            annotation_properties={("Notes", 1): parent_on_server}
+        )
+        child = _make_property(
+            name="Translation Required?",
+            parent_name="Notes",
             trigger_condition=TriggerCondition(type="any_value"),
         )
-        remapped = _remap_property_for_create(child, {"old-p": "new-p"}, {})
-        assert remapped.parent_property_id == "new-p"
+        resolved = _resolve_parent_for_create(child, lookups)
+        assert resolved.parent_property_id == "notes-id"
+        assert resolved.trigger_condition is not None
+        assert resolved.trigger_condition.type == "any_value"
+        assert resolved.trigger_condition.property_value_ids is None
 
-    def test_remaps_value_ids(self) -> None:
+    def test_resolves_item_level_parent(self) -> None:
+        parent_on_server = FullProperty(
+            id="item-parent-id",
+            name="item_level_parent",
+            type="text",
+            required=False,
+            granularity=PropertyGranularity.item,
+        )
+        lookups = _fake_team_property_lookups(
+            item_properties={"item_level_parent": parent_on_server}
+        )
+        child = FullProperty(
+            name="item_level_child",
+            type="single_select",
+            required=False,
+            granularity=PropertyGranularity.item,
+            property_values=[PropertyValue(value="Yes")],
+            slug="team-slug",
+            parent_name="item_level_parent",
+            trigger_condition=TriggerCondition(type="any_value"),
+        )
+        resolved = _resolve_parent_for_create(child, lookups)
+        assert resolved.parent_property_id == "item-parent-id"
+
+    def test_missing_parent_raises(self) -> None:
         child = _make_property(
-            id_="c",
-            name="c",
-            parent_property_id="p",
+            name="child",
+            parent_name="Nonexistent",
+            trigger_condition=TriggerCondition(type="any_value"),
+        )
+        with pytest.raises(ValueError, match="Cannot resolve parent"):
+            _resolve_parent_for_create(child, _fake_team_property_lookups())
+
+    def test_unknown_trigger_value_raises(self) -> None:
+        parent_on_server = FullProperty(
+            id="p-id",
+            name="Parent",
+            type="single_select",
+            required=False,
+            annotation_class_id=1,
+            property_values=[PropertyValue(id="v-id", value="KnownValue")],
+            granularity=PropertyGranularity.annotation,
+        )
+        lookups = _fake_team_property_lookups(
+            annotation_properties={("Parent", 1): parent_on_server}
+        )
+        child = _make_property(
+            name="child",
+            parent_name="Parent",
             trigger_condition=TriggerCondition(
-                type="value_match",
-                property_value_ids=["old-v-1", "old-v-2"],
+                type="value_match", values=["UnknownValue"]
             ),
         )
-        remapped = _remap_property_for_create(
-            child, {"p": "p"}, {"old-v-1": "new-v-1", "old-v-2": "new-v-2"}
-        )
-        assert remapped.trigger_condition.property_value_ids == [
-            "new-v-1",
-            "new-v-2",
-        ]
-
-    def test_leaves_unmapped_ids_untouched(self) -> None:
-        child = _make_property(
-            id_="c",
-            name="c",
-            parent_property_id="old-p",
-            trigger_condition=TriggerCondition(
-                type="value_match", property_value_ids=["old-v"]
-            ),
-        )
-        remapped = _remap_property_for_create(child, {}, {})
-        assert remapped.parent_property_id == "old-p"
-        assert remapped.trigger_condition.property_value_ids == ["old-v"]
-
-    def test_no_op_when_no_nesting(self) -> None:
-        top = _make_property(id_="t", name="top")
-        remapped = _remap_property_for_create(top, {"anything": "other"}, {})
-        assert remapped is top
+        with pytest.raises(ValueError, match="unknown parent value"):
+            _resolve_parent_for_create(child, lookups)
 
 
 class TestGetVisibleProperties:
@@ -339,8 +424,58 @@ class TestGetVisibleProperties:
             granularity=PropertyGranularity.annotation,
         )
 
-    def _value_match_child(self) -> FullProperty:
+    def _value_match_child_by_name(self) -> FullProperty:
         return FullProperty(
+            id="child-id",
+            name="Bone",
+            type="single_select",
+            required=False,
+            annotation_class_id=1,
+            property_values=[PropertyValue(id="femur-id", value="Femur")],
+            granularity=PropertyGranularity.annotation,
+            parent_name="Finding Type",
+            trigger_condition=TriggerCondition(type="value_match", values=["Fracture"]),
+        )
+
+    def test_top_level_always_visible(self) -> None:
+        parent = self._parent()
+        selected = [SelectedProperty(name="Finding Type", value="Fracture")]
+        assert get_visible_properties(selected, [parent]) == selected
+
+    def test_value_match_child_visible_when_parent_matches(self) -> None:
+        parent = self._parent()
+        child = self._value_match_child_by_name()
+        selected = [
+            SelectedProperty(name="Finding Type", value="Fracture"),
+            SelectedProperty(name="Bone", value="Femur"),
+        ]
+        visible = get_visible_properties(selected, [parent, child])
+        assert [s.name for s in visible] == ["Finding Type", "Bone"]
+
+    def test_value_match_child_hidden_when_parent_does_not_match(self) -> None:
+        parent = self._parent()
+        child = self._value_match_child_by_name()
+        selected = [
+            SelectedProperty(name="Finding Type", value="Normal"),
+            SelectedProperty(name="Bone", value="Femur"),
+        ]
+        visible = get_visible_properties(selected, [parent, child])
+        assert [s.name for s in visible] == ["Finding Type"]
+
+    def test_value_match_child_hidden_when_parent_empty(self) -> None:
+        parent = self._parent()
+        child = self._value_match_child_by_name()
+        selected = [SelectedProperty(name="Bone", value="Femur")]
+        visible = get_visible_properties(selected, [parent, child])
+        assert visible == []
+
+    def test_value_match_via_property_value_ids_still_supported(self) -> None:
+        # API responses may carry UUIDs only; the visibility engine still
+        # resolves them against the parent's ``property_values`` so consumers
+        # who feed raw API payloads into ``get_visible_properties`` are not
+        # forced to rewrite them into name-based shape first.
+        parent = self._parent()
+        child = FullProperty(
             id="child-id",
             name="Bone",
             type="single_select",
@@ -353,38 +488,12 @@ class TestGetVisibleProperties:
                 type="value_match", property_value_ids=["frac-id"]
             ),
         )
-
-    def test_top_level_always_visible(self) -> None:
-        parent = self._parent()
-        selected = [SelectedProperty(name="Finding Type", value="Fracture")]
-        assert get_visible_properties(selected, [parent]) == selected
-
-    def test_value_match_child_visible_when_parent_matches(self) -> None:
-        parent = self._parent()
-        child = self._value_match_child()
         selected = [
             SelectedProperty(name="Finding Type", value="Fracture"),
             SelectedProperty(name="Bone", value="Femur"),
         ]
         visible = get_visible_properties(selected, [parent, child])
         assert [s.name for s in visible] == ["Finding Type", "Bone"]
-
-    def test_value_match_child_hidden_when_parent_does_not_match(self) -> None:
-        parent = self._parent()
-        child = self._value_match_child()
-        selected = [
-            SelectedProperty(name="Finding Type", value="Normal"),
-            SelectedProperty(name="Bone", value="Femur"),
-        ]
-        visible = get_visible_properties(selected, [parent, child])
-        assert [s.name for s in visible] == ["Finding Type"]
-
-    def test_value_match_child_hidden_when_parent_empty(self) -> None:
-        parent = self._parent()
-        child = self._value_match_child()
-        selected = [SelectedProperty(name="Bone", value="Femur")]
-        visible = get_visible_properties(selected, [parent, child])
-        assert visible == []
 
     def test_any_value_child_visible_when_parent_has_text(self) -> None:
         parent = FullProperty(
@@ -403,7 +512,7 @@ class TestGetVisibleProperties:
             annotation_class_id=1,
             property_values=[PropertyValue(id="yes-id", value="Yes")],
             granularity=PropertyGranularity.annotation,
-            parent_property_id="notes-id",
+            parent_name="Notes",
             trigger_condition=TriggerCondition(type="any_value"),
         )
         selected = [
@@ -430,7 +539,7 @@ class TestGetVisibleProperties:
             annotation_class_id=1,
             property_values=[PropertyValue(id="yes-id", value="Yes")],
             granularity=PropertyGranularity.annotation,
-            parent_property_id="notes-id",
+            parent_name="Notes",
             trigger_condition=TriggerCondition(type="any_value"),
         )
         selected = [
@@ -438,8 +547,6 @@ class TestGetVisibleProperties:
             SelectedProperty(name="Translation Required?", value="Yes"),
         ]
         visible = get_visible_properties(selected, [parent, child])
-        # Top-level "Notes" is visible regardless of its content; the child is
-        # hidden because the parent text is whitespace-only (effectively empty).
         assert [s.name for s in visible] == ["Notes"]
 
     def test_grandchild_hidden_when_grandparent_hidden(self) -> None:
@@ -452,10 +559,8 @@ class TestGetVisibleProperties:
             annotation_class_id=1,
             property_values=[PropertyValue(id="femur-id", value="Femur")],
             granularity=PropertyGranularity.annotation,
-            parent_property_id="parent-id",
-            trigger_condition=TriggerCondition(
-                type="value_match", property_value_ids=["frac-id"]
-            ),
+            parent_name="Finding Type",
+            trigger_condition=TriggerCondition(type="value_match", values=["Fracture"]),
         )
         grandchild = FullProperty(
             id="grand-id",
@@ -465,12 +570,9 @@ class TestGetVisibleProperties:
             annotation_class_id=1,
             property_values=[PropertyValue(id="mild-id", value="Mild")],
             granularity=PropertyGranularity.annotation,
-            parent_property_id="mid-id",
-            trigger_condition=TriggerCondition(
-                type="value_match", property_value_ids=["femur-id"]
-            ),
+            parent_name="Bone",
+            trigger_condition=TriggerCondition(type="value_match", values=["Femur"]),
         )
-        # Grandparent not matching -> everything below hidden.
         selected = [
             SelectedProperty(name="Finding Type", value="Normal"),
             SelectedProperty(name="Bone", value="Femur"),
@@ -500,9 +602,9 @@ class TestGetVisibleProperties:
             annotation_class_id=1,
             property_values=[PropertyValue(id="chem-id", value="Chemical")],
             granularity=PropertyGranularity.annotation,
-            parent_property_id="defect-id",
+            parent_name="Defect Type",
             trigger_condition=TriggerCondition(
-                type="value_match", property_value_ids=["cont-id"]
+                type="value_match", values=["Contamination"]
             ),
         )
         selected = [
@@ -522,9 +624,6 @@ class TestGetVisibleProperties:
         assert get_visible_properties(selected, []) == selected
 
     def test_cycle_in_parent_references_does_not_recurse_forever(self) -> None:
-        # Pathological input: A's parent is B and B's parent is A. The
-        # backend rejects this at create time, but the public utility must
-        # fail gracefully (treat as hidden) rather than RecursionError.
         a = FullProperty(
             id="a-id",
             name="A",
@@ -533,7 +632,7 @@ class TestGetVisibleProperties:
             annotation_class_id=1,
             property_values=[PropertyValue(id="a-val", value="a")],
             granularity=PropertyGranularity.annotation,
-            parent_property_id="b-id",
+            parent_name="B",
             trigger_condition=TriggerCondition(type="any_value"),
         )
         b = FullProperty(
@@ -544,15 +643,14 @@ class TestGetVisibleProperties:
             annotation_class_id=1,
             property_values=[PropertyValue(id="b-val", value="b")],
             granularity=PropertyGranularity.annotation,
-            parent_property_id="a-id",
+            parent_name="A",
             trigger_condition=TriggerCondition(type="any_value"),
         )
         selected = [
             SelectedProperty(name="A", value="a"),
             SelectedProperty(name="B", value="b"),
         ]
-        # Must return without raising. Both are hidden because neither has
-        # a reachable root.
+        # Must return without raising.
         assert get_visible_properties(selected, [a, b]) == []
 
     def test_any_value_child_hidden_when_parent_has_no_selection(self) -> None:
@@ -562,9 +660,7 @@ class TestGetVisibleProperties:
             type="multi_select",
             required=False,
             annotation_class_id=1,
-            property_values=[
-                PropertyValue(id="cont-id", value="Contamination"),
-            ],
+            property_values=[PropertyValue(id="cont-id", value="Contamination")],
             granularity=PropertyGranularity.annotation,
         )
         child = FullProperty(
@@ -575,41 +671,12 @@ class TestGetVisibleProperties:
             annotation_class_id=1,
             property_values=[PropertyValue(id="chem-id", value="Chemical")],
             granularity=PropertyGranularity.annotation,
-            parent_property_id="defect-id",
+            parent_name="Defect Type",
             trigger_condition=TriggerCondition(type="any_value"),
         )
         selected = [SelectedProperty(name="Contamination Source", value="Chemical")]
         visible = get_visible_properties(selected, [parent, child])
         assert visible == []
-
-    def test_any_value_child_hidden_when_parent_value_is_none(self) -> None:
-        parent = FullProperty(
-            id="notes-id",
-            name="Notes",
-            type="text",
-            required=False,
-            annotation_class_id=1,
-            granularity=PropertyGranularity.annotation,
-        )
-        child = FullProperty(
-            id="trans-id",
-            name="Translation Required?",
-            type="single_select",
-            required=False,
-            annotation_class_id=1,
-            property_values=[PropertyValue(id="yes-id", value="Yes")],
-            granularity=PropertyGranularity.annotation,
-            parent_property_id="notes-id",
-            trigger_condition=TriggerCondition(type="any_value"),
-        )
-        selected = [
-            SelectedProperty(name="Notes", value=None),
-            SelectedProperty(name="Translation Required?", value="Yes"),
-        ]
-        visible = get_visible_properties(selected, [parent, child])
-        # Top-level "Notes" with None is still "selected" (user touched it),
-        # but the child must hide because the parent effectively has no value.
-        assert [s.name for s in visible] == ["Notes"]
 
 
 class TestMetadataParsing:
@@ -622,31 +689,25 @@ class TestMetadataParsing:
                     "description": None,
                     "properties": [
                         {
-                            "id": "old-parent-id",
                             "name": "Defect Type",
                             "type": "multi_select",
                             "required": False,
                             "granularity": "annotation",
                             "property_values": [
-                                {"id": "old-cont-id", "value": "Contamination"},
-                                {"id": "old-scratch-id", "value": "Scratch"},
+                                {"value": "Contamination"},
+                                {"value": "Scratch"},
                             ],
-                            "parent_property_id": None,
-                            "trigger_condition": None,
                         },
                         {
-                            "id": "old-child-id",
                             "name": "Contamination Source",
                             "type": "single_select",
                             "required": True,
                             "granularity": "annotation",
-                            "property_values": [
-                                {"id": "old-chem-id", "value": "Chemical"},
-                            ],
-                            "parent_property_id": "old-parent-id",
+                            "property_values": [{"value": "Chemical"}],
+                            "parent_name": "Defect Type",
                             "trigger_condition": {
                                 "type": "value_match",
-                                "property_value_ids": ["old-cont-id"],
+                                "values": ["Contamination"],
                             },
                         },
                     ],
@@ -657,42 +718,31 @@ class TestMetadataParsing:
     def test_parse_property_classes_preserves_nesting_fields(self) -> None:
         classes = parse_property_classes(self._nested_metadata())
         assert len(classes) == 1
-        props = classes[0].properties
-        assert props is not None
-        parent, child = props
+        parent, child = classes[0].properties
 
-        assert parent.id == "old-parent-id"
-        assert parent.parent_property_id is None
+        assert parent.parent_name is None
         assert parent.trigger_condition is None
 
-        assert child.id == "old-child-id"
-        assert child.parent_property_id == "old-parent-id"
+        assert child.parent_name == "Defect Type"
         assert child.trigger_condition is not None
         assert child.trigger_condition.type == "value_match"
-        assert child.trigger_condition.property_value_ids == ["old-cont-id"]
+        assert child.trigger_condition.values == ["Contamination"]
 
     def test_metadataclass_parses_nested_properties(self) -> None:
-        import json
-        import tempfile
-        from pathlib import Path
-
         with tempfile.TemporaryDirectory() as tmp:
             metadata_path = Path(tmp) / "metadata.json"
             with open(metadata_path, "w") as f:
                 json.dump(self._nested_metadata(), f)
-
             parsed = MetaDataClass.from_path(metadata_path)
 
-        assert len(parsed) == 1
         parent_def, child_def = parsed[0].properties
-        assert parent_def.parent_property_id is None
-        assert child_def.parent_property_id == "old-parent-id"
+        assert parent_def.parent_name is None
+        assert child_def.parent_name == "Defect Type"
         assert child_def.trigger_condition is not None
         assert child_def.trigger_condition.type == "value_match"
-        assert child_def.trigger_condition.property_value_ids == ["old-cont-id"]
+        assert child_def.trigger_condition.values == ["Contamination"]
 
     def test_parse_property_classes_tolerates_missing_nesting_fields(self) -> None:
-        # Legacy metadata without nesting fields must still parse as top-level.
         legacy = {
             "classes": [
                 {
@@ -713,23 +763,19 @@ class TestMetadataParsing:
         }
         classes = parse_property_classes(legacy)
         prop = classes[0].properties[0]
-        assert prop.parent_property_id is None
+        assert prop.parent_name is None
         assert prop.trigger_condition is None
-        assert prop.id is None
 
 
 class TestE2EFixture:
     """
     Smoke-tests that the E2E fixture
     ``e2e_tests/data/import/image_annotations_with_nested_properties`` is
-    well-formed: every child references a parent that exists, and every
-    value_match trigger references a value that exists on the parent. This
-    keeps the fixture honest without requiring the live E2E backend.
+    well-formed: every child references a parent by name that exists and
+    every ``value_match`` trigger names a value that exists on the parent.
     """
 
-    def _fixture_root(self) -> "Path":
-        from pathlib import Path
-
+    def _fixture_root(self) -> Path:
         return (
             Path(__file__).resolve().parents[4]
             / "e2e_tests"
@@ -739,14 +785,13 @@ class TestE2EFixture:
         )
 
     def test_metadata_fixture_is_self_consistent(self) -> None:
-
         fixture = self._fixture_root() / ".v7" / "metadata.json"
         assert fixture.is_file(), f"fixture missing: {fixture}"
 
-        metadata = MetaDataClass.from_path(fixture)
-        classes = parse_property_classes(json.loads(fixture.read_text()))
+        with open(fixture) as f:
+            raw = json.load(f)
+        classes = parse_property_classes(raw)
 
-        # Spans all three granularities per the TDD PRD requirement.
         class_level_granularities = {
             prop.granularity.value
             for klass in classes
@@ -755,86 +800,58 @@ class TestE2EFixture:
         assert "annotation" in class_level_granularities
         assert "section" in class_level_granularities
 
-        with open(fixture) as f:
-            raw = json.load(f)
-        item_level_granularities = {p["granularity"] for p in raw["properties"]}
-        assert item_level_granularities == {"item"}
+        item_granularities = {p["granularity"] for p in raw["properties"]}
+        assert item_granularities == {"item"}
 
-        # Every child points to an existing parent id and every value_match
-        # trigger references at least one value present on the parent.
-        all_props = [prop for klass in classes for prop in (klass.properties or [])] + [
-            parse_property_classes(
-                {"classes": [{"name": "__item__", "type": "item", "properties": [p]}]}
-            )[0].properties[0]
-            for p in raw["properties"]
-        ]
-        by_id = {p.id: p for p in all_props if p.id}
-        children = [p for p in all_props if p.parent_property_id is not None]
-        assert children, "fixture must declare at least one nested child"
-        for child in children:
-            parent = by_id.get(child.parent_property_id)
-            assert parent is not None, (
-                f"child '{child.name}' references missing parent "
-                f"{child.parent_property_id}"
-            )
-            trigger = child.trigger_condition
-            assert trigger is not None
-            if trigger.type == "value_match":
-                parent_value_ids = {
-                    pv.get("id")
-                    for pv in (parent.property_values or [])
-                    if pv.get("id")
-                }
-                assert set(trigger.property_value_ids or []).issubset(
-                    parent_value_ids
-                ), (
-                    f"child '{child.name}' value_match references unknown "
-                    f"parent value id"
+        # Class-level parent resolution by name.
+        for klass in classes:
+            by_name = {p.name: p for p in klass.properties or []}
+            children = [p for p in by_name.values() if p.parent_name is not None]
+            assert children, f"class '{klass.name}' has no nested children"
+            for child in children:
+                parent = by_name.get(child.parent_name)
+                assert parent is not None, (
+                    f"child '{child.name}' references missing parent "
+                    f"'{child.parent_name}' in class '{klass.name}'"
                 )
+                trigger = child.trigger_condition
+                assert trigger is not None
+                if trigger.type == "value_match":
+                    parent_value_names = {
+                        pv.get("value") for pv in (parent.property_values or [])
+                    }
+                    assert set(trigger.values or []).issubset(parent_value_names), (
+                        f"child '{child.name}' value_match references an "
+                        f"unknown parent value"
+                    )
 
-        # MetaDataClass.from_path must also succeed and surface the nesting.
-        nested_children = [
-            p
-            for klass in metadata
-            for p in klass.properties
-            if p.parent_property_id is not None
-        ]
-        assert nested_children, "MetaDataClass did not preserve nested children"
+        # Item-level parent resolution by name.
+        item_props_by_name = {p["name"]: p for p in raw["properties"]}
+        item_children = [p for p in item_props_by_name.values() if p.get("parent_name")]
+        assert item_children, "item-level fixture must include nested children"
+        for child in item_children:
+            assert child["parent_name"] in item_props_by_name
 
     def test_annotation_fixture_references_known_properties(self) -> None:
-        # Every per-annotation and per-item property value names a property
-        # declared in the metadata fixture — the E2E round-trip otherwise
-        # cannot possibly succeed.
-        import json as _json
-
         fixture_root = self._fixture_root()
-        metadata = _json.loads((fixture_root / ".v7" / "metadata.json").read_text())
+        metadata = json.loads((fixture_root / ".v7" / "metadata.json").read_text())
         class_prop_names = {
             p["name"] for k in metadata["classes"] for p in k["properties"]
         }
         item_prop_names = {p["name"] for p in metadata["properties"]}
 
-        annotation_file = _json.loads((fixture_root / "image_1.json").read_text())
+        annotation_file = json.loads((fixture_root / "image_1.json").read_text())
         for annotation in annotation_file["annotations"]:
             for selected in annotation.get("properties", []):
-                assert selected["name"] in class_prop_names, (
-                    f"annotation references unknown class property "
-                    f"'{selected['name']}'"
-                )
+                assert selected["name"] in class_prop_names
         for selected in annotation_file.get("properties", []):
-            assert (
-                selected["name"] in item_prop_names
-            ), f"item references unknown item property '{selected['name']}'"
+            assert selected["name"] in item_prop_names
 
 
 class TestImportPropertiesNestedIntegration:
     """
-    End-to-end coverage for ``_import_properties`` with a nested hierarchy.
-
-    These tests exercise the real importer function with a mocked client to
-    validate TDD section 12 "Import Format (Flat with Parent Reference)":
-    topological ordering, parent_property_id remapping, and
-    trigger_condition.property_value_ids remapping.
+    Exercises ``_import_properties`` end-to-end with a nested hierarchy and
+    a mocked client.
     """
 
     @pytest.fixture
@@ -846,7 +863,6 @@ class TestImportPropertiesNestedIntegration:
         return dataset
 
     def _metadata_with_child_listed_before_parent(self) -> dict:
-        # Intentionally child-first to exercise topological sorting.
         return {
             "classes": [
                 {
@@ -854,39 +870,32 @@ class TestImportPropertiesNestedIntegration:
                     "type": "polygon",
                     "description": None,
                     "properties": [
+                        # Child intentionally first in metadata order.
                         {
-                            "id": "old-child-id",
                             "name": "Contamination Source",
                             "type": "single_select",
                             "required": False,
                             "granularity": "annotation",
-                            "property_values": [
-                                {"id": "old-chem-id", "value": "Chemical"},
-                            ],
-                            "parent_property_id": "old-parent-id",
+                            "property_values": [{"value": "Chemical"}],
+                            "parent_name": "Defect Type",
                             "trigger_condition": {
                                 "type": "value_match",
-                                "property_value_ids": ["old-cont-id"],
+                                "values": ["Contamination"],
                             },
                         },
                         {
-                            "id": "old-parent-id",
                             "name": "Defect Type",
                             "type": "multi_select",
                             "required": False,
                             "granularity": "annotation",
-                            "property_values": [
-                                {"id": "old-cont-id", "value": "Contamination"},
-                            ],
-                            "parent_property_id": None,
-                            "trigger_condition": None,
+                            "property_values": [{"value": "Contamination"}],
                         },
                     ],
                 }
             ]
         }
 
-    def test_creates_parent_before_child_and_remaps_ids(
+    def test_creates_parent_before_child_and_resolves_names_to_uuids(
         self, mock_dataset: Mock
     ) -> None:
         client = Mock()
@@ -916,14 +925,12 @@ class TestImportPropertiesNestedIntegration:
             )
         ]
 
-        # Mock the team lookups: nothing exists yet, both properties must be
-        # created and the child must follow the parent.
         mock_lookups = Mock()
         mock_lookups.annotation_properties = {}
         mock_lookups.item_properties = {}
+        created_server_properties: List[FullProperty] = []
 
         def refresh():
-            # After creation the child should be resolvable by name.
             for prop in created_server_properties:
                 if prop.granularity.value in ("section", "annotation"):
                     mock_lookups.annotation_properties[(prop.name, 123)] = prop
@@ -933,12 +940,10 @@ class TestImportPropertiesNestedIntegration:
         mock_lookups.refresh = refresh
 
         created_payloads: List[FullProperty] = []
-        created_server_properties: List[FullProperty] = []
 
         def fake_create_property(
             *, team_slug: str, params: FullProperty
         ) -> FullProperty:
-            assert isinstance(params, FullProperty)
             created_payloads.append(params)
             server_prop = params.model_copy()
             server_prop.id = f"new-{params.name.lower().replace(' ', '-')}"
@@ -975,13 +980,13 @@ class TestImportPropertiesNestedIntegration:
 
         assert len(created_payloads) == 2
 
-        # Parent is created first even though metadata lists it last.
+        # Parent first (topological sort applied).
         assert created_payloads[0].name == "Defect Type"
         assert created_payloads[0].parent_property_id is None
         assert created_payloads[0].trigger_condition is None
 
-        # Child is created second with both IDs translated to the destination
-        # team's IDs (returned by the mocked server).
+        # Child second, with the parent's freshly-assigned server UUID and
+        # trigger-value UUIDs resolved from its ``values`` (names).
         assert created_payloads[1].name == "Contamination Source"
         assert created_payloads[1].parent_property_id == "new-defect-type"
         assert created_payloads[1].trigger_condition is not None

@@ -493,18 +493,15 @@ class Property:
     # Granularity of the property
     granularity: PropertyGranularity = PropertyGranularity("section")
 
-    # Source property ID, as present in ``.v7/metadata.json``. ``None`` when
-    # the metadata did not include the id (older exports). Used by the
-    # importer to remap ``parent_property_id`` references from the source
-    # team to the destination team.
-    id: Optional[str] = None
+    # Name of the parent property, as declared in ``.v7/metadata.json``.
+    # ``None`` for top-level properties. The SDK identifies parents by name
+    # rather than by server-side UUIDs; the importer resolves the name to a
+    # ``parent_property_id`` (UUID) at create time.
+    parent_name: Optional[str] = None
 
-    # ID of the parent property in the source team. ``None`` for top-level
-    # properties.
-    parent_property_id: Optional[str] = None
-
-    # Trigger condition for a nested property. ``None`` for top-level
-    # properties.
+    # Trigger condition for a nested property. The ``values`` list contains
+    # parent value **names**, consistent with how darwin-py identifies
+    # property values everywhere else. ``None`` for top-level properties.
     trigger_condition: Optional[TriggerCondition] = None
 
 
@@ -547,8 +544,7 @@ def parse_property_classes(metadata: dict[str, Any]) -> list[PropertyClass]:
                 property_values=p["property_values"],
                 description=p.get("description"),
                 granularity=PropertyGranularity(p.get("granularity", "section")),
-                id=p.get("id"),
-                parent_property_id=p.get("parent_property_id"),
+                parent_name=p.get("parent_name"),
                 trigger_condition=(
                     TriggerCondition.model_validate(p["trigger_condition"])
                     if p.get("trigger_condition") is not None

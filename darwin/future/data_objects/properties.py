@@ -27,36 +27,48 @@ class TriggerCondition(DefaultDarwin):
     Condition that must be met on a parent property for a nested (child) property
     to be visible.
 
-    Attributes:
-        type: Trigger kind. "value_match" activates the child when one of the
-            listed parent values is selected. "any_value" activates the child
-            whenever the parent has any value (any option selected or any text
-            entered).
-        property_value_ids: Parent property value IDs that activate the child.
-            Required (non-empty) for "value_match"; must be omitted/empty for
-            "any_value".
+    The condition has two interchangeable representations:
+
+    * ``values``: a list of **parent value names** (strings). This is the shape
+      used in ``.v7/metadata.json`` and the preferred representation in
+      darwin-py — consistent with how the rest of the SDK identifies properties
+      and values by name rather than by server-side UUIDs.
+    * ``property_value_ids``: a list of **parent value UUIDs**. This is the
+      shape accepted and returned by the REST API; the importer resolves
+      ``values`` to UUIDs just-in-time after the parent is created.
+
+    Exactly one of the two must be set when ``type == "value_match"``. Both
+    must be empty/None when ``type == "any_value"``.
     """
 
     type: TriggerConditionType
     property_value_ids: Optional[List[str]] = None
+    values: Optional[List[str]] = None
 
-    @model_validator(mode="after")
-    def _validate_shape(self) -> "TriggerCondition":
-        if self.type == "value_match":
-            if not self.property_value_ids:
+    @model_validator(mode="before")
+    @classmethod
+    def _validate_shape(cls, data: "object") -> "object":
+        if not isinstance(data, dict):
+            return data
+        trigger_type = data.get("type")
+        values = data.get("values")
+        property_value_ids = data.get("property_value_ids")
+        if trigger_type == "any_value":
+            if values:
                 raise ValueError(
-                    "trigger_condition.property_value_ids must be non-empty for 'value_match'"
+                    "trigger_condition.values must be empty/None for 'any_value'"
                 )
-        elif self.type == "any_value":
-            # An any_value trigger must not carry specific value IDs; such a
-            # combination is nonsensical (the child is always visible when the
-            # parent has any value, so specific values have no meaning) and is
-            # explicitly rejected by the backend changeset.
-            if self.property_value_ids:
+            if property_value_ids:
                 raise ValueError(
                     "trigger_condition.property_value_ids must be empty/None for 'any_value'"
                 )
-        return self
+        elif trigger_type == "value_match":
+            if not values and not property_value_ids:
+                raise ValueError(
+                    "trigger_condition must set either 'values' (names) or "
+                    "'property_value_ids' (UUIDs) for 'value_match'"
+                )
+        return data
 
 
 class PropertyGranularity(str, Enum):
@@ -124,6 +136,13 @@ class FullProperty(DefaultDarwin):
     dataset_ids: Optional[List[int]] = None
     options: Optional[List[PropertyValue]] = None
     granularity: PropertyGranularity = PropertyGranularity("section")
+    # Nesting metadata. ``parent_name`` is the darwin-py / ``.v7/metadata.json``
+    # representation (identify the parent by its property name, consistent
+    # with how the SDK identifies everything else). ``parent_property_id`` is
+    # populated from REST API responses and sent back on create — it is
+    # resolved from ``parent_name`` by the importer after the parent has been
+    # created on the server.
+    parent_name: Optional[str] = None
     parent_property_id: Optional[str] = None
     trigger_condition: Optional[TriggerCondition] = None
 
@@ -146,18 +165,23 @@ class FullProperty(DefaultDarwin):
         if self.dataset_ids is not None:
             include_fields["dataset_ids"] = True
 
-        # Nesting metadata must be consistent: either both are set (child)
-        # or both are nil (top-level). The backend rejects inconsistent
-        # combinations; we fail fast on the client to surface a clear error.
-        if (self.parent_property_id is None) != (self.trigger_condition is None):
+        # A nested property must carry both an API-ready parent UUID and a
+        # trigger condition. ``parent_name`` is the SDK-local representation
+        # and must be resolved to ``parent_property_id`` before calling this.
+        if self.parent_property_id is not None and self.trigger_condition is None:
+            raise ValueError("parent_property_id set without trigger_condition")
+        if self.trigger_condition is not None and self.parent_property_id is None:
             raise ValueError(
-                "parent_property_id and trigger_condition must both be set or both be None"
+                "trigger_condition set without parent_property_id — "
+                "resolve parent_name to parent_property_id before creating"
             )
 
         if self.parent_property_id is not None:
             include_fields["parent_property_id"] = True
         if self.trigger_condition is not None:
-            include_fields["trigger_condition"] = True
+            # Only the API-shape UUID representation is sent; ``values``
+            # (name-based) is stripped because it is an SDK-local convenience.
+            include_fields["trigger_condition"] = {"type", "property_value_ids"}
         return self.model_dump(mode="json", include=include_fields)
 
     def to_update_endpoint(self) -> Tuple[str, dict]:
@@ -255,21 +279,27 @@ def _matches_trigger(
         return False
     if trigger.type == "any_value":
         return True
-    # trigger.type == "value_match"
+    # trigger.type == "value_match" — match by value name (the SDK-native
+    # representation). If the trigger was loaded from an API response and
+    # carries UUIDs, resolve them to value names via the parent's
+    # ``property_values`` first.
     if parent_definition.type == "text":
         return False
-    trigger_values = set(trigger.property_value_ids or [])
-    if not trigger_values:
+    trigger_value_names: set = set(trigger.values or [])
+    if trigger.property_value_ids:
+        value_name_by_id = {
+            pv.id: pv.value
+            for pv in (parent_definition.property_values or [])
+            if pv.id is not None and pv.value is not None
+        }
+        trigger_value_names.update(
+            value_name_by_id[vid]
+            for vid in trigger.property_value_ids
+            if vid in value_name_by_id
+        )
+    if not trigger_value_names:
         return False
-    value_id_by_name = {
-        pv.value: pv.id
-        for pv in (parent_definition.property_values or [])
-        if pv.id is not None and pv.value is not None
-    }
-    return any(
-        value_id_by_name.get(s.value or "") in trigger_values
-        for s in parent_selected_values
-    )
+    return any(s.value in trigger_value_names for s in parent_selected_values)
 
 
 def get_visible_properties(
@@ -313,27 +343,35 @@ def get_visible_properties(
     for selected in annotation_properties:
         selected_by_parent_name.setdefault(selected.name, []).append(selected)
 
+    # Cache + in-flight set are keyed by ``name`` because metadata-loaded
+    # properties may not yet have a server-side ``id``. The in-flight set
+    # defends against pathological cyclic graphs — the backend rejects them
+    # on create, but this utility is public and may see arbitrary inputs.
     visibility_cache: Dict[str, bool] = {}
-    # Tracks definitions currently being evaluated on the call stack so that
-    # a pathological (cyclic) ``parent_property_id`` graph doesn't cause
-    # unbounded recursion. The backend enforces acyclicity on create, but
-    # this utility is public and may be invoked on arbitrary inputs.
     visiting: set = set()
 
+    def _resolve_parent(definition: FullProperty) -> Optional[FullProperty]:
+        # Prefer name-based resolution (darwin-py convention); fall back to
+        # UUID-based resolution when the property was loaded from an API
+        # response without name hydration.
+        if definition.parent_name is not None:
+            return definitions_by_name.get(definition.parent_name)
+        if definition.parent_property_id is not None:
+            return definitions_by_id.get(definition.parent_property_id)
+        return None
+
     def is_visible(definition: FullProperty) -> bool:
-        if definition.id is not None and definition.id in visibility_cache:
-            return visibility_cache[definition.id]
-        if definition.id is not None and definition.id in visiting:
-            # Cycle detected — treat as hidden rather than recursing forever.
+        if definition.name in visibility_cache:
+            return visibility_cache[definition.name]
+        if definition.name in visiting:
             return False
 
-        if definition.id is not None:
-            visiting.add(definition.id)
+        visiting.add(definition.name)
         try:
-            if definition.parent_property_id is None:
+            if definition.parent_name is None and definition.parent_property_id is None:
                 result = True
             else:
-                parent_definition = definitions_by_id.get(definition.parent_property_id)
+                parent_definition = _resolve_parent(definition)
                 if parent_definition is None or definition.trigger_condition is None:
                     result = False
                 elif not is_visible(parent_definition):
@@ -345,11 +383,9 @@ def get_visible_properties(
                         selected_by_parent_name.get(parent_definition.name, []),
                     )
         finally:
-            if definition.id is not None:
-                visiting.discard(definition.id)
+            visiting.discard(definition.name)
 
-        if definition.id is not None:
-            visibility_cache[definition.id] = result
+        visibility_cache[definition.name] = result
         return result
 
     visible: List[SelectedProperty] = []
