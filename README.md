@@ -20,7 +20,7 @@ Main functions are (but not limited to):
 -   Direct integration with PyTorch dataloaders
 -   Extracting video artifacts
 
-Support tested for python 3.9 - 3.12
+Support tested for python 3.10 - 3.13
 
 ## 🏁 Installation
 
