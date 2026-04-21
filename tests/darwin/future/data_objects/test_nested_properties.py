@@ -692,10 +692,11 @@ class TestAssignItemPropertiesToDataset:
         sent = client.update_property.call_args.args[1]
         assert sent.dataset_ids == [7]
 
-    def test_skips_nested_item_property_to_avoid_be_422(self) -> None:
-        # Nested item-level properties must not have dataset_ids set —
-        # the BE rejects the update with "Cannot be set on nested
-        # properties; inherited from the root ancestor".
+    def test_does_not_assign_dataset_to_nested_item_property(self) -> None:
+        # Nested item-level properties inherit ``dataset_ids`` from their
+        # root ancestor — their own ``dataset_ids`` is always ``[]`` by
+        # contract. The SDK must leave that invariant alone and let
+        # inheritance cover the child.
         item_properties = [{"name": "child"}]
         nested_child = FullProperty(
             id="child-id",
@@ -716,8 +717,11 @@ class TestAssignItemPropertiesToDataset:
             item_properties, lookup, client, self._dataset(), self._console()
         )
 
-        # No update_property call — nested children inherit dataset_ids.
         assert not client.update_property.called
+        # The nested child's dataset_ids must remain untouched on the
+        # local object too — no drift between SDK state and the BE's
+        # "always empty" invariant.
+        assert nested_child.dataset_ids == []
 
 
 class TestE2EFixture:
