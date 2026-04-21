@@ -709,14 +709,26 @@ def _resolve_parent_for_create(
         if trigger.type == "any_value":
             resolved_trigger = TriggerCondition(type="any_value")
         else:
+            # ``value_match`` must be specified with ``values`` (parent value
+            # names). darwin-py identifies values by name throughout — so
+            # this path intentionally does NOT fall back to consuming
+            # ``property_value_ids`` (which is only populated from server
+            # responses). Surfacing this as a clear error beats silently
+            # dropping the UUIDs and tripping an opaque validator downstream.
+            if not trigger.values:
+                raise ValueError(
+                    f"trigger_condition for '{full_property.name}' must set "
+                    "'values' (parent value names) for 'value_match'. "
+                    "darwin-py identifies property values by name; "
+                    "'property_value_ids' is only populated from API responses."
+                )
             value_id_by_name = {
                 pv.value: pv.id
                 for pv in (parent_prop.property_values or [])
                 if pv.id is not None and pv.value is not None
             }
-            names = trigger.values or []
             resolved_ids: List[str] = []
-            for name in names:
+            for name in trigger.values:
                 value_id = value_id_by_name.get(name)
                 if value_id is None:
                     raise ValueError(

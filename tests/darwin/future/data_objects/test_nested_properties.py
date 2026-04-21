@@ -19,11 +19,14 @@ from darwin.future.data_objects.properties import (
     PropertyValue,
     SelectedProperty,
     TriggerCondition,
+    _trigger_value_names,
     get_visible_properties,
+    property_key,
 )
 from darwin.importer.importer import (
     _enrich_properties_with_metadata_values,
     _import_properties,
+    _property_value_from_metadata,
     _resolve_parent_for_create,
     _topologically_sort_properties_to_create,
 )
@@ -132,6 +135,117 @@ class TestTriggerCondition:
             property_value_ids=["v-1"],
         )
         assert "values" not in trigger.to_api_payload()
+
+
+class TestTriggerValueNames:
+    """Direct coverage for the ``_trigger_value_names`` helper that was
+    extracted from ``_matches_trigger`` during the review refactor."""
+
+    def _parent_with_values(self) -> FullProperty:
+        return FullProperty(
+            id="parent-id",
+            name="Parent",
+            type="single_select",
+            required=False,
+            annotation_class_id=1,
+            property_values=[
+                PropertyValue(id="a-uuid", value="A"),
+                PropertyValue(id="b-uuid", value="B"),
+            ],
+            granularity=PropertyGranularity.annotation,
+        )
+
+    def test_prefers_name_based_values(self) -> None:
+        parent = self._parent_with_values()
+        trigger = TriggerCondition(type="value_match", values=["A"])
+        assert _trigger_value_names(trigger, parent) == {"A"}
+
+    def test_falls_back_to_resolving_uuids_via_parent(self) -> None:
+        parent = self._parent_with_values()
+        trigger = TriggerCondition(type="value_match", property_value_ids=["a-uuid"])
+        assert _trigger_value_names(trigger, parent) == {"A"}
+
+    def test_drops_uuids_that_do_not_match_parent_values(self) -> None:
+        # Silent-drop is intentional here — the visibility engine should
+        # treat stale/unknown UUIDs as "no match" rather than raise.
+        parent = self._parent_with_values()
+        trigger = TriggerCondition(
+            type="value_match", property_value_ids=["unknown-uuid"]
+        )
+        assert _trigger_value_names(trigger, parent) == set()
+
+    def test_returns_empty_set_when_neither_representation_populated(self) -> None:
+        # Only reachable if caller mis-invokes on ``any_value``; the helper
+        # is permissive rather than asserting the trigger type.
+        parent = self._parent_with_values()
+        trigger = TriggerCondition(type="any_value")
+        assert _trigger_value_names(trigger, parent) == set()
+
+
+class TestPropertyKey:
+    def test_class_level_uses_class_id(self) -> None:
+        prop = FullProperty(
+            name="Status",
+            type="single_select",
+            required=False,
+            annotation_class_id=42,
+            property_values=[PropertyValue(value="Open")],
+            granularity=PropertyGranularity.annotation,
+        )
+        assert property_key(prop) == (42, "Status")
+
+    def test_item_level_uses_none_for_class_id(self) -> None:
+        prop = FullProperty(
+            name="Status",
+            type="text",
+            required=False,
+            annotation_class_id=None,
+            granularity=PropertyGranularity.item,
+        )
+        assert property_key(prop) == (None, "Status")
+
+    def test_class_level_and_item_level_with_same_name_differ(self) -> None:
+        # The regression this keying guards against: if class-level and
+        # item-level shared a key, ``get_visible_properties`` would collide
+        # them (see 1.2 / 5.2).
+        class_level = FullProperty(
+            name="Status",
+            type="single_select",
+            required=False,
+            annotation_class_id=42,
+            property_values=[PropertyValue(value="Open")],
+            granularity=PropertyGranularity.annotation,
+        )
+        item_level = FullProperty(
+            name="Status",
+            type="text",
+            required=False,
+            annotation_class_id=None,
+            granularity=PropertyGranularity.item,
+        )
+        assert property_key(class_level) != property_key(item_level)
+
+
+class TestPropertyValueFromMetadata:
+    """Direct coverage for the helper that replaced 5 copies of the
+    ``PropertyValue(value=..., color=... or "auto")`` idiom."""
+
+    def test_passes_through_value_and_color(self) -> None:
+        pv = _property_value_from_metadata(
+            {"value": "Red", "color": "rgba(255,0,0,1.0)"}
+        )
+        assert pv.value == "Red"
+        assert pv.color == "rgba(255,0,0,1.0)"
+
+    def test_defaults_missing_color_to_auto(self) -> None:
+        pv = _property_value_from_metadata({"value": "Red"})
+        assert pv.color == "auto"
+
+    def test_treats_empty_color_as_missing(self) -> None:
+        # ``color=""`` in metadata is treated the same as a missing key —
+        # the Pydantic validator would otherwise reject it.
+        pv = _property_value_from_metadata({"value": "Red", "color": ""})
+        assert pv.color == "auto"
 
 
 class TestFullPropertyEndpoints:
@@ -456,6 +570,36 @@ class TestResolveParentForCreate:
             ),
         )
         with pytest.raises(ValueError, match="unknown parent value"):
+            _resolve_parent_for_create(child, lookups)
+
+    def test_value_match_without_values_raises_clear_error(self) -> None:
+        # Contract: darwin-py identifies parent values by name, so
+        # ``value_match`` triggers must be set up with ``values``
+        # (names), not ``property_value_ids`` (UUIDs). Passing UUIDs
+        # alone used to silently drop them and trip an opaque validator
+        # downstream; the importer now surfaces a clear error instead.
+        parent_on_server = FullProperty(
+            id="p-id",
+            name="Parent",
+            type="single_select",
+            required=False,
+            annotation_class_id=1,
+            property_values=[PropertyValue(id="v-uuid", value="A")],
+            granularity=PropertyGranularity.annotation,
+        )
+        lookups = _fake_team_property_lookups(
+            annotation_properties={("Parent", 1): parent_on_server}
+        )
+        child = _make_property(
+            name="child",
+            parent_name="Parent",
+            trigger_condition=TriggerCondition(
+                type="value_match", property_value_ids=["v-uuid"]
+            ),
+        )
+        with pytest.raises(
+            ValueError, match="must set 'values' \\(parent value names\\)"
+        ):
             _resolve_parent_for_create(child, lookups)
 
 
