@@ -1407,13 +1407,24 @@ def _assign_item_properties_to_dataset(
         for item_property in item_properties_set:
             for team_prop in item_properties_lookup:
                 if team_prop == item_property:
-                    prop_datasets = item_properties_lookup[team_prop].dataset_ids or []
+                    team_property = item_properties_lookup[team_prop]
+                    # Nested item-level properties inherit ``dataset_ids`` from
+                    # their root ancestor on the BE (stored value is always
+                    # empty). Attempting to set a non-empty ``dataset_ids``
+                    # on a child is rejected with "Cannot be set on nested
+                    # properties; inherited from the root ancestor" — skip
+                    # the assignment and let inheritance cover the child.
+                    if (
+                        team_property.parent_name is not None
+                        or team_property.parent_property_id is not None
+                    ):
+                        continue
+                    prop_datasets = team_property.dataset_ids or []
                     if dataset.dataset_id not in prop_datasets:
-                        updated_property = item_properties_lookup[team_prop]
-                        updated_property.dataset_ids.append(dataset.dataset_id)
+                        team_property.dataset_ids.append(dataset.dataset_id)
 
                         # We must not mutate properties in item_properties_lookup, since their values are also used for lookups
-                        property_copy = updated_property.model_copy()
+                        property_copy = team_property.model_copy()
                         property_copy.property_values = (
                             []
                         )  # Necessary to clear, otherwise we're trying to add the exsting values to themselves

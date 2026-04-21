@@ -22,6 +22,7 @@ from darwin.future.data_objects.properties import (
     property_key,
 )
 from darwin.importer.importer import (
+    _assign_item_properties_to_dataset,
     _enrich_properties_with_metadata_values,
     _import_properties,
     _property_value_from_metadata,
@@ -642,6 +643,81 @@ class TestMetadataParsing:
         prop = classes[0].properties[0]
         assert prop.parent_name is None
         assert prop.trigger_condition is None
+
+
+class TestAssignItemPropertiesToDataset:
+    """
+    Regression coverage for the dataset-id assignment path and its
+    interaction with nested item-level properties. The BE enforces that
+    a nested property's ``dataset_ids`` is always ``[]`` — children
+    inherit from the root ancestor. Attempting to assign a dataset to a
+    nested child returns a 422; the importer must skip those properties
+    entirely.
+    """
+
+    def _dataset(self) -> Mock:
+        dataset = Mock()
+        dataset.team = "test_team"
+        dataset.name = "test_dataset"
+        dataset.dataset_id = 7
+        return dataset
+
+    def _console(self) -> Mock:
+        return Mock()
+
+    def _client(self) -> Mock:
+        client = Mock()
+        client.update_property = Mock()
+        return client
+
+    def test_assigns_dataset_to_top_level_item_property_when_missing(self) -> None:
+        item_properties = [{"name": "top_level"}]
+        top_level = FullProperty(
+            id="top-id",
+            name="top_level",
+            type="text",
+            required=False,
+            annotation_class_id=None,
+            granularity=PropertyGranularity.item,
+            dataset_ids=[],
+        )
+        lookup = {"top_level": top_level}
+        client = self._client()
+
+        _assign_item_properties_to_dataset(
+            item_properties, lookup, client, self._dataset(), self._console()
+        )
+
+        assert client.update_property.called
+        sent = client.update_property.call_args.args[1]
+        assert sent.dataset_ids == [7]
+
+    def test_skips_nested_item_property_to_avoid_be_422(self) -> None:
+        # Nested item-level properties must not have dataset_ids set —
+        # the BE rejects the update with "Cannot be set on nested
+        # properties; inherited from the root ancestor".
+        item_properties = [{"name": "child"}]
+        nested_child = FullProperty(
+            id="child-id",
+            name="child",
+            type="single_select",
+            required=False,
+            annotation_class_id=None,
+            property_values=[PropertyValue(value="Yes")],
+            granularity=PropertyGranularity.item,
+            parent_property_id="parent-id",
+            trigger_condition=TriggerCondition(type="any_value"),
+            dataset_ids=[],
+        )
+        lookup = {"child": nested_child}
+        client = self._client()
+
+        _assign_item_properties_to_dataset(
+            item_properties, lookup, client, self._dataset(), self._console()
+        )
+
+        # No update_property call — nested children inherit dataset_ids.
+        assert not client.update_property.called
 
 
 class TestE2EFixture:
