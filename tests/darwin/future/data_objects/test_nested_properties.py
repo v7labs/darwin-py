@@ -97,6 +97,42 @@ class TestTriggerCondition:
         with pytest.raises(Exception):  # pydantic ValidationError
             TriggerCondition(type="bogus_type")  # type: ignore[arg-type]
 
+    def test_validator_accepts_already_built_instance(self) -> None:
+        # ``mode="before"`` runs on every construction path, including nested
+        # validation where Pydantic hands the validator an already-built
+        # model. The ``isinstance(data, dict)`` guard must let that through.
+        original = TriggerCondition(type="any_value")
+        cloned = TriggerCondition.model_validate(original)
+        assert cloned.type == "any_value"
+        assert cloned.property_value_ids is None
+        assert cloned.values is None
+
+    def test_to_api_payload_any_value_omits_property_value_ids(self) -> None:
+        assert TriggerCondition(type="any_value").to_api_payload() == {
+            "type": "any_value"
+        }
+
+    def test_to_api_payload_value_match_emits_property_value_ids(self) -> None:
+        trigger = TriggerCondition(
+            type="value_match",
+            property_value_ids=["v-1", "v-2"],
+        )
+        assert trigger.to_api_payload() == {
+            "type": "value_match",
+            "property_value_ids": ["v-1", "v-2"],
+        }
+
+    def test_to_api_payload_strips_sdk_local_values(self) -> None:
+        # The name-based ``values`` field is an SDK-local convenience. The
+        # wire shape never includes it — callers must resolve names to
+        # UUIDs (via ``_resolve_parent_for_create``) before serialising.
+        trigger = TriggerCondition(
+            type="value_match",
+            values=["Fracture"],
+            property_value_ids=["v-1"],
+        )
+        assert "values" not in trigger.to_api_payload()
+
 
 class TestFullPropertyEndpoints:
     def test_create_endpoint_omits_nesting_when_absent(self) -> None:
@@ -666,6 +702,50 @@ class TestGetVisibleProperties:
         ]
         # Must return without raising.
         assert get_visible_properties(selected, [a, b]) == []
+
+    def test_same_name_across_scopes_does_not_collide_in_cache(self) -> None:
+        # Regression for the ``get_visible_properties`` name-collision bug:
+        # an item-level and a class-level property may legitimately share a
+        # name. They must not share a cache slot or shadow each other in the
+        # definition lookup used for nesting resolution.
+        item_level = FullProperty(
+            id="item-status-id",
+            name="Status",
+            type="text",
+            required=False,
+            annotation_class_id=None,
+            granularity=PropertyGranularity.item,
+        )
+        class_level_parent = FullProperty(
+            id="class-status-id",
+            name="Status",
+            type="single_select",
+            required=False,
+            annotation_class_id=42,
+            property_values=[PropertyValue(id="open-id", value="Open")],
+            granularity=PropertyGranularity.annotation,
+        )
+        class_level_child = FullProperty(
+            id="class-child-id",
+            name="Reason",
+            type="text",
+            required=False,
+            annotation_class_id=42,
+            granularity=PropertyGranularity.annotation,
+            parent_name="Status",
+            trigger_condition=TriggerCondition(type="value_match", values=["Open"]),
+        )
+        # The class-level parent DOES have a triggering value, so the child
+        # must be visible. The item-level "Status" is empty but must not
+        # poison the visibility decision for the class-level tree.
+        selected = [
+            SelectedProperty(name="Status", value="Open"),
+            SelectedProperty(name="Reason", value="Late"),
+        ]
+        visible = get_visible_properties(
+            selected, [item_level, class_level_parent, class_level_child]
+        )
+        assert [s.name for s in visible] == ["Status", "Reason"]
 
     def test_any_value_child_hidden_when_parent_has_no_selection(self) -> None:
         parent = FullProperty(

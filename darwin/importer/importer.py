@@ -39,10 +39,12 @@ from darwin.datatypes import (
 from darwin.future.data_objects.properties import (
     FullProperty,
     PropertyGranularity,
+    PropertyKey,
     PropertyType,
     PropertyValue,
     SelectedProperty,
     TriggerCondition,
+    property_key,
 )
 from darwin.item import DatasetItem
 from darwin.path_utils import is_properties_enabled, parse_metadata
@@ -537,6 +539,19 @@ def _build_metadata_lookups(
     )
 
 
+def _property_value_from_metadata(m_value: Dict[str, Any]) -> PropertyValue:
+    """
+    Build a ``PropertyValue`` from a metadata dict as it appears in
+    ``.v7/metadata.json``. Falls back to the ``"auto"`` sentinel color when
+    the metadata entry omits it, which is the historical default for
+    metadata-driven imports.
+    """
+    return PropertyValue(
+        value=m_value.get("value"),
+        color=m_value.get("color") or "auto",
+    )
+
+
 def _topologically_sort_properties_to_create(
     properties_to_create: List[FullProperty],
 ) -> List[FullProperty]:
@@ -558,14 +573,8 @@ def _topologically_sort_properties_to_create(
     if not properties_to_create:
         return []
 
-    # A property is uniquely identified within this batch by the
-    # ``(annotation_class_id, name)`` tuple for class-level properties and
-    # by ``(None, name)`` for item-level ones.
-    def _key(prop: FullProperty) -> Tuple[Optional[int], str]:
-        return (prop.annotation_class_id, prop.name)
-
-    index_by_key: Dict[Tuple[Optional[int], str], int] = {
-        _key(p): i for i, p in enumerate(properties_to_create)
+    index_by_key: Dict[PropertyKey, int] = {
+        property_key(p): i for i, p in enumerate(properties_to_create)
     }
     children_by_parent_index: Dict[int, List[int]] = defaultdict(list)
     in_degree: List[int] = [0] * len(properties_to_create)
@@ -644,12 +653,7 @@ def _enrich_properties_with_metadata_values(
         for m_value in metadata_values:
             if m_value.get("value") in existing_values:
                 continue
-            prop.property_values.append(
-                PropertyValue(
-                    value=m_value.get("value"),
-                    color=m_value.get("color") or "auto",
-                )
-            )
+            prop.property_values.append(_property_value_from_metadata(m_value))
 
 
 def _resolve_parent_for_create(
@@ -900,10 +904,7 @@ def _import_properties(
                                         break
                                 else:
                                     full_property.property_values.append(
-                                        PropertyValue(
-                                            value=m_prop_option.get("value"),  # type: ignore
-                                            color=m_prop_option.get("color") or "auto",  # type: ignore
-                                        )
+                                        _property_value_from_metadata(m_prop_option)
                                     )
                                 break
                         break
@@ -916,10 +917,7 @@ def _import_properties(
                     for m_prop_option in m_prop_options:
                         if m_prop_option.get("value") == a_prop.value:
                             property_values.append(
-                                PropertyValue(
-                                    value=m_prop_option.get("value"),  # type: ignore
-                                    color=m_prop_option.get("color") or "auto",  # type: ignore
-                                )
+                                _property_value_from_metadata(m_prop_option)
                             )
                             break
                     # if it doesn't exist, create it
@@ -1343,10 +1341,7 @@ def _create_update_item_properties(
                     for val_dict in m_prop_value_dicts:
                         if val_dict.get("value") not in current_prop_values:
                             prop.property_values.append(
-                                PropertyValue(
-                                    value=val_dict.get("value"),
-                                    color=val_dict.get("color", "auto"),
-                                )
+                                _property_value_from_metadata(val_dict)
                             )
                     break
             else:
@@ -1366,10 +1361,7 @@ def _create_update_item_properties(
                     slug=team_slug,
                     annotation_class_id=None,
                     property_values=[
-                        PropertyValue(
-                            value=val_dict.get("value"),
-                            color=val_dict.get("color", "auto"),
-                        )
+                        _property_value_from_metadata(val_dict)
                         for val_dict in m_prop_value_dicts
                     ],
                     granularity=PropertyGranularity.item,

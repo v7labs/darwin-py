@@ -4,7 +4,7 @@ import json
 import os
 from enum import Enum
 from pathlib import Path
-from typing import Dict, List, Literal, Optional, Tuple, Union
+from typing import Any, Dict, List, Literal, Optional, Set, Tuple, Union
 
 from pydantic import field_validator, model_validator
 
@@ -47,7 +47,12 @@ class TriggerCondition(DefaultDarwin):
 
     @model_validator(mode="before")
     @classmethod
-    def _validate_shape(cls, data: "object") -> "object":
+    def _validate_shape(cls, data: Any) -> Any:
+        # ``mode="before"`` runs for every construction path — ``model_validate``
+        # with a raw dict, direct ``TriggerCondition(type=..., ...)`` keyword
+        # construction, and nested validation where Pydantic may hand us an
+        # already-built instance. Only the dict path needs cross-field checks;
+        # the others have already been validated once.
         if not isinstance(data, dict):
             return data
         trigger_type = data.get("type")
@@ -69,6 +74,24 @@ class TriggerCondition(DefaultDarwin):
                     "'property_value_ids' (UUIDs) for 'value_match'"
                 )
         return data
+
+    def to_api_payload(self) -> Dict[str, Any]:
+        """
+        Return the REST-API wire shape of the trigger condition:
+
+        * ``{"type": "any_value"}``, or
+        * ``{"type": "value_match", "property_value_ids": [...]}``
+
+        The SDK-local ``values`` (name-based) field is never sent — callers
+        resolve it to UUIDs before calling this. ``property_value_ids`` is
+        omitted entirely for ``any_value`` because the BE's OpenAPI schema
+        declares it as a non-nullable array: sending ``null`` fails schema
+        validation with an opaque 422.
+        """
+        payload: Dict[str, Any] = {"type": self.type}
+        if self.property_value_ids:
+            payload["property_value_ids"] = list(self.property_value_ids)
+        return payload
 
 
 class PropertyGranularity(str, Enum):
@@ -149,7 +172,22 @@ class FullProperty(DefaultDarwin):
     def to_create_endpoint(
         self,
     ) -> dict:
-        include_fields = {
+        if (
+            self.granularity != PropertyGranularity.item
+            and self.annotation_class_id is None
+        ):
+            raise ValueError("annotation_class_id must be set")
+        # A nested property must carry both an API-ready parent UUID and a
+        # trigger condition. ``parent_name`` is the SDK-local representation
+        # and must be resolved to ``parent_property_id`` before calling this.
+        if (self.parent_property_id is None) != (self.trigger_condition is None):
+            raise ValueError(
+                "parent_property_id and trigger_condition must both be set or "
+                "both be None. If you have a parent_name, resolve it to a "
+                "parent_property_id first."
+            )
+
+        include_fields: Dict[str, Any] = {
             "name": True,
             "type": True,
             "required": True,
@@ -159,40 +197,18 @@ class FullProperty(DefaultDarwin):
         if self.type != "text":
             include_fields["property_values"] = {"__all__": {"value", "color", "type"}}
         if self.granularity != PropertyGranularity.item:
-            if self.annotation_class_id is None:
-                raise ValueError("annotation_class_id must be set")
             include_fields["annotation_class_id"] = True
         if self.dataset_ids is not None:
             include_fields["dataset_ids"] = True
-
-        # A nested property must carry both an API-ready parent UUID and a
-        # trigger condition. ``parent_name`` is the SDK-local representation
-        # and must be resolved to ``parent_property_id`` before calling this.
-        if self.parent_property_id is not None and self.trigger_condition is None:
-            raise ValueError("parent_property_id set without trigger_condition")
-        if self.trigger_condition is not None and self.parent_property_id is None:
-            raise ValueError(
-                "trigger_condition set without parent_property_id — "
-                "resolve parent_name to parent_property_id before creating"
-            )
-
         if self.parent_property_id is not None:
             include_fields["parent_property_id"] = True
-        if self.trigger_condition is not None:
-            # Only the API-shape UUID representation is sent; ``values``
-            # (name-based) is stripped because it is an SDK-local convenience.
-            include_fields["trigger_condition"] = {"type", "property_value_ids"}
+
         payload = self.model_dump(mode="json", include=include_fields)
-        # Strip ``property_value_ids: null`` from ``any_value`` triggers
-        # because the BE's OpenAPI schema declares the field as a
-        # non-nullable array. Sending ``null`` fails schema validation with
-        # an opaque error; omitting the key is the documented shape.
-        trigger_payload = payload.get("trigger_condition")
-        if (
-            isinstance(trigger_payload, dict)
-            and trigger_payload.get("property_value_ids") is None
-        ):
-            trigger_payload.pop("property_value_ids", None)
+        if self.trigger_condition is not None:
+            # ``TriggerCondition.to_api_payload`` owns the wire shape so
+            # ``to_create_endpoint`` doesn't have to reach into a nested
+            # model's representation.
+            payload["trigger_condition"] = self.trigger_condition.to_api_payload()
         return payload
 
     def to_update_endpoint(self) -> Tuple[str, dict]:
@@ -266,6 +282,19 @@ class SelectedProperty(DefaultDarwin):
     value: Optional[str] = None
 
 
+# Properties are identified within a team by the tuple
+# ``(annotation_class_id, name)`` — item-level properties use ``None`` for the
+# class id. This matches ``TeamPropertyLookups.annotation_properties`` (keyed
+# by ``(name, class_id)``) and ``item_properties`` (keyed by ``name``). Code
+# that needs to locate or deduplicate property definitions should use this
+# helper rather than inventing its own keying.
+PropertyKey = Tuple[Optional[int], str]
+
+
+def property_key(prop: "FullProperty") -> PropertyKey:
+    return (prop.annotation_class_id, prop.name)
+
+
 def _has_non_empty_value(
     definition: "FullProperty",
     selected_values: List["SelectedProperty"],
@@ -281,6 +310,32 @@ def _has_non_empty_value(
     return any(s.value for s in selected_values)
 
 
+def _trigger_value_names(
+    trigger: TriggerCondition, parent_definition: "FullProperty"
+) -> Set[str]:
+    """
+    Return the set of parent **value names** that activate the trigger,
+    resolved from whichever representation the trigger carries. Callers
+    should only invoke this when ``trigger.type == "value_match"``.
+
+    The SDK-native ``values`` list wins when present. If the trigger was
+    loaded from an API response and only carries ``property_value_ids``,
+    each UUID is resolved to its value name via the parent's
+    ``property_values``. UUIDs that don't match any parent value are
+    silently dropped — a safety net for stale/mismatched definitions.
+    """
+    if trigger.values:
+        return set(trigger.values)
+    if not trigger.property_value_ids:
+        return set()
+    name_by_id = {
+        pv.id: pv.value
+        for pv in (parent_definition.property_values or [])
+        if pv.id is not None and pv.value is not None
+    }
+    return {name_by_id[vid] for vid in trigger.property_value_ids if vid in name_by_id}
+
+
 def _matches_trigger(
     trigger: TriggerCondition,
     parent_definition: "FullProperty",
@@ -290,27 +345,33 @@ def _matches_trigger(
         return False
     if trigger.type == "any_value":
         return True
-    # trigger.type == "value_match" — match by value name (the SDK-native
-    # representation). If the trigger was loaded from an API response and
-    # carries UUIDs, resolve them to value names via the parent's
-    # ``property_values`` first.
     if parent_definition.type == "text":
         return False
-    trigger_value_names: set = set(trigger.values or [])
-    if trigger.property_value_ids:
-        value_name_by_id = {
-            pv.id: pv.value
-            for pv in (parent_definition.property_values or [])
-            if pv.id is not None and pv.value is not None
-        }
-        trigger_value_names.update(
-            value_name_by_id[vid]
-            for vid in trigger.property_value_ids
-            if vid in value_name_by_id
+    expected_names = _trigger_value_names(trigger, parent_definition)
+    return bool(expected_names) and any(
+        s.value in expected_names for s in parent_selected_values
+    )
+
+
+def _resolve_parent_definition(
+    definition: "FullProperty",
+    definitions_by_key: Dict[PropertyKey, "FullProperty"],
+    definitions_by_id: Dict[str, "FullProperty"],
+) -> Optional["FullProperty"]:
+    """
+    Locate the parent of ``definition`` in the provided lookups.
+
+    Name-based resolution wins (darwin-py convention). UUID-based resolution
+    is a fallback for properties loaded from API responses where only
+    ``parent_property_id`` is hydrated.
+    """
+    if definition.parent_name is not None:
+        return definitions_by_key.get(
+            (definition.annotation_class_id, definition.parent_name)
         )
-    if not trigger_value_names:
-        return False
-    return any(s.value in trigger_value_names for s in parent_selected_values)
+    if definition.parent_property_id is not None:
+        return definitions_by_id.get(definition.parent_property_id)
+    return None
 
 
 def get_visible_properties(
@@ -343,46 +404,47 @@ def get_visible_properties(
     if not annotation_properties:
         return []
 
+    definitions_by_key: Dict[PropertyKey, FullProperty] = {
+        property_key(d): d for d in property_definitions
+    }
     definitions_by_id: Dict[str, FullProperty] = {
         d.id: d for d in property_definitions if d.id is not None
     }
-    definitions_by_name: Dict[str, FullProperty] = {
-        d.name: d for d in property_definitions
-    }
+    # Bare-name fallback used when matching ``SelectedProperty`` (which has
+    # no class scope) to a definition. If two definitions share a name
+    # across scopes we can't disambiguate here, so we keep the first to
+    # preserve deterministic behaviour rather than silently shadowing.
+    definitions_by_name: Dict[str, FullProperty] = {}
+    for d in property_definitions:
+        definitions_by_name.setdefault(d.name, d)
 
     selected_by_parent_name: Dict[str, List[SelectedProperty]] = {}
     for selected in annotation_properties:
         selected_by_parent_name.setdefault(selected.name, []).append(selected)
 
-    # Cache + in-flight set are keyed by ``name`` because metadata-loaded
-    # properties may not yet have a server-side ``id``. The in-flight set
-    # defends against pathological cyclic graphs — the backend rejects them
-    # on create, but this utility is public and may see arbitrary inputs.
-    visibility_cache: Dict[str, bool] = {}
-    visiting: set = set()
-
-    def _resolve_parent(definition: FullProperty) -> Optional[FullProperty]:
-        # Prefer name-based resolution (darwin-py convention); fall back to
-        # UUID-based resolution when the property was loaded from an API
-        # response without name hydration.
-        if definition.parent_name is not None:
-            return definitions_by_name.get(definition.parent_name)
-        if definition.parent_property_id is not None:
-            return definitions_by_id.get(definition.parent_property_id)
-        return None
+    # Cache + in-flight set are keyed by ``(annotation_class_id, name)`` so
+    # a class-level and item-level property with the same name don't share
+    # a cache slot. The in-flight set defends against pathological cyclic
+    # graphs: the backend rejects them on create, but this utility is
+    # public and may see arbitrary inputs.
+    visibility_cache: Dict[PropertyKey, bool] = {}
+    visiting: Set[PropertyKey] = set()
 
     def is_visible(definition: FullProperty) -> bool:
-        if definition.name in visibility_cache:
-            return visibility_cache[definition.name]
-        if definition.name in visiting:
+        key = property_key(definition)
+        if key in visibility_cache:
+            return visibility_cache[key]
+        if key in visiting:
             return False
 
-        visiting.add(definition.name)
+        visiting.add(key)
         try:
             if definition.parent_name is None and definition.parent_property_id is None:
                 result = True
             else:
-                parent_definition = _resolve_parent(definition)
+                parent_definition = _resolve_parent_definition(
+                    definition, definitions_by_key, definitions_by_id
+                )
                 if parent_definition is None or definition.trigger_condition is None:
                     result = False
                 elif not is_visible(parent_definition):
@@ -394,9 +456,9 @@ def get_visible_properties(
                         selected_by_parent_name.get(parent_definition.name, []),
                     )
         finally:
-            visiting.discard(definition.name)
+            visiting.discard(key)
 
-        visibility_cache[definition.name] = result
+        visibility_cache[key] = result
         return result
 
     visible: List[SelectedProperty] = []
