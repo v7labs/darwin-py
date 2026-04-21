@@ -283,13 +283,14 @@ class SelectedProperty(DefaultDarwin):
 
 
 # Properties are identified within a team by the tuple
-# ``(annotation_class_id, name)`` — item-level properties use ``None`` for the
-# class id. This matches ``TeamPropertyLookups.annotation_properties`` (keyed
-# by ``(name, class_id)``) and ``item_properties`` (keyed by ``name``). Code
-# that needs to locate or deduplicate property definitions should use this
-# helper rather than inventing its own keying.
-PropertyKey = Tuple[Optional[int], str]
+# ``(name, annotation_class_id)`` — item-level properties use ``None`` for the
+# class id. The order mirrors ``TeamPropertyLookups.annotation_properties``
+# (keyed ``(name, annotation_class_id)``) so a caller can do
+# ``lookups.annotation_properties[property_key(prop)]`` directly. Code that
+# needs to locate or deduplicate property definitions should use this helper
+# rather than inventing its own keying.
+PropertyKey = Tuple[str, Optional[int]]
 
 
 def property_key(prop: "FullProperty") -> PropertyKey:
-    return (prop.annotation_class_id, prop.name)
+    return (prop.name, prop.annotation_class_id)

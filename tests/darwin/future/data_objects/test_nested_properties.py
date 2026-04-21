@@ -146,7 +146,7 @@ class TestPropertyKey:
             property_values=[PropertyValue(value="Open")],
             granularity=PropertyGranularity.annotation,
         )
-        assert property_key(prop) == (42, "Status")
+        assert property_key(prop) == ("Status", 42)
 
     def test_item_level_uses_none_for_class_id(self) -> None:
         prop = FullProperty(
@@ -156,7 +156,7 @@ class TestPropertyKey:
             annotation_class_id=None,
             granularity=PropertyGranularity.item,
         )
-        assert property_key(prop) == (None, "Status")
+        assert property_key(prop) == ("Status", None)
 
     def test_class_level_and_item_level_with_same_name_differ(self) -> None:
         # The regression this keying guards against: if class-level and
@@ -178,6 +178,22 @@ class TestPropertyKey:
             granularity=PropertyGranularity.item,
         )
         assert property_key(class_level) != property_key(item_level)
+
+    def test_matches_team_property_lookups_key_order(self) -> None:
+        # The contract: ``property_key(prop)`` is drop-in usable against
+        # ``TeamPropertyLookups.annotation_properties`` which keys on
+        # ``(name, annotation_class_id)``. Any reorder here is a breaking
+        # change for every consumer that relies on that interchangeability.
+        prop = FullProperty(
+            name="Status",
+            type="single_select",
+            required=False,
+            annotation_class_id=42,
+            property_values=[PropertyValue(value="Open")],
+            granularity=PropertyGranularity.annotation,
+        )
+        lookups_key = (prop.name, prop.annotation_class_id)
+        assert property_key(prop) == lookups_key
 
 
 class TestPropertyValueFromMetadata:

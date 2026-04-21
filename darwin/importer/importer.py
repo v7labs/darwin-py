@@ -582,7 +582,7 @@ def _topologically_sort_properties_to_create(
     for idx, prop in enumerate(properties_to_create):
         if prop.parent_name is None:
             continue
-        parent_idx = index_by_key.get((prop.annotation_class_id, prop.parent_name))
+        parent_idx = index_by_key.get((prop.parent_name, prop.annotation_class_id))
         if parent_idx is None:
             # Parent not in this batch -> treat this node as a root.
             continue
