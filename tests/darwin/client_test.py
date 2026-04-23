@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import List, Optional
@@ -989,3 +990,103 @@ class TestGetAnnotatorsReport:
             },
             status=status_code,
         )
+
+
+@pytest.mark.usefixtures("file_read_write_test")
+class TestRawRequestDoesNotDrainStreamedBody:
+    """
+    Regression tests for a bug where the debug log inside the raw HTTP helpers
+    eagerly materialised the response body (via ``response.text``) before the
+    caller had a chance to consume the stream. For a ``stream=True`` download,
+    this drained the TLS socket into RAM and left the downstream streaming
+    writer with an already-exhausted response, causing the ``darwin dataset
+    pull`` CLI to appear to hang with memory climbing and disk usage flat.
+    """
+
+    @staticmethod
+    def _make_streamed_response(url: str, read_tripwire) -> Response:
+        response = Response()
+        response.status_code = 200
+        response.url = url
+        response.headers["content-type"] = "application/octet-stream"
+        response.headers["content-length"] = "1073741824"
+        response.raw = read_tripwire
+        assert response._content_consumed is False
+        return response
+
+    @staticmethod
+    def _with_log_level(log, level):
+        """Temporarily set ``log`` to ``level`` and restore on exit.
+
+        The ``darwin`` logger is a global singleton; leaking a level change
+        out of the test would break unrelated tests that rely on the default
+        level (see darwin/importer/importer.py:170, which only misbehaves
+        when INFO is enabled for ``darwin``).
+        """
+        from contextlib import contextmanager
+
+        @contextmanager
+        def _cm():
+            original = log.level
+            log.setLevel(level)
+            try:
+                yield
+            finally:
+                log.setLevel(original)
+
+        return _cm()
+
+    def test_get_at_debug_level_does_not_consume_streamed_body(
+        self, darwin_client: Client
+    ) -> None:
+        url = darwin_client.url + "/streamed-blob"
+
+        class _ExplodingRaw:
+            def __init__(self) -> None:
+                self.reads = 0
+
+            def read(self, *_args, **_kwargs):
+                self.reads += 1
+                raise AssertionError(
+                    "Streamed response body must not be read by the client"
+                    " before the caller consumes it"
+                )
+
+        raw = _ExplodingRaw()
+        response = self._make_streamed_response(url, raw)
+
+        with self._with_log_level(darwin_client.log, logging.DEBUG), patch.object(
+            darwin_client.session, "get", return_value=response
+        ) as mock:
+            returned = darwin_client._get_raw_from_full_url(url, stream=True)
+
+        mock.assert_called_once()
+        assert returned is response
+        assert response._content_consumed is False
+        assert raw.reads == 0
+
+    def test_get_below_debug_level_does_not_call_response_helpers(
+        self, darwin_client: Client
+    ) -> None:
+        """Covers the eager-f-string half of the bug: at INFO level nothing that
+        touches the response body should run as part of building the log
+        message. We stand in a sentinel ``raw`` object again to prove the
+        stream is untouched, and ensure the log itself is not emitted."""
+
+        url = darwin_client.url + "/streamed-blob-info-level"
+
+        class _ExplodingRaw:
+            def read(self, *_args, **_kwargs):
+                raise AssertionError("stream must not be read at INFO level")
+
+        response = self._make_streamed_response(url, _ExplodingRaw())
+
+        with self._with_log_level(darwin_client.log, logging.INFO), patch.object(
+            darwin_client.log, "debug", wraps=darwin_client.log.debug
+        ) as debug_spy, patch.object(
+            darwin_client.session, "get", return_value=response
+        ):
+            darwin_client._get_raw_from_full_url(url, stream=True)
+
+        assert response._content_consumed is False
+        debug_spy.assert_not_called()

@@ -6,6 +6,7 @@ from requests import Response
 import darwin.datatypes as dt
 import darwin.exceptions as de
 from darwin.utils import (
+    describe_response_for_log,
     get_response_content,
     has_json_content_type,
     is_file_extension_allowed,
@@ -1148,6 +1149,43 @@ class TestParseDarwinJson:
         response.headers["content-type"] = "text/plain"
         response._content = b"hello"
         assert "hello" == get_response_content(response)
+
+
+class TestDescribeResponseForLog:
+    def test_returns_parsed_json_for_json_response(self):
+        response: Response = Response()
+        response.headers["content-type"] = "application/json"
+        response._content = b'{"key":"a"}'
+        assert {"key": "a"} == describe_response_for_log(response)
+
+    def test_returns_text_for_already_consumed_non_json_response(self):
+        response: Response = Response()
+        response.headers["content-type"] = "text/plain"
+        response._content = b"hello"
+        assert "hello" == describe_response_for_log(response)
+
+    def test_returns_placeholder_for_streamed_body_without_consuming_it(self):
+        class _ExplodingRaw:
+            """Raises if touched, to prove the helper never reads the stream."""
+
+            def read(self, *_args, **_kwargs):
+                raise AssertionError(
+                    "describe_response_for_log must not read the stream"
+                )
+
+        response: Response = Response()
+        response.headers["content-type"] = "application/octet-stream"
+        response.headers["content-length"] = "1073741824"
+        response.raw = _ExplodingRaw()
+        assert response._content_consumed is False
+
+        result = describe_response_for_log(response)
+
+        assert isinstance(result, str)
+        assert "body not materialised" in result
+        assert "application/octet-stream" in result
+        assert "1073741824" in result
+        assert response._content_consumed is False
 
 
 class TestParseDarwinRasterAnnotation:

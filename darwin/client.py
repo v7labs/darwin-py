@@ -57,7 +57,7 @@ from darwin.future.core.properties import update_property as update_property_fut
 from darwin.future.core.types.common import JSONDict
 from darwin.future.data_objects.properties import FullProperty
 from darwin.utils import (
-    get_response_content,
+    describe_response_for_log,
     has_json_content_type,
     is_project_dir,
     urljoin,
@@ -915,12 +915,15 @@ class Client:
             stream=stream,
         )
 
-        self.log.debug(
-            f"Client GET request response ({get_response_content(response)}) with status "
-            f"({response.status_code}). "
-            f"Client: ({self})"
-            f"Request: (url={url})"
-        )
+        if self.log.isEnabledFor(logging.DEBUG):
+            self.log.debug(
+                "Client GET request response (%s) with status (%s). "
+                "Client: (%s) Request: (url=%s)",
+                describe_response_for_log(response),
+                response.status_code,
+                self,
+                url,
+            )
 
         self._raise_if_known_error(response, url)
         response.raise_for_status()
@@ -960,12 +963,16 @@ class Client:
             headers=self._get_headers(team_slug),
         )
 
-        self.log.debug(
-            f"Client PUT request got response ({get_response_content(response)}) with status "
-            f"({response.status_code}). "
-            f"Client: ({self})"
-            f"Request: (endpoint={endpoint}, payload={payload})"
-        )
+        if self.log.isEnabledFor(logging.DEBUG):
+            self.log.debug(
+                "Client PUT request got response (%s) with status (%s). "
+                "Client: (%s) Request: (endpoint=%s, payload=%s)",
+                describe_response_for_log(response),
+                response.status_code,
+                self,
+                endpoint,
+                payload,
+            )
 
         self._raise_if_known_error(response, urljoin(self.url, endpoint))
         response.raise_for_status()
@@ -1016,12 +1023,16 @@ class Client:
                 headers=self._get_headers(team_slug),
             )
 
-        self.log.debug(
-            f"Client POST request response ({get_response_content(response)}) with unexpected status "
-            f"({response.status_code}). "
-            f"Client: ({self})"
-            f"Request: (endpoint={endpoint}, payload={payload})"
-        )
+        if self.log.isEnabledFor(logging.DEBUG):
+            self.log.debug(
+                "Client POST request response (%s) with unexpected status (%s). "
+                "Client: (%s) Request: (endpoint=%s, payload=%s)",
+                describe_response_for_log(response),
+                response.status_code,
+                self,
+                endpoint,
+                payload,
+            )
 
         self._raise_if_known_error(response, urljoin(self.url, endpoint))
         response.raise_for_status()
@@ -1057,12 +1068,15 @@ class Client:
             headers=self._get_headers(team_slug),
         )
 
-        self.log.debug(
-            f"Client DELETE request response ({get_response_content(response)}) with unexpected status "
-            f"({response.status_code}). "
-            f"Client: ({self})"
-            f"Request: (endpoint={endpoint})"
-        )
+        if self.log.isEnabledFor(logging.DEBUG):
+            self.log.debug(
+                "Client DELETE request response (%s) with unexpected status (%s). "
+                "Client: (%s) Request: (endpoint=%s)",
+                describe_response_for_log(response),
+                response.status_code,
+                self,
+                endpoint,
+            )
 
         self._raise_if_known_error(response, urljoin(self.url, endpoint))
         response.raise_for_status()
@@ -1141,7 +1155,7 @@ class Client:
         try:
 
             def parse_version(version: str) -> DarwinVersionNumber:
-                (major, minor, patch) = version.split(".")
+                major, minor, patch = version.split(".")
                 return (int(major), int(minor), int(patch))
 
             from darwin.version import __version__
