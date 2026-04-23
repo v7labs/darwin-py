@@ -1533,6 +1533,55 @@ def get_response_content(response: Response) -> Any:
         return response.text
 
 
+def describe_response_for_log(response: Response) -> Any:
+    """
+    Return a representation of ``response`` suitable for inclusion in a log
+    message, without draining a streamed response body.
+
+    Rationale
+    ---------
+    Calling ``response.text`` or ``response.content`` on a ``stream=True``
+    response forces the full body to be read from the socket and decoded into
+    memory before the caller gets a chance to consume the stream. When such a
+    response is only being logged (typically at ``DEBUG`` level), that is both
+    wasteful and, for large binary downloads, actively harmful: the streaming
+    writer downstream receives an already-exhausted response and never writes
+    anything to disk.
+
+    Behaviour:
+
+    * JSON responses (by ``content-type``): returns parsed JSON. ``requests``
+      has already buffered the body for these.
+    * Non-JSON responses whose body has already been materialised
+      (``_content_consumed`` is truthy): returns ``response.text`` as before.
+    * Non-JSON responses whose body has not been consumed yet
+      (i.e. a streamed response): returns a short metadata-only string
+      describing the response, so logging never drains the stream.
+
+    Returns
+    -------
+    Any
+        Parsed JSON, decoded text, or a short metadata placeholder string.
+    """
+    if has_json_content_type(response):
+        return response.json()
+    # requests.Response uses ``_content=False`` as a sentinel meaning "body not
+    # yet read"; once the body is available it holds the raw bytes. Checking
+    # for bytes covers both the normal "already consumed" case and the case
+    # where a caller or test has set ``_content`` directly.
+    cached_content = getattr(response, "_content", False)
+    if getattr(response, "_content_consumed", False) or isinstance(
+        cached_content, (bytes, bytearray)
+    ):
+        return response.text
+    content_type = response.headers.get("content-type")
+    content_length = response.headers.get("content-length")
+    return (
+        f"<body not materialised; content-type={content_type!r} "
+        f"content-length={content_length}>"
+    )
+
+
 def _parse_version(data: dict) -> dt.AnnotationFileVersion:
     version_string = data.get("version", "1.0")
     major, minor, suffix = re.findall(r"^(\d+)\.(\d+)(.*)$", version_string)[0]
