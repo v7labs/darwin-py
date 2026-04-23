@@ -1155,7 +1155,7 @@ class Client:
         try:
 
             def parse_version(version: str) -> DarwinVersionNumber:
-                (major, minor, patch) = version.split(".")
+                major, minor, patch = version.split(".")
                 return (int(major), int(minor), int(patch))
 
             from darwin.version import __version__
