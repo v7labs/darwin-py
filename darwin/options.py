@@ -290,6 +290,13 @@ class Options:
             help="Repeatedly try to download the release if it is still processing.",
         )
         parser_pull.add_argument(
+            "--no-multi-processed",
+            action="store_true",
+            default=False,
+            help="Disables multiprocessing when downloading the dataset. "
+            "By default, downloads run in parallel across multiple processes.",
+        )
+        parser_pull.add_argument(
             "--retry-timeout",
             type=int,
             default=600,

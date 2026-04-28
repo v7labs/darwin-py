@@ -665,6 +665,52 @@ class TestPullDataset:
             ]
             assert called_identifier.team_slug == "old-team"
 
+    def test_forwards_multi_processed_default_true_to_remote_dataset_pull(
+        self, remote_dataset: RemoteDataset
+    ):
+        dataset_identifier = "old-team/test-dataset:xyz"
+
+        with (
+            patch("darwin.cli_functions.os.getenv", return_value=None),
+            patch("darwin.cli_functions.Config") as config_cls_mock,
+            patch("darwin.cli_functions.Client.from_config") as from_config_mock,
+        ):
+            config_inst = config_cls_mock.return_value
+            config_inst.get.return_value = "team_specific_key"
+
+            client_mock = from_config_mock.return_value
+            client_mock.get_remote_dataset.return_value = remote_dataset
+            client_mock.newer_darwin_version = None
+
+            with patch.object(remote_dataset, "get_release"):
+                with patch.object(remote_dataset, "pull") as pull_mock:
+                    pull_dataset(dataset_identifier)
+
+            assert pull_mock.call_args.kwargs["multi_processed"] is True
+
+    def test_forwards_multi_processed_false_when_disabled(
+        self, remote_dataset: RemoteDataset
+    ):
+        dataset_identifier = "old-team/test-dataset:xyz"
+
+        with (
+            patch("darwin.cli_functions.os.getenv", return_value=None),
+            patch("darwin.cli_functions.Config") as config_cls_mock,
+            patch("darwin.cli_functions.Client.from_config") as from_config_mock,
+        ):
+            config_inst = config_cls_mock.return_value
+            config_inst.get.return_value = "team_specific_key"
+
+            client_mock = from_config_mock.return_value
+            client_mock.get_remote_dataset.return_value = remote_dataset
+            client_mock.newer_darwin_version = None
+
+            with patch.object(remote_dataset, "get_release"):
+                with patch.object(remote_dataset, "pull") as pull_mock:
+                    pull_dataset(dataset_identifier, multi_processed=False)
+
+            assert pull_mock.call_args.kwargs["multi_processed"] is False
+
 
 class TestPullDatasetTeamAuthSelection:
     def test_prefers_config_over_env_when_team_specified(
