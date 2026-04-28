@@ -1517,7 +1517,7 @@ def print_new_version_info(client: Optional[Client] = None) -> None:
     if not client or not client.newer_darwin_version:
         return
 
-    (a, b, c) = tuple(client.newer_darwin_version)
+    a, b, c = tuple(client.newer_darwin_version)
 
     console = Console(theme=_console_theme(), stderr=True)
     console.print(
