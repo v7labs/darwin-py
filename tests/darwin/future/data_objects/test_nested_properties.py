@@ -24,6 +24,7 @@ from darwin.future.data_objects.properties import (
 )
 from darwin.importer.importer import (
     _assign_item_properties_to_dataset,
+    _create_update_item_properties,
     _enrich_properties_with_metadata_values,
     _import_properties,
     _property_value_from_metadata,
@@ -635,6 +636,32 @@ class TestResolveParentForCreate:
         with pytest.raises(ValueError, match="unknown parent value"):
             _resolve_parent_for_create(child, metadata_trigger, lookups)
 
+    def test_value_match_with_duplicate_values_raises(self) -> None:
+        # Duplicates in ``trigger.values`` are a data error: each parent
+        # value should appear at most once. Surface it instead of silently
+        # deduplicating.
+        parent_on_server = FullProperty(
+            id="p-id",
+            name="Parent",
+            type="multi_select",
+            required=False,
+            annotation_class_id=1,
+            property_values=[
+                PropertyValue(id="v-a", value="A"),
+                PropertyValue(id="v-b", value="B"),
+            ],
+            granularity=PropertyGranularity.annotation,
+        )
+        lookups = _fake_team_property_lookups(
+            annotation_properties={("Parent", 1): parent_on_server}
+        )
+        child = _make_property(name="child", parent_name="Parent")
+        metadata_trigger = MetadataTriggerCondition(
+            type="value_match", values=["A", "B", "A"]
+        )
+        with pytest.raises(ValueError, match=r"duplicate values: \['A'\]"):
+            _resolve_parent_for_create(child, metadata_trigger, lookups)
+
     def test_metadata_value_match_construction_requires_values(self) -> None:
         # Contract: ``MetadataTriggerCondition`` rejects 'value_match' without
         # ``values`` at construction time. The split between
@@ -797,6 +824,49 @@ class TestMetadataParsing:
                         ]
                     }
                 )
+
+
+class TestCreateUpdateItemPropertiesNestingValidation:
+    """
+    Item-level metadata flows through ``_create_update_item_properties``.
+    The same ``parent_name`` ↔ ``trigger_condition`` invariant the class-
+    level path enforces in ``parse_property_classes`` must apply here too,
+    or item-level metadata silently bypasses it.
+    """
+
+    def test_rejects_item_property_with_parent_name_but_no_trigger(self) -> None:
+        item_properties = {
+            "Bad Item Child": {
+                "type": "single_select",
+                "required": False,
+                "property_values": [{"value": "Yes"}],
+                "parent_name": "Some Parent",
+            }
+        }
+        with pytest.raises(ValueError, match="inconsistent nesting metadata"):
+            _create_update_item_properties(
+                item_properties,
+                item_properties_lookup={},
+                team_slug="test_team",
+                metadata_triggers={},
+            )
+
+    def test_rejects_item_property_with_trigger_but_no_parent_name(self) -> None:
+        item_properties = {
+            "Bad Item Child": {
+                "type": "single_select",
+                "required": False,
+                "property_values": [{"value": "Yes"}],
+                "trigger_condition": {"type": "any_value"},
+            }
+        }
+        with pytest.raises(ValueError, match="inconsistent nesting metadata"):
+            _create_update_item_properties(
+                item_properties,
+                item_properties_lookup={},
+                team_slug="test_team",
+                metadata_triggers={},
+            )
 
 
 class TestAssignItemPropertiesToDataset:

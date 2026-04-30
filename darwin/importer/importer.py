@@ -34,6 +34,7 @@ from darwin.datatypes import (
     PropertyName,
     PropertyValueMap,
     TeamPropertyLookups,
+    _validate_metadata_nesting,
     parse_property_classes,
 )
 from darwin.future.data_objects.properties import (
@@ -541,12 +542,7 @@ def _build_metadata_lookups(
 
 
 def _property_value_from_metadata(m_value: Dict[str, Any]) -> PropertyValue:
-    """
-    Build a ``PropertyValue`` from a metadata dict as it appears in
-    ``.v7/metadata.json``. Falls back to the ``"auto"`` sentinel color when
-    the metadata entry omits it, which is the historical default for
-    metadata-driven imports.
-    """
+    """Build a ``PropertyValue`` from a ``.v7/metadata.json`` value entry."""
     return PropertyValue(
         value=m_value.get("value"),
         color=m_value.get("color") or "auto",
@@ -557,19 +553,10 @@ def _topologically_sort_properties_to_create(
     properties_to_create: List[FullProperty],
 ) -> List[FullProperty]:
     """
-    Orders a list of properties-to-create so that parents always precede
-    their children. Parent relationships are expressed by ``parent_name``
-    (the SDK-native identifier). Properties whose ``parent_name`` does not
-    match any sibling in the list — because they are top-level, because
-    their parent already exists on the server, or because the parent lives
-    in a different ``annotation_class_id`` — are treated as roots.
-
-    Ordering among siblings is stable (preserves the input order).
-
-    Raises
-    ------
-    ValueError
-        If the list contains a cycle.
+    Order properties so each parent precedes its children, with parents
+    identified by ``parent_name``. Properties whose ``parent_name`` does
+    not match any sibling in the list are treated as roots. Sibling order
+    is preserved. Raises ``ValueError`` on cycles.
     """
     if not properties_to_create:
         return []
@@ -616,13 +603,9 @@ def _enrich_properties_with_metadata_values(
     annotation_class_ids_map: AnnotationClassIdsMap,
 ) -> None:
     """
-    Ensures that each property about to be created sends every value declared
-    for it in ``.v7/metadata.json`` — not only the values referenced by the
-    current batch of annotations. Without this, a child whose
-    ``trigger_condition.values`` names a parent value that no annotation uses
-    would have nothing to resolve against after the parent is created.
-
-    Mutates ``properties_to_create`` in place.
+    Append every metadata-declared value to each property about to be
+    created (not just the values referenced by the current annotations),
+    mutating ``properties_to_create`` in place.
     """
     class_name_by_id: Dict[int, str] = {
         int(class_id): class_name
@@ -663,23 +646,14 @@ def _resolve_parent_for_create(
     team_property_lookups: "TeamPropertyLookups",
 ) -> FullProperty:
     """
-    Returns a copy of ``full_property`` with ``parent_property_id`` and
-    ``trigger_condition`` populated from the SDK-native name-based fields:
-    ``full_property.parent_name`` and the ``metadata_trigger`` argument
-    (parent value **names**, parsed from ``.v7/metadata.json``). The
-    returned ``trigger_condition`` is the API-side
-    :class:`ApiTriggerCondition` with parent value **UUIDs**.
+    Return a copy of ``full_property`` with ``parent_property_id`` and an
+    API-side :class:`ApiTriggerCondition` resolved from the SDK-native
+    ``parent_name`` and name-based ``metadata_trigger``.
 
-    Names are resolved against the current ``team_property_lookups`` —
-    which is expected to have just been refreshed to include any
-    same-batch parent that was created immediately prior. Children
-    consequently see their parent's destination-team UUIDs rather than any
-    source-team UUIDs that might have leaked through ``.v7/metadata.json``.
-
-    If ``parent_name`` is not set, the property is a root and is returned
-    unchanged. If ``parent_name`` cannot be resolved, a ``ValueError`` is
-    raised so the user sees a clear error rather than the backend's opaque
-    422 on an unknown UUID.
+    Names are resolved against ``team_property_lookups``, which must
+    already include any same-batch parent created immediately prior. Roots
+    (``parent_name is None``) are returned unchanged; unresolved names
+    raise ``ValueError``.
     """
     if full_property.parent_name is None:
         return full_property
@@ -707,9 +681,6 @@ def _resolve_parent_for_create(
             "on the team yet. Check that the parent is listed in "
             ".v7/metadata.json and shares the same annotation class."
         )
-    # The BE rejects cross-granularity nesting at create time. Catching it
-    # here gives a precise error pointing at both granularities, instead of
-    # the BE's generic ``granularity_mismatch`` 422.
     if parent_prop.granularity != full_property.granularity:
         raise ValueError(
             f"Cannot resolve parent '{full_property.parent_name}' for nested "
@@ -726,19 +697,30 @@ def _resolve_parent_for_create(
         else:
             # ``MetadataTriggerCondition`` validation guarantees ``values`` is
             # set & non-empty for 'value_match'.
+            trigger_values = metadata_trigger.values or []
+            if len(set(trigger_values)) != len(trigger_values):
+                duplicates = sorted(
+                    {v for v in trigger_values if trigger_values.count(v) > 1}
+                )
+                raise ValueError(
+                    f"trigger_condition for '{full_property.name}' has "
+                    f"duplicate values: {duplicates}. Each parent value "
+                    "should appear at most once."
+                )
             value_id_by_name = {
                 pv.value: pv.id
                 for pv in (parent_prop.property_values or [])
                 if pv.id is not None and pv.value is not None
             }
             resolved_ids: List[str] = []
-            for name in metadata_trigger.values or []:
+            for name in trigger_values:
                 value_id = value_id_by_name.get(name)
                 if value_id is None:
                     raise ValueError(
                         f"trigger_condition for '{full_property.name}' "
                         f"references unknown parent value '{name}' on "
-                        f"'{full_property.parent_name}'"
+                        f"'{full_property.parent_name}'. Available values: "
+                        f"{sorted(value_id_by_name)}"
                     )
                 resolved_ids.append(value_id)
             resolved_trigger = ApiTriggerCondition(
@@ -801,10 +783,9 @@ def _import_properties(
 
     annotation_and_section_level_properties_to_create: List[FullProperty] = []
     annotation_and_section_level_properties_to_update: List[FullProperty] = []
-    # Sidecar mapping ``id(full_property) -> MetadataTriggerCondition``. The
-    # name-based metadata trigger lives here while the FullProperty queues up
-    # for creation; ``_resolve_parent_for_create`` converts it to an
-    # ``ApiTriggerCondition`` (UUIDs) right before ``client.create_property``.
+    # Sidecar: name-based triggers held here while their FullProperty queues
+    # up for creation; ``_resolve_parent_for_create`` converts them to
+    # ``ApiTriggerCondition`` (UUIDs) just before ``client.create_property``.
     metadata_triggers: Dict[int, MetadataTriggerCondition] = {}
     for annotation in annotations:
         annotation_name = annotation.annotation_class.name
@@ -966,10 +947,6 @@ def _import_properties(
                             property_values=property_values,
                             granularity=PropertyGranularity(m_prop.granularity),
                             parent_name=m_prop.parent_name,
-                            # ``trigger_condition`` is the API-side (UUID) shape
-                            # on FullProperty. The metadata-side (name-based)
-                            # trigger lives in the ``metadata_triggers`` sidecar
-                            # until ``_resolve_parent_for_create`` converts it.
                         )
                         if m_prop.trigger_condition is not None:
                             metadata_triggers[id(full_property)] = (
@@ -1079,10 +1056,6 @@ def _import_properties(
 
     created_properties = []
     if properties_to_create:
-        # Ensure every value declared in metadata is sent on the initial
-        # create so that a child ``trigger_condition.values`` entry that
-        # names a parent value no annotation happens to use can still be
-        # resolved to a UUID after the parent is created.
         _enrich_properties_with_metadata_values(
             properties_to_create,
             metadata_cls_prop_lookup,
@@ -1112,11 +1085,6 @@ def _import_properties(
                 team_slug=payload_property.slug, params=payload_property
             )
             created_properties.append(prop)
-            # Place the freshly-created property into the lookups in-place so
-            # any nested child later in the (topologically-sorted) batch can
-            # resolve its ``parent_name`` without a network refresh. The
-            # response from the server is already a fully-hydrated
-            # ``FullProperty`` (id + property_values[*].id populated).
             team_property_lookups.register(prop)
 
     updated_properties = []
@@ -1364,7 +1332,11 @@ def _create_update_item_properties(
                             )
                     break
             else:
+                parent_name = m_prop.get("parent_name")
                 trigger_condition = m_prop.get("trigger_condition")
+                _validate_metadata_nesting(
+                    item_prop_name, parent_name, trigger_condition
+                )
                 trigger_model = (
                     MetadataTriggerCondition.model_validate(trigger_condition)
                     if trigger_condition is not None
@@ -1384,11 +1356,7 @@ def _create_update_item_properties(
                         for val_dict in m_prop_value_dicts
                     ],
                     granularity=PropertyGranularity.item,
-                    parent_name=m_prop.get("parent_name"),
-                    # ``trigger_condition`` is API-side on ``FullProperty``; the
-                    # metadata-side variant is held in ``metadata_triggers``
-                    # (sidecar) and resolved to UUIDs by
-                    # ``_resolve_parent_for_create``.
+                    parent_name=parent_name,
                 )
                 if trigger_model is not None and metadata_triggers is not None:
                     metadata_triggers[id(full_property)] = trigger_model
@@ -1420,12 +1388,7 @@ def _assign_item_properties_to_dataset(
             for team_prop in item_properties_lookup:
                 if team_prop == item_property:
                     team_property = item_properties_lookup[team_prop]
-                    # Nested item-level properties inherit ``dataset_ids`` from
-                    # their root ancestor on the BE (stored value is always
-                    # empty). Attempting to set a non-empty ``dataset_ids``
-                    # on a child is rejected with "Cannot be set on nested
-                    # properties; inherited from the root ancestor" — skip
-                    # the assignment and let inheritance cover the child.
+                    # Nested item-level properties inherit ``dataset_ids`` from their root ancestor on the BE; skip the assignment.
                     if (
                         team_property.parent_name is not None
                         or team_property.parent_property_id is not None

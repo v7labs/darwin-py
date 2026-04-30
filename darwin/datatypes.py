@@ -34,6 +34,7 @@ from darwin.future.data_objects.properties import (
     PropertyGranularity,
     PropertyType,
     SelectedProperty,
+    property_key,
 )
 from darwin.path_utils import construct_full_path, is_properties_enabled, parse_metadata
 
@@ -493,15 +494,10 @@ class Property:
     # Granularity of the property
     granularity: PropertyGranularity = PropertyGranularity("section")
 
-    # Name of the parent property, as declared in ``.v7/metadata.json``.
-    # ``None`` for top-level properties. The SDK identifies parents by name
-    # rather than by server-side UUIDs; the importer resolves the name to a
-    # ``parent_property_id`` (UUID) at create time.
+    # Name of the parent property as declared in ``.v7/metadata.json``.
     parent_name: Optional[str] = None
 
-    # Trigger condition for a nested property. The ``values`` list contains
-    # parent value **names**, consistent with how darwin-py identifies
-    # property values everywhere else. ``None`` for top-level properties.
+    # Name-based trigger condition (parent value names).
     trigger_condition: Optional[MetadataTriggerCondition] = None
 
 
@@ -515,23 +511,31 @@ class PropertyClass:
     properties: Optional[list[Property]] = None
 
 
+def _validate_metadata_nesting(
+    name: str, parent_name: Any, trigger_condition: Any
+) -> None:
+    """
+    Enforce the ``parent_name`` ↔ ``trigger_condition`` invariant for a
+    ``.v7/metadata.json`` property: the two SDK-local nesting fields must be
+    set together or both omitted.
+    """
+    if (parent_name is None) != (trigger_condition is None):
+        raise ValueError(
+            f"Property '{name}' in metadata.json has inconsistent nesting "
+            "metadata: 'parent_name' and 'trigger_condition' must both be "
+            "present or both omitted."
+        )
+
+
 def _property_from_metadata_dict(p: dict[str, Any]) -> Property:
     """
-    Build a ``Property`` from a single ``.v7/metadata.json`` entry,
-    enforcing the ``parent_name`` ↔ ``trigger_condition`` invariant: the
-    two are the SDK-local representation of nesting and must be set
-    together (or both omitted). A metadata file with one but not the
-    other is malformed — fail fast at parse time rather than letting the
-    importer produce a degraded property server-side.
+    Build a ``Property`` from a ``.v7/metadata.json`` entry. Raises
+    ``ValueError`` when ``parent_name`` and ``trigger_condition`` are not
+    both set or both omitted.
     """
     parent_name = p.get("parent_name")
     raw_trigger = p.get("trigger_condition")
-    if (parent_name is None) != (raw_trigger is None):
-        raise ValueError(
-            f"Property '{p.get('name')}' in metadata.json has inconsistent "
-            "nesting metadata: 'parent_name' and 'trigger_condition' must "
-            "both be present or both omitted."
-        )
+    _validate_metadata_nesting(p.get("name", ""), parent_name, raw_trigger)
     return Property(
         name=p["name"],
         type=p["type"],
@@ -1704,14 +1708,7 @@ class TeamPropertyLookups:
             self.register(prop)
 
     def register(self, prop: FullProperty) -> None:
-        """
-        Place ``prop`` into the appropriate lookup bucket. Used both by
-        ``refresh()`` after a wholesale fetch and by callers that have just
-        created or updated a single property server-side and want to avoid
-        a round-trip to re-fetch the entire team's properties.
-        """
-        from darwin.future.data_objects.properties import property_key
-
+        """Place ``prop`` into the appropriate lookup bucket by granularity."""
         if prop.granularity.value in ("section", "annotation"):
             self.annotation_properties[property_key(prop)] = prop
         elif prop.granularity.value == "item":

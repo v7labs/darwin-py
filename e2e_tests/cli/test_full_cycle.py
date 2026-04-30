@@ -17,40 +17,24 @@ from e2e_tests.cli.test_import import compare_annotations_export
 from e2e_tests.cli.test_push import extract_and_push
 
 
-def _flatten_properties_with_parents(
-    metadata: Dict[str, Any],
-) -> List[Dict[str, Any]]:
-    """
-    Collapses a parsed ``metadata.json`` into a flat list of property
-    definitions across class-level and item-level, keyed by ``name`` so we
-    can cross-reference them between exports without relying on server-side
-    IDs (which are regenerated on each import).
-    """
-    flat: List[Dict[str, Any]] = []
-    for klass in metadata.get("classes", []):
-        for prop in klass.get("properties", []):
-            flat.append({"class": klass["name"], **prop})
-    for prop in metadata.get("properties", []):
-        flat.append({"class": None, **prop})
-    return flat
-
-
 def assert_nested_metadata_round_trips(
     first_metadata_path: Path, second_metadata_path: Path
 ) -> None:
-    """
-    Asserts that class-level and item-level nested property metadata are
-    preserved across a push/pull round-trip. Every nested child in the first
-    export must also be nested in the second export with the same
-    ``parent_name`` and a matching trigger condition (``type`` plus, for
-    ``value_match``, the set of referenced parent value names).
-    """
-    first_flat = _flatten_properties_with_parents(parse_metadata(first_metadata_path))
-    second_flat = _flatten_properties_with_parents(parse_metadata(second_metadata_path))
+    """Assert nested property metadata survives a push/pull round-trip."""
+    first_metadata = parse_metadata(first_metadata_path)
+    second_metadata = parse_metadata(second_metadata_path)
 
-    # ``(class, name) -> property`` lookup lets us cross-reference properties
-    # across exports by their semantic identity (name), consistent with how
-    # darwin-py identifies properties everywhere else.
+    first_flat: List[Dict[str, Any]] = [
+        {"class": klass["name"], **prop}
+        for klass in first_metadata.get("classes", [])
+        for prop in klass.get("properties", [])
+    ] + [{"class": None, **prop} for prop in first_metadata.get("properties", [])]
+    second_flat: List[Dict[str, Any]] = [
+        {"class": klass["name"], **prop}
+        for klass in second_metadata.get("classes", [])
+        for prop in klass.get("properties", [])
+    ] + [{"class": None, **prop} for prop in second_metadata.get("properties", [])]
+
     second_by_key = {(p["class"], p["name"]): p for p in second_flat}
 
     nested_children_first = [p for p in first_flat if p.get("parent_name") is not None]
@@ -597,35 +581,16 @@ def test_full_cycle_multi_channel_item(
 
 @pytest.mark.xfail(
     strict=False,
-    reason=(
-        "Blocked on DAR-7832: the BE release-export pipeline "
-        "(busy_bee/.../export/manifest_creator.ex) does not yet emit "
-        "parent_name + trigger_condition in metadata.json, so the second "
-        "release is flat and assert_nested_metadata_round_trips fails. "
-        "Drop this marker once DAR-7832 ships."
-    ),
+    reason="Blocked on DAR-7832 (BE export does not yet emit nested metadata)",
 )
 def test_full_cycle_nested_properties(
     local_dataset: E2EDataset,
     config_values: ConfigValues,
 ):
     """
-    Full round-trip for nested properties at all three granularities.
-
-    Steps:
-    - 1: Registers files from external storage to a dataset
-    - 2: Imports annotations and metadata.json that declare a nested property
-         hierarchy at item, section, and annotation granularity (with children
-         deliberately listed before their parents in metadata.json to exercise
-         the importer's topological sort).
-    - 3: Creates and pulls a first release
-    - 4: Deletes all items
-    - 5: Re-pushes the pulled files and re-imports from the pulled release
-    - 6: Creates and pulls a second release
-    - 7: Asserts annotation + item property values survive the round-trip
-         (via compare_annotations_export) and that metadata.json nesting
-         structure (parent_property_id + trigger_condition) is preserved
-         across exports (via assert_nested_metadata_round_trips).
+    Full round-trip for nested properties at item, section, and annotation
+    granularity. Designed to catch regressions in the importer's topological
+    sort and the BE export's metadata.json nesting fields.
     """
     item_type = "single_slotted"
     annotation_format = "darwin"
@@ -702,8 +667,6 @@ def test_full_cycle_nested_properties(
         / "metadata.json"
     )
 
-    # Per-annotation and per-item property values must match across the
-    # round-trip (unchanged assertion reused from flat-property tests).
     compare_annotations_export(
         Path(f"{pull_dir}/releases/{first_release_name}/annotations"),
         Path(f"{pull_dir}/releases/{second_release_name}/annotations"),
@@ -711,6 +674,4 @@ def test_full_cycle_nested_properties(
         unzip=False,
     )
 
-    # Nesting-specific assertion: parent/child links and trigger conditions
-    # survive the export -> import -> export cycle.
     assert_nested_metadata_round_trips(first_metadata_path, second_metadata_path)

@@ -22,17 +22,9 @@ PropertyType = Literal[
 
 class MetadataTriggerCondition(DefaultDarwin):
     """
-    Condition that must be met on a parent property for a nested (child) property
-    to be visible — as declared in ``.v7/metadata.json``.
-
-    Identifies parent values by **name** (``values``), consistent with how the
-    rest of the SDK identifies properties and values by name rather than by
-    server-side UUIDs. The importer resolves these names to
-    :class:`ApiTriggerCondition` UUIDs just-in-time after the parent is created
-    on the destination team.
-
-    ``values`` must be set when ``type == "value_match"``. It must be empty/None
-    when ``type == "any_value"``.
+    Metadata-side trigger condition: identifies parent values by name.
+    Parsed from ``.v7/metadata.json``; converted to :class:`ApiTriggerCondition`
+    by the importer.
     """
 
     type: Literal["value_match", "any_value"]
@@ -61,15 +53,9 @@ class MetadataTriggerCondition(DefaultDarwin):
 
 class ApiTriggerCondition(DefaultDarwin):
     """
-    Condition that must be met on a parent property for a nested (child) property
-    to be visible — as accepted and returned by the REST API.
-
-    Identifies parent values by their server-side **UUIDs**
+    API-side trigger condition: identifies parent values by UUID
     (``property_value_ids``). This is the shape stored on
     :attr:`FullProperty.trigger_condition` and the only shape sent to the BE.
-
-    ``property_value_ids`` must be set when ``type == "value_match"``. It must
-    be empty/None when ``type == "any_value"``.
     """
 
     type: Literal["value_match", "any_value"]
@@ -97,14 +83,8 @@ class ApiTriggerCondition(DefaultDarwin):
 
     def to_api_payload(self) -> Dict[str, Any]:
         """
-        Return the REST-API wire shape of the trigger condition:
-
-        * ``{"type": "any_value"}``, or
-        * ``{"type": "value_match", "property_value_ids": [...]}``
-
-        ``property_value_ids`` is omitted entirely for ``any_value`` because
-        the BE's OpenAPI schema declares it as a non-nullable array: sending
-        ``null`` fails schema validation with an opaque 422.
+        Return ``{"type": "any_value"}`` or
+        ``{"type": "value_match", "property_value_ids": [...]}``.
         """
         payload: Dict[str, Any] = {"type": self.type}
         if self.type == "value_match":
@@ -189,19 +169,22 @@ class FullProperty(DefaultDarwin):
             and self.annotation_class_id is None
         ):
             raise ValueError("annotation_class_id must be set")
-        if (self.parent_property_id is None) != (self.trigger_condition is None):
+
+        # Nesting fields are coherent: all three set, or none set.
+        nesting_set = (
+            self.parent_property_id is not None,
+            self.trigger_condition is not None,
+        )
+        if any(nesting_set) and not all(nesting_set):
             raise ValueError(
                 "parent_property_id and trigger_condition must both be set or "
-                "both be None. If you have a parent_name, resolve it to a "
-                "parent_property_id first."
+                "both be None. Resolve parent_name to a parent_property_id first."
             )
         if self.parent_name is not None and self.parent_property_id is None:
             raise ValueError(
-                "parent_name set without parent_property_id. The importer "
-                "resolves ``parent_name`` against the destination team's "
-                "lookups before calling to_create_endpoint; if you are "
-                "constructing FullProperty by hand, set "
-                "parent_property_id (UUID) directly."
+                "parent_name set without parent_property_id; the importer "
+                "resolves parent_name via _resolve_parent_for_create before "
+                "calling to_create_endpoint."
             )
 
         include_fields: Dict[str, Any] = {
@@ -231,7 +214,6 @@ class FullProperty(DefaultDarwin):
         updated_base = self.to_create_endpoint()
         updated_base.pop("annotation_class_id", None)  # Can't update this field
         del updated_base["granularity"]  # Can't update this field
-        # parent_property_id and trigger_condition are immutable after creation
         if "parent_property_id" in updated_base:
             del updated_base["parent_property_id"]
         if "trigger_condition" in updated_base:
