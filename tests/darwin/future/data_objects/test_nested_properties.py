@@ -13,12 +13,13 @@ import pytest
 import darwin.datatypes as dt
 from darwin.datatypes import TeamPropertyLookups, parse_property_classes
 from darwin.future.data_objects.properties import (
+    ApiTriggerCondition,
     FullProperty,
     MetaDataClass,
+    MetadataTriggerCondition,
     PropertyGranularity,
     PropertyValue,
     SelectedProperty,
-    TriggerCondition,
     property_key,
 )
 from darwin.importer.importer import (
@@ -38,7 +39,7 @@ def _make_property(
     type_: str = "single_select",
     property_values: Optional[List[PropertyValue]] = None,
     parent_name: Optional[str] = None,
-    trigger_condition: Optional[TriggerCondition] = None,
+    trigger_condition: Optional[ApiTriggerCondition] = None,
     annotation_class_id: Optional[int] = 1,
     granularity: PropertyGranularity = PropertyGranularity.annotation,
 ) -> FullProperty:
@@ -56,66 +57,87 @@ def _make_property(
     )
 
 
-class TestTriggerCondition:
-    def test_value_match_requires_values_or_ids(self) -> None:
+class TestMetadataTriggerCondition:
+    """
+    ``MetadataTriggerCondition`` is the metadata-side (name-based) variant.
+    It is parsed from ``.v7/metadata.json`` and held on the ``Property``
+    dataclass; the importer converts it to an :class:`ApiTriggerCondition`
+    via name-to-UUID resolution before sending to the API.
+    """
+
+    def test_value_match_requires_values(self) -> None:
         with pytest.raises(ValueError):
-            TriggerCondition(type="value_match")
+            MetadataTriggerCondition(type="value_match")
 
     def test_value_match_accepts_values(self) -> None:
-        cond = TriggerCondition(type="value_match", values=["Fracture"])
+        cond = MetadataTriggerCondition(type="value_match", values=["Fracture"])
         assert cond.values == ["Fracture"]
-        assert cond.property_value_ids is None
 
-    def test_value_match_accepts_property_value_ids(self) -> None:
-        cond = TriggerCondition(type="value_match", property_value_ids=["abc-uuid"])
-        assert cond.property_value_ids == ["abc-uuid"]
-        assert cond.values is None
-
-    def test_value_match_accepts_both_names_and_ids(self) -> None:
-        # Both representations coexisting is not an error; callers may
-        # hydrate names alongside API-returned UUIDs.
-        cond = TriggerCondition(
-            type="value_match",
-            values=["Fracture"],
-            property_value_ids=["abc-uuid"],
-        )
-        assert cond.values == ["Fracture"]
-        assert cond.property_value_ids == ["abc-uuid"]
-
-    def test_any_value_does_not_require_ids_or_values(self) -> None:
-        cond = TriggerCondition(type="any_value")
-        assert cond.property_value_ids is None
+    def test_any_value_does_not_require_values(self) -> None:
+        cond = MetadataTriggerCondition(type="any_value")
         assert cond.values is None
 
     def test_any_value_rejects_non_empty_values(self) -> None:
         with pytest.raises(ValueError):
-            TriggerCondition(type="any_value", values=["Fracture"])
-
-    def test_any_value_rejects_non_empty_property_value_ids(self) -> None:
-        with pytest.raises(ValueError):
-            TriggerCondition(type="any_value", property_value_ids=["abc"])
+            MetadataTriggerCondition(type="any_value", values=["Fracture"])
 
     def test_rejects_unknown_type(self) -> None:
         with pytest.raises(Exception):  # pydantic ValidationError
-            TriggerCondition(type="bogus_type")  # type: ignore[arg-type]
+            MetadataTriggerCondition(type="bogus_type")  # type: ignore[arg-type]
 
     def test_validator_accepts_already_built_instance(self) -> None:
         # ``mode="before"`` runs on every construction path, including nested
         # validation where Pydantic hands the validator an already-built
         # model. The ``isinstance(data, dict)`` guard must let that through.
-        original = TriggerCondition(type="any_value")
-        cloned = TriggerCondition.model_validate(original)
+        original = MetadataTriggerCondition(type="any_value")
+        cloned = MetadataTriggerCondition.model_validate(original)
         assert cloned.type == "any_value"
-        assert cloned.property_value_ids is None
         assert cloned.values is None
 
+
+class TestApiTriggerCondition:
+    """
+    ``ApiTriggerCondition`` is the API-side (UUID-based) variant. It is the
+    only shape stored on :class:`FullProperty.trigger_condition` and the only
+    shape sent to the BE.
+    """
+
+    def test_value_match_requires_property_value_ids(self) -> None:
+        with pytest.raises(ValueError):
+            ApiTriggerCondition(type="value_match")
+
+    def test_value_match_accepts_property_value_ids(self) -> None:
+        cond = ApiTriggerCondition(type="value_match", property_value_ids=["abc-uuid"])
+        assert cond.property_value_ids == ["abc-uuid"]
+
+    def test_any_value_does_not_require_property_value_ids(self) -> None:
+        cond = ApiTriggerCondition(type="any_value")
+        assert cond.property_value_ids is None
+
+    def test_any_value_rejects_non_empty_property_value_ids(self) -> None:
+        with pytest.raises(ValueError):
+            ApiTriggerCondition(type="any_value", property_value_ids=["abc"])
+
+    def test_rejects_unknown_type(self) -> None:
+        with pytest.raises(Exception):  # pydantic ValidationError
+            ApiTriggerCondition(type="bogus_type")  # type: ignore[arg-type]
+
+    def test_validator_accepts_already_built_instance(self) -> None:
+        # ``mode="before"`` runs on every construction path, including nested
+        # validation where Pydantic hands the validator an already-built
+        # model. The ``isinstance(data, dict)`` guard must let that through.
+        original = ApiTriggerCondition(type="any_value")
+        cloned = ApiTriggerCondition.model_validate(original)
+        assert cloned.type == "any_value"
+        assert cloned.property_value_ids is None
+
     def test_to_api_payload_any_value_omits_property_value_ids(self) -> None:
-        assert TriggerCondition(type="any_value").to_api_payload() == {
+        assert ApiTriggerCondition(type="any_value").to_api_payload() == {
             "type": "any_value"
         }
 
     def test_to_api_payload_value_match_emits_property_value_ids(self) -> None:
-        trigger = TriggerCondition(
+        trigger = ApiTriggerCondition(
             type="value_match",
             property_value_ids=["v-1", "v-2"],
         )
@@ -123,28 +145,6 @@ class TestTriggerCondition:
             "type": "value_match",
             "property_value_ids": ["v-1", "v-2"],
         }
-
-    def test_to_api_payload_strips_sdk_local_values(self) -> None:
-        # The name-based ``values`` field is an SDK-local convenience. The
-        # wire shape never includes it — callers must resolve names to
-        # UUIDs (via ``_resolve_parent_for_create``) before serialising.
-        trigger = TriggerCondition(
-            type="value_match",
-            values=["Fracture"],
-            property_value_ids=["v-1"],
-        )
-        assert "values" not in trigger.to_api_payload()
-
-    def test_to_api_payload_value_match_raises_without_property_value_ids(
-        self,
-    ) -> None:
-        # Names-only (pre-resolution) ``value_match`` trigger. Serialising
-        # this would yield ``{"type": "value_match"}`` which the BE rejects
-        # with an opaque 422. ``to_api_payload`` raises a clear client-side
-        # error instead.
-        trigger = TriggerCondition(type="value_match", values=["Fracture"])
-        with pytest.raises(ValueError, match="property_value_ids"):
-            trigger.to_api_payload()
 
 
 class TestPropertyKey:
@@ -307,17 +307,14 @@ class TestFullPropertyEndpoints:
         prop = _make_property(
             name="child",
             parent_name="Parent",
-            trigger_condition=TriggerCondition(
+            trigger_condition=ApiTriggerCondition(
                 type="value_match",
-                values=["Fracture"],
                 property_value_ids=["val-uuid"],
             ),
         )
         prop.parent_property_id = "parent-uuid"
         body = prop.to_create_endpoint()
         assert body["parent_property_id"] == "parent-uuid"
-        # Name-based ``values`` is an SDK-local convenience and must not leak
-        # into the API payload.
         assert body["trigger_condition"] == {
             "type": "value_match",
             "property_value_ids": ["val-uuid"],
@@ -330,7 +327,7 @@ class TestFullPropertyEndpoints:
         prop = _make_property(
             name="child",
             parent_name="Parent",
-            trigger_condition=TriggerCondition(type="any_value"),
+            trigger_condition=ApiTriggerCondition(type="any_value"),
         )
         prop.parent_property_id = "parent-uuid"
         body = prop.to_create_endpoint()
@@ -355,7 +352,7 @@ class TestFullPropertyEndpoints:
         prop = _make_property(
             name="child",
             parent_name="Parent",
-            trigger_condition=TriggerCondition(type="any_value"),
+            trigger_condition=ApiTriggerCondition(type="any_value"),
         )
         with pytest.raises(ValueError):
             prop.to_create_endpoint()
@@ -370,7 +367,7 @@ class TestFullPropertyEndpoints:
         prop = _make_property(
             id_="3",
             name="child",
-            trigger_condition=TriggerCondition(type="any_value"),
+            trigger_condition=ApiTriggerCondition(type="any_value"),
             parent_name="Parent",
         )
         prop.parent_property_id = "parent-uuid"
@@ -389,7 +386,7 @@ class TestTopologicalSort:
         child = _make_property(
             name="child",
             parent_name="parent",
-            trigger_condition=TriggerCondition(type="any_value"),
+            trigger_condition=ApiTriggerCondition(type="any_value"),
         )
         ordered = _topologically_sort_properties_to_create([child, parent])
         assert [p.name for p in ordered] == ["parent", "child"]
@@ -399,12 +396,12 @@ class TestTopologicalSort:
         mid = _make_property(
             name="mid",
             parent_name="root",
-            trigger_condition=TriggerCondition(type="any_value"),
+            trigger_condition=ApiTriggerCondition(type="any_value"),
         )
         leaf = _make_property(
             name="leaf",
             parent_name="mid",
-            trigger_condition=TriggerCondition(type="any_value"),
+            trigger_condition=ApiTriggerCondition(type="any_value"),
         )
         ordered = _topologically_sort_properties_to_create([leaf, mid, root])
         assert [p.name for p in ordered] == ["root", "mid", "leaf"]
@@ -414,12 +411,12 @@ class TestTopologicalSort:
         a = _make_property(
             name="a",
             parent_name="root",
-            trigger_condition=TriggerCondition(type="any_value"),
+            trigger_condition=ApiTriggerCondition(type="any_value"),
         )
         b = _make_property(
             name="b",
             parent_name="root",
-            trigger_condition=TriggerCondition(type="any_value"),
+            trigger_condition=ApiTriggerCondition(type="any_value"),
         )
         ordered = _topologically_sort_properties_to_create([a, b, root])
         assert [p.name for p in ordered] == ["root", "a", "b"]
@@ -428,7 +425,7 @@ class TestTopologicalSort:
         orphan = _make_property(
             name="orphan",
             parent_name="unknown",
-            trigger_condition=TriggerCondition(type="any_value"),
+            trigger_condition=ApiTriggerCondition(type="any_value"),
         )
         ordered = _topologically_sort_properties_to_create([orphan])
         assert [p.name for p in ordered] == ["orphan"]
@@ -437,12 +434,12 @@ class TestTopologicalSort:
         a = _make_property(
             name="a",
             parent_name="b",
-            trigger_condition=TriggerCondition(type="any_value"),
+            trigger_condition=ApiTriggerCondition(type="any_value"),
         )
         b = _make_property(
             name="b",
             parent_name="a",
-            trigger_condition=TriggerCondition(type="any_value"),
+            trigger_condition=ApiTriggerCondition(type="any_value"),
         )
         with pytest.raises(ValueError):
             _topologically_sort_properties_to_create([a, b])
@@ -515,9 +512,18 @@ def _fake_team_property_lookups(
 
 
 class TestResolveParentForCreate:
+    """
+    The resolver consumes the metadata-side trigger
+    (:class:`MetadataTriggerCondition`, name-based) as a separate argument
+    and produces a :class:`ApiTriggerCondition` (UUID-based) on the returned
+    FullProperty. The metadata trigger lives in an importer-internal sidecar
+    while the FullProperty queues up for creation; passing it explicitly
+    keeps :class:`FullProperty.trigger_condition` strictly API-shape.
+    """
+
     def test_returns_as_is_for_top_level(self) -> None:
         prop = _make_property(name="top")
-        resolved = _resolve_parent_for_create(prop, _fake_team_property_lookups())
+        resolved = _resolve_parent_for_create(prop, None, _fake_team_property_lookups())
         assert resolved is prop
 
     def test_resolves_class_level_parent_name_and_trigger_values(self) -> None:
@@ -539,17 +545,14 @@ class TestResolveParentForCreate:
         child = _make_property(
             name="Contamination Source",
             parent_name="Defect Type",
-            trigger_condition=TriggerCondition(
-                type="value_match", values=["Contamination"]
-            ),
         )
-        resolved = _resolve_parent_for_create(child, lookups)
+        metadata_trigger = MetadataTriggerCondition(
+            type="value_match", values=["Contamination"]
+        )
+        resolved = _resolve_parent_for_create(child, metadata_trigger, lookups)
         assert resolved.parent_property_id == "new-parent-id"
         assert resolved.trigger_condition is not None
         assert resolved.trigger_condition.property_value_ids == ["new-cont-id"]
-        # The original (name-based) ``trigger_condition.values`` is dropped
-        # from the API-ready copy to avoid double-encoding.
-        assert resolved.trigger_condition.values is None
 
     def test_resolves_any_value_trigger(self) -> None:
         parent_on_server = FullProperty(
@@ -566,9 +569,9 @@ class TestResolveParentForCreate:
         child = _make_property(
             name="Translation Required?",
             parent_name="Notes",
-            trigger_condition=TriggerCondition(type="any_value"),
         )
-        resolved = _resolve_parent_for_create(child, lookups)
+        metadata_trigger = MetadataTriggerCondition(type="any_value")
+        resolved = _resolve_parent_for_create(child, metadata_trigger, lookups)
         assert resolved.parent_property_id == "notes-id"
         assert resolved.trigger_condition is not None
         assert resolved.trigger_condition.type == "any_value"
@@ -593,19 +596,21 @@ class TestResolveParentForCreate:
             property_values=[PropertyValue(value="Yes")],
             slug="team-slug",
             parent_name="item_level_parent",
-            trigger_condition=TriggerCondition(type="any_value"),
         )
-        resolved = _resolve_parent_for_create(child, lookups)
+        metadata_trigger = MetadataTriggerCondition(type="any_value")
+        resolved = _resolve_parent_for_create(child, metadata_trigger, lookups)
         assert resolved.parent_property_id == "item-parent-id"
 
     def test_missing_parent_raises(self) -> None:
         child = _make_property(
             name="child",
             parent_name="Nonexistent",
-            trigger_condition=TriggerCondition(type="any_value"),
         )
+        metadata_trigger = MetadataTriggerCondition(type="any_value")
         with pytest.raises(ValueError, match="Cannot resolve parent"):
-            _resolve_parent_for_create(child, _fake_team_property_lookups())
+            _resolve_parent_for_create(
+                child, metadata_trigger, _fake_team_property_lookups()
+            )
 
     def test_unknown_trigger_value_raises(self) -> None:
         parent_on_server = FullProperty(
@@ -623,42 +628,22 @@ class TestResolveParentForCreate:
         child = _make_property(
             name="child",
             parent_name="Parent",
-            trigger_condition=TriggerCondition(
-                type="value_match", values=["UnknownValue"]
-            ),
+        )
+        metadata_trigger = MetadataTriggerCondition(
+            type="value_match", values=["UnknownValue"]
         )
         with pytest.raises(ValueError, match="unknown parent value"):
-            _resolve_parent_for_create(child, lookups)
+            _resolve_parent_for_create(child, metadata_trigger, lookups)
 
-    def test_value_match_without_values_raises_clear_error(self) -> None:
-        # Contract: darwin-py identifies parent values by name, so
-        # ``value_match`` triggers must be set up with ``values``
-        # (names), not ``property_value_ids`` (UUIDs). Passing UUIDs
-        # alone used to silently drop them and trip an opaque validator
-        # downstream; the importer now surfaces a clear error instead.
-        parent_on_server = FullProperty(
-            id="p-id",
-            name="Parent",
-            type="single_select",
-            required=False,
-            annotation_class_id=1,
-            property_values=[PropertyValue(id="v-uuid", value="A")],
-            granularity=PropertyGranularity.annotation,
-        )
-        lookups = _fake_team_property_lookups(
-            annotation_properties={("Parent", 1): parent_on_server}
-        )
-        child = _make_property(
-            name="child",
-            parent_name="Parent",
-            trigger_condition=TriggerCondition(
-                type="value_match", property_value_ids=["v-uuid"]
-            ),
-        )
-        with pytest.raises(
-            ValueError, match="must set 'values' \\(parent value names\\)"
-        ):
-            _resolve_parent_for_create(child, lookups)
+    def test_metadata_value_match_construction_requires_values(self) -> None:
+        # Contract: ``MetadataTriggerCondition`` rejects 'value_match' without
+        # ``values`` at construction time. The split between
+        # ``MetadataTriggerCondition`` and ``ApiTriggerCondition`` makes it
+        # structurally impossible to build a metadata-side trigger using
+        # UUIDs (``property_value_ids``); the type system enforces what was
+        # previously a runtime check inside the resolver.
+        with pytest.raises(ValueError, match="parent value names"):
+            MetadataTriggerCondition(type="value_match")
 
     def test_rejects_cross_granularity_parent(self) -> None:
         # The BE rejects cross-granularity nesting at create time. Catching
@@ -680,13 +665,13 @@ class TestResolveParentForCreate:
             name="child",
             parent_name="Parent",
             granularity=PropertyGranularity.section,
-            trigger_condition=TriggerCondition(type="any_value"),
         )
+        metadata_trigger = MetadataTriggerCondition(type="any_value")
         with pytest.raises(
             ValueError,
             match=r"granularity 'annotation' but child is 'section'",
         ):
-            _resolve_parent_for_create(section_child, lookups)
+            _resolve_parent_for_create(section_child, metadata_trigger, lookups)
 
 
 class TestMetadataParsing:
@@ -876,7 +861,7 @@ class TestAssignItemPropertiesToDataset:
             property_values=[PropertyValue(value="Yes")],
             granularity=PropertyGranularity.item,
             parent_property_id="parent-id",
-            trigger_condition=TriggerCondition(type="any_value"),
+            trigger_condition=ApiTriggerCondition(type="any_value"),
             dataset_ids=[],
         )
         lookup = {"child": nested_child}

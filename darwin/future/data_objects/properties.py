@@ -20,27 +20,22 @@ PropertyType = Literal[
 ]
 
 
-class TriggerCondition(DefaultDarwin):
+class MetadataTriggerCondition(DefaultDarwin):
     """
     Condition that must be met on a parent property for a nested (child) property
-    to be visible.
+    to be visible — as declared in ``.v7/metadata.json``.
 
-    The condition has two interchangeable representations:
+    Identifies parent values by **name** (``values``), consistent with how the
+    rest of the SDK identifies properties and values by name rather than by
+    server-side UUIDs. The importer resolves these names to
+    :class:`ApiTriggerCondition` UUIDs just-in-time after the parent is created
+    on the destination team.
 
-    * ``values``: a list of **parent value names** (strings). This is the shape
-      used in ``.v7/metadata.json`` and the preferred representation in
-      darwin-py — consistent with how the rest of the SDK identifies properties
-      and values by name rather than by server-side UUIDs.
-    * ``property_value_ids``: a list of **parent value UUIDs**. This is the
-      shape accepted and returned by the REST API; the importer resolves
-      ``values`` to UUIDs just-in-time after the parent is created.
-
-    Exactly one of the two must be set when ``type == "value_match"``. Both
-    must be empty/None when ``type == "any_value"``.
+    ``values`` must be set when ``type == "value_match"``. It must be empty/None
+    when ``type == "any_value"``.
     """
 
     type: Literal["value_match", "any_value"]
-    property_value_ids: Optional[List[str]] = None
     values: Optional[List[str]] = None
 
     @model_validator(mode="before")
@@ -50,21 +45,53 @@ class TriggerCondition(DefaultDarwin):
             return data
         trigger_type = data.get("type")
         values = data.get("values")
-        property_value_ids = data.get("property_value_ids")
         if trigger_type == "any_value":
             if values:
                 raise ValueError(
                     "trigger_condition.values must be empty/None for 'any_value'"
                 )
+        elif trigger_type == "value_match":
+            if not values:
+                raise ValueError(
+                    "trigger_condition.values (parent value names) must be set "
+                    "for 'value_match'"
+                )
+        return data
+
+
+class ApiTriggerCondition(DefaultDarwin):
+    """
+    Condition that must be met on a parent property for a nested (child) property
+    to be visible — as accepted and returned by the REST API.
+
+    Identifies parent values by their server-side **UUIDs**
+    (``property_value_ids``). This is the shape stored on
+    :attr:`FullProperty.trigger_condition` and the only shape sent to the BE.
+
+    ``property_value_ids`` must be set when ``type == "value_match"``. It must
+    be empty/None when ``type == "any_value"``.
+    """
+
+    type: Literal["value_match", "any_value"]
+    property_value_ids: Optional[List[str]] = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def _validate_shape(cls, data: Any) -> Any:
+        if not isinstance(data, dict):
+            return data
+        trigger_type = data.get("type")
+        property_value_ids = data.get("property_value_ids")
+        if trigger_type == "any_value":
             if property_value_ids:
                 raise ValueError(
                     "trigger_condition.property_value_ids must be empty/None for 'any_value'"
                 )
         elif trigger_type == "value_match":
-            if not values and not property_value_ids:
+            if not property_value_ids:
                 raise ValueError(
-                    "trigger_condition must set either 'values' (names) or "
-                    "'property_value_ids' (UUIDs) for 'value_match'"
+                    "trigger_condition.property_value_ids (parent value UUIDs) "
+                    "must be set for 'value_match'"
                 )
         return data
 
@@ -75,22 +102,13 @@ class TriggerCondition(DefaultDarwin):
         * ``{"type": "any_value"}``, or
         * ``{"type": "value_match", "property_value_ids": [...]}``
 
-        The SDK-local ``values`` (name-based) field is never sent — callers
-        resolve it to UUIDs before calling this. ``property_value_ids`` is
-        omitted entirely for ``any_value`` because the BE's OpenAPI schema
-        declares it as a non-nullable array: sending ``null`` fails schema
-        validation with an opaque 422.
+        ``property_value_ids`` is omitted entirely for ``any_value`` because
+        the BE's OpenAPI schema declares it as a non-nullable array: sending
+        ``null`` fails schema validation with an opaque 422.
         """
         payload: Dict[str, Any] = {"type": self.type}
         if self.type == "value_match":
-            if not self.property_value_ids:
-                raise ValueError(
-                    "TriggerCondition.to_api_payload requires non-empty "
-                    "property_value_ids for 'value_match'. Resolve "
-                    "'values' (names) to UUIDs first via "
-                    "_resolve_parent_for_create."
-                )
-            payload["property_value_ids"] = list(self.property_value_ids)
+            payload["property_value_ids"] = list(self.property_value_ids or [])
         return payload
 
 
@@ -161,7 +179,7 @@ class FullProperty(DefaultDarwin):
     granularity: PropertyGranularity = PropertyGranularity("section")
     parent_name: Optional[str] = None
     parent_property_id: Optional[str] = None
-    trigger_condition: Optional[TriggerCondition] = None
+    trigger_condition: Optional[ApiTriggerCondition] = None
 
     def to_create_endpoint(
         self,
@@ -214,9 +232,30 @@ class FullProperty(DefaultDarwin):
         updated_base.pop("annotation_class_id", None)  # Can't update this field
         del updated_base["granularity"]  # Can't update this field
         # parent_property_id and trigger_condition are immutable after creation
-        updated_base.pop("parent_property_id", None)
-        updated_base.pop("trigger_condition", None)
+        if "parent_property_id" in updated_base:
+            del updated_base["parent_property_id"]
+        if "trigger_condition" in updated_base:
+            del updated_base["trigger_condition"]
         return self.id, updated_base
+
+
+class MetadataProperty(FullProperty):
+    """
+    Variant of :class:`FullProperty` used to parse properties as declared in
+    ``.v7/metadata.json``.
+
+    The only difference is the trigger-condition shape: ``.v7/metadata.json``
+    identifies parent values by **name** (:class:`MetadataTriggerCondition`),
+    whereas the REST API identifies them by **UUID**
+    (:class:`ApiTriggerCondition`). The importer converts metadata triggers
+    to API triggers via name-to-UUID resolution before calling
+    ``client.create_property``.
+
+    A ``MetadataProperty`` is parse-only: ``to_create_endpoint`` /
+    ``to_update_endpoint`` should not be called on it directly.
+    """
+
+    trigger_condition: Optional[MetadataTriggerCondition] = None  # type: ignore[assignment]
 
 
 class MetaDataClass(DefaultDarwin):
@@ -232,7 +271,8 @@ class MetaDataClass(DefaultDarwin):
         color (Optional[str]): Color of the class in the UI
         sub_types (Optional[List[str]]): Sub types of the class
         granularity:(PropertyGranularity): Granularity of the property
-        properties (List[FullProperty]): List of all properties for the class with all options
+        properties (List[MetadataProperty]): List of all properties for the
+            class — name-based ``trigger_condition`` (metadata-side shape).
     """
 
     name: str
@@ -241,7 +281,7 @@ class MetaDataClass(DefaultDarwin):
     color: Optional[str] = None
     sub_types: Optional[List[str]] = None
     granularity: PropertyGranularity = PropertyGranularity("section")
-    properties: List[FullProperty]
+    properties: List[MetadataProperty]
 
     @classmethod
     def from_path(cls, path: Path) -> List[MetaDataClass]:

@@ -30,10 +30,10 @@ if TYPE_CHECKING:
 
 from darwin.future.data_objects.properties import (
     FullProperty,
+    MetadataTriggerCondition,
     PropertyGranularity,
     PropertyType,
     SelectedProperty,
-    TriggerCondition,
 )
 from darwin.path_utils import construct_full_path, is_properties_enabled, parse_metadata
 
@@ -502,7 +502,7 @@ class Property:
     # Trigger condition for a nested property. The ``values`` list contains
     # parent value **names**, consistent with how darwin-py identifies
     # property values everywhere else. ``None`` for top-level properties.
-    trigger_condition: Optional[TriggerCondition] = None
+    trigger_condition: Optional[MetadataTriggerCondition] = None
 
 
 @dataclass
@@ -541,7 +541,7 @@ def _property_from_metadata_dict(p: dict[str, Any]) -> Property:
         granularity=PropertyGranularity(p.get("granularity", "section")),
         parent_name=parent_name,
         trigger_condition=(
-            TriggerCondition.model_validate(raw_trigger)
+            MetadataTriggerCondition.model_validate(raw_trigger)
             if raw_trigger is not None
             else None
         ),
