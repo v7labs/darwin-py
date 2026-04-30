@@ -46,11 +46,6 @@ class TriggerCondition(DefaultDarwin):
     @model_validator(mode="before")
     @classmethod
     def _validate_shape(cls, data: Any) -> Any:
-        # ``mode="before"`` runs for every construction path — ``model_validate``
-        # with a raw dict, direct ``TriggerCondition(type=..., ...)`` keyword
-        # construction, and nested validation where Pydantic may hand us an
-        # already-built instance. Only the dict path needs cross-field checks;
-        # the others have already been validated once.
         if not isinstance(data, dict):
             return data
         trigger_type = data.get("type")
@@ -282,13 +277,6 @@ class SelectedProperty(DefaultDarwin):
     value: Optional[str] = None
 
 
-# Properties are identified within a team by the tuple
-# ``(name, annotation_class_id)`` — item-level properties use ``None`` for the
-# class id. The order mirrors ``TeamPropertyLookups.annotation_properties``
-# (keyed ``(name, annotation_class_id)``) so a caller can do
-# ``lookups.annotation_properties[property_key(prop)]`` directly. Code that
-# needs to locate or deduplicate property definitions should use this helper
-# rather than inventing its own keying.
 PropertyKey = Tuple[str, Optional[int]]
 
 

@@ -1083,8 +1083,6 @@ def _import_properties(
             metadata_item_prop_lookup,
             annotation_class_ids_map,
         )
-        # Create parents before children so that a child's ``parent_name``
-        # is resolvable against a freshly-created parent on the server.
         properties_to_create = _topologically_sort_properties_to_create(
             properties_to_create
         )
@@ -1132,11 +1130,6 @@ def _import_properties(
             )
             updated_properties.append(prop)
 
-    # Re-fetch the team's properties so downstream lookups reflect the
-    # latest server state — including any mutations from a concurrent
-    # client editing the same team. The per-create ``register()`` covers
-    # in-batch nested resolution; this refresh is the freshness guard
-    # before the metadata-extras loop reads the lookups again.
     if created_properties or updated_properties:
         team_property_lookups.refresh()
 
@@ -1166,7 +1159,6 @@ def _import_properties(
             )
             updated_properties.append(prop)
 
-        # Same freshness contract as the post-create-batch refresh above.
         team_property_lookups.refresh()
 
     # loop over metadata_cls_id_prop_lookup, and update additional metadata property values
