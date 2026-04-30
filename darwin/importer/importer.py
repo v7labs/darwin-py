@@ -1131,9 +1131,14 @@ def _import_properties(
                 team_slug=full_property.slug, params=full_property
             )
             updated_properties.append(prop)
-            # Same in-place lookup update as the create loop: the server
-            # response is fully hydrated, so a network refresh is redundant.
-            team_property_lookups.register(prop)
+
+    # Re-fetch the team's properties so downstream lookups reflect the
+    # latest server state — including any mutations from a concurrent
+    # client editing the same team. The per-create ``register()`` covers
+    # in-batch nested resolution; this refresh is the freshness guard
+    # before the metadata-extras loop reads the lookups again.
+    if created_properties or updated_properties:
+        team_property_lookups.refresh()
 
     # Update item-level properties from annotations
     _, item_properties_to_update_from_annotations = _create_update_item_properties(
@@ -1160,7 +1165,9 @@ def _import_properties(
                 team_slug=full_property.slug, params=full_property
             )
             updated_properties.append(prop)
-            team_property_lookups.register(prop)
+
+        # Same freshness contract as the post-create-batch refresh above.
+        team_property_lookups.refresh()
 
     # loop over metadata_cls_id_prop_lookup, and update additional metadata property values
     for (annotation_class_id, prop_name), m_prop in metadata_cls_id_prop_lookup.items():

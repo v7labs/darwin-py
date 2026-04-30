@@ -1043,19 +1043,33 @@ class TestImportPropertiesNestedIntegration:
         mock_lookups = Mock()
         mock_lookups.annotation_properties = {}
         mock_lookups.item_properties = {}
+        register_call_count = 0
+        refresh_calls_during_create = 0
 
         def register(prop):
+            nonlocal register_call_count
+            register_call_count += 1
             if prop.granularity.value in ("section", "annotation"):
                 mock_lookups.annotation_properties[(prop.name, 123)] = prop
             else:
                 mock_lookups.item_properties[prop.name] = prop
 
         mock_lookups.register = register
-        # The refresh path must not be hit for in-batch parent resolution —
-        # registering each created property in-place avoids a per-child
-        # network round-trip. ``register`` is the only mutator the create
-        # loop is allowed to use.
-        mock_lookups.refresh = Mock()
+
+        # Track ``refresh`` calls so we can assert the create loop never
+        # invokes one per child. Post-batch refreshes are still allowed —
+        # they're the freshness guard against concurrent mutators editing
+        # the same team while we import.
+        def refresh():
+            nonlocal refresh_calls_during_create
+            if register_call_count < len(
+                self._metadata_with_child_listed_before_parent()["classes"][0][
+                    "properties"
+                ]
+            ):
+                refresh_calls_during_create += 1
+
+        mock_lookups.refresh = Mock(side_effect=refresh)
 
         created_payloads: List[FullProperty] = []
 
@@ -1113,8 +1127,10 @@ class TestImportPropertiesNestedIntegration:
         ]
 
         # Hot-path regression: the create loop must never call
-        # ``team_property_lookups.refresh()`` (which fetches the full team
-        # property list). Each freshly-created property is pushed into the
-        # lookups in-place via ``register()``.
-        assert not mock_lookups.refresh.called
-        assert not client.get_team_properties.called
+        # ``team_property_lookups.refresh()`` per child (which fetches the
+        # full team property list). Each freshly-created property is pushed
+        # into the lookups in-place via ``register()``. Post-batch
+        # refreshes for freshness against concurrent mutators are still
+        # allowed — and indeed expected here, since the create loop runs.
+        assert refresh_calls_during_create == 0
+        assert register_call_count == 2  # one per created property
