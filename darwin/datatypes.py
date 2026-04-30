@@ -30,10 +30,10 @@ if TYPE_CHECKING:
 
 from darwin.future.data_objects.properties import (
     FullProperty,
-    MetadataTriggerCondition,
     PropertyGranularity,
     PropertyType,
     SelectedProperty,
+    TriggerCondition,
     property_key,
 )
 from darwin.path_utils import construct_full_path, is_properties_enabled, parse_metadata
@@ -498,7 +498,7 @@ class Property:
     parent_name: Optional[str] = None
 
     # Name-based trigger condition (parent value names).
-    trigger_condition: Optional[MetadataTriggerCondition] = None
+    trigger_condition: Optional[TriggerCondition] = None
 
 
 @dataclass
@@ -545,7 +545,7 @@ def _property_from_metadata_dict(p: dict[str, Any]) -> Property:
         granularity=PropertyGranularity(p.get("granularity", "section")),
         parent_name=parent_name,
         trigger_condition=(
-            MetadataTriggerCondition.model_validate(raw_trigger)
+            TriggerCondition.model_validate(raw_trigger)
             if raw_trigger is not None
             else None
         ),

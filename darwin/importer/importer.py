@@ -38,14 +38,13 @@ from darwin.datatypes import (
     parse_property_classes,
 )
 from darwin.future.data_objects.properties import (
-    ApiTriggerCondition,
     FullProperty,
-    MetadataTriggerCondition,
     PropertyGranularity,
     PropertyKey,
     PropertyType,
     PropertyValue,
     SelectedProperty,
+    TriggerCondition,
     property_key,
 )
 from darwin.item import DatasetItem
@@ -642,13 +641,12 @@ def _enrich_properties_with_metadata_values(
 
 def _resolve_parent_for_create(
     full_property: FullProperty,
-    metadata_trigger: Optional[MetadataTriggerCondition],
     team_property_lookups: "TeamPropertyLookups",
 ) -> FullProperty:
     """
-    Return a copy of ``full_property`` with ``parent_property_id`` and an
-    API-side :class:`ApiTriggerCondition` resolved from the SDK-native
-    ``parent_name`` and name-based ``metadata_trigger``.
+    Return a copy of ``full_property`` with ``parent_property_id`` and
+    ``trigger_condition.property_value_ids`` populated from the SDK-native
+    ``parent_name`` and ``trigger_condition.values`` (parent value names).
 
     Names are resolved against ``team_property_lookups``, which must
     already include any same-batch parent created immediately prior. Roots
@@ -690,14 +688,20 @@ def _resolve_parent_for_create(
             "share its parent's granularity."
         )
 
-    resolved_trigger: Optional[ApiTriggerCondition] = None
-    if metadata_trigger is not None:
-        if metadata_trigger.type == "any_value":
-            resolved_trigger = ApiTriggerCondition(type="any_value")
+    trigger = full_property.trigger_condition
+    resolved_trigger: Optional[TriggerCondition] = None
+    if trigger is not None:
+        if trigger.type == "any_value":
+            resolved_trigger = TriggerCondition(type="any_value")
         else:
-            # ``MetadataTriggerCondition`` validation guarantees ``values`` is
-            # set & non-empty for 'value_match'.
-            trigger_values = metadata_trigger.values or []
+            if not trigger.values:
+                raise ValueError(
+                    f"trigger_condition for '{full_property.name}' must set "
+                    "'values' (parent value names) for 'value_match'. "
+                    "darwin-py identifies property values by name; "
+                    "'property_value_ids' is only populated from API responses."
+                )
+            trigger_values = trigger.values
             if len(set(trigger_values)) != len(trigger_values):
                 duplicates = sorted(
                     {v for v in trigger_values if trigger_values.count(v) > 1}
@@ -723,7 +727,7 @@ def _resolve_parent_for_create(
                         f"{sorted(value_id_by_name)}"
                     )
                 resolved_ids.append(value_id)
-            resolved_trigger = ApiTriggerCondition(
+            resolved_trigger = TriggerCondition(
                 type="value_match",
                 property_value_ids=resolved_ids,
             )
@@ -783,10 +787,6 @@ def _import_properties(
 
     annotation_and_section_level_properties_to_create: List[FullProperty] = []
     annotation_and_section_level_properties_to_update: List[FullProperty] = []
-    # Sidecar: name-based triggers held here while their FullProperty queues
-    # up for creation; ``_resolve_parent_for_create`` converts them to
-    # ``ApiTriggerCondition`` (UUIDs) just before ``client.create_property``.
-    metadata_triggers: Dict[int, MetadataTriggerCondition] = {}
     for annotation in annotations:
         annotation_name = annotation.annotation_class.name
         annotation_type = annotation_type = (
@@ -947,11 +947,8 @@ def _import_properties(
                             property_values=property_values,
                             granularity=PropertyGranularity(m_prop.granularity),
                             parent_name=m_prop.parent_name,
+                            trigger_condition=m_prop.trigger_condition,
                         )
-                        if m_prop.trigger_condition is not None:
-                            metadata_triggers[id(full_property)] = (
-                                m_prop.trigger_condition
-                            )
                     # Don't attempt the same propery creation multiple times
                     if (
                         full_property
@@ -1040,7 +1037,6 @@ def _import_properties(
         _normalize_item_properties(metadata_item_prop_lookup),
         team_property_lookups.item_properties,
         team_slug,
-        metadata_triggers=metadata_triggers,
     )
 
     console = Console(theme=_console_theme())
@@ -1077,9 +1073,7 @@ def _import_properties(
                     f"- Creating property '{full_property.name}' of type {full_property.type}",
                 )
             payload_property = _resolve_parent_for_create(
-                full_property,
-                metadata_triggers.get(id(full_property)),
-                team_property_lookups,
+                full_property, team_property_lookups
             )
             prop = client.create_property(
                 team_slug=payload_property.slug, params=payload_property
@@ -1268,7 +1262,6 @@ def _create_update_item_properties(
     item_properties: Dict[str, Dict[str, Any]],
     item_properties_lookup: Dict[PropertyName, FullProperty],
     team_slug: str,
-    metadata_triggers: Optional[Dict[int, MetadataTriggerCondition]] = None,
 ) -> Tuple[List[FullProperty], List[FullProperty]]:
     """
     Compares item-level properties present in `item_properties` with the team item properties and plans to create or update them.
@@ -1337,11 +1330,6 @@ def _create_update_item_properties(
                 _validate_metadata_nesting(
                     item_prop_name, parent_name, trigger_condition
                 )
-                trigger_model = (
-                    MetadataTriggerCondition.model_validate(trigger_condition)
-                    if trigger_condition is not None
-                    else None
-                )
                 full_property = FullProperty(
                     name=item_prop_name,
                     type=m_prop.get("type", "multi_select"),
@@ -1357,9 +1345,12 @@ def _create_update_item_properties(
                     ],
                     granularity=PropertyGranularity.item,
                     parent_name=parent_name,
+                    trigger_condition=(
+                        TriggerCondition.model_validate(trigger_condition)
+                        if trigger_condition is not None
+                        else None
+                    ),
                 )
-                if trigger_model is not None and metadata_triggers is not None:
-                    metadata_triggers[id(full_property)] = trigger_model
                 create_properties.append(full_property)
 
     return create_properties, update_properties

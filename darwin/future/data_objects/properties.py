@@ -20,14 +20,9 @@ PropertyType = Literal[
 ]
 
 
-class MetadataTriggerCondition(DefaultDarwin):
-    """
-    Metadata-side trigger condition: identifies parent values by name.
-    Parsed from ``.v7/metadata.json``; converted to :class:`ApiTriggerCondition`
-    by the importer.
-    """
-
+class TriggerCondition(DefaultDarwin):
     type: Literal["value_match", "any_value"]
+    property_value_ids: Optional[List[str]] = None
     values: Optional[List[str]] = None
 
     @model_validator(mode="before")
@@ -37,58 +32,34 @@ class MetadataTriggerCondition(DefaultDarwin):
             return data
         trigger_type = data.get("type")
         values = data.get("values")
+        property_value_ids = data.get("property_value_ids")
         if trigger_type == "any_value":
             if values:
                 raise ValueError(
                     "trigger_condition.values must be empty/None for 'any_value'"
                 )
-        elif trigger_type == "value_match":
-            if not values:
-                raise ValueError(
-                    "trigger_condition.values (parent value names) must be set "
-                    "for 'value_match'"
-                )
-        return data
-
-
-class ApiTriggerCondition(DefaultDarwin):
-    """
-    API-side trigger condition: identifies parent values by UUID
-    (``property_value_ids``). This is the shape stored on
-    :attr:`FullProperty.trigger_condition` and the only shape sent to the BE.
-    """
-
-    type: Literal["value_match", "any_value"]
-    property_value_ids: Optional[List[str]] = None
-
-    @model_validator(mode="before")
-    @classmethod
-    def _validate_shape(cls, data: Any) -> Any:
-        if not isinstance(data, dict):
-            return data
-        trigger_type = data.get("type")
-        property_value_ids = data.get("property_value_ids")
-        if trigger_type == "any_value":
             if property_value_ids:
                 raise ValueError(
                     "trigger_condition.property_value_ids must be empty/None for 'any_value'"
                 )
         elif trigger_type == "value_match":
-            if not property_value_ids:
+            if not values and not property_value_ids:
                 raise ValueError(
-                    "trigger_condition.property_value_ids (parent value UUIDs) "
-                    "must be set for 'value_match'"
+                    "trigger_condition must set either 'values' (names) or "
+                    "'property_value_ids' (UUIDs) for 'value_match'"
                 )
         return data
 
     def to_api_payload(self) -> Dict[str, Any]:
-        """
-        Return ``{"type": "any_value"}`` or
-        ``{"type": "value_match", "property_value_ids": [...]}``.
-        """
         payload: Dict[str, Any] = {"type": self.type}
         if self.type == "value_match":
-            payload["property_value_ids"] = list(self.property_value_ids or [])
+            if not self.property_value_ids:
+                raise ValueError(
+                    "TriggerCondition.to_api_payload requires non-empty "
+                    "property_value_ids for 'value_match'. Resolve "
+                    "'values' (names) to UUIDs first via _resolve_parent_for_create."
+                )
+            payload["property_value_ids"] = list(self.property_value_ids)
         return payload
 
 
@@ -159,7 +130,7 @@ class FullProperty(DefaultDarwin):
     granularity: PropertyGranularity = PropertyGranularity("section")
     parent_name: Optional[str] = None
     parent_property_id: Optional[str] = None
-    trigger_condition: Optional[ApiTriggerCondition] = None
+    trigger_condition: Optional[TriggerCondition] = None
 
     def to_create_endpoint(
         self,
@@ -221,25 +192,6 @@ class FullProperty(DefaultDarwin):
         return self.id, updated_base
 
 
-class MetadataProperty(FullProperty):
-    """
-    Variant of :class:`FullProperty` used to parse properties as declared in
-    ``.v7/metadata.json``.
-
-    The only difference is the trigger-condition shape: ``.v7/metadata.json``
-    identifies parent values by **name** (:class:`MetadataTriggerCondition`),
-    whereas the REST API identifies them by **UUID**
-    (:class:`ApiTriggerCondition`). The importer converts metadata triggers
-    to API triggers via name-to-UUID resolution before calling
-    ``client.create_property``.
-
-    A ``MetadataProperty`` is parse-only: ``to_create_endpoint`` /
-    ``to_update_endpoint`` should not be called on it directly.
-    """
-
-    trigger_condition: Optional[MetadataTriggerCondition] = None  # type: ignore[assignment]
-
-
 class MetaDataClass(DefaultDarwin):
     """
     Metadata.json -> property mapping. Contains all properties for a class contained
@@ -253,8 +205,7 @@ class MetaDataClass(DefaultDarwin):
         color (Optional[str]): Color of the class in the UI
         sub_types (Optional[List[str]]): Sub types of the class
         granularity:(PropertyGranularity): Granularity of the property
-        properties (List[MetadataProperty]): List of all properties for the
-            class — name-based ``trigger_condition`` (metadata-side shape).
+        properties (List[FullProperty]): List of all properties for the class with all options
     """
 
     name: str
@@ -263,7 +214,7 @@ class MetaDataClass(DefaultDarwin):
     color: Optional[str] = None
     sub_types: Optional[List[str]] = None
     granularity: PropertyGranularity = PropertyGranularity("section")
-    properties: List[MetadataProperty]
+    properties: List[FullProperty]
 
     @classmethod
     def from_path(cls, path: Path) -> List[MetaDataClass]:
