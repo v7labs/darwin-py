@@ -326,6 +326,17 @@ class TestFullPropertyEndpoints:
         assert body["trigger_condition"] == {"type": "any_value"}
         assert "property_value_ids" not in body["trigger_condition"]
 
+    def test_create_endpoint_rejects_parent_name_without_resolved_uuid(self) -> None:
+        # ``parent_name`` is the SDK-local mirror of ``parent_property_id``.
+        # Sending it on its own would produce a flat-property payload while
+        # the caller thinks they're creating a nested child — catch that
+        # before it reaches the BE and produces a degraded property.
+        prop = _make_property(name="orphan", parent_name="Parent")
+        with pytest.raises(
+            ValueError, match="parent_name set without parent_property_id"
+        ):
+            prop.to_create_endpoint()
+
     def test_create_endpoint_rejects_unresolved_parent(self) -> None:
         # ``parent_name`` without ``parent_property_id`` means the importer
         # hasn't resolved the name against the server yet — sending it as-is
@@ -638,6 +649,34 @@ class TestResolveParentForCreate:
         ):
             _resolve_parent_for_create(child, lookups)
 
+    def test_rejects_cross_granularity_parent(self) -> None:
+        # The BE rejects cross-granularity nesting at create time. Catching
+        # it client-side gives a precise error pointing at both
+        # granularities, instead of the BE's generic 422.
+        annotation_parent = FullProperty(
+            id="p-id",
+            name="Parent",
+            type="single_select",
+            required=False,
+            annotation_class_id=1,
+            property_values=[PropertyValue(id="v-uuid", value="A")],
+            granularity=PropertyGranularity.annotation,
+        )
+        lookups = _fake_team_property_lookups(
+            annotation_properties={("Parent", 1): annotation_parent}
+        )
+        section_child = _make_property(
+            name="child",
+            parent_name="Parent",
+            granularity=PropertyGranularity.section,
+            trigger_condition=TriggerCondition(type="any_value"),
+        )
+        with pytest.raises(
+            ValueError,
+            match=r"granularity 'annotation' but child is 'section'",
+        ):
+            _resolve_parent_for_create(section_child, lookups)
+
 
 class TestMetadataParsing:
     def _nested_metadata(self) -> dict:
@@ -725,6 +764,43 @@ class TestMetadataParsing:
         prop = classes[0].properties[0]
         assert prop.parent_name is None
         assert prop.trigger_condition is None
+
+    def test_parse_property_classes_rejects_inconsistent_nesting_fields(self) -> None:
+        # ``parent_name`` and ``trigger_condition`` are the SDK-local pair
+        # that represents nesting. A metadata file with one but not the
+        # other is malformed and would silently produce a degraded
+        # property at create time. Fail fast at parse.
+        for orphan in [
+            {  # parent_name without trigger_condition
+                "name": "Bad",
+                "type": "text",
+                "required": False,
+                "granularity": "annotation",
+                "property_values": [],
+                "parent_name": "Parent",
+            },
+            {  # trigger_condition without parent_name
+                "name": "Bad",
+                "type": "text",
+                "required": False,
+                "granularity": "annotation",
+                "property_values": [],
+                "trigger_condition": {"type": "any_value"},
+            },
+        ]:
+            with pytest.raises(ValueError, match="inconsistent nesting metadata"):
+                parse_property_classes(
+                    {
+                        "classes": [
+                            {
+                                "name": "c",
+                                "type": "polygon",
+                                "description": None,
+                                "properties": [orphan],
+                            }
+                        ]
+                    }
+                )
 
 
 class TestAssignItemPropertiesToDataset:

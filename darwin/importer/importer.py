@@ -702,6 +702,17 @@ def _resolve_parent_for_create(
             "on the team yet. Check that the parent is listed in "
             ".v7/metadata.json and shares the same annotation class."
         )
+    # The BE rejects cross-granularity nesting at create time. Catching it
+    # here gives a precise error pointing at both granularities, instead of
+    # the BE's generic ``granularity_mismatch`` 422.
+    if parent_prop.granularity != full_property.granularity:
+        raise ValueError(
+            f"Cannot resolve parent '{full_property.parent_name}' for nested "
+            f"property '{full_property.name}': parent has granularity "
+            f"'{parent_prop.granularity.value}' but child is "
+            f"'{full_property.granularity.value}'. A nested child must "
+            "share its parent's granularity."
+        )
 
     trigger = full_property.trigger_condition
     resolved_trigger: Optional[TriggerCondition] = None

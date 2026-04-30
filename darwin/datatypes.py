@@ -515,6 +515,39 @@ class PropertyClass:
     properties: Optional[list[Property]] = None
 
 
+def _property_from_metadata_dict(p: dict[str, Any]) -> Property:
+    """
+    Build a ``Property`` from a single ``.v7/metadata.json`` entry,
+    enforcing the ``parent_name`` ↔ ``trigger_condition`` invariant: the
+    two are the SDK-local representation of nesting and must be set
+    together (or both omitted). A metadata file with one but not the
+    other is malformed — fail fast at parse time rather than letting the
+    importer produce a degraded property server-side.
+    """
+    parent_name = p.get("parent_name")
+    raw_trigger = p.get("trigger_condition")
+    if (parent_name is None) != (raw_trigger is None):
+        raise ValueError(
+            f"Property '{p.get('name')}' in metadata.json has inconsistent "
+            "nesting metadata: 'parent_name' and 'trigger_condition' must "
+            "both be present or both omitted."
+        )
+    return Property(
+        name=p["name"],
+        type=p["type"],
+        required=p["required"],
+        property_values=p["property_values"],
+        description=p.get("description"),
+        granularity=PropertyGranularity(p.get("granularity", "section")),
+        parent_name=parent_name,
+        trigger_condition=(
+            TriggerCondition.model_validate(raw_trigger)
+            if raw_trigger is not None
+            else None
+        ),
+    )
+
+
 def parse_property_classes(metadata: dict[str, Any]) -> list[PropertyClass]:
     """
     Parses the metadata file and returns a list of PropertyClass objects.
@@ -537,21 +570,7 @@ def parse_property_classes(metadata: dict[str, Any]) -> list[PropertyClass]:
             "properties" in metadata_cls
         ), "Metadata class does not contain properties"
         properties = [
-            Property(
-                name=p["name"],
-                type=p["type"],
-                required=p["required"],
-                property_values=p["property_values"],
-                description=p.get("description"),
-                granularity=PropertyGranularity(p.get("granularity", "section")),
-                parent_name=p.get("parent_name"),
-                trigger_condition=(
-                    TriggerCondition.model_validate(p["trigger_condition"])
-                    if p.get("trigger_condition") is not None
-                    else None
-                ),
-            )
-            for p in metadata_cls["properties"]
+            _property_from_metadata_dict(p) for p in metadata_cls["properties"]
         ]
         classes.append(
             PropertyClass(

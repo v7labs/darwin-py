@@ -186,6 +186,19 @@ class FullProperty(DefaultDarwin):
                 "both be None. If you have a parent_name, resolve it to a "
                 "parent_property_id first."
             )
+        # ``parent_name`` carries no information for the BE — it's the
+        # SDK-local mirror of ``parent_property_id``. Letting it be set on
+        # its own would silently send a flat-property payload while the
+        # caller thinks they're creating a nested child. Catch that here
+        # rather than producing a degraded property server-side.
+        if self.parent_name is not None and self.parent_property_id is None:
+            raise ValueError(
+                "parent_name set without parent_property_id. The importer "
+                "resolves ``parent_name`` against the destination team's "
+                "lookups before calling to_create_endpoint; if you are "
+                "constructing FullProperty by hand, set "
+                "parent_property_id (UUID) directly."
+            )
 
         include_fields: Dict[str, Any] = {
             "name": True,
