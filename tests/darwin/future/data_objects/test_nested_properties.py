@@ -196,6 +196,72 @@ class TestPropertyKey:
         assert property_key(prop) == lookups_key
 
 
+class TestTeamPropertyLookupsRegister:
+    """
+    ``register`` is the in-place mutator that the importer uses after every
+    ``client.create_property`` to avoid a network refresh between sibling
+    creates. It must place properties under the same key as ``refresh`` so
+    the two paths agree.
+    """
+
+    def _lookups(self) -> "dt.TeamPropertyLookups":
+        # Bypass the constructor's network call by hand-stitching the dataclass.
+        lookups = dt.TeamPropertyLookups.__new__(dt.TeamPropertyLookups)
+        lookups.annotation_properties = {}
+        lookups.item_properties = {}
+        lookups._client = Mock()
+        lookups._team_slug = "test_team"
+        return lookups
+
+    def test_registers_class_level_property_under_property_key(self) -> None:
+        lookups = self._lookups()
+        prop = FullProperty(
+            id="p-id",
+            name="Status",
+            type="single_select",
+            required=False,
+            annotation_class_id=42,
+            property_values=[PropertyValue(value="Open")],
+            granularity=PropertyGranularity.annotation,
+        )
+        lookups.register(prop)
+        assert lookups.annotation_properties == {("Status", 42): prop}
+        assert lookups.item_properties == {}
+
+    def test_registers_item_level_property_by_name(self) -> None:
+        lookups = self._lookups()
+        prop = FullProperty(
+            id="i-id",
+            name="Notes",
+            type="text",
+            required=False,
+            annotation_class_id=None,
+            granularity=PropertyGranularity.item,
+        )
+        lookups.register(prop)
+        assert lookups.item_properties == {"Notes": prop}
+        assert lookups.annotation_properties == {}
+
+    def test_overwrites_existing_entry_on_re_register(self) -> None:
+        # The importer registers the server-side response after each create;
+        # if the same (name, class_id) is registered twice, the latest wins.
+        lookups = self._lookups()
+        old = FullProperty(
+            id="old",
+            name="Status",
+            type="single_select",
+            required=False,
+            annotation_class_id=42,
+            property_values=[PropertyValue(value="Open")],
+            granularity=PropertyGranularity.annotation,
+        )
+        new = old.model_copy()
+        new.id = "new"
+        lookups.register(old)
+        lookups.register(new)
+        assert lookups.annotation_properties[("Status", 42)].id == "new"
+
+
 class TestPropertyValueFromMetadata:
     """Direct coverage for the helper that replaced 5 copies of the
     ``PropertyValue(value=..., color=... or "auto")`` idiom."""
@@ -901,16 +967,19 @@ class TestImportPropertiesNestedIntegration:
         mock_lookups = Mock()
         mock_lookups.annotation_properties = {}
         mock_lookups.item_properties = {}
-        created_server_properties: List[FullProperty] = []
 
-        def refresh():
-            for prop in created_server_properties:
-                if prop.granularity.value in ("section", "annotation"):
-                    mock_lookups.annotation_properties[(prop.name, 123)] = prop
-                else:
-                    mock_lookups.item_properties[prop.name] = prop
+        def register(prop):
+            if prop.granularity.value in ("section", "annotation"):
+                mock_lookups.annotation_properties[(prop.name, 123)] = prop
+            else:
+                mock_lookups.item_properties[prop.name] = prop
 
-        mock_lookups.refresh = refresh
+        mock_lookups.register = register
+        # The refresh path must not be hit for in-batch parent resolution —
+        # registering each created property in-place avoids a per-child
+        # network round-trip. ``register`` is the only mutator the create
+        # loop is allowed to use.
+        mock_lookups.refresh = Mock()
 
         created_payloads: List[FullProperty] = []
 
@@ -928,7 +997,6 @@ class TestImportPropertiesNestedIntegration:
                 )
                 for pv in (params.property_values or [])
             ]
-            created_server_properties.append(server_prop)
             return server_prop
 
         client.create_property.side_effect = fake_create_property
@@ -967,3 +1035,10 @@ class TestImportPropertiesNestedIntegration:
         assert created_payloads[1].trigger_condition.property_value_ids == [
             "new-val-contamination"
         ]
+
+        # Hot-path regression: the create loop must never call
+        # ``team_property_lookups.refresh()`` (which fetches the full team
+        # property list). Each freshly-created property is pushed into the
+        # lookups in-place via ``register()``.
+        assert not mock_lookups.refresh.called
+        assert not client.get_team_properties.called

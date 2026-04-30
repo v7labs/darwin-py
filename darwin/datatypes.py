@@ -1682,13 +1682,21 @@ class TeamPropertyLookups:
         self.item_properties = {}
 
         for prop in team_properties:
-            if (
-                prop.granularity.value == "section"
-                or prop.granularity.value == "annotation"
-            ):
-                self.annotation_properties[(prop.name, prop.annotation_class_id)] = prop
-            elif prop.granularity.value == "item":
-                self.item_properties[prop.name] = prop
+            self.register(prop)
+
+    def register(self, prop: FullProperty) -> None:
+        """
+        Place ``prop`` into the appropriate lookup bucket. Used both by
+        ``refresh()`` after a wholesale fetch and by callers that have just
+        created or updated a single property server-side and want to avoid
+        a round-trip to re-fetch the entire team's properties.
+        """
+        from darwin.future.data_objects.properties import property_key
+
+        if prop.granularity.value in ("section", "annotation"):
+            self.annotation_properties[property_key(prop)] = prop
+        elif prop.granularity.value == "item":
+            self.item_properties[prop.name] = prop
 
 
 class ReportJob(BaseModel):

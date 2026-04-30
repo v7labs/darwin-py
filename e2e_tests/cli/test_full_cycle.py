@@ -1,9 +1,9 @@
-import json
 import os
 import shutil
 from pathlib import Path
 from typing import Any, Dict, List
 
+from darwin.path_utils import parse_metadata
 from e2e_tests.helpers import (
     assert_cli,
     run_cli_command,
@@ -13,11 +13,6 @@ from e2e_tests.helpers import (
 from e2e_tests.objects import E2EDataset, ConfigValues
 from e2e_tests.cli.test_import import compare_annotations_export
 from e2e_tests.cli.test_push import extract_and_push
-
-
-def _load_metadata(metadata_path: Path) -> Dict[str, Any]:
-    with open(metadata_path, "r") as f:
-        return json.load(f)
 
 
 def _flatten_properties_with_parents(
@@ -48,8 +43,8 @@ def assert_nested_metadata_round_trips(
     ``parent_name`` and a matching trigger condition (``type`` plus, for
     ``value_match``, the set of referenced parent value names).
     """
-    first_flat = _flatten_properties_with_parents(_load_metadata(first_metadata_path))
-    second_flat = _flatten_properties_with_parents(_load_metadata(second_metadata_path))
+    first_flat = _flatten_properties_with_parents(parse_metadata(first_metadata_path))
+    second_flat = _flatten_properties_with_parents(parse_metadata(second_metadata_path))
 
     # ``(class, name) -> property`` lookup lets us cross-reference properties
     # across exports by their semantic identity (name), consistent with how

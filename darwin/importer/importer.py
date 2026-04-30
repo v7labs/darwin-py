@@ -1078,10 +1078,6 @@ def _import_properties(
             properties_to_create
         )
 
-        any_nested_creates = any(
-            p.parent_name is not None for p in properties_to_create
-        )
-
         console.print(f"Creating {len(properties_to_create)} properties:", style="info")
         for full_property in properties_to_create:
             if full_property.granularity.value == "item":
@@ -1099,13 +1095,12 @@ def _import_properties(
                 team_slug=payload_property.slug, params=payload_property
             )
             created_properties.append(prop)
-            # When the batch contains nested properties, refresh the team
-            # lookups after each create so the next child can resolve its
-            # ``parent_name`` against the freshly-created parent. Flat
-            # batches skip this refresh and retain the original single-
-            # refresh behaviour further down.
-            if any_nested_creates:
-                team_property_lookups.refresh()
+            # Place the freshly-created property into the lookups in-place so
+            # any nested child later in the (topologically-sorted) batch can
+            # resolve its ``parent_name`` without a network refresh. The
+            # response from the server is already a fully-hydrated
+            # ``FullProperty`` (id + property_values[*].id populated).
+            team_property_lookups.register(prop)
 
     updated_properties = []
     if properties_to_update:
@@ -1125,9 +1120,9 @@ def _import_properties(
                 team_slug=full_property.slug, params=full_property
             )
             updated_properties.append(prop)
-
-    if created_properties or updated_properties:
-        team_property_lookups.refresh()
+            # Same in-place lookup update as the create loop: the server
+            # response is fully hydrated, so a network refresh is redundant.
+            team_property_lookups.register(prop)
 
     # Update item-level properties from annotations
     _, item_properties_to_update_from_annotations = _create_update_item_properties(
@@ -1154,8 +1149,7 @@ def _import_properties(
                 team_slug=full_property.slug, params=full_property
             )
             updated_properties.append(prop)
-
-        team_property_lookups.refresh()
+            team_property_lookups.register(prop)
 
     # loop over metadata_cls_id_prop_lookup, and update additional metadata property values
     for (annotation_class_id, prop_name), m_prop in metadata_cls_id_prop_lookup.items():
@@ -1186,13 +1180,6 @@ def _import_properties(
 
         # if there are extra values in metadata, create a new FullProperty with the extra values
         if extra_values:
-            extra_property_values = [
-                PropertyValue(
-                    value=m_prop_values[extra_value].get("value"),  # type: ignore
-                    color=m_prop_values[extra_value].get("color"),  # type: ignore
-                )
-                for extra_value in extra_values
-            ]
             full_property = FullProperty(
                 id=t_prop.id,
                 name=t_prop.name,
@@ -1201,7 +1188,10 @@ def _import_properties(
                 description=t_prop.description,
                 slug=team_slug,
                 annotation_class_id=t_prop.annotation_class_id,
-                property_values=extra_property_values,
+                property_values=[
+                    _property_value_from_metadata(m_prop_values[extra_value])
+                    for extra_value in extra_values
+                ],
                 granularity=PropertyGranularity(t_prop.granularity.value),
             )
             console.print(
@@ -1211,9 +1201,7 @@ def _import_properties(
             prop = client.update_property(
                 team_slug=full_property.slug, params=full_property
             )
-            team_property_lookups.annotation_properties[
-                (prop_name, annotation_class_id)
-            ] = prop
+            team_property_lookups.register(prop)
 
     # update annotation_id_property_map with property ids from created_properties & updated_properties
     for annotation_id, _ in annotation_id_property_map.items():
