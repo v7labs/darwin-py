@@ -19,8 +19,6 @@ PropertyType = Literal[
     "directional_vector",
 ]
 
-TriggerConditionType = Literal["value_match", "any_value"]
-
 
 class TriggerCondition(DefaultDarwin):
     """
@@ -41,7 +39,7 @@ class TriggerCondition(DefaultDarwin):
     must be empty/None when ``type == "any_value"``.
     """
 
-    type: TriggerConditionType
+    type: Literal["value_match", "any_value"]
     property_value_ids: Optional[List[str]] = None
     values: Optional[List[str]] = None
 
@@ -89,7 +87,14 @@ class TriggerCondition(DefaultDarwin):
         validation with an opaque 422.
         """
         payload: Dict[str, Any] = {"type": self.type}
-        if self.property_value_ids:
+        if self.type == "value_match":
+            if not self.property_value_ids:
+                raise ValueError(
+                    "TriggerCondition.to_api_payload requires non-empty "
+                    "property_value_ids for 'value_match'. Resolve "
+                    "'values' (names) to UUIDs first via "
+                    "_resolve_parent_for_create."
+                )
             payload["property_value_ids"] = list(self.property_value_ids)
         return payload
 
@@ -159,12 +164,6 @@ class FullProperty(DefaultDarwin):
     dataset_ids: Optional[List[int]] = None
     options: Optional[List[PropertyValue]] = None
     granularity: PropertyGranularity = PropertyGranularity("section")
-    # Nesting metadata. ``parent_name`` is the darwin-py / ``.v7/metadata.json``
-    # representation (identify the parent by its property name, consistent
-    # with how the SDK identifies everything else). ``parent_property_id`` is
-    # populated from REST API responses and sent back on create — it is
-    # resolved from ``parent_name`` by the importer after the parent has been
-    # created on the server.
     parent_name: Optional[str] = None
     parent_property_id: Optional[str] = None
     trigger_condition: Optional[TriggerCondition] = None
@@ -177,20 +176,12 @@ class FullProperty(DefaultDarwin):
             and self.annotation_class_id is None
         ):
             raise ValueError("annotation_class_id must be set")
-        # A nested property must carry both an API-ready parent UUID and a
-        # trigger condition. ``parent_name`` is the SDK-local representation
-        # and must be resolved to ``parent_property_id`` before calling this.
         if (self.parent_property_id is None) != (self.trigger_condition is None):
             raise ValueError(
                 "parent_property_id and trigger_condition must both be set or "
                 "both be None. If you have a parent_name, resolve it to a "
                 "parent_property_id first."
             )
-        # ``parent_name`` carries no information for the BE — it's the
-        # SDK-local mirror of ``parent_property_id``. Letting it be set on
-        # its own would silently send a flat-property payload while the
-        # caller thinks they're creating a nested child. Catch that here
-        # rather than producing a degraded property server-side.
         if self.parent_name is not None and self.parent_property_id is None:
             raise ValueError(
                 "parent_name set without parent_property_id. The importer "
@@ -213,14 +204,10 @@ class FullProperty(DefaultDarwin):
             include_fields["annotation_class_id"] = True
         if self.dataset_ids is not None:
             include_fields["dataset_ids"] = True
-        if self.parent_property_id is not None:
-            include_fields["parent_property_id"] = True
 
         payload = self.model_dump(mode="json", include=include_fields)
-        if self.trigger_condition is not None:
-            # ``TriggerCondition.to_api_payload`` owns the wire shape so
-            # ``to_create_endpoint`` doesn't have to reach into a nested
-            # model's representation.
+        if self.parent_property_id is not None and self.trigger_condition is not None:
+            payload["parent_property_id"] = self.parent_property_id
             payload["trigger_condition"] = self.trigger_condition.to_api_payload()
         return payload
 

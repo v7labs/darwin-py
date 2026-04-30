@@ -135,6 +135,17 @@ class TestTriggerCondition:
         )
         assert "values" not in trigger.to_api_payload()
 
+    def test_to_api_payload_value_match_raises_without_property_value_ids(
+        self,
+    ) -> None:
+        # Names-only (pre-resolution) ``value_match`` trigger. Serialising
+        # this would yield ``{"type": "value_match"}`` which the BE rejects
+        # with an opaque 422. ``to_api_payload`` raises a clear client-side
+        # error instead.
+        trigger = TriggerCondition(type="value_match", values=["Fracture"])
+        with pytest.raises(ValueError, match="property_value_ids"):
+            trigger.to_api_payload()
+
 
 class TestPropertyKey:
     def test_class_level_uses_class_id(self) -> None:
