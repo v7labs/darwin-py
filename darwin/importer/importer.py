@@ -1913,9 +1913,17 @@ def _import_annotations(
     errors: dt.ErrorList = []
     success: dt.Success = dt.Success.SUCCESS
 
-    raster_layer: Optional[dt.Annotation] = None
-    raster_layer_dense_rle_ids: Optional[Set[str]] = None
-    raster_layer_dense_rle_ids_frames: Optional[Dict[int, Set[str]]] = None
+    # Build a map of raster_layers by annotation_group_id to support multiple raster_layers
+    raster_layers_by_group: Dict[Optional[str], dt.Annotation] = {}
+    raster_layer_dense_rle_ids_by_group: Dict[Optional[str], Set[str]] = {}
+    raster_layer_dense_rle_ids_frames_by_group: Dict[Optional[str], Dict[int, Set[str]]] = {}
+
+    # First pass: collect all raster_layers
+    for annotation in annotations:
+        if annotation.annotation_class.annotation_type == "raster_layer":
+            group_id = annotation.annotation_group_id
+            raster_layers_by_group[group_id] = annotation
+
     serialized_annotations = []
     annotation_class_ids_map: AnnotationClassIdsMap = {}
     for annotation in annotations:
@@ -1951,16 +1959,15 @@ def _import_annotations(
 
         # check if the mask is empty (i.e. masks that do not have a corresponding raster layer) if so, skip import of the mask
         if annotation_type == "mask":
-            if raster_layer is None:
-                raster_layer = next(
-                    (
-                        a
-                        for a in annotations
-                        if a.annotation_class.annotation_type == "raster_layer"
-                    ),
-                    None,
-                )
+            # Find the raster_layer that matches this mask's annotation_group_id
+            group_id = annotation.annotation_group_id
+            raster_layer = raster_layers_by_group.get(group_id)
+
             if raster_layer:
+                # Get or initialize the dense_rle_ids for this specific raster_layer group
+                raster_layer_dense_rle_ids = raster_layer_dense_rle_ids_by_group.get(group_id)
+                raster_layer_dense_rle_ids_frames = raster_layer_dense_rle_ids_frames_by_group.get(group_id)
+
                 (
                     raster_layer_dense_rle_ids,
                     raster_layer_dense_rle_ids_frames,
@@ -1970,6 +1977,10 @@ def _import_annotations(
                     raster_layer_dense_rle_ids,
                     raster_layer_dense_rle_ids_frames,
                 )
+
+                # Store back the updated dense_rle_ids for this group
+                raster_layer_dense_rle_ids_by_group[group_id] = raster_layer_dense_rle_ids
+                raster_layer_dense_rle_ids_frames_by_group[group_id] = raster_layer_dense_rle_ids_frames
 
         actors: List[dt.DictFreeForm] = []
         actors.extend(_handle_annotators(import_annotators, annotation=annotation))
@@ -1988,6 +1999,9 @@ def _import_annotations(
         }
 
         serial_obj["id"] = annotation.id
+
+        if annotation.annotation_group_id is not None:
+            serial_obj["annotation_group_id"] = annotation.annotation_group_id
 
         if actors:
             serial_obj["actors"] = actors  # type: ignore
