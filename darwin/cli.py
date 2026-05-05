@@ -175,6 +175,7 @@ def _run(args: Namespace, parser: ArgumentParser) -> None:
                 args.retry_timeout,
                 args.retry_interval,
                 args.team,
+                multi_processed=not args.no_multi_processed,
             )
         elif args.action == "import":
             f.dataset_import(

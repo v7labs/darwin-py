@@ -364,6 +364,7 @@ def pull_dataset(
     retry_timeout: int = 600,
     retry_interval: int = 10,
     team: Optional[str] = None,
+    multi_processed: bool = True,
 ) -> None:
     """
     Downloads a remote dataset (images and annotations) in the datasets directory.
@@ -392,6 +393,9 @@ def pull_dataset(
         If retrying, time to wait between retries of checking if the release is ready for download.
     team: Optional[str]
         Specify the team to use for the operation.
+    multi_processed: bool
+        If True (default), uses multiprocessing to download files in parallel.
+        If False, the dataset is downloaded on a single process.
     """
     identifier: DatasetIdentifier = DatasetIdentifier.parse(dataset_slug)
     if team:
@@ -427,6 +431,7 @@ def pull_dataset(
             retry=retry,
             retry_timeout=retry_timeout,
             retry_interval=retry_interval,
+            multi_processed=multi_processed,
         )
         print_new_version_info(client)
     except NotFound:
@@ -1512,7 +1517,7 @@ def print_new_version_info(client: Optional[Client] = None) -> None:
     if not client or not client.newer_darwin_version:
         return
 
-    (a, b, c) = tuple(client.newer_darwin_version)
+    a, b, c = tuple(client.newer_darwin_version)
 
     console = Console(theme=_console_theme(), stderr=True)
     console.print(
