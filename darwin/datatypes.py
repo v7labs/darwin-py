@@ -23,7 +23,7 @@ from pydantic import BaseModel
 try:
     from numpy.typing import NDArray
 except ImportError:
-    NDArray = Any  # type:ignore
+    NDArray = Any  # type: ignore
 
 if TYPE_CHECKING:
     from darwin.client import Client
@@ -43,7 +43,7 @@ NumberLike = Union[
     int, float
 ]  # Used for functions that can take either an int or a float
 # Used for functions that _genuinely_ don't know what type they're dealing with, such as those that test if something is of a certain type.
-UnknownType = Any  # type:ignore
+UnknownType = Any  # type: ignore
 
 # Specific types
 
