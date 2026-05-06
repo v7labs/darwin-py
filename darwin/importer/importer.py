@@ -40,12 +40,10 @@ from darwin.datatypes import (
 from darwin.future.data_objects.properties import (
     FullProperty,
     PropertyGranularity,
-    PropertyKey,
     PropertyType,
     PropertyValue,
     SelectedProperty,
     TriggerCondition,
-    property_key,
 )
 from darwin.item import DatasetItem
 from darwin.path_utils import is_properties_enabled, parse_metadata
@@ -560,16 +558,33 @@ def _topologically_sort_properties_to_create(
     if not properties_to_create:
         return []
 
-    index_by_key: Dict[PropertyKey, int] = {
-        property_key(p): i for i, p in enumerate(properties_to_create)
-    }
+    # Disambiguate item-level from class-level properties so two entries
+    # whose ``annotation_class_id`` is ``None`` (e.g. two item-level props,
+    # or an unvalidated class-level prop colliding with an item-level one
+    # of the same name) cannot silently overwrite each other in the index.
+    SortKey = Tuple[str, Optional[int], PropertyGranularity]
+
+    def _sort_key(prop: FullProperty) -> SortKey:
+        return (prop.name, prop.annotation_class_id, prop.granularity)
+
+    index_by_key: Dict[SortKey, int] = {}
+    for i, prop in enumerate(properties_to_create):
+        key = _sort_key(prop)
+        if key in index_by_key:
+            raise ValueError(
+                "Cannot topologically sort properties: duplicate entry "
+                f"for {key!r} in the properties-to-create batch."
+            )
+        index_by_key[key] = i
     children_by_parent_index: Dict[int, List[int]] = defaultdict(list)
     in_degree: List[int] = [0] * len(properties_to_create)
 
     for idx, prop in enumerate(properties_to_create):
         if prop.parent_name is None:
             continue
-        parent_idx = index_by_key.get((prop.parent_name, prop.annotation_class_id))
+        parent_idx = index_by_key.get(
+            (prop.parent_name, prop.annotation_class_id, prop.granularity)
+        )
         if parent_idx is None:
             # Parent not in this batch -> treat this node as a root.
             continue
