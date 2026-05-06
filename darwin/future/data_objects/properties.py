@@ -57,7 +57,7 @@ class TriggerCondition(DefaultDarwin):
                 raise ValueError(
                     "TriggerCondition.to_api_payload requires non-empty "
                     "property_value_ids for 'value_match'. Resolve "
-                    "'values' (names) to UUIDs first via _resolve_parent_for_create."
+                    "'values' (names) to UUIDs first via _resolve_parent_property_for_create."
                 )
             payload["property_value_ids"] = list(self.property_value_ids)
         return payload
@@ -150,12 +150,6 @@ class FullProperty(DefaultDarwin):
             raise ValueError(
                 "parent_property_id and trigger_condition must both be set or "
                 "both be None. Resolve parent_name to a parent_property_id first."
-            )
-        if self.parent_name is not None and self.parent_property_id is None:
-            raise ValueError(
-                "parent_name set without parent_property_id; the importer "
-                "resolves parent_name via _resolve_parent_for_create before "
-                "calling to_create_endpoint."
             )
 
         include_fields: Dict[str, Any] = {

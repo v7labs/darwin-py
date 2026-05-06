@@ -499,6 +499,31 @@ class Property:
     # Name-based trigger condition (parent value names).
     trigger_condition: Optional[TriggerCondition] = None
 
+    @classmethod
+    def from_metadata_dict(cls, p: dict[str, Any]) -> "Property":
+        """
+        Build a ``Property`` from a ``.v7/metadata.json`` entry. Raises
+        ``ValueError`` when ``parent_name`` and ``trigger_condition`` are
+        not both set or both omitted.
+        """
+        parent_name = p.get("parent_name")
+        raw_trigger = p.get("trigger_condition")
+        _validate_property_metadata_nesting(p.get("name", ""), parent_name, raw_trigger)
+        return cls(
+            name=p["name"],
+            type=p["type"],
+            required=p["required"],
+            property_values=p["property_values"],
+            description=p.get("description"),
+            granularity=PropertyGranularity(p.get("granularity", "section")),
+            parent_name=parent_name,
+            trigger_condition=(
+                TriggerCondition.model_validate(raw_trigger)
+                if raw_trigger is not None
+                else None
+            ),
+        )
+
 
 @dataclass
 class PropertyClass:
@@ -510,7 +535,7 @@ class PropertyClass:
     properties: Optional[list[Property]] = None
 
 
-def _validate_metadata_nesting(
+def _validate_property_metadata_nesting(
     name: str, parent_name: Any, trigger_condition: Any
 ) -> None:
     """
@@ -524,31 +549,6 @@ def _validate_metadata_nesting(
             "metadata: 'parent_name' and 'trigger_condition' must both be "
             "present or both omitted."
         )
-
-
-def _property_from_metadata_dict(p: dict[str, Any]) -> Property:
-    """
-    Build a ``Property`` from a ``.v7/metadata.json`` entry. Raises
-    ``ValueError`` when ``parent_name`` and ``trigger_condition`` are not
-    both set or both omitted.
-    """
-    parent_name = p.get("parent_name")
-    raw_trigger = p.get("trigger_condition")
-    _validate_metadata_nesting(p.get("name", ""), parent_name, raw_trigger)
-    return Property(
-        name=p["name"],
-        type=p["type"],
-        required=p["required"],
-        property_values=p["property_values"],
-        description=p.get("description"),
-        granularity=PropertyGranularity(p.get("granularity", "section")),
-        parent_name=parent_name,
-        trigger_condition=(
-            TriggerCondition.model_validate(raw_trigger)
-            if raw_trigger is not None
-            else None
-        ),
-    )
 
 
 def parse_property_classes(metadata: dict[str, Any]) -> list[PropertyClass]:
@@ -573,7 +573,7 @@ def parse_property_classes(metadata: dict[str, Any]) -> list[PropertyClass]:
             "properties" in metadata_cls
         ), "Metadata class does not contain properties"
         properties = [
-            _property_from_metadata_dict(p) for p in metadata_cls["properties"]
+            Property.from_metadata_dict(p) for p in metadata_cls["properties"]
         ]
         classes.append(
             PropertyClass(

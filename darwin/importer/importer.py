@@ -545,7 +545,7 @@ def _property_value_from_metadata(m_value: Dict[str, Any]) -> PropertyValue:
     )
 
 
-def _resolve_parent_for_create(
+def _resolve_parent_property_for_create(
     full_property: FullProperty,
     team_property_lookups: "TeamPropertyLookups",
 ) -> FullProperty:
@@ -964,7 +964,7 @@ def _import_properties(
                 console.print(
                     f"- Creating property '{full_property.name}' of type {full_property.type}",
                 )
-            payload_property = _resolve_parent_for_create(
+            payload_property = _resolve_parent_property_for_create(
                 full_property, team_property_lookups
             )
             prop = client.create_property(

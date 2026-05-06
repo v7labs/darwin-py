@@ -1,7 +1,7 @@
 """Unit tests for the nested-property SDK foundation: ``TriggerCondition``,
 ``FullProperty`` create/update endpoints with nesting fields,
 ``property_key`` helper, ``_property_value_from_metadata`` helper, the
-class-level branch of ``_resolve_parent_for_create``, and metadata parsing
+class-level branch of ``_resolve_parent_property_for_create``, and metadata parsing
 of nested fields.
 """
 
@@ -26,7 +26,7 @@ from darwin.future.data_objects.properties import (
 from darwin.importer.importer import (
     _import_properties,
     _property_value_from_metadata,
-    _resolve_parent_for_create,
+    _resolve_parent_property_for_create,
 )
 
 
@@ -126,7 +126,7 @@ class TestTriggerCondition:
     def test_to_api_payload_strips_sdk_local_values(self) -> None:
         # The name-based ``values`` field is an SDK-local convenience. The
         # wire shape never includes it — callers must resolve names to
-        # UUIDs (via ``_resolve_parent_for_create``) before serialising.
+        # UUIDs (via ``_resolve_parent_property_for_create``) before serialising.
         trigger = TriggerCondition(
             type="value_match",
             values=["Fracture"],
@@ -267,17 +267,6 @@ class TestFullPropertyEndpoints:
         assert body["trigger_condition"] == {"type": "any_value"}
         assert "property_value_ids" not in body["trigger_condition"]
 
-    def test_create_endpoint_rejects_parent_name_without_resolved_uuid(self) -> None:
-        # ``parent_name`` is the SDK-local mirror of ``parent_property_id``.
-        # Sending it on its own would produce a flat-property payload while
-        # the caller thinks they're creating a nested child — catch that
-        # before it reaches the BE and produces a degraded property.
-        prop = _make_property(name="orphan", parent_name="Parent")
-        with pytest.raises(
-            ValueError, match="parent_name set without parent_property_id"
-        ):
-            prop.to_create_endpoint()
-
     def test_create_endpoint_rejects_unresolved_parent(self) -> None:
         # ``parent_name`` without ``parent_property_id`` means the importer
         # hasn't resolved the name against the server yet — sending it as-is
@@ -327,7 +316,9 @@ class TestResolveParentForCreate:
 
     def test_returns_as_is_for_top_level(self) -> None:
         prop = _make_property(name="top")
-        resolved = _resolve_parent_for_create(prop, _fake_team_property_lookups())
+        resolved = _resolve_parent_property_for_create(
+            prop, _fake_team_property_lookups()
+        )
         assert resolved is prop
 
     def test_resolves_class_level_parent_name_and_trigger_values(self) -> None:
@@ -353,7 +344,7 @@ class TestResolveParentForCreate:
                 type="value_match", values=["Contamination"]
             ),
         )
-        resolved = _resolve_parent_for_create(child, lookups)
+        resolved = _resolve_parent_property_for_create(child, lookups)
         assert resolved.parent_property_id == "new-parent-id"
         assert resolved.trigger_condition is not None
         assert resolved.trigger_condition.property_value_ids == ["new-cont-id"]
@@ -378,7 +369,7 @@ class TestResolveParentForCreate:
             parent_name="Notes",
             trigger_condition=TriggerCondition(type="any_value"),
         )
-        resolved = _resolve_parent_for_create(child, lookups)
+        resolved = _resolve_parent_property_for_create(child, lookups)
         assert resolved.parent_property_id == "notes-id"
         assert resolved.trigger_condition is not None
         assert resolved.trigger_condition.type == "any_value"
@@ -391,7 +382,7 @@ class TestResolveParentForCreate:
             trigger_condition=TriggerCondition(type="any_value"),
         )
         with pytest.raises(ValueError, match="Cannot resolve parent"):
-            _resolve_parent_for_create(child, _fake_team_property_lookups())
+            _resolve_parent_property_for_create(child, _fake_team_property_lookups())
 
     def test_unknown_trigger_value_raises(self) -> None:
         parent_on_server = FullProperty(
@@ -414,7 +405,7 @@ class TestResolveParentForCreate:
             ),
         )
         with pytest.raises(ValueError, match="unknown parent value"):
-            _resolve_parent_for_create(child, lookups)
+            _resolve_parent_property_for_create(child, lookups)
 
     def test_value_match_with_duplicate_values_raises(self) -> None:
         # Duplicates in ``trigger.values`` are a data error: each parent
@@ -443,7 +434,7 @@ class TestResolveParentForCreate:
             ),
         )
         with pytest.raises(ValueError, match=r"duplicate values: \['A'\]"):
-            _resolve_parent_for_create(child, lookups)
+            _resolve_parent_property_for_create(child, lookups)
 
     def test_value_match_without_values_raises_clear_error(self) -> None:
         # Contract: darwin-py identifies parent values by name, so
@@ -473,7 +464,7 @@ class TestResolveParentForCreate:
         with pytest.raises(
             ValueError, match="must set 'values' \\(parent value names\\)"
         ):
-            _resolve_parent_for_create(child, lookups)
+            _resolve_parent_property_for_create(child, lookups)
 
     def test_rejects_cross_granularity_parent(self) -> None:
         # The BE rejects cross-granularity nesting at create time. Catching
@@ -501,7 +492,7 @@ class TestResolveParentForCreate:
             ValueError,
             match=r"granularity 'annotation' but child is 'section'",
         ):
-            _resolve_parent_for_create(section_child, lookups)
+            _resolve_parent_property_for_create(section_child, lookups)
 
 
 class TestMetadataParsing:
