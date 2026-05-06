@@ -922,6 +922,42 @@ class TestTopologicalSort:
         ordered = _topologically_sort_properties_to_create([class_level, item_level])
         assert ordered == [class_level, item_level]
 
+    def test_class_and_item_level_with_null_class_id_do_not_collide(self) -> None:
+        # Defensive: an unvalidated class-level property whose
+        # ``annotation_class_id`` is still ``None`` must not be confused
+        # with an item-level property of the same name. Granularity is
+        # part of the disambiguation key so both keep distinct entries.
+        class_level = _make_property(
+            name="Shared",
+            annotation_class_id=None,
+            granularity=PropertyGranularity.annotation,
+        )
+        item_level = _make_property(
+            name="Shared",
+            annotation_class_id=None,
+            granularity=PropertyGranularity.item,
+        )
+        ordered = _topologically_sort_properties_to_create([class_level, item_level])
+        assert ordered == [class_level, item_level]
+
+    def test_duplicate_entries_raise(self) -> None:
+        # Two properties with the same (name, annotation_class_id,
+        # granularity) silently collided in the previous index-by-key
+        # implementation, dropping the earlier one from the dependency
+        # graph. The topo sort must now fail loudly instead.
+        first = _make_property(
+            name="Region",
+            annotation_class_id=None,
+            granularity=PropertyGranularity.item,
+        )
+        second = _make_property(
+            name="Region",
+            annotation_class_id=None,
+            granularity=PropertyGranularity.item,
+        )
+        with pytest.raises(ValueError, match="duplicate entry"):
+            _topologically_sort_properties_to_create([first, second])
+
 
 class TestEnrichWithMetadataValues:
     def test_appends_missing_metadata_values_for_class_level_property(self) -> None:
