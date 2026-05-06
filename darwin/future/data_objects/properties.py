@@ -4,9 +4,9 @@ import json
 import os
 from enum import Enum
 from pathlib import Path
-from typing import List, Literal, Optional, Tuple, Union
+from typing import Any, Dict, List, Literal, Optional, Tuple, Union
 
-from pydantic import field_validator
+from pydantic import field_validator, model_validator
 
 from darwin.future.data_objects.pydantic_base import DefaultDarwin
 
@@ -18,6 +18,49 @@ PropertyType = Literal[
     "instance_id",
     "directional_vector",
 ]
+
+
+class TriggerCondition(DefaultDarwin):
+    type: Literal["value_match", "any_value"]
+    property_value_ids: Optional[List[str]] = None
+    values: Optional[List[str]] = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def _validate_shape(cls, data: Any) -> Any:
+        if not isinstance(data, dict):
+            return data
+        trigger_type = data.get("type")
+        values = data.get("values")
+        property_value_ids = data.get("property_value_ids")
+        if trigger_type == "any_value":
+            if values:
+                raise ValueError(
+                    "trigger_condition.values must be empty/None for 'any_value'"
+                )
+            if property_value_ids:
+                raise ValueError(
+                    "trigger_condition.property_value_ids must be empty/None for 'any_value'"
+                )
+        elif trigger_type == "value_match":
+            if not values and not property_value_ids:
+                raise ValueError(
+                    "trigger_condition must set either 'values' (names) or "
+                    "'property_value_ids' (UUIDs) for 'value_match'"
+                )
+        return data
+
+    def to_api_payload(self) -> Dict[str, Any]:
+        payload: Dict[str, Any] = {"type": self.type}
+        if self.type == "value_match":
+            if not self.property_value_ids:
+                raise ValueError(
+                    "TriggerCondition.to_api_payload requires non-empty "
+                    "property_value_ids for 'value_match'. Resolve "
+                    "'values' (names) to UUIDs first via _resolve_parent_for_create."
+                )
+            payload["property_value_ids"] = list(self.property_value_ids)
+        return payload
 
 
 class PropertyGranularity(str, Enum):
@@ -85,11 +128,37 @@ class FullProperty(DefaultDarwin):
     dataset_ids: Optional[List[int]] = None
     options: Optional[List[PropertyValue]] = None
     granularity: PropertyGranularity = PropertyGranularity("section")
+    parent_name: Optional[str] = None
+    parent_property_id: Optional[str] = None
+    trigger_condition: Optional[TriggerCondition] = None
 
     def to_create_endpoint(
         self,
     ) -> dict:
-        include_fields = {
+        if (
+            self.granularity != PropertyGranularity.item
+            and self.annotation_class_id is None
+        ):
+            raise ValueError("annotation_class_id must be set")
+
+        # Nesting fields are coherent: all three set, or none set.
+        nesting_set = (
+            self.parent_property_id is not None,
+            self.trigger_condition is not None,
+        )
+        if any(nesting_set) and not all(nesting_set):
+            raise ValueError(
+                "parent_property_id and trigger_condition must both be set or "
+                "both be None. Resolve parent_name to a parent_property_id first."
+            )
+        if self.parent_name is not None and self.parent_property_id is None:
+            raise ValueError(
+                "parent_name set without parent_property_id; the importer "
+                "resolves parent_name via _resolve_parent_for_create before "
+                "calling to_create_endpoint."
+            )
+
+        include_fields: Dict[str, Any] = {
             "name": True,
             "type": True,
             "required": True,
@@ -99,12 +168,15 @@ class FullProperty(DefaultDarwin):
         if self.type != "text":
             include_fields["property_values"] = {"__all__": {"value", "color", "type"}}
         if self.granularity != PropertyGranularity.item:
-            if self.annotation_class_id is None:
-                raise ValueError("annotation_class_id must be set")
             include_fields["annotation_class_id"] = True
         if self.dataset_ids is not None:
             include_fields["dataset_ids"] = True
-        return self.model_dump(mode="json", include=include_fields)
+
+        payload = self.model_dump(mode="json", include=include_fields)
+        if self.parent_property_id is not None and self.trigger_condition is not None:
+            payload["parent_property_id"] = self.parent_property_id
+            payload["trigger_condition"] = self.trigger_condition.to_api_payload()
+        return payload
 
     def to_update_endpoint(self) -> Tuple[str, dict]:
         if self.id is None:
@@ -113,6 +185,10 @@ class FullProperty(DefaultDarwin):
         updated_base = self.to_create_endpoint()
         updated_base.pop("annotation_class_id", None)  # Can't update this field
         del updated_base["granularity"]  # Can't update this field
+        if "parent_property_id" in updated_base:
+            del updated_base["parent_property_id"]
+        if "trigger_condition" in updated_base:
+            del updated_base["trigger_condition"]
         return self.id, updated_base
 
 
@@ -172,3 +248,10 @@ class SelectedProperty(DefaultDarwin):
     name: str
     type: Optional[str] = None
     value: Optional[str] = None
+
+
+PropertyKey = Tuple[str, Optional[int]]
+
+
+def property_key(prop: "FullProperty") -> PropertyKey:
+    return (prop.name, prop.annotation_class_id)
