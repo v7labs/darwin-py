@@ -3,8 +3,6 @@ import shutil
 from pathlib import Path
 from typing import Any, Dict, List
 
-import pytest
-
 from darwin.path_utils import parse_metadata
 from e2e_tests.helpers import (
     assert_cli,
