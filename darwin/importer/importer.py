@@ -34,6 +34,7 @@ from darwin.datatypes import (
     PropertyName,
     PropertyValueMap,
     TeamPropertyLookups,
+    _validate_property_metadata_nesting,
     parse_property_classes,
 )
 from darwin.future.data_objects.properties import (
@@ -546,6 +547,114 @@ def _property_value_from_metadata(m_value: Dict[str, Any]) -> PropertyValue:
     )
 
 
+def _topologically_sort_properties_to_create(
+    properties_to_create: List[FullProperty],
+) -> List[FullProperty]:
+    """
+    Order properties so each parent precedes its children, with parents
+    identified by ``parent_name``. Properties whose ``parent_name`` does
+    not match any sibling in the list are treated as roots. Sibling order
+    is preserved. Raises ``ValueError`` on cycles.
+    """
+    if not properties_to_create:
+        return []
+
+    # Disambiguate item-level from class-level properties so two entries
+    # whose ``annotation_class_id`` is ``None`` (e.g. two item-level props,
+    # or an unvalidated class-level prop colliding with an item-level one
+    # of the same name) cannot silently overwrite each other in the index.
+    SortKey = Tuple[str, Optional[int], PropertyGranularity]
+
+    def _sort_key(prop: FullProperty) -> SortKey:
+        return (prop.name, prop.annotation_class_id, prop.granularity)
+
+    index_by_key: Dict[SortKey, int] = {}
+    for i, prop in enumerate(properties_to_create):
+        key = _sort_key(prop)
+        if key in index_by_key:
+            raise ValueError(
+                "Cannot topologically sort properties: duplicate entry "
+                f"for {key!r} in the properties-to-create batch."
+            )
+        index_by_key[key] = i
+    children_by_parent_index: Dict[int, List[int]] = defaultdict(list)
+    in_degree: List[int] = [0] * len(properties_to_create)
+
+    for idx, prop in enumerate(properties_to_create):
+        if prop.parent_name is None:
+            continue
+        parent_idx = index_by_key.get(
+            (prop.parent_name, prop.annotation_class_id, prop.granularity)
+        )
+        if parent_idx is None:
+            # Parent not in this batch -> treat this node as a root.
+            continue
+        children_by_parent_index[parent_idx].append(idx)
+        in_degree[idx] += 1
+
+    ready: List[int] = [i for i, deg in enumerate(in_degree) if deg == 0]
+    ordered: List[FullProperty] = []
+    head = 0
+    while head < len(ready):
+        current = ready[head]
+        head += 1
+        ordered.append(properties_to_create[current])
+        for child_idx in children_by_parent_index.get(current, []):
+            in_degree[child_idx] -= 1
+            if in_degree[child_idx] == 0:
+                ready.append(child_idx)
+
+    if len(ordered) != len(properties_to_create):
+        raise ValueError(
+            "Cannot topologically sort properties: detected a cycle in parent_name references."
+        )
+    return ordered
+
+
+def _enrich_properties_with_metadata_values(
+    properties_to_create: List[FullProperty],
+    metadata_cls_prop_lookup: Dict[Tuple[str, str], Property],
+    metadata_item_prop_lookup: Dict[str, Dict[str, Any]],
+    annotation_class_ids_map: AnnotationClassIdsMap,
+) -> None:
+    """
+    Append every metadata-declared value to each property about to be
+    created (not just the values referenced by the current annotations),
+    mutating ``properties_to_create`` in place.
+    """
+    class_name_by_id: Dict[int, str] = {
+        int(class_id): class_name
+        for (class_name, _annotation_type), class_id in annotation_class_ids_map.items()
+    }
+
+    for prop in properties_to_create:
+        metadata_values: Optional[List[Dict[str, Any]]] = None
+        if prop.granularity == PropertyGranularity.item:
+            m_item = metadata_item_prop_lookup.get(prop.name)
+            if m_item is not None:
+                metadata_values = m_item.get("property_values") or []
+        else:
+            class_name = class_name_by_id.get(prop.annotation_class_id or -1)
+            if class_name is None:
+                continue
+            m_cls = metadata_cls_prop_lookup.get((class_name, prop.name))
+            if m_cls is not None:
+                metadata_values = m_cls.property_values or []
+
+        if not metadata_values:
+            continue
+
+        existing_values = {
+            pv.value for pv in (prop.property_values or []) if pv.value is not None
+        }
+        if prop.property_values is None:
+            prop.property_values = []
+        for m_value in metadata_values:
+            if m_value.get("value") in existing_values:
+                continue
+            prop.property_values.append(_property_value_from_metadata(m_value))
+
+
 def _resolve_parent_property_for_create(
     full_property: FullProperty,
     team_property_lookups: "TeamPropertyLookups",
@@ -556,26 +665,30 @@ def _resolve_parent_property_for_create(
     ``parent_name`` and ``trigger_condition.values`` (parent value names).
 
     Names are resolved against ``team_property_lookups``, which must
-    already include the parent (created previously on the team). Roots
+    already include any same-batch parent created immediately prior. Roots
     (``parent_name is None``) are returned unchanged; unresolved names
     raise ``ValueError``.
     """
     if full_property.parent_name is None:
         return full_property
 
-    if full_property.annotation_class_id is None:
-        raise ValueError(
-            f"Cannot resolve parent '{full_property.parent_name}' for "
-            f"class-level property '{full_property.name}' without an "
-            "annotation_class_id"
+    parent_prop: Optional[FullProperty] = None
+    if full_property.granularity == PropertyGranularity.item:
+        parent_prop = team_property_lookups.item_properties.get(
+            full_property.parent_name
         )
-    parent_key: PropertyKey = (
-        full_property.parent_name,
-        full_property.annotation_class_id,
-    )
-    parent_prop: Optional[FullProperty] = (
-        team_property_lookups.annotation_properties.get(parent_key)
-    )
+    else:
+        if full_property.annotation_class_id is None:
+            raise ValueError(
+                f"Cannot resolve parent '{full_property.parent_name}' for "
+                f"class-level property '{full_property.name}' without an "
+                "annotation_class_id"
+            )
+        parent_key: PropertyKey = (
+            full_property.parent_name,
+            full_property.annotation_class_id,
+        )
+        parent_prop = team_property_lookups.annotation_properties.get(parent_key)
 
     if parent_prop is None or parent_prop.id is None:
         raise ValueError(
@@ -957,6 +1070,16 @@ def _import_properties(
 
     created_properties = []
     if properties_to_create:
+        _enrich_properties_with_metadata_values(
+            properties_to_create,
+            metadata_cls_prop_lookup,
+            metadata_item_prop_lookup,
+            annotation_class_ids_map,
+        )
+        properties_to_create = _topologically_sort_properties_to_create(
+            properties_to_create
+        )
+
         console.print(f"Creating {len(properties_to_create)} properties:", style="info")
         for full_property in properties_to_create:
             if full_property.granularity.value == "item":
@@ -974,6 +1097,7 @@ def _import_properties(
                 team_slug=payload_property.slug, params=payload_property
             )
             created_properties.append(prop)
+            team_property_lookups.register(prop)
 
     updated_properties = []
     if properties_to_update:
@@ -1075,9 +1199,7 @@ def _import_properties(
             prop = client.update_property(
                 team_slug=full_property.slug, params=full_property
             )
-            team_property_lookups.annotation_properties[
-                (prop_name, annotation_class_id)
-            ] = prop
+            team_property_lookups.register(prop)
 
     # update annotation_id_property_map with property ids from created_properties & updated_properties
     for annotation_id, _ in annotation_id_property_map.items():
@@ -1221,6 +1343,9 @@ def _create_update_item_properties(
                             )
                     break
             else:
+                parent_name = m_prop.get("parent_name")
+                trigger_condition = m_prop.get("trigger_condition")
+                _validate_property_metadata_nesting(parent_name, trigger_condition)
                 full_property = FullProperty(
                     name=item_prop_name,
                     type=m_prop.get("type", "multi_select"),
@@ -1235,6 +1360,12 @@ def _create_update_item_properties(
                         for val_dict in m_prop_value_dicts
                     ],
                     granularity=PropertyGranularity.item,
+                    parent_name=parent_name,
+                    trigger_condition=(
+                        TriggerCondition.model_validate(trigger_condition)
+                        if trigger_condition is not None
+                        else None
+                    ),
                 )
                 create_properties.append(full_property)
 
@@ -1263,13 +1394,19 @@ def _assign_item_properties_to_dataset(
         for item_property in item_properties_set:
             for team_prop in item_properties_lookup:
                 if team_prop == item_property:
-                    prop_datasets = item_properties_lookup[team_prop].dataset_ids or []
+                    team_property = item_properties_lookup[team_prop]
+                    # Nested item-level properties inherit ``dataset_ids`` from their root ancestor on the BE; skip the assignment.
+                    if (
+                        team_property.parent_name is not None
+                        or team_property.parent_property_id is not None
+                    ):
+                        continue
+                    prop_datasets = team_property.dataset_ids or []
                     if dataset.dataset_id not in prop_datasets:
-                        updated_property = item_properties_lookup[team_prop]
-                        updated_property.dataset_ids.append(dataset.dataset_id)
+                        team_property.dataset_ids.append(dataset.dataset_id)
 
                         # We must not mutate properties in item_properties_lookup, since their values are also used for lookups
-                        property_copy = updated_property.model_copy()
+                        property_copy = team_property.model_copy()
                         property_copy.property_values = (
                             []
                         )  # Necessary to clear, otherwise we're trying to add the exsting values to themselves

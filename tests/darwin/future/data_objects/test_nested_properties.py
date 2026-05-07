@@ -1,8 +1,6 @@
-"""Unit tests for the nested-property SDK foundation: ``TriggerCondition``,
-``FullProperty`` create/update endpoints with nesting fields,
-``property_key`` helper, ``_property_value_from_metadata`` helper, the
-class-level branch of ``_resolve_parent_property_for_create``, and metadata parsing
-of nested fields.
+"""Unit tests for nested-property SDK support (parent_name, trigger_condition,
+topological sort, name-to-UUID resolution, item-level granularity, and
+dataset-id assignment).
 """
 
 import json
@@ -20,13 +18,18 @@ from darwin.future.data_objects.properties import (
     MetaDataClass,
     PropertyGranularity,
     PropertyValue,
+    SelectedProperty,
     TriggerCondition,
     property_key,
 )
 from darwin.importer.importer import (
+    _assign_item_properties_to_dataset,
+    _create_update_item_properties,
+    _enrich_properties_with_metadata_values,
     _import_properties,
     _property_value_from_metadata,
     _resolve_parent_property_for_create,
+    _topologically_sort_properties_to_create,
 )
 
 
@@ -311,9 +314,6 @@ def _fake_team_property_lookups(
 
 
 class TestResolveParentForCreate:
-    """Class-level (annotation + section) coverage. Item-level lands in
-    PR 2 alongside the in-batch parent-creation support."""
-
     def test_returns_as_is_for_top_level(self) -> None:
         prop = _make_property(name="top")
         resolved = _resolve_parent_property_for_create(
@@ -374,6 +374,30 @@ class TestResolveParentForCreate:
         assert resolved.trigger_condition is not None
         assert resolved.trigger_condition.type == "any_value"
         assert resolved.trigger_condition.property_value_ids is None
+
+    def test_resolves_item_level_parent(self) -> None:
+        parent_on_server = FullProperty(
+            id="item-parent-id",
+            name="item_level_parent",
+            type="text",
+            required=False,
+            granularity=PropertyGranularity.item,
+        )
+        lookups = _fake_team_property_lookups(
+            item_properties={"item_level_parent": parent_on_server}
+        )
+        child = FullProperty(
+            name="item_level_child",
+            type="single_select",
+            required=False,
+            granularity=PropertyGranularity.item,
+            property_values=[PropertyValue(value="Yes")],
+            slug="team-slug",
+            parent_name="item_level_parent",
+            trigger_condition=TriggerCondition(type="any_value"),
+        )
+        resolved = _resolve_parent_property_for_create(child, lookups)
+        assert resolved.parent_property_id == "item-parent-id"
 
     def test_missing_parent_raises(self) -> None:
         child = _make_property(
@@ -751,3 +775,521 @@ class TestImportPropertiesNestedAgainstExistingParent:
         assert payload.trigger_condition is not None
         assert payload.trigger_condition.type == "value_match"
         assert payload.trigger_condition.property_value_ids == ["existing-cont-id"]
+
+
+class TestTeamPropertyLookupsRegister:
+    """
+    ``register`` is the in-place mutator that the importer uses after every
+    ``client.create_property`` to avoid a network refresh between sibling
+    creates. It must place properties under the same key as ``refresh`` so
+    the two paths agree.
+    """
+
+    def _lookups(self) -> "dt.TeamPropertyLookups":
+        # Bypass the constructor's network call by hand-stitching the dataclass.
+        lookups = dt.TeamPropertyLookups.__new__(dt.TeamPropertyLookups)
+        lookups.annotation_properties = {}
+        lookups.item_properties = {}
+        lookups._client = Mock()
+        lookups._team_slug = "test_team"
+        return lookups
+
+    def test_registers_class_level_property_under_property_key(self) -> None:
+        lookups = self._lookups()
+        prop = FullProperty(
+            id="p-id",
+            name="Status",
+            type="single_select",
+            required=False,
+            annotation_class_id=42,
+            property_values=[PropertyValue(value="Open")],
+            granularity=PropertyGranularity.annotation,
+        )
+        lookups.register(prop)
+        assert lookups.annotation_properties == {("Status", 42): prop}
+        assert lookups.item_properties == {}
+
+    def test_registers_item_level_property_by_name(self) -> None:
+        lookups = self._lookups()
+        prop = FullProperty(
+            id="i-id",
+            name="Notes",
+            type="text",
+            required=False,
+            annotation_class_id=None,
+            granularity=PropertyGranularity.item,
+        )
+        lookups.register(prop)
+        assert lookups.item_properties == {"Notes": prop}
+        assert lookups.annotation_properties == {}
+
+    def test_overwrites_existing_entry_on_re_register(self) -> None:
+        # The importer registers the server-side response after each create;
+        # if the same (name, class_id) is registered twice, the latest wins.
+        lookups = self._lookups()
+        old = FullProperty(
+            id="old",
+            name="Status",
+            type="single_select",
+            required=False,
+            annotation_class_id=42,
+            property_values=[PropertyValue(value="Open")],
+            granularity=PropertyGranularity.annotation,
+        )
+        new = old.model_copy()
+        new.id = "new"
+        lookups.register(old)
+        lookups.register(new)
+        assert lookups.annotation_properties[("Status", 42)].id == "new"
+
+
+class TestTopologicalSort:
+    def test_empty_returns_empty(self) -> None:
+        assert _topologically_sort_properties_to_create([]) == []
+
+    def test_parent_always_precedes_child(self) -> None:
+        parent = _make_property(name="parent")
+        child = _make_property(
+            name="child",
+            parent_name="parent",
+            trigger_condition=TriggerCondition(type="any_value"),
+        )
+        ordered = _topologically_sort_properties_to_create([child, parent])
+        assert [p.name for p in ordered] == ["parent", "child"]
+
+    def test_deep_chain_is_ordered(self) -> None:
+        root = _make_property(name="root")
+        mid = _make_property(
+            name="mid",
+            parent_name="root",
+            trigger_condition=TriggerCondition(type="any_value"),
+        )
+        leaf = _make_property(
+            name="leaf",
+            parent_name="mid",
+            trigger_condition=TriggerCondition(type="any_value"),
+        )
+        ordered = _topologically_sort_properties_to_create([leaf, mid, root])
+        assert [p.name for p in ordered] == ["root", "mid", "leaf"]
+
+    def test_siblings_preserve_input_order(self) -> None:
+        root = _make_property(name="root")
+        a = _make_property(
+            name="a",
+            parent_name="root",
+            trigger_condition=TriggerCondition(type="any_value"),
+        )
+        b = _make_property(
+            name="b",
+            parent_name="root",
+            trigger_condition=TriggerCondition(type="any_value"),
+        )
+        ordered = _topologically_sort_properties_to_create([a, b, root])
+        assert [p.name for p in ordered] == ["root", "a", "b"]
+
+    def test_unknown_parent_treated_as_root(self) -> None:
+        orphan = _make_property(
+            name="orphan",
+            parent_name="unknown",
+            trigger_condition=TriggerCondition(type="any_value"),
+        )
+        ordered = _topologically_sort_properties_to_create([orphan])
+        assert [p.name for p in ordered] == ["orphan"]
+
+    def test_cycle_raises(self) -> None:
+        a = _make_property(
+            name="a",
+            parent_name="b",
+            trigger_condition=TriggerCondition(type="any_value"),
+        )
+        b = _make_property(
+            name="b",
+            parent_name="a",
+            trigger_condition=TriggerCondition(type="any_value"),
+        )
+        with pytest.raises(ValueError):
+            _topologically_sort_properties_to_create([a, b])
+
+    def test_item_level_and_class_level_do_not_interleave(self) -> None:
+        # A class-level property named "Shared" and an item-level property
+        # with the same name should not be treated as the same node.
+        class_level = _make_property(name="Shared")
+        item_level = _make_property(
+            name="Shared",
+            annotation_class_id=None,
+            granularity=PropertyGranularity.item,
+        )
+        ordered = _topologically_sort_properties_to_create([class_level, item_level])
+        assert ordered == [class_level, item_level]
+
+    def test_class_and_item_level_with_null_class_id_do_not_collide(self) -> None:
+        # Defensive: an unvalidated class-level property whose
+        # ``annotation_class_id`` is still ``None`` must not be confused
+        # with an item-level property of the same name. Granularity is
+        # part of the disambiguation key so both keep distinct entries.
+        class_level = _make_property(
+            name="Shared",
+            annotation_class_id=None,
+            granularity=PropertyGranularity.annotation,
+        )
+        item_level = _make_property(
+            name="Shared",
+            annotation_class_id=None,
+            granularity=PropertyGranularity.item,
+        )
+        ordered = _topologically_sort_properties_to_create([class_level, item_level])
+        assert ordered == [class_level, item_level]
+
+    def test_duplicate_entries_raise(self) -> None:
+        # Two properties with the same (name, annotation_class_id,
+        # granularity) silently collided in the previous index-by-key
+        # implementation, dropping the earlier one from the dependency
+        # graph. The topo sort must now fail loudly instead.
+        first = _make_property(
+            name="Region",
+            annotation_class_id=None,
+            granularity=PropertyGranularity.item,
+        )
+        second = _make_property(
+            name="Region",
+            annotation_class_id=None,
+            granularity=PropertyGranularity.item,
+        )
+        with pytest.raises(ValueError, match="duplicate entry"):
+            _topologically_sort_properties_to_create([first, second])
+
+
+class TestEnrichWithMetadataValues:
+    def test_appends_missing_metadata_values_for_class_level_property(self) -> None:
+        prop = _make_property(
+            name="Defect Type",
+            type_="multi_select",
+            property_values=[PropertyValue(value="Contamination")],
+        )
+        metadata_cls_prop_lookup = {
+            ("test_class", "Defect Type"): dt.Property(
+                name="Defect Type",
+                type="multi_select",
+                required=False,
+                property_values=[
+                    {"value": "Contamination"},
+                    {"value": "Scratch"},
+                ],
+                granularity=PropertyGranularity.annotation,
+            )
+        }
+        _enrich_properties_with_metadata_values(
+            [prop],
+            metadata_cls_prop_lookup=metadata_cls_prop_lookup,
+            metadata_item_prop_lookup={},
+            annotation_class_ids_map={("test_class", "polygon"): "1"},
+        )
+        values = {pv.value for pv in prop.property_values}
+        assert values == {"Contamination", "Scratch"}
+
+    def test_no_op_when_metadata_missing(self) -> None:
+        prop = _make_property(
+            name="Defect Type",
+            type_="multi_select",
+            property_values=[PropertyValue(value="x")],
+        )
+        _enrich_properties_with_metadata_values(
+            [prop],
+            metadata_cls_prop_lookup={},
+            metadata_item_prop_lookup={},
+            annotation_class_ids_map={("test_class", "polygon"): "1"},
+        )
+        assert [pv.value for pv in prop.property_values] == ["x"]
+
+
+class TestCreateUpdateItemPropertiesNestingValidation:
+    """
+    Item-level metadata flows through ``_create_update_item_properties``.
+    The same ``parent_name`` ↔ ``trigger_condition`` invariant the class-
+    level path enforces in ``parse_property_classes`` must apply here too,
+    or item-level metadata silently bypasses it.
+    """
+
+    def test_rejects_item_property_with_parent_name_but_no_trigger(self) -> None:
+        item_properties = {
+            "Bad Item Child": {
+                "type": "single_select",
+                "required": False,
+                "property_values": [{"value": "Yes"}],
+                "parent_name": "Some Parent",
+            }
+        }
+        with pytest.raises(ValueError, match="inconsistent nesting metadata"):
+            _create_update_item_properties(
+                item_properties,
+                item_properties_lookup={},
+                team_slug="test_team",
+            )
+
+    def test_rejects_item_property_with_trigger_but_no_parent_name(self) -> None:
+        item_properties = {
+            "Bad Item Child": {
+                "type": "single_select",
+                "required": False,
+                "property_values": [{"value": "Yes"}],
+                "trigger_condition": {"type": "any_value"},
+            }
+        }
+        with pytest.raises(ValueError, match="inconsistent nesting metadata"):
+            _create_update_item_properties(
+                item_properties,
+                item_properties_lookup={},
+                team_slug="test_team",
+            )
+
+
+class TestAssignItemPropertiesToDataset:
+    """
+    Regression coverage for the dataset-id assignment path and its
+    interaction with nested item-level properties. The BE enforces that
+    a nested property's ``dataset_ids`` is always ``[]`` — children
+    inherit from the root ancestor. Attempting to assign a dataset to a
+    nested child returns a 422; the importer must skip those properties
+    entirely.
+    """
+
+    def _dataset(self) -> Mock:
+        dataset = Mock()
+        dataset.team = "test_team"
+        dataset.name = "test_dataset"
+        dataset.dataset_id = 7
+        return dataset
+
+    def _console(self) -> Mock:
+        return Mock()
+
+    def _client(self) -> Mock:
+        client = Mock()
+        client.update_property = Mock()
+        return client
+
+    def test_assigns_dataset_to_top_level_item_property_when_missing(self) -> None:
+        item_properties = [{"name": "top_level"}]
+        top_level = FullProperty(
+            id="top-id",
+            name="top_level",
+            type="text",
+            required=False,
+            annotation_class_id=None,
+            granularity=PropertyGranularity.item,
+            dataset_ids=[],
+        )
+        lookup = {"top_level": top_level}
+        client = self._client()
+
+        _assign_item_properties_to_dataset(
+            item_properties, lookup, client, self._dataset(), self._console()
+        )
+
+        assert client.update_property.called
+        sent = client.update_property.call_args.args[1]
+        assert sent.dataset_ids == [7]
+
+    def test_does_not_assign_dataset_to_nested_item_property(self) -> None:
+        # Nested item-level properties inherit ``dataset_ids`` from their
+        # root ancestor — their own ``dataset_ids`` is always ``[]`` by
+        # contract. The SDK must leave that invariant alone and let
+        # inheritance cover the child.
+        item_properties = [{"name": "child"}]
+        nested_child = FullProperty(
+            id="child-id",
+            name="child",
+            type="single_select",
+            required=False,
+            annotation_class_id=None,
+            property_values=[PropertyValue(value="Yes")],
+            granularity=PropertyGranularity.item,
+            parent_property_id="parent-id",
+            trigger_condition=TriggerCondition(type="any_value"),
+            dataset_ids=[],
+        )
+        lookup = {"child": nested_child}
+        client = self._client()
+
+        _assign_item_properties_to_dataset(
+            item_properties, lookup, client, self._dataset(), self._console()
+        )
+
+        assert not client.update_property.called
+        # The nested child's dataset_ids must remain untouched on the
+        # local object too — no drift between SDK state and the BE's
+        # "always empty" invariant.
+        assert nested_child.dataset_ids == []
+
+
+class TestImportPropertiesNestedInOneBatch:
+    """
+    Exercises ``_import_properties`` end-to-end with a nested hierarchy
+    where parent and child both need to be created in the same batch.
+    Verifies topological sort runs first and ``register`` is used to
+    feed the freshly-created parent into the child's resolution step.
+    """
+
+    @pytest.fixture
+    def mock_dataset(self) -> Mock:
+        dataset = Mock()
+        dataset.team = "test_team"
+        dataset.name = "test_dataset"
+        dataset.dataset_id = 1
+        return dataset
+
+    def _metadata_with_child_listed_before_parent(self) -> dict:
+        return {
+            "classes": [
+                {
+                    "name": "test_class",
+                    "type": "polygon",
+                    "description": None,
+                    "properties": [
+                        # Child intentionally first in metadata order.
+                        {
+                            "name": "Contamination Source",
+                            "type": "single_select",
+                            "required": False,
+                            "granularity": "annotation",
+                            "property_values": [{"value": "Chemical"}],
+                            "parent_name": "Defect Type",
+                            "trigger_condition": {
+                                "type": "value_match",
+                                "values": ["Contamination"],
+                            },
+                        },
+                        {
+                            "name": "Defect Type",
+                            "type": "multi_select",
+                            "required": False,
+                            "granularity": "annotation",
+                            "property_values": [{"value": "Contamination"}],
+                        },
+                    ],
+                }
+            ]
+        }
+
+    def test_creates_parent_before_child_and_resolves_names_to_uuids(
+        self, mock_dataset: Mock
+    ) -> None:
+        client = Mock()
+        client.default_team = "test_team"
+        annotation_class_ids_map = {("test_class", "polygon"): "123"}
+        annotations = [
+            dt.Annotation(
+                dt.AnnotationClass("test_class", "polygon"),
+                {"paths": [[1, 2, 3, 4, 5]]},
+                [],
+                [],
+                id="annotation_id_1",
+                properties=[
+                    SelectedProperty(
+                        frame_index=None,
+                        name="Defect Type",
+                        type="multi_select",
+                        value="Contamination",
+                    ),
+                    SelectedProperty(
+                        frame_index=None,
+                        name="Contamination Source",
+                        type="single_select",
+                        value="Chemical",
+                    ),
+                ],
+            )
+        ]
+
+        mock_lookups = Mock()
+        mock_lookups.annotation_properties = {}
+        mock_lookups.item_properties = {}
+        register_call_count = 0
+        refresh_calls_during_create = 0
+
+        def register(prop):
+            nonlocal register_call_count
+            register_call_count += 1
+            if prop.granularity.value in ("section", "annotation"):
+                mock_lookups.annotation_properties[(prop.name, 123)] = prop
+            else:
+                mock_lookups.item_properties[prop.name] = prop
+
+        mock_lookups.register = register
+
+        # Track ``refresh`` calls so we can assert the create loop never
+        # invokes one per child. Post-batch refreshes are still allowed —
+        # they're the freshness guard against concurrent mutators editing
+        # the same team while we import.
+        def refresh():
+            nonlocal refresh_calls_during_create
+            if register_call_count < len(
+                self._metadata_with_child_listed_before_parent()["classes"][0][
+                    "properties"
+                ]
+            ):
+                refresh_calls_during_create += 1
+
+        mock_lookups.refresh = Mock(side_effect=refresh)
+
+        created_payloads: List[FullProperty] = []
+
+        def fake_create_property(
+            *, team_slug: str, params: FullProperty
+        ) -> FullProperty:
+            created_payloads.append(params)
+            server_prop = params.model_copy()
+            server_prop.id = f"new-{params.name.lower().replace(' ', '-')}"
+            server_prop.property_values = [
+                PropertyValue(
+                    id=f"new-val-{pv.value.lower()}",
+                    value=pv.value,
+                    color=pv.color,
+                )
+                for pv in (params.property_values or [])
+            ]
+            return server_prop
+
+        client.create_property.side_effect = fake_create_property
+        client.update_property = Mock()
+        client.get_team_properties = Mock(return_value=[])
+
+        with tempfile.TemporaryDirectory() as tmp:
+            metadata_path = Path(tmp) / "metadata.json"
+            with open(metadata_path, "w") as f:
+                json.dump(self._metadata_with_child_listed_before_parent(), f)
+
+            _import_properties(
+                metadata_path,
+                [],
+                client,
+                annotations,
+                annotation_class_ids_map,
+                mock_dataset,
+                annotation_id_property_map={},
+                team_property_lookups=mock_lookups,
+            )
+
+        assert len(created_payloads) == 2
+
+        # Parent first (topological sort applied).
+        assert created_payloads[0].name == "Defect Type"
+        assert created_payloads[0].parent_property_id is None
+        assert created_payloads[0].trigger_condition is None
+
+        # Child second, with the parent's freshly-assigned server UUID and
+        # trigger-value UUIDs resolved from its ``values`` (names).
+        assert created_payloads[1].name == "Contamination Source"
+        assert created_payloads[1].parent_property_id == "new-defect-type"
+        assert created_payloads[1].trigger_condition is not None
+        assert created_payloads[1].trigger_condition.type == "value_match"
+        assert created_payloads[1].trigger_condition.property_value_ids == [
+            "new-val-contamination"
+        ]
+
+        # Hot-path regression: the create loop must never call
+        # ``team_property_lookups.refresh()`` per child (which fetches the
+        # full team property list). Each freshly-created property is pushed
+        # into the lookups in-place via ``register()``.
+        assert refresh_calls_during_create == 0
+        assert register_call_count == 2  # one per created property

@@ -34,6 +34,7 @@ from darwin.future.data_objects.properties import (
     PropertyType,
     SelectedProperty,
     TriggerCondition,
+    property_key,
 )
 from darwin.path_utils import construct_full_path, is_properties_enabled, parse_metadata
 
@@ -1704,13 +1705,14 @@ class TeamPropertyLookups:
         self.item_properties = {}
 
         for prop in team_properties:
-            if (
-                prop.granularity.value == "section"
-                or prop.granularity.value == "annotation"
-            ):
-                self.annotation_properties[(prop.name, prop.annotation_class_id)] = prop
-            elif prop.granularity.value == "item":
-                self.item_properties[prop.name] = prop
+            self.register(prop)
+
+    def register(self, prop: FullProperty) -> None:
+        """Place ``prop`` into the appropriate lookup bucket by granularity."""
+        if prop.granularity.value in ("section", "annotation"):
+            self.annotation_properties[property_key(prop)] = prop
+        elif prop.granularity.value == "item":
+            self.item_properties[prop.name] = prop
 
 
 class ReportJob(BaseModel):
