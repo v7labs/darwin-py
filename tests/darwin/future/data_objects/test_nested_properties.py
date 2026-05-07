@@ -1122,6 +1122,87 @@ class TestAssignItemPropertiesToDataset:
         assert nested_child.dataset_ids == []
 
 
+class TestE2EFixture:
+    """
+    Smoke-tests that the E2E fixture
+    ``e2e_tests/data/import/image_annotations_with_nested_properties`` is
+    well-formed: every child references a parent by name that exists and
+    every ``value_match`` trigger names a value that exists on the parent.
+    """
+
+    def _fixture_root(self) -> Path:
+        return (
+            Path(__file__).resolve().parents[4]
+            / "e2e_tests"
+            / "data"
+            / "import"
+            / "image_annotations_with_nested_properties"
+        )
+
+    def test_metadata_fixture_is_self_consistent(self) -> None:
+        fixture = self._fixture_root() / ".v7" / "metadata.json"
+        assert fixture.is_file(), f"fixture missing: {fixture}"
+
+        with open(fixture) as f:
+            raw = json.load(f)
+        classes = parse_property_classes(raw)
+
+        class_level_granularities = {
+            prop.granularity.value
+            for klass in classes
+            for prop in (klass.properties or [])
+        }
+        assert "annotation" in class_level_granularities
+        assert "section" in class_level_granularities
+
+        item_granularities = {p["granularity"] for p in raw["properties"]}
+        assert item_granularities == {"item"}
+
+        # Class-level parent resolution by name.
+        for klass in classes:
+            by_name = {p.name: p for p in klass.properties or []}
+            children = [p for p in by_name.values() if p.parent_name is not None]
+            assert children, f"class '{klass.name}' has no nested children"
+            for child in children:
+                parent = by_name.get(child.parent_name)
+                assert parent is not None, (
+                    f"child '{child.name}' references missing parent "
+                    f"'{child.parent_name}' in class '{klass.name}'"
+                )
+                trigger = child.trigger_condition
+                assert trigger is not None
+                if trigger.type == "value_match":
+                    parent_value_names = {
+                        pv.get("value") for pv in (parent.property_values or [])
+                    }
+                    assert set(trigger.values or []).issubset(parent_value_names), (
+                        f"child '{child.name}' value_match references an "
+                        f"unknown parent value"
+                    )
+
+        # Item-level parent resolution by name.
+        item_props_by_name = {p["name"]: p for p in raw["properties"]}
+        item_children = [p for p in item_props_by_name.values() if p.get("parent_name")]
+        assert item_children, "item-level fixture must include nested children"
+        for child in item_children:
+            assert child["parent_name"] in item_props_by_name
+
+    def test_annotation_fixture_references_known_properties(self) -> None:
+        fixture_root = self._fixture_root()
+        metadata = json.loads((fixture_root / ".v7" / "metadata.json").read_text())
+        class_prop_names = {
+            p["name"] for k in metadata["classes"] for p in k["properties"]
+        }
+        item_prop_names = {p["name"] for p in metadata["properties"]}
+
+        annotation_file = json.loads((fixture_root / "image_1.json").read_text())
+        for annotation in annotation_file["annotations"]:
+            for selected in annotation.get("properties", []):
+                assert selected["name"] in class_prop_names
+        for selected in annotation_file.get("properties", []):
+            assert selected["name"] in item_prop_names
+
+
 class TestImportPropertiesNestedInOneBatch:
     """
     Exercises ``_import_properties`` end-to-end with a nested hierarchy
