@@ -508,7 +508,7 @@ class Property:
         """
         parent_name = p.get("parent_name")
         raw_trigger = p.get("trigger_condition")
-        _validate_property_metadata_nesting(p.get("name", ""), parent_name, raw_trigger)
+        _validate_property_metadata_nesting(parent_name, raw_trigger)
         return cls(
             name=p["name"],
             type=p["type"],
@@ -536,7 +536,7 @@ class PropertyClass:
 
 
 def _validate_property_metadata_nesting(
-    name: str, parent_name: Any, trigger_condition: Any
+    parent_name: Any, trigger_condition: Any
 ) -> None:
     """
     Enforce the ``parent_name`` ↔ ``trigger_condition`` invariant for a
@@ -545,9 +545,9 @@ def _validate_property_metadata_nesting(
     """
     if (parent_name is None) != (trigger_condition is None):
         raise ValueError(
-            f"Property '{name}' in metadata.json has inconsistent nesting "
-            "metadata: 'parent_name' and 'trigger_condition' must both be "
-            "present or both omitted."
+            "metadata.json property has inconsistent nesting metadata: "
+            "'parent_name' and 'trigger_condition' must both be present or "
+            "both omitted."
         )
 
 

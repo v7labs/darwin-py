@@ -167,7 +167,7 @@ class FullProperty(DefaultDarwin):
             include_fields["dataset_ids"] = True
 
         payload = self.model_dump(mode="json", include=include_fields)
-        if self.parent_property_id is not None and self.trigger_condition is not None:
+        if all(nesting_set):
             payload["parent_property_id"] = self.parent_property_id
             payload["trigger_condition"] = self.trigger_condition.to_api_payload()
         return payload

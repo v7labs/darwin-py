@@ -39,6 +39,7 @@ from darwin.datatypes import (
 from darwin.future.data_objects.properties import (
     FullProperty,
     PropertyGranularity,
+    PropertyKey,
     PropertyType,
     PropertyValue,
     SelectedProperty,
@@ -568,10 +569,12 @@ def _resolve_parent_property_for_create(
             f"class-level property '{full_property.name}' without an "
             "annotation_class_id"
         )
+    parent_key: PropertyKey = (
+        full_property.parent_name,
+        full_property.annotation_class_id,
+    )
     parent_prop: Optional[FullProperty] = (
-        team_property_lookups.annotation_properties.get(
-            (full_property.parent_name, full_property.annotation_class_id)
-        )
+        team_property_lookups.annotation_properties.get(parent_key)
     )
 
     if parent_prop is None or parent_prop.id is None:
