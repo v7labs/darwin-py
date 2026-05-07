@@ -3,7 +3,7 @@
   "schema_ref": "https://darwin-public.s3.eu-west-1.amazonaws.com/darwin_json/metadata/1.0/schema.json",
   "classes": [
     {
-      "name": "nested_bbox",
+      "name": "test_bounding_box_basic",
       "type": "bounding_box",
       "description": null,
       "color": "rgba(255,0,255,1.0)",
