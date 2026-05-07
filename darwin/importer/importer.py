@@ -40,6 +40,7 @@ from darwin.datatypes import (
 from darwin.future.data_objects.properties import (
     FullProperty,
     PropertyGranularity,
+    PropertyKey,
     PropertyType,
     PropertyValue,
     SelectedProperty,
