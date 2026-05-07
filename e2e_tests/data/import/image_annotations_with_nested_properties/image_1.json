@@ -38,7 +38,7 @@
         "y": 173.355
       },
       "id": "c0ffee00-dead-beef-cafe-babe00000001",
-      "name": "nested_bbox",
+      "name": "test_bounding_box_basic",
       "properties": [
         {
           "frame_index": 0,

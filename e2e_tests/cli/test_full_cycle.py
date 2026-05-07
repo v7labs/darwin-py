@@ -579,10 +579,6 @@ def test_full_cycle_multi_channel_item(
     )
 
 
-@pytest.mark.xfail(
-    strict=False,
-    reason="Blocked on DAR-7832 (BE export does not yet emit nested metadata)",
-)
 def test_full_cycle_nested_properties(
     local_dataset: E2EDataset,
     config_values: ConfigValues,
