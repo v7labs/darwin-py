@@ -1,7 +1,9 @@
 import os
 import shutil
 from pathlib import Path
+from typing import Any, Dict, List
 
+from darwin.path_utils import parse_metadata
 from e2e_tests.helpers import (
     assert_cli,
     run_cli_command,
@@ -11,6 +13,60 @@ from e2e_tests.helpers import (
 from e2e_tests.objects import E2EDataset, ConfigValues
 from e2e_tests.cli.test_import import compare_annotations_export
 from e2e_tests.cli.test_push import extract_and_push
+
+
+def assert_nested_metadata_round_trips(
+    first_metadata_path: Path, second_metadata_path: Path
+) -> None:
+    """Assert nested property metadata survives a push/pull round-trip."""
+    first_metadata = parse_metadata(first_metadata_path)
+    second_metadata = parse_metadata(second_metadata_path)
+
+    first_flat: List[Dict[str, Any]] = [
+        {"class": klass["name"], **prop}
+        for klass in first_metadata.get("classes", [])
+        for prop in klass.get("properties", [])
+    ] + [{"class": None, **prop} for prop in first_metadata.get("properties", [])]
+    second_flat: List[Dict[str, Any]] = [
+        {"class": klass["name"], **prop}
+        for klass in second_metadata.get("classes", [])
+        for prop in klass.get("properties", [])
+    ] + [{"class": None, **prop} for prop in second_metadata.get("properties", [])]
+
+    second_by_key = {(p["class"], p["name"]): p for p in second_flat}
+
+    nested_children_first = [p for p in first_flat if p.get("parent_name") is not None]
+    assert nested_children_first, (
+        "Test setup error: first metadata export does not contain any nested "
+        "property (parent_name). The fixture must include at least one "
+        "nested property to make this assertion meaningful."
+    )
+
+    for child in nested_children_first:
+        key = (child["class"], child["name"])
+        assert (
+            key in second_by_key
+        ), f"Nested child property '{child['name']}' missing from second export"
+        second_child = second_by_key[key]
+
+        assert second_child.get("parent_name") == child["parent_name"], (
+            f"Child '{child['name']}' lost or changed its parent_name "
+            f"on round-trip: {child['parent_name']!r} -> "
+            f"{second_child.get('parent_name')!r}"
+        )
+
+        first_trigger = child.get("trigger_condition") or {}
+        second_trigger = second_child.get("trigger_condition") or {}
+        assert first_trigger.get("type") == second_trigger.get(
+            "type"
+        ), f"Trigger type of '{child['name']}' changed on round-trip"
+        if first_trigger.get("type") == "value_match":
+            assert set(first_trigger.get("values") or []) == set(
+                second_trigger.get("values") or []
+            ), (
+                f"value_match trigger values for '{child['name']}' changed "
+                "on round-trip"
+            )
 
 
 def copy_files_to_flat_directory(source_dir, target_dir):
@@ -519,3 +575,97 @@ def test_full_cycle_multi_channel_item(
         base_slot="image_1.jpg",
         unzip=False,
     )
+
+
+def test_full_cycle_nested_properties(
+    local_dataset: E2EDataset,
+    config_values: ConfigValues,
+):
+    """
+    Full round-trip for nested properties at item, section, and annotation
+    granularity. Designed to catch regressions in the importer's topological
+    sort and the BE export's metadata.json nesting fields.
+    """
+    item_type = "single_slotted"
+    annotation_format = "darwin"
+    first_release_name = "first_release"
+    second_release_name = "second_release"
+    pull_dir = Path(
+        f"{Path.home()}/.darwin/datasets/{config_values.team_slug}/{local_dataset.slug}"
+    )
+    annotations_import_dir = (
+        Path(__file__).parents[1]
+        / "data"
+        / "import"
+        / "image_annotations_with_nested_properties"
+    )
+
+    local_dataset.register_read_only_items(config_values, item_type)
+    result = run_cli_command(
+        f"darwin dataset import {local_dataset.name} {annotation_format} {annotations_import_dir}"
+    )
+    assert_cli(result, 0)
+
+    original_release = export_release(
+        annotation_format, local_dataset, config_values, release_name=first_release_name
+    )
+    result = run_cli_command(
+        f"darwin dataset pull {local_dataset.name}:{original_release.name}"
+    )
+    assert_cli(result, 0)
+
+    first_metadata_path = (
+        pull_dir
+        / "releases"
+        / first_release_name
+        / "annotations"
+        / ".v7"
+        / "metadata.json"
+    )
+    assert (
+        first_metadata_path.is_file()
+    ), f"Expected metadata.json to be present after pull at {first_metadata_path}"
+
+    local_dataset.delete_items(config_values)
+
+    result = run_cli_command(
+        f"darwin dataset push {local_dataset.name} {pull_dir}/images --preserve-folders"
+    )
+    assert_cli(result, 0)
+    wait_until_items_processed(config_values, local_dataset.id, timeout=60)
+    result = run_cli_command(
+        f"darwin dataset import {local_dataset.name} {annotation_format} "
+        f"{pull_dir}/releases/{first_release_name}/annotations"
+    )
+    assert_cli(result, 0)
+
+    shutil.rmtree(f"{pull_dir}/images")
+
+    new_release = export_release(
+        annotation_format,
+        local_dataset,
+        config_values,
+        release_name=second_release_name,
+    )
+    result = run_cli_command(
+        f"darwin dataset pull {local_dataset.name}:{new_release.name}"
+    )
+    assert_cli(result, 0)
+
+    second_metadata_path = (
+        pull_dir
+        / "releases"
+        / second_release_name
+        / "annotations"
+        / ".v7"
+        / "metadata.json"
+    )
+
+    compare_annotations_export(
+        Path(f"{pull_dir}/releases/{first_release_name}/annotations"),
+        Path(f"{pull_dir}/releases/{second_release_name}/annotations"),
+        item_type,
+        unzip=False,
+    )
+
+    assert_nested_metadata_round_trips(first_metadata_path, second_metadata_path)

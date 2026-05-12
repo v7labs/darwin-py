@@ -1,0 +1,77 @@
+{
+  "version": "2.0",
+  "schema_ref": "https://darwin-public.s3.eu-west-1.amazonaws.com/darwin_json/2.0/schema.json",
+  "item": {
+    "name": "image_1.jpg",
+    "path": "/",
+    "source_info": {
+      "dataset": {
+        "name": "nested_properties_dataset",
+        "slug": "nested_properties_dataset"
+      },
+      "team": {
+        "name": "E2E Testing",
+        "slug": "e2e-testing"
+      }
+    },
+    "slots": [
+      {
+        "type": "image",
+        "slot_name": "0",
+        "width": 1920,
+        "height": 1080,
+        "source_files": [
+          {
+            "file_name": "image_1.jpg",
+            "storage_key": "darwin-py/images/image_1.jpg"
+          }
+        ]
+      }
+    ]
+  },
+  "annotations": [
+    {
+      "bounding_box": {
+        "h": 58.941,
+        "w": 216.693,
+        "x": 280.449,
+        "y": 173.355
+      },
+      "id": "c0ffee00-dead-beef-cafe-babe00000001",
+      "name": "test_bounding_box_basic",
+      "properties": [
+        {
+          "frame_index": 0,
+          "name": "annotation_level_parent",
+          "value": "Fracture"
+        },
+        {
+          "frame_index": 0,
+          "name": "annotation_level_child",
+          "value": "Femur"
+        },
+        {
+          "frame_index": 0,
+          "name": "section_level_parent",
+          "value": "LeftHand"
+        },
+        {
+          "frame_index": 0,
+          "name": "section_level_child",
+          "value": "Rotated"
+        }
+      ],
+      "slot_names": ["0"]
+    }
+  ],
+  "properties": [
+    {
+      "name": "item_level_parent",
+      "value": "some contextual notes about the item"
+    },
+    {
+      "name": "item_level_child",
+      "value": "Yes"
+    }
+  ]
+}
