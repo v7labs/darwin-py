@@ -634,7 +634,9 @@ def _enrich_properties_with_metadata_values(
             if m_item is not None:
                 metadata_values = m_item.get("property_values") or []
         else:
-            class_name = class_name_by_id.get(prop.annotation_class_id or -1)
+            class_name = class_name_by_id.get(
+                prop.annotation_class_id if prop.annotation_class_id is not None else -1
+            )
             if class_name is None:
                 continue
             m_cls = metadata_cls_prop_lookup.get((class_name, prop.name))
