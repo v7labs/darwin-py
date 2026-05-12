@@ -143,13 +143,16 @@ class FullProperty(DefaultDarwin):
 
         # Nesting fields are coherent: all three set, or none set.
         nesting_set = (
+            self.parent_name is not None,
             self.parent_property_id is not None,
             self.trigger_condition is not None,
         )
         if any(nesting_set) and not all(nesting_set):
             raise ValueError(
-                "parent_property_id and trigger_condition must both be set or "
-                "both be None. Resolve parent_name to a parent_property_id first."
+                "parent_name, parent_property_id and trigger_condition must "
+                "all be set or all be None. Resolve parent_name to a "
+                "parent_property_id (and trigger_condition.values to "
+                "property_value_ids) before serialising."
             )
 
         include_fields: Dict[str, Any] = {

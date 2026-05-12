@@ -596,6 +596,13 @@ def _resolve_parent_property_for_create(
     trigger = full_property.trigger_condition
     resolved_trigger: Optional[TriggerCondition] = None
     if trigger is not None:
+        if parent_prop.type == "text" and trigger.type != "any_value":
+            raise ValueError(
+                f"trigger_condition.type for nested property "
+                f"'{full_property.name}' must be 'any_value' when its parent "
+                f"'{full_property.parent_name}' is a text property; got "
+                f"'{trigger.type}'."
+            )
         if trigger.type == "any_value":
             resolved_trigger = TriggerCondition(type="any_value")
         else:

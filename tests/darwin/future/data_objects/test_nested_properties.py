@@ -279,6 +279,17 @@ class TestFullPropertyEndpoints:
         with pytest.raises(ValueError):
             prop.to_create_endpoint()
 
+    def test_create_endpoint_rejects_unresolved_parent_name_only(self) -> None:
+        # ``parent_name`` set with neither ``parent_property_id`` nor
+        # ``trigger_condition`` would previously slip past the consistency
+        # guard (which only checked the API-level pair) and silently emit a
+        # top-level property, dropping the nesting relationship. The guard
+        # now requires all three of {parent_name, parent_property_id,
+        # trigger_condition} to be set together.
+        prop = _make_property(name="child", parent_name="Parent")
+        with pytest.raises(ValueError, match="parent_name"):
+            prop.to_create_endpoint()
+
     def test_create_endpoint_rejects_parent_without_trigger(self) -> None:
         prop = _make_property(name="child")
         prop.parent_property_id = "parent-uuid"
@@ -465,6 +476,55 @@ class TestResolveParentForCreate:
             ValueError, match="must set 'values' \\(parent value names\\)"
         ):
             _resolve_parent_property_for_create(child, lookups)
+
+    def test_rejects_value_match_trigger_when_parent_is_text(self) -> None:
+        # Text properties carry no enumerated ``property_values`` to match
+        # against, so a ``value_match`` trigger is meaningless and the BE
+        # rejects it. Surface a precise client-side error naming both
+        # sides of the relationship instead of letting the API 422 bubble
+        # up.
+        text_parent = _make_property(
+            id_="text-parent-id",
+            name="Notes",
+            type_="text",
+            property_values=[],
+        )
+        lookups = _fake_team_property_lookups(
+            annotation_properties={("Notes", 1): text_parent}
+        )
+        child = _make_property(
+            name="child",
+            parent_name="Notes",
+            trigger_condition=TriggerCondition(type="value_match", values=["Anything"]),
+        )
+        with pytest.raises(ValueError, match="text property") as exc_info:
+            _resolve_parent_property_for_create(child, lookups)
+        assert "any_value" in str(exc_info.value)
+
+    def test_resolves_any_value_trigger_when_parent_is_text(self) -> None:
+        # Sanity-check the inverse: an ``any_value`` trigger against a
+        # text parent is the only valid shape and must round-trip cleanly
+        # through resolution. Guards against an accidental over-eager
+        # rejection of all triggers on text parents.
+        text_parent = _make_property(
+            id_="text-parent-id",
+            name="Notes",
+            type_="text",
+            property_values=[],
+        )
+        lookups = _fake_team_property_lookups(
+            annotation_properties={("Notes", 1): text_parent}
+        )
+        child = _make_property(
+            name="child",
+            parent_name="Notes",
+            trigger_condition=TriggerCondition(type="any_value"),
+        )
+        resolved = _resolve_parent_property_for_create(child, lookups)
+        assert resolved.parent_property_id == "text-parent-id"
+        assert resolved.trigger_condition is not None
+        assert resolved.trigger_condition.type == "any_value"
+        assert resolved.trigger_condition.property_value_ids is None
 
     def test_rejects_cross_granularity_parent(self) -> None:
         # The BE rejects cross-granularity nesting at create time. Catching
