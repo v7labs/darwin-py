@@ -759,8 +759,7 @@ class TestGetAnnotatorsReport:
 
         start_job_endpoint_mock = responses.add(
             responses.POST,
-            darwin_client.url
-            + f"/v3/teams/{team_slug_darwin_json_v2}/reports/annotator/jobs",
+            darwin_client.url + f"/v3/teams/{team_slug_darwin_json_v2}/reports/jobs",
             status=400,
         )
 
@@ -939,7 +938,7 @@ class TestGetAnnotatorsReport:
     ):
         return responses.add(
             responses.POST,
-            url + f"/v3/teams/{team_slug}/reports/annotator/jobs",
+            url + f"/v3/teams/{team_slug}/reports/jobs",
             json={
                 "id": job_id,
                 "status": "pending",
@@ -956,6 +955,7 @@ class TestGetAnnotatorsReport:
                         "dataset_ids": [dataset_id],
                         "group_by": ["annotators"],
                         "format": "csv",
+                        "type": "annotator",
                         "metrics": [
                             "active_time",
                             "total_annotations",
@@ -980,7 +980,7 @@ class TestGetAnnotatorsReport:
     ):
         return responses.add(
             responses.GET,
-            url + f"/v3/teams/{team_slug}/reports/annotator/jobs/{job_id}",
+            url + f"/v3/teams/{team_slug}/reports/jobs/{job_id}",
             json={
                 "id": job_id,
                 "status": job_status,

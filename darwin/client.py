@@ -667,13 +667,14 @@ class Client:
         the_team_slug: str = the_team.slug
 
         response_data = self._post(
-            f"/v3/teams/{the_team_slug}/reports/annotator/jobs",
+            f"/v3/teams/{the_team_slug}/reports/jobs",
             {
                 "start": start.isoformat(timespec="seconds"),
                 "stop": stop.isoformat(timespec="seconds"),
                 "dataset_ids": dataset_ids,
                 "group_by": [option.value for option in group_by],
                 "format": "csv",
+                "type": "annotator",
                 "metrics": [
                     "active_time",
                     "total_annotations",
@@ -699,7 +700,7 @@ class Client:
         retry=retry_if_exception_type(JobPendingException),
     )
     def poll_pending_report_job(self, team_slug: str, job_id: str) -> ReportJob:
-        job_status_url = f"/v3/teams/{team_slug}/reports/annotator/jobs/{job_id}"
+        job_status_url = f"/v3/teams/{team_slug}/reports/jobs/{job_id}"
 
         response_data = self._get(job_status_url, team_slug)
         report_job = ReportJob.model_validate(response_data)
