@@ -16,6 +16,7 @@ from darwin.dataset.utils import (
     get_annotations,
     get_external_file_type,
     get_release_path,
+    make_class_lists,
     parse_external_file_path,
     sanitize_filename,
 )
@@ -367,6 +368,19 @@ def _create_annotation_file(annotation_path: Path, filename: str, payload: Dict)
     with open(annotation_path / filename, "w") as f:
         op = json.dumps(payload).decode("utf-8")
         f.write(op)
+
+
+class TestMakeClassLists:
+    def test_no_ops_when_release_path_is_none(self):
+        # Must not raise; previously this asserted on ``release_path is not None``.
+        make_class_lists(None)  # type: ignore[arg-type]
+
+    def test_no_ops_when_annotations_dir_is_missing(self, tmp_path: Path):
+        # Previously raised ``AssertionError`` (which is what surfaced when
+        # callers invoked it with a release root after ``pull`` had placed
+        # the annotations inside a ``subset_folder_name`` subdirectory).
+        make_class_lists(tmp_path)
+        assert not (tmp_path / "lists").exists()
 
 
 class TestGetReleasePath:

@@ -1258,6 +1258,57 @@ class TestPull:
                 )
                 assert metadata_path.exists()
 
+    @patch("platform.system", return_value="Linux")
+    def test_writes_class_lists_under_subset_folder(
+        self, system_mock: MagicMock, remote_dataset: RemoteDataset
+    ):
+        """Regression test: pulling with ``subset_folder_name`` used to raise
+        ``AssertionError`` from ``make_class_lists`` because the class-list
+        helper was given the release root rather than the subset-aware path.
+        The pull should now succeed and write ``classes_*.txt`` next to the
+        subset's ``annotations/`` directory."""
+        stub_release_response = Release(
+            "dataset-slug",
+            "team-slug",
+            "0.1.0",
+            "release-name",
+            ReleaseStatus("complete"),
+            "http://darwin-fake-url.com",
+            datetime.now(),
+            None,
+            None,
+            True,
+            True,
+            "json",
+        )
+
+        def fake_download_zip(self, path):
+            zip: Path = Path("tests/dataset.zip")
+            shutil.copy(zip, path)
+            return path
+
+        with patch.object(
+            RemoteDataset, "get_release", return_value=stub_release_response
+        ):
+            with patch.object(Release, "download_zip", new=fake_download_zip):
+                remote_dataset.pull(
+                    only_annotations=True,
+                    subset_folder_name="my_subset",
+                )
+
+        subset_dir: Path = (
+            remote_dataset.local_path / "releases" / "release-name" / "my_subset"
+        )
+        assert (subset_dir / "annotations").is_dir()
+        assert (subset_dir / "lists").is_dir()
+        # The test fixture contains a single annotation with a "car" class
+        # tagged as both polygon and bounding_box, so at least one
+        # ``classes_*.txt`` file must have been written.
+        class_files = list((subset_dir / "lists").glob("classes_*.txt"))
+        assert class_files, "expected class list files under the subset folder"
+        for class_file in class_files:
+            assert "car" in class_file.read_text().splitlines()
+
     @patch("time.sleep", return_value=None)
     def test_num_retries(self, mock_sleep, remote_dataset, pending_release):
         with patch.object(remote_dataset, "get_release", return_value=pending_release):

@@ -3,6 +3,7 @@ import shutil
 import tempfile
 import time
 import zipfile
+from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
 from typing import (
@@ -334,6 +335,12 @@ class RemoteDataset(ABC):
                     metadata_dir.mkdir(parents=True, exist_ok=True)
                     shutil.move(str(metadata_file), str(metadata_dir / "metadata.json"))
 
+                # Collect class names per annotation type as we walk the JSONs,
+                # so we don't have to re-parse every annotation file three more
+                # times (once per type) in a separate pass.
+                supported_class_types = ("tag", "polygon", "bounding_box")
+                classes_by_type: Dict[str, set] = defaultdict(set)
+
                 # Move the annotations into the right folder and rename them to have the image
                 # original filename as contained in the json
                 for annotation_path in tmp_dir.glob("*.json"):
@@ -353,6 +360,11 @@ class RemoteDataset(ABC):
                             raise MissingDependency(
                                 "Missing Dependency: OpenCV required for Video Extraction. Install with `pip install darwin-py\[ocv]`"
                             ) from e
+                    for ann in annotation.annotations:
+                        atype = ann.annotation_class.annotation_type
+                        if atype in supported_class_types:
+                            classes_by_type[atype].add(ann.annotation_class.name)
+
                     filename = Path(annotation.filename).stem
                     if filename in stems:
                         stems[filename] += 1
@@ -365,8 +377,22 @@ class RemoteDataset(ABC):
                     )
                     shutil.move(str(annotation_path), str(destination_name))
 
-        # Extract the list of classes and create the text files
-        make_class_lists(release_dir)
+        # Write the class lists next to the annotations we just produced.
+        # Using ``annotations_dir.parent`` keeps the output co-located with
+        # the corresponding ``annotations/`` folder, which is what every
+        # downstream helper expects -- and crucially it works when
+        # ``subset_folder_name`` is set, where the annotations live under
+        # ``<release_dir>/<subset_folder_name>/annotations`` rather than
+        # directly under ``<release_dir>``.
+        lists_path = annotations_dir.parent / "lists"
+        lists_path.mkdir(exist_ok=True)
+        for atype in supported_class_types:
+            class_names = classes_by_type.get(atype)
+            if not class_names:
+                continue
+            (lists_path / f"classes_{atype}.txt").write_text(
+                "\n".join(sorted(class_names))
+            )
 
         if release.latest and is_unix_like_os():
             try:
