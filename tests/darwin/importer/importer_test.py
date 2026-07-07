@@ -322,7 +322,10 @@ def test__get_remote_files_ready_for_import_chunks_long_filenames_by_url_length(
 ):
     mock_dataset = Mock()
     filenames = [
-        f"{index:04d}-00494c6f-05a3-4342-a2a9-676998ec9e42-LA2695-2026-06-16T17:57:23.780Z.png"
+        (
+            f"{index:04d}-00494c6f-05a3-4342-a2a9-676998ec9e42-"
+            "LA2695-2026-06-16T17:57:23.780Z.png"
+        )
         for index in range(513)
     ]
 
