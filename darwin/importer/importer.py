@@ -242,6 +242,37 @@ def _get_files_for_parsing(file_paths: List[PathLike]) -> List[Path]:
     return [file for files in packed_files for file in files]
 
 
+def _chunk_filenames_for_url(
+    filenames: Iterable[str], max_items_per_chunk: Optional[int] = None
+) -> Generator[List[str], None, None]:
+    if max_items_per_chunk is not None and max_items_per_chunk <= 0:
+        raise ValueError("max_items_per_chunk must be greater than 0")
+
+    current_chunk: List[str] = []
+    current_length = BASE_URL_LENGTH
+
+    for filename in filenames:
+        filename_length = len(filename) + FILENAME_OVERHEAD
+        exceeds_item_limit = (
+            max_items_per_chunk is not None
+            and len(current_chunk) >= max_items_per_chunk
+        )
+        exceeds_url_limit = (
+            current_chunk and current_length + filename_length > MAX_URL_LENGTH
+        )
+
+        if exceeds_item_limit or exceeds_url_limit:
+            yield current_chunk
+            current_chunk = []
+            current_length = BASE_URL_LENGTH
+
+        current_chunk.append(filename)
+        current_length += filename_length
+
+    if current_chunk:
+        yield current_chunk
+
+
 def _build_attribute_lookup(dataset: "RemoteDataset") -> Dict[str, Unknown]:
     attributes: List[Dict[str, Unknown]] = dataset.fetch_remote_attributes()
     lookup: Dict[str, Unknown] = {}
@@ -283,8 +314,7 @@ def _get_remote_files_ready_for_import(
     """
     remote_files = {}
     remote_files_not_ready_for_import = {}
-    for i in range(0, len(filenames), chunk_size):
-        chunk = filenames[i : i + chunk_size]
+    for chunk in _chunk_filenames_for_url(filenames, chunk_size):
         for remote_file in dataset.fetch_remote_files(
             {"types": "image,playback_video,video_frame", "item_names": chunk}
         ):
@@ -2694,24 +2724,7 @@ def _get_remote_files_targeted_by_import(
     remote_filepaths = [file.full_path for file in maybe_parsed_files]
 
     all_remote_files: List[DatasetItem] = []
-    current_chunk: List[str] = []
-    current_length = BASE_URL_LENGTH
-    max_chunk_length = MAX_URL_LENGTH - BASE_URL_LENGTH
-
-    for filename in remote_filenames:
-        filename_length = len(filename) + FILENAME_OVERHEAD
-        if current_length + filename_length > max_chunk_length and current_chunk:
-            remote_files = dataset.fetch_remote_files(
-                filters={"item_names": current_chunk}
-            )
-            all_remote_files.extend(remote_files)
-            current_chunk = []
-            current_length = BASE_URL_LENGTH
-
-        current_chunk.append(filename)
-        current_length += filename_length
-
-    if current_chunk:
+    for current_chunk in _chunk_filenames_for_url(remote_filenames):
         remote_files = dataset.fetch_remote_files(filters={"item_names": current_chunk})
         all_remote_files.extend(remote_files)
 

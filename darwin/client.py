@@ -1090,7 +1090,7 @@ class Client:
         if response.status_code == 404:
             raise NotFound(url)
 
-        if response.status_code == 413:
+        if response.status_code in (413, 414):
             raise RequestEntitySizeExceeded(url)
 
         if has_json_content_type(response):

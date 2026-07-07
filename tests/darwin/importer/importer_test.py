@@ -20,6 +20,7 @@ from darwin.future.data_objects.properties import (
 from darwin.importer import get_importer
 from darwin.importer.importer import (
     BASE_URL_LENGTH,
+    FILENAME_OVERHEAD,
     MAX_URL_LENGTH,
     _assign_item_properties_to_dataset,
     _build_attribute_lookup,
@@ -314,6 +315,45 @@ def test__get_remote_files_ready_for_import_succeeds() -> None:
         result = _get_remote_files_ready_for_import(mock_dataset, filenames)
         assert result == expected_result
         assert mock_get_slot_names.call_count == 5
+
+
+def test__get_remote_files_ready_for_import_chunks_long_filenames_by_url_length() -> (
+    None
+):
+    mock_dataset = Mock()
+    filenames = [
+        f"{index:04d}-00494c6f-05a3-4342-a2a9-676998ec9e42-LA2695-2026-06-16T17:57:23.780Z.png"
+        for index in range(513)
+    ]
+
+    def fetch_remote_files(filters):
+        chunk = filters["item_names"]
+        return [
+            Mock(
+                full_path=filename,
+                id=f"{filename}_id",
+                layout=None,
+                slots=[],
+                status="new",
+            )
+            for filename in chunk
+        ]
+
+    mock_dataset.fetch_remote_files.side_effect = fetch_remote_files
+
+    result = _get_remote_files_ready_for_import(mock_dataset, filenames)
+
+    assert len(result) == 513
+    assert mock_dataset.fetch_remote_files.call_count > 1
+    for call in mock_dataset.fetch_remote_files.call_args_list:
+        filters = call.args[0]
+        chunk = filters["item_names"]
+        chunk_url_length = BASE_URL_LENGTH + sum(
+            len(filename) + FILENAME_OVERHEAD for filename in chunk
+        )
+        assert filters["types"] == "image,playback_video,video_frame"
+        assert len(chunk) <= 100
+        assert chunk_url_length <= MAX_URL_LENGTH
 
 
 def test__get_remote_files_ready_for_import_defaults_layout_for_multislot() -> None:
