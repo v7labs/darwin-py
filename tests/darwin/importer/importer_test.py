@@ -628,8 +628,7 @@ def test_properties_import_is_always_synchronous():
 
 def test_import_annotations_retries_remote_file_lookup_with_smaller_chunks() -> None:
     filename = (
-        "00494c6f-05a3-4342-a2a9-676998ec9e42-"
-        "LA2695-2026-06-16T17:57:23.780Z.png"
+        "00494c6f-05a3-4342-a2a9-676998ec9e42-" "LA2695-2026-06-16T17:57:23.780Z.png"
     )
     annotation_file = dt.AnnotationFile(
         path=Path("prelabel.json"),
