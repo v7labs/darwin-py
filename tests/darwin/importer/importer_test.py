@@ -626,6 +626,76 @@ def test_properties_import_is_always_synchronous():
         assert mock_submit.mock_calls[-1].args[2].__name__ == "import_annotation"
 
 
+def test_import_annotations_retries_remote_file_lookup_with_smaller_chunks() -> None:
+    filename = (
+        "00494c6f-05a3-4342-a2a9-676998ec9e42-" "LA2695-2026-06-16T17:57:23.780Z.png"
+    )
+    annotation_file = dt.AnnotationFile(
+        path=Path("prelabel.json"),
+        filename=filename,
+        annotation_classes=set(),
+        annotations=[],
+        remote_path="/",
+    )
+    remote_file_lookup = {
+        annotation_file.full_path: {
+            "item_id": "item_id",
+            "slot_names": ["0"],
+            "layout": None,
+        }
+    }
+
+    dataset = Mock()
+    dataset.version = 2
+    dataset.team = "test_team"
+    dataset.identifier = "test_team/test_dataset"
+    dataset.client = Mock()
+    dataset.fetch_remote_classes.return_value = [
+        {
+            "id": "global_class_id",
+            "name": "__raster_layer__",
+            "available": True,
+            "annotation_types": ["raster_layer"],
+        }
+    ]
+    dataset.fetch_remote_attributes.return_value = []
+
+    importer = Mock()
+    importer.__module__ = "darwin.importer.formats.coco"
+
+    team_property_lookups = Mock()
+    team_property_lookups.item_properties = {}
+
+    with (
+        patch(
+            "darwin.importer.importer._get_remote_files_targeted_by_import",
+            return_value=[],
+        ),
+        patch("darwin.importer.importer._find_and_parse") as find_and_parse,
+        patch(
+            "darwin.importer.importer._get_remote_files_ready_for_import",
+            side_effect=[RequestEntitySizeExceeded(), remote_file_lookup],
+        ) as get_remote_files_ready_for_import,
+        patch(
+            "darwin.importer.importer.TeamPropertyLookups.from_team",
+            return_value=team_property_lookups,
+        ),
+    ):
+        find_and_parse.return_value = [annotation_file]
+
+        import_annotations(
+            dataset=dataset,
+            importer=importer,
+            file_paths=[Path("prelabel.json")],
+            append=True,
+            use_multi_cpu=False,
+        )
+
+    assert [
+        call.args[2] for call in get_remote_files_ready_for_import.call_args_list
+    ] == [100, 92]
+
+
 def test__is_skeleton_class() -> None:
     class1 = dt.AnnotationClass(name="class1", annotation_type="skeleton")
     class2 = dt.AnnotationClass(name="class2", annotation_type="polygon")
