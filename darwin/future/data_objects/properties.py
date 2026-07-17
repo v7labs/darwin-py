@@ -14,6 +14,7 @@ PropertyType = Literal[
     "multi_select",
     "single_select",
     "text",
+    "audio",
     "attributes",
     "instance_id",
     "directional_vector",
