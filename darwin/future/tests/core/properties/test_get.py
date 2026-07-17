@@ -37,6 +37,32 @@ def test_get_team_properties(
 
 
 @responses.activate
+def test_get_team_properties_parses_audio_type(
+    base_client: ClientCore, base_property_object: FullProperty
+) -> None:
+    # Regression: a team with an `audio` property must not break listing team
+    # properties (which every darwin-py annotation import does via
+    # TeamPropertyLookups.from_team). Reproduces the ValidationError customers
+    # hit once an audio class exists in the workspace.
+    audio_property = base_property_object.model_copy(deep=True)
+    audio_property.type = "audio"
+    audio_property.options = None
+    audio_property.property_values = None
+    response_data = {"properties": [audio_property.model_dump(mode="json")]}
+    responses.add(
+        responses.GET,
+        f"{base_client.config.base_url}api/v2/teams/{base_client.config.default_team}/properties",
+        json=response_data,
+        status=200,
+    )
+
+    properties = get_team_properties(base_client)
+
+    assert len(properties) == 1
+    assert properties[0].type == "audio"
+
+
+@responses.activate
 def test_get_team_full_properties(
     base_client: ClientCore, base_property_object: FullProperty
 ) -> None:
