@@ -97,7 +97,11 @@ def parse_json(
         annotation["segmentation"]
         if image_id not in image_annotations:
             image_annotations[image_id] = []
-        if rle_as_masks and isinstance(annotation["segmentation"], dict):
+        if (
+            rle_as_masks
+            and isinstance(annotation["segmentation"], dict)
+            and "counts" in annotation["segmentation"]
+        ):
             image_rle_annotations.setdefault(image_id, []).append(annotation)
         else:
             image_annotations[image_id].extend(
@@ -233,33 +237,39 @@ def _build_mask_annotations(
     next_label = 1
 
     for annotation in rle_annotations:
-        segmentation = annotation["segmentation"]
-        seg_height, seg_width = segmentation["size"]
-        if height is None or width is None or label_map is None:
-            height, width = seg_height, seg_width
-            label_map = np.zeros((height, width), dtype=np.int32)
-        elif (seg_height, seg_width) != (height, width):
-            logger.warning(
-                f"Skipping RLE annotation {annotation.get('id')}: size "
-                f"{segmentation['size']} does not match image size [{height}, {width}]"
+        try:
+            segmentation = annotation["segmentation"]
+            seg_height, seg_width = segmentation["size"]
+            if height is None or width is None or label_map is None:
+                height, width = seg_height, seg_width
+                label_map = np.zeros((height, width), dtype=np.int32)
+            elif (seg_height, seg_width) != (height, width):
+                logger.warning(
+                    f"Skipping RLE annotation {annotation.get('id')}: size "
+                    f"{segmentation['size']} does not match image size [{height}, {width}]"
+                )
+                continue
+            counts = segmentation["counts"]
+            if not isinstance(counts, list):
+                counts = decode_binary_rle(counts)
+            if sum(counts) != height * width:
+                logger.warning(
+                    f"Skipping RLE annotation {annotation.get('id')}: counts cover "
+                    f"{sum(counts)} pixels, expected {height * width}"
+                )
+                continue
+            binary = np.array(rle_decode(counts, [width, height])).reshape(
+                height, width
             )
+            category = category_lookup_table[annotation["category_id"]]
+            mask = dt.make_mask(category["name"])
+            mask.id = str(uuid4())
+            label_map[binary > 0] = next_label
+            painted_masks.append((mask, next_label))
+            next_label += 1
+        except Exception as e:
+            logger.warning(f"Skipping RLE annotation {annotation.get('id')}: {e}")
             continue
-        counts = segmentation["counts"]
-        if not isinstance(counts, list):
-            counts = decode_binary_rle(counts)
-        if sum(counts) != height * width:
-            logger.warning(
-                f"Skipping RLE annotation {annotation.get('id')}: counts cover "
-                f"{sum(counts)} pixels, expected {height * width}"
-            )
-            continue
-        binary = np.array(rle_decode(counts, [width, height])).reshape(height, width)
-        category = category_lookup_table[annotation["category_id"]]
-        mask = dt.make_mask(category["name"])
-        mask.id = str(uuid4())
-        label_map[binary > 0] = next_label
-        painted_masks.append((mask, next_label))
-        next_label += 1
 
     if label_map is None:
         return []

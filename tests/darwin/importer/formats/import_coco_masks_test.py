@@ -120,6 +120,34 @@ class TestBuildMaskAnnotations:
     def test_no_annotations_returns_empty(self):
         assert coco._build_mask_annotations([], CATEGORIES) == []
 
+    def test_missing_size_is_skipped_not_raised(self):
+        missing_size = {"counts": [3, 2, 1, 1, 5]}
+
+        annotations = coco._build_mask_annotations(
+            [
+                _rle_annotation(1, 10, CAT_RLE),
+                _rle_annotation(2, 20, missing_size),
+            ],
+            CATEGORIES,
+        )
+
+        assert len(annotations) == 2  # cat mask + raster layer only
+        assert annotations[0].annotation_class.name == "cat"
+        assert annotations[-1].annotation_class.annotation_type == "raster_layer"
+
+    def test_unknown_category_id_is_skipped_not_raised(self):
+        annotations = coco._build_mask_annotations(
+            [
+                _rle_annotation(1, 10, CAT_RLE),
+                _rle_annotation(2, 99, DOG_RLE),
+            ],
+            CATEGORIES,
+        )
+
+        assert len(annotations) == 2  # cat mask + raster layer only
+        assert annotations[0].annotation_class.name == "cat"
+        assert annotations[-1].annotation_class.annotation_type == "raster_layer"
+
 
 def _coco_json(annotations, categories=None):
     return {
@@ -212,6 +240,36 @@ class TestCocoMasksParsePath:
         ]
         assert types.count("mask") == 1
         assert types.count("raster_layer") == 1
+
+    def test_empty_dict_segmentation_stays_on_classic_path(self, tmp_path: Path):
+        from darwin.importer.formats import coco_masks
+
+        coco_file = tmp_path / "coco.json"
+        coco_file.write_text(
+            json.dumps(
+                _coco_json(
+                    [
+                        {
+                            "id": 400,
+                            "image_id": 1,
+                            "category_id": 10,
+                            "iscrowd": 0,
+                            "segmentation": {},
+                            "bbox": [1, 1, 2, 2],
+                            "area": 4,
+                        }
+                    ]
+                )
+            )
+        )
+
+        annotation_files = coco_masks.parse_path(coco_file)
+
+        assert annotation_files is not None and len(annotation_files) == 1
+        types = [
+            a.annotation_class.annotation_type for a in annotation_files[0].annotations
+        ]
+        assert types == ["bounding_box"]
 
     def test_registered_with_get_importer(self):
         from darwin.importer import get_importer
