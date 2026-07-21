@@ -1,8 +1,10 @@
+import json
 from pathlib import Path
 
 import pytest
 
 import darwin.datatypes as dt
+from darwin.exporter import exporter
 from darwin.exporter.formats import coco
 
 
@@ -251,3 +253,64 @@ class TestBuildRasterAnnotations:
         annotations = list(coco._build_annotations([annotation_file], categories))
 
         assert annotations == []
+
+
+class TestRasterMaskEndToEnd:
+    def test_darwin_json_to_coco_export_cycle(self, tmp_path: Path):
+        darwin_json = {
+            "version": "2.0",
+            "schema_ref": "https://darwin-public.s3.eu-west-1.amazonaws.com/darwin_json/2.0/schema.json",
+            "item": {
+                "name": "test.png",
+                "path": "/",
+                "slots": [
+                    {"type": "image", "slot_name": "0", "width": 4, "height": 3}
+                ],
+            },
+            "annotations": [
+                {"id": "uuid-1", "name": "cat", "slot_names": ["0"], "mask": {}},
+                {"id": "uuid-2", "name": "dog", "slot_names": ["0"], "mask": {}},
+                {
+                    "id": "uuid-raster",
+                    "name": "__raster_layer__",
+                    "slot_names": ["0"],
+                    "raster_layer": {
+                        "dense_rle": [0, 1, 1, 2, 0, 1, 2, 1, 1, 1, 0, 2, 2, 2, 0, 2],
+                        "mask_annotation_ids_mapping": {"uuid-1": 1, "uuid-2": 2},
+                        "total_pixels": 12,
+                    },
+                },
+            ],
+        }
+        src = tmp_path / "annotations"
+        out = tmp_path / "out"
+        src.mkdir()
+        out.mkdir()
+        (src / "test.json").write_text(json.dumps(darwin_json))
+
+        dt_gen = exporter.darwin_to_dt_gen(
+            list(src.glob("*.json")), split_sequences=False
+        )
+        coco.export(dt_gen, out)
+
+        result = json.loads((out / "output.json").read_text())
+
+        assert {c["name"] for c in result["categories"]} == {"cat", "dog"}
+        assert len(result["annotations"]) == 2
+        assert len(result["images"]) == 1
+        assert result["images"][0]["height"] == 3
+        assert result["images"][0]["width"] == 4
+
+        by_first_count = {
+            a["segmentation"]["counts"][0]: a for a in result["annotations"]
+        }
+        cat_ann = by_first_count[3]
+        assert cat_ann["segmentation"] == {"counts": [3, 2, 1, 1, 5], "size": [3, 4]}
+        assert cat_ann["bbox"] == [1, 0, 2, 2]
+        assert cat_ann["area"] == 3
+        assert cat_ann["iscrowd"] == 0
+
+        dog_ann = by_first_count[1]
+        assert dog_ann["segmentation"] == {"counts": [1, 2, 2, 1, 6], "size": [3, 4]}
+        assert dog_ann["bbox"] == [0, 1, 2, 2]
+        assert dog_ann["area"] == 3
