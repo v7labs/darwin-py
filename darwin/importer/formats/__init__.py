@@ -4,6 +4,7 @@ from typing import List
 # https://docs.v7labs.com/docs/import-1
 supported_formats: List[str] = [
     "coco",
+    "coco_masks",
     "dataloop",
     "csv_tags",
     "csv_tags_video",

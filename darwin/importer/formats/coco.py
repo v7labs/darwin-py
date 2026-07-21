@@ -45,7 +45,9 @@ def parse_path(path: Path) -> Optional[List[dt.AnnotationFile]]:
 
 
 def parse_json(
-    path: Path, data: Dict[str, dt.UnknownType]
+    path: Path,
+    data: Dict[str, dt.UnknownType],
+    rle_as_masks: bool = False,
 ) -> Iterator[dt.AnnotationFile]:
     """
     Parses the given ``json`` structure into an ``Iterator[dt.AnnotationFile]``.
@@ -56,6 +58,10 @@ def parse_json(
         The ``Path`` where file containing the ``data`` is.
     data : Dict[str, Any]
         The ``json`` data to process.
+    rle_as_masks : bool, default: False
+        If ``True``, RLE segmentations are imported as Darwin raster ``mask``
+        annotations (plus one ``raster_layer`` per image) instead of being
+        converted to polygons.
 
     Returns
     -------
@@ -72,6 +78,7 @@ def parse_json(
         category["id"]: category for category in tag_categories
     }
     image_annotations: Dict[str, dt.UnknownType] = {}
+    image_rle_annotations: Dict[str, List[Dict[str, dt.UnknownType]]] = {}
 
     for image in data["images"]:
         image_id = image["id"]
@@ -90,8 +97,16 @@ def parse_json(
         annotation["segmentation"]
         if image_id not in image_annotations:
             image_annotations[image_id] = []
+        if rle_as_masks and isinstance(annotation["segmentation"], dict):
+            image_rle_annotations.setdefault(image_id, []).append(annotation)
+        else:
+            image_annotations[image_id].extend(
+                parse_annotation(annotation, category_lookup_table)
+            )
+
+    for image_id, rle_annotations in image_rle_annotations.items():
         image_annotations[image_id].extend(
-            parse_annotation(annotation, category_lookup_table)
+            _build_mask_annotations(rle_annotations, category_lookup_table)
         )
 
     for image_id in image_annotations.keys():

@@ -1,3 +1,6 @@
+import json
+from pathlib import Path
+
 from darwin.importer.formats import coco
 
 CAT_RLE = {"counts": [3, 2, 1, 1, 5], "size": [3, 4]}
@@ -114,3 +117,116 @@ class TestBuildMaskAnnotations:
 
     def test_no_annotations_returns_empty(self):
         assert coco._build_mask_annotations([], CATEGORIES) == []
+
+
+def _coco_json(annotations, categories=None):
+    return {
+        "images": [{"id": 1, "file_name": "test.png", "height": 3, "width": 4}],
+        "categories": categories
+        or [
+            {"id": 10, "name": "cat", "supercategory": "root"},
+            {"id": 20, "name": "dog", "supercategory": "root"},
+        ],
+        "annotations": annotations,
+    }
+
+
+class TestCocoMasksParsePath:
+    def test_rle_annotations_import_as_masks(self, tmp_path: Path):
+        from darwin.importer.formats import coco_masks
+
+        coco_file = tmp_path / "coco.json"
+        coco_file.write_text(
+            json.dumps(
+                _coco_json(
+                    [
+                        _rle_annotation(100, 10, CAT_RLE),
+                        _rle_annotation(200, 20, DOG_RLE),
+                    ]
+                )
+            )
+        )
+
+        annotation_files = coco_masks.parse_path(coco_file)
+
+        assert annotation_files is not None and len(annotation_files) == 1
+        annotation_file = annotation_files[0]
+        assert annotation_file.filename == "test.png"
+
+        types = [
+            a.annotation_class.annotation_type for a in annotation_file.annotations
+        ]
+        assert types.count("mask") == 2
+        assert types.count("raster_layer") == 1
+
+        raster_layer = next(
+            a
+            for a in annotation_file.annotations
+            if a.annotation_class.annotation_type == "raster_layer"
+        )
+        assert raster_layer.data["dense_rle"] == CANONICAL_DENSE_RLE
+        assert raster_layer.data["total_pixels"] == 12
+
+    def test_polygon_annotations_still_import_as_polygons(self, tmp_path: Path):
+        from darwin.importer.formats import coco_masks
+
+        polygon_annotation = {
+            "id": 300,
+            "image_id": 1,
+            "category_id": 10,
+            "iscrowd": 0,
+            "segmentation": [[0.0, 0.0, 2.0, 0.0, 2.0, 2.0]],
+            "bbox": [0, 0, 2, 2],
+            "area": 2,
+        }
+        coco_file = tmp_path / "coco.json"
+        coco_file.write_text(
+            json.dumps(
+                _coco_json([polygon_annotation, _rle_annotation(100, 20, DOG_RLE)])
+            )
+        )
+
+        annotation_files = coco_masks.parse_path(coco_file)
+
+        types = [
+            a.annotation_class.annotation_type for a in annotation_files[0].annotations
+        ]
+        assert types.count("polygon") == 1
+        assert types.count("mask") == 1
+        assert types.count("raster_layer") == 1
+
+    def test_iscrowd_rle_imports_as_mask_instead_of_being_skipped(self, tmp_path: Path):
+        from darwin.importer.formats import coco_masks
+
+        coco_file = tmp_path / "coco.json"
+        coco_file.write_text(
+            json.dumps(_coco_json([_rle_annotation(100, 10, CAT_RLE, iscrowd=1)]))
+        )
+
+        annotation_files = coco_masks.parse_path(coco_file)
+
+        types = [
+            a.annotation_class.annotation_type for a in annotation_files[0].annotations
+        ]
+        assert types.count("mask") == 1
+        assert types.count("raster_layer") == 1
+
+    def test_registered_with_get_importer(self):
+        from darwin.importer import get_importer
+        from darwin.importer.formats import coco_masks, supported_formats
+
+        assert "coco_masks" in supported_formats
+        assert get_importer("coco_masks") is coco_masks.parse_path
+
+    def test_classic_coco_importer_unchanged(self, tmp_path: Path):
+        coco_file = tmp_path / "coco.json"
+        coco_file.write_text(
+            json.dumps(_coco_json([_rle_annotation(100, 10, CAT_RLE)]))
+        )
+
+        annotation_files = coco.parse_path(coco_file)
+
+        types = [
+            a.annotation_class.annotation_type for a in annotation_files[0].annotations
+        ]
+        assert types == ["polygon"]  # classic behavior: RLE polygonized
