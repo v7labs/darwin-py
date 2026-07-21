@@ -242,6 +242,35 @@ class TestBuildRasterAnnotations:
 
         assert annotations == []
 
+    def test_raster_layer_with_negative_count_dense_rle_is_skipped(self):
+        mask_cat = dt.Annotation(dt.AnnotationClass("cat", "mask"), {}, [], id="uuid-1")
+        raster_layer = dt.Annotation(
+            dt.AnnotationClass("__raster_layer__", "raster_layer"),
+            {
+                "dense_rle": [0, -1, 1, 13],
+                "mask_annotation_ids_mapping": {"uuid-1": 1},
+                "total_pixels": 12,
+            },
+            [],
+            id="uuid-raster",
+        )
+        annotation_file = dt.AnnotationFile(
+            path=Path("test.json"),
+            filename="test.json",
+            annotation_classes={
+                dt.AnnotationClass("cat", "mask"),
+                dt.AnnotationClass("__raster_layer__", "raster_layer"),
+            },
+            annotations=[mask_cat, raster_layer],
+            image_height=3,
+            image_width=4,
+        )
+        categories = coco._calculate_categories([annotation_file])
+
+        annotations = list(coco._build_annotations([annotation_file], categories))
+
+        assert annotations == []
+
 
 class TestRasterMaskEndToEnd:
     def test_darwin_json_to_coco_export_cycle(self, tmp_path: Path):
@@ -287,6 +316,9 @@ class TestRasterMaskEndToEnd:
         assert result["images"][0]["height"] == 3
         assert result["images"][0]["width"] == 4
 
+        # Safe to key by first RLE count: cat's first count (3) and dog's
+        # first count (1) differ in this fixture, so each maps to exactly
+        # one annotation.
         by_first_count = {
             a["segmentation"]["counts"][0]: a for a in result["annotations"]
         }
@@ -300,3 +332,4 @@ class TestRasterMaskEndToEnd:
         assert dog_ann["segmentation"] == {"counts": [1, 2, 2, 1, 6], "size": [3, 4]}
         assert dog_ann["bbox"] == [0, 1, 2, 2]
         assert dog_ann["area"] == 3
+        assert dog_ann["iscrowd"] == 0

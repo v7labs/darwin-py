@@ -303,10 +303,16 @@ def _build_raster_context(
             continue
         dense_rle = annotation.data.get("dense_rle")
         mask_annotation_ids_mapping = annotation.data.get("mask_annotation_ids_mapping")
-        if dense_rle is None or mask_annotation_ids_mapping is None:
+        if dense_rle is None:
             print(
                 f"skipping raster_layer in '{annotation_file.filename}': missing "
-                "dense_rle or mask_annotation_ids_mapping"
+                "dense_rle"
+            )
+            continue
+        if mask_annotation_ids_mapping is None:
+            print(
+                f"skipping raster_layer in '{annotation_file.filename}': missing "
+                "mask_annotation_ids_mapping"
             )
             continue
         if len(dense_rle) % 2 != 0:
@@ -315,9 +321,15 @@ def _build_raster_context(
                 "odd length"
             )
             continue
-        values = np.array(dense_rle[0::2], dtype=np.int32)
-        counts = np.array(dense_rle[1::2], dtype=np.int64)
-        labels = np.repeat(values, counts)
+        try:
+            values = np.array(dense_rle[0::2], dtype=np.int32)
+            counts = np.array(dense_rle[1::2], dtype=np.int64)
+            labels = np.repeat(values, counts)
+        except (ValueError, TypeError):
+            print(
+                f"skipping raster_layer in '{annotation_file.filename}': invalid dense_rle"
+            )
+            continue
         if labels.size != height * width:
             print(
                 f"skipping raster_layer in '{annotation_file.filename}': dense_rle covers "
