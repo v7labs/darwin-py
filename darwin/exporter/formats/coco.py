@@ -302,9 +302,7 @@ def _build_raster_context(
             )
             continue
         dense_rle = annotation.data.get("dense_rle")
-        mask_annotation_ids_mapping = annotation.data.get(
-            "mask_annotation_ids_mapping"
-        )
+        mask_annotation_ids_mapping = annotation.data.get("mask_annotation_ids_mapping")
         if dense_rle is None or mask_annotation_ids_mapping is None:
             print(
                 f"skipping raster_layer in '{annotation_file.filename}': missing "

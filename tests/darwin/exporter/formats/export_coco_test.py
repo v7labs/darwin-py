@@ -99,12 +99,8 @@ class TestBuildAnnotations:
 class TestBuildRasterAnnotations:
     @pytest.fixture
     def raster_annotation_file(self) -> dt.AnnotationFile:
-        mask_cat = dt.Annotation(
-            dt.AnnotationClass("cat", "mask"), {}, [], id="uuid-1"
-        )
-        mask_dog = dt.Annotation(
-            dt.AnnotationClass("dog", "mask"), {}, [], id="uuid-2"
-        )
+        mask_cat = dt.Annotation(dt.AnnotationClass("cat", "mask"), {}, [], id="uuid-1")
+        mask_dog = dt.Annotation(dt.AnnotationClass("dog", "mask"), {}, [], id="uuid-2")
         raster_layer = dt.Annotation(
             dt.AnnotationClass("__raster_layer__", "raster_layer"),
             {
@@ -138,17 +134,13 @@ class TestBuildRasterAnnotations:
 
         assert len(annotations) == 2
 
-        cat_ann = next(
-            a for a in annotations if a["category_id"] == categories["cat"]
-        )
+        cat_ann = next(a for a in annotations if a["category_id"] == categories["cat"])
         assert cat_ann["segmentation"] == {"counts": [3, 2, 1, 1, 5], "size": [3, 4]}
         assert cat_ann["bbox"] == [1, 0, 2, 2]
         assert cat_ann["area"] == 3
         assert cat_ann["iscrowd"] == 0
 
-        dog_ann = next(
-            a for a in annotations if a["category_id"] == categories["dog"]
-        )
+        dog_ann = next(a for a in annotations if a["category_id"] == categories["dog"])
         assert dog_ann["segmentation"] == {"counts": [1, 2, 2, 1, 6], "size": [3, 4]}
         assert dog_ann["bbox"] == [0, 1, 2, 2]
         assert dog_ann["area"] == 3
@@ -194,9 +186,7 @@ class TestBuildRasterAnnotations:
         assert len(output["images"]) == 1
 
     def test_raster_layer_with_odd_length_dense_rle_is_skipped(self):
-        mask_cat = dt.Annotation(
-            dt.AnnotationClass("cat", "mask"), {}, [], id="uuid-1"
-        )
+        mask_cat = dt.Annotation(dt.AnnotationClass("cat", "mask"), {}, [], id="uuid-1")
         raster_layer = dt.Annotation(
             dt.AnnotationClass("__raster_layer__", "raster_layer"),
             {
@@ -225,9 +215,7 @@ class TestBuildRasterAnnotations:
         assert annotations == []
 
     def test_raster_layer_missing_dense_rle_is_skipped(self):
-        mask_cat = dt.Annotation(
-            dt.AnnotationClass("cat", "mask"), {}, [], id="uuid-1"
-        )
+        mask_cat = dt.Annotation(dt.AnnotationClass("cat", "mask"), {}, [], id="uuid-1")
         raster_layer = dt.Annotation(
             dt.AnnotationClass("__raster_layer__", "raster_layer"),
             {
@@ -263,9 +251,7 @@ class TestRasterMaskEndToEnd:
             "item": {
                 "name": "test.png",
                 "path": "/",
-                "slots": [
-                    {"type": "image", "slot_name": "0", "width": 4, "height": 3}
-                ],
+                "slots": [{"type": "image", "slot_name": "0", "width": 4, "height": 3}],
             },
             "annotations": [
                 {"id": "uuid-1", "name": "cat", "slot_names": ["0"], "mask": {}},
