@@ -109,8 +109,14 @@ def parse_json(
             )
 
     for image_id, rle_annotations in image_rle_annotations.items():
+        image = image_lookup_table[int(image_id)]
         image_annotations[image_id].extend(
-            _build_mask_annotations(rle_annotations, category_lookup_table)
+            _build_mask_annotations(
+                rle_annotations,
+                category_lookup_table,
+                image_height=image.get("height"),
+                image_width=image.get("width"),
+            )
         )
 
     for image_id in image_annotations.keys():
@@ -222,6 +228,8 @@ def _encode_dense_rle(label_map: "np.ndarray") -> List[int]:
 def _build_mask_annotations(
     rle_annotations: List[Dict[str, dt.UnknownType]],
     category_lookup_table: Dict[str, dt.UnknownType],
+    image_height: Optional[int] = None,
+    image_width: Optional[int] = None,
 ) -> List[dt.Annotation]:
     """
     Converts one image's COCO RLE annotations into Darwin ``mask`` annotations
@@ -229,10 +237,21 @@ def _build_mask_annotations(
 
     Overlaps are resolved by annotation order: later annotations paint over
     earlier ones. Masks left without any visible pixel are dropped.
+
+    When ``image_height``/``image_width`` are both provided (the COCO image
+    record's authoritative dimensions), they set the canvas up front, and
+    every RLE's own ``segmentation["size"]`` is validated against them. This
+    prevents a malformed leading RLE (e.g. with the wrong ``size``) from
+    silently setting the wrong canvas and causing later, valid RLEs to be
+    skipped as "mismatched". When either dimension is ``None``, the first
+    RLE's ``size`` is used as the canvas, preserving prior behavior for
+    direct callers that don't pass image dimensions.
     """
-    height: Optional[int] = None
-    width: Optional[int] = None
+    height: Optional[int] = image_height
+    width: Optional[int] = image_width
     label_map: Optional[np.ndarray] = None
+    if height is not None and width is not None:
+        label_map = np.zeros((height, width), dtype=np.int32)
     painted_masks: List[Tuple[dt.Annotation, int]] = []
     next_label = 1
 

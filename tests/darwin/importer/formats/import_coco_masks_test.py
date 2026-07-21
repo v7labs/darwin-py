@@ -148,6 +148,54 @@ class TestBuildMaskAnnotations:
         assert annotations[0].annotation_class.name == "cat"
         assert annotations[-1].annotation_class.annotation_type == "raster_layer"
 
+    def test_image_dims_authority_ignores_malformed_leading_rle_size(self):
+        # A malformed FIRST RLE claims a 2x2 canvas, but the image record is
+        # actually 3x4 (image_height=3, image_width=4). The image dims must
+        # win: the wrong-size RLE is skipped, and the valid CAT_RLE (which
+        # matches the real 3x4 canvas) is kept instead of being skipped as
+        # "mismatched" against a bogus 2x2 canvas set by the first RLE.
+        #
+        # CAT_RLE decodes (row-major, on a 3x4 canvas) to:
+        #   0 1 1 0
+        #   0 1 0 0
+        #   0 0 0 0
+        # i.e. flat = [0,1,1,0, 0,1,0,0, 0,0,0,0]
+        # Dense RLE (value,count pairs) of that flat sequence:
+        #   0x1, 1x2, 0x2, 1x1, 0x6
+        # => [0, 1, 1, 2, 0, 2, 1, 1, 0, 6]
+        wrong_size_first = {"counts": [0, 4], "size": [2, 2]}
+
+        annotations = coco._build_mask_annotations(
+            [
+                _rle_annotation(1, 99, wrong_size_first),
+                _rle_annotation(2, 10, CAT_RLE),
+            ],
+            CATEGORIES,
+            image_height=3,
+            image_width=4,
+        )
+
+        assert len(annotations) == 2  # cat mask + raster layer
+        cat_mask, raster_layer = annotations
+        assert cat_mask.annotation_class.name == "cat"
+        assert raster_layer.data["total_pixels"] == 12
+        assert raster_layer.data["dense_rle"] == [0, 1, 1, 2, 0, 2, 1, 1, 0, 6]
+
+    def test_without_image_dims_first_rle_size_remains_authority(self):
+        # Backward-compat: when image_height/image_width are not supplied
+        # (positional call, as existing direct-unit callers do), the FIRST
+        # RLE's own "size" continues to set the canvas, exactly as before.
+        wrong_size_only = {"counts": [0, 4], "size": [2, 2]}
+
+        annotations = coco._build_mask_annotations(
+            [_rle_annotation(1, 10, wrong_size_only)],
+            CATEGORIES,
+        )
+
+        assert len(annotations) == 2  # single mask + raster layer
+        raster_layer = annotations[-1]
+        assert raster_layer.data["total_pixels"] == 4
+
 
 def _coco_json(annotations, categories=None):
     return {
