@@ -1,7 +1,7 @@
 from datetime import date
 from operator import itemgetter
 from pathlib import Path
-from typing import Any, Dict, Iterator, List, Optional
+from typing import Any, Dict, Iterator, List, Optional, Tuple
 from zlib import crc32
 
 import numpy as np
@@ -160,11 +160,25 @@ def _build_annotations(
 ) -> Iterator[Optional[Dict[str, Any]]]:
     annotation_id = 0
     for annotation_file in annotation_files:
+        raster_context = _build_raster_context(annotation_file)
         for annotation in annotation_file.annotations:
+            annotation_type = annotation.annotation_class.annotation_type
+            if annotation_type == "raster_layer":
+                # Raster layers are exported through their mask annotations.
+                continue
             annotation_id += 1
-            annotation_data = _build_annotation(
-                annotation_file, annotation_id, annotation, categories
-            )
+            if annotation_type == "mask":
+                annotation_data = _build_mask_annotation(
+                    annotation_file,
+                    annotation_id,
+                    annotation,
+                    categories,
+                    raster_context,
+                )
+            else:
+                annotation_data = _build_annotation(
+                    annotation_file, annotation_id, annotation, categories
+                )
             if annotation_data:
                 yield annotation_data
 
@@ -261,6 +275,81 @@ def _build_annotation(
         )
     else:
         print(f"skipping unsupported annotation_type '{annotation_type}'")
+
+
+def _build_raster_context(
+    annotation_file: dt.AnnotationFile,
+) -> Dict[str, Tuple[np.ndarray, int]]:
+    """
+    Maps each mask annotation id to its decoded raster label map and pixel label.
+
+    Each ``raster_layer`` in the file is decoded exactly once into a 2D array of
+    per-pixel labels; ``mask_annotation_ids_mapping`` ties mask annotation ids to
+    those labels.
+    """
+    context: Dict[str, Tuple[np.ndarray, int]] = {}
+    height = annotation_file.image_height
+    width = annotation_file.image_width
+    for annotation in annotation_file.annotations:
+        if annotation.annotation_class.annotation_type != "raster_layer":
+            continue
+        if isinstance(annotation, dt.VideoAnnotation):
+            print("skipping video raster_layer annotation")
+            continue
+        if not height or not width:
+            print(
+                f"skipping raster_layer in '{annotation_file.filename}': unknown image dimensions"
+            )
+            continue
+        dense_rle = annotation.data["dense_rle"]
+        values = np.array(dense_rle[0::2], dtype=np.int32)
+        counts = np.array(dense_rle[1::2], dtype=np.int64)
+        labels = np.repeat(values, counts)
+        if labels.size != height * width:
+            print(
+                f"skipping raster_layer in '{annotation_file.filename}': dense_rle covers "
+                f"{labels.size} pixels, expected {height * width}"
+            )
+            continue
+        label_map = labels.reshape(height, width)
+        for mask_id, label in annotation.data["mask_annotation_ids_mapping"].items():
+            context[mask_id] = (label_map, int(label))
+    return context
+
+
+def _build_mask_annotation(
+    annotation_file: dt.AnnotationFile,
+    annotation_id: int,
+    annotation: dt.Annotation,
+    categories: Dict[str, int],
+    raster_context: Dict[str, Tuple[np.ndarray, int]],
+) -> Optional[Dict[str, Any]]:
+    if annotation.id not in raster_context:
+        print(
+            f"skipping mask annotation '{annotation.id}' with no raster_layer coverage"
+        )
+        return None
+    label_map, label = raster_context[annotation.id]
+    binary_mask = (label_map == label).astype(np.uint8)
+    ys, xs = np.nonzero(binary_mask)
+    if xs.size == 0:
+        print(f"skipping empty mask annotation '{annotation.id}'")
+        return None
+    min_x, min_y = int(xs.min()), int(ys.min())
+    max_x, max_y = int(xs.max()), int(ys.max())
+    return {
+        "id": annotation_id,
+        "image_id": _build_image_id(annotation_file),
+        "category_id": categories[annotation.annotation_class.name],
+        "segmentation": {
+            "counts": rle_encode(binary_mask),
+            "size": [annotation_file.image_height, annotation_file.image_width],
+        },
+        "area": int(binary_mask.sum()),
+        "bbox": [min_x, min_y, max_x - min_x + 1, max_y - min_y + 1],
+        "iscrowd": 0,
+        "extra": _build_extra(annotation),
+    }
 
 
 def _build_extra(annotation: dt.Annotation) -> Dict[str, Any]:
