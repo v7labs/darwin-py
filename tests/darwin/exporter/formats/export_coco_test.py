@@ -6,6 +6,27 @@ import darwin.datatypes as dt
 from darwin.exporter.formats import coco
 
 
+class TestCalculateCategories:
+    def test_includes_mask_classes_but_not_raster_layer(self):
+        annotation_file = dt.AnnotationFile(
+            path=Path("test.json"),
+            filename="test.json",
+            annotation_classes={
+                dt.AnnotationClass("cat", "mask"),
+                dt.AnnotationClass("box", "bounding_box"),
+                dt.AnnotationClass("__raster_layer__", "raster_layer"),
+                dt.AnnotationClass("label", "tag"),
+            },
+            annotations=[],
+            image_height=3,
+            image_width=4,
+        )
+
+        categories = coco._calculate_categories([annotation_file])
+
+        assert set(categories.keys()) == {"cat", "box"}
+
+
 class TestBuildAnnotations:
     @pytest.fixture
     def annotation_file(self) -> dt.AnnotationFile:

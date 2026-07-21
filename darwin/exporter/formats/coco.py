@@ -63,6 +63,7 @@ def _calculate_categories(annotation_files: List[dt.AnnotationFile]) -> Dict[str
                 in [
                     "polygon",
                     "bounding_box",
+                    "mask",
                 ]
             ):
                 categories[annotation_class.name] = _calculate_category_id(
