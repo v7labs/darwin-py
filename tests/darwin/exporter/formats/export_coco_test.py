@@ -190,3 +190,64 @@ class TestBuildRasterAnnotations:
         assert {c["name"] for c in output["categories"]} == {"cat", "dog"}
         assert len(output["annotations"]) == 2
         assert len(output["images"]) == 1
+
+    def test_raster_layer_with_odd_length_dense_rle_is_skipped(self):
+        mask_cat = dt.Annotation(
+            dt.AnnotationClass("cat", "mask"), {}, [], id="uuid-1"
+        )
+        raster_layer = dt.Annotation(
+            dt.AnnotationClass("__raster_layer__", "raster_layer"),
+            {
+                "dense_rle": [0, 1, 1, 2, 3],
+                "mask_annotation_ids_mapping": {"uuid-1": 1},
+                "total_pixels": 12,
+            },
+            [],
+            id="uuid-raster",
+        )
+        annotation_file = dt.AnnotationFile(
+            path=Path("test.json"),
+            filename="test.json",
+            annotation_classes={
+                dt.AnnotationClass("cat", "mask"),
+                dt.AnnotationClass("__raster_layer__", "raster_layer"),
+            },
+            annotations=[mask_cat, raster_layer],
+            image_height=3,
+            image_width=4,
+        )
+        categories = coco._calculate_categories([annotation_file])
+
+        annotations = list(coco._build_annotations([annotation_file], categories))
+
+        assert annotations == []
+
+    def test_raster_layer_missing_dense_rle_is_skipped(self):
+        mask_cat = dt.Annotation(
+            dt.AnnotationClass("cat", "mask"), {}, [], id="uuid-1"
+        )
+        raster_layer = dt.Annotation(
+            dt.AnnotationClass("__raster_layer__", "raster_layer"),
+            {
+                "mask_annotation_ids_mapping": {"uuid-1": 1},
+                "total_pixels": 12,
+            },
+            [],
+            id="uuid-raster",
+        )
+        annotation_file = dt.AnnotationFile(
+            path=Path("test.json"),
+            filename="test.json",
+            annotation_classes={
+                dt.AnnotationClass("cat", "mask"),
+                dt.AnnotationClass("__raster_layer__", "raster_layer"),
+            },
+            annotations=[mask_cat, raster_layer],
+            image_height=3,
+            image_width=4,
+        )
+        categories = coco._calculate_categories([annotation_file])
+
+        annotations = list(coco._build_annotations([annotation_file], categories))
+
+        assert annotations == []

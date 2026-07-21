@@ -301,7 +301,22 @@ def _build_raster_context(
                 f"skipping raster_layer in '{annotation_file.filename}': unknown image dimensions"
             )
             continue
-        dense_rle = annotation.data["dense_rle"]
+        dense_rle = annotation.data.get("dense_rle")
+        mask_annotation_ids_mapping = annotation.data.get(
+            "mask_annotation_ids_mapping"
+        )
+        if dense_rle is None or mask_annotation_ids_mapping is None:
+            print(
+                f"skipping raster_layer in '{annotation_file.filename}': missing "
+                "dense_rle or mask_annotation_ids_mapping"
+            )
+            continue
+        if len(dense_rle) % 2 != 0:
+            print(
+                f"skipping raster_layer in '{annotation_file.filename}': dense_rle has "
+                "odd length"
+            )
+            continue
         values = np.array(dense_rle[0::2], dtype=np.int32)
         counts = np.array(dense_rle[1::2], dtype=np.int64)
         labels = np.repeat(values, counts)
@@ -312,7 +327,7 @@ def _build_raster_context(
             )
             continue
         label_map = labels.reshape(height, width)
-        for mask_id, label in annotation.data["mask_annotation_ids_mapping"].items():
+        for mask_id, label in mask_annotation_ids_mapping.items():
             context[mask_id] = (label_map, int(label))
     return context
 
