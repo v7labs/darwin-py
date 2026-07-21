@@ -1,6 +1,8 @@
 import json
 from pathlib import Path
 
+from darwin.exporter import exporter as darwin_exporter
+from darwin.exporter.formats import coco as coco_exporter
 from darwin.importer.formats import coco
 
 CAT_RLE = {"counts": [3, 2, 1, 1, 5], "size": [3, 4]}
@@ -230,3 +232,75 @@ class TestCocoMasksParsePath:
             a.annotation_class.annotation_type for a in annotation_files[0].annotations
         ]
         assert types == ["polygon"]  # classic behavior: RLE polygonized
+
+
+class TestRoundTrip:
+    def test_darwin_masks_survive_coco_round_trip(self, tmp_path: Path):
+        darwin_json = {
+            "version": "2.0",
+            "schema_ref": "https://darwin-public.s3.eu-west-1.amazonaws.com/darwin_json/2.0/schema.json",
+            "item": {
+                "name": "test.png",
+                "path": "/",
+                "slots": [{"type": "image", "slot_name": "0", "width": 4, "height": 3}],
+            },
+            "annotations": [
+                {"id": "uuid-1", "name": "cat", "slot_names": ["0"], "mask": {}},
+                {"id": "uuid-2", "name": "dog", "slot_names": ["0"], "mask": {}},
+                {
+                    "id": "uuid-raster",
+                    "name": "__raster_layer__",
+                    "slot_names": ["0"],
+                    "raster_layer": {
+                        "dense_rle": CANONICAL_DENSE_RLE,
+                        "mask_annotation_ids_mapping": {"uuid-1": 1, "uuid-2": 2},
+                        "total_pixels": 12,
+                    },
+                },
+            ],
+        }
+        src = tmp_path / "annotations"
+        out = tmp_path / "out"
+        src.mkdir()
+        out.mkdir()
+        (src / "test.json").write_text(json.dumps(darwin_json))
+
+        # Darwin -> COCO (PR #1177 exporter)
+        dt_gen = darwin_exporter.darwin_to_dt_gen(
+            list(src.glob("*.json")), split_sequences=False
+        )
+        coco_exporter.export(dt_gen, out)
+
+        # COCO -> Darwin (coco_masks importer)
+        from darwin.importer.formats import coco_masks
+
+        annotation_files = coco_masks.parse_path(out / "output.json")
+
+        assert annotation_files is not None and len(annotation_files) == 1
+        annotation_file = annotation_files[0]
+        assert annotation_file.filename == "test.png"
+
+        masks = [
+            a
+            for a in annotation_file.annotations
+            if a.annotation_class.annotation_type == "mask"
+        ]
+        raster_layers = [
+            a
+            for a in annotation_file.annotations
+            if a.annotation_class.annotation_type == "raster_layer"
+        ]
+        assert len(masks) == 2
+        assert len(raster_layers) == 1
+        raster_layer = raster_layers[0]
+
+        # The label map survives the full cycle EXACTLY: same dense RLE,
+        # same total_pixels, same class->label association.
+        assert raster_layer.data["dense_rle"] == CANONICAL_DENSE_RLE
+        assert raster_layer.data["total_pixels"] == 12
+
+        mapping = raster_layer.data["mask_annotation_ids_mapping"]
+        label_by_class = {
+            mask.annotation_class.name: mapping[mask.id] for mask in masks
+        }
+        assert label_by_class == {"cat": 1, "dog": 2}
