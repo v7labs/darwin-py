@@ -82,7 +82,7 @@ jobs:
 
       - name: Install ffmpeg (Windows)
         if: matrix.os == 'windows-latest'
-        run: choco install ffmpeg -y
+        run: choco install ffmpeg -y --version 9.0.0
 
       # Configure AWS credentials via OIDC for readonly video tests
       - name: Configure AWS credentials (OIDC)
