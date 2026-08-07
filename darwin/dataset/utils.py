@@ -127,13 +127,22 @@ def make_class_lists(release_path: Path) -> None:
     ----------
     release_path : Path
         Path to the location of the dataset on the file system.
+
+    Notes
+    -----
+    Silently no-ops when ``release_path`` is ``None`` or when the expected
+    ``annotations`` directory is missing. This makes the helper safe to call
+    on releases that were pulled into a custom subset folder (in which case
+    the caller should pass the subset-aware path) or on empty exports.
     """
-    assert release_path is not None
+    if release_path is None:
+        return
     if isinstance(release_path, str):
         release_path = Path(release_path)
 
     annotations_path = release_path / "annotations"
-    assert annotations_path.exists()
+    if not annotations_path.exists():
+        return
     lists_path = release_path / "lists"
     lists_path.mkdir(exist_ok=True)
 
