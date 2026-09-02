@@ -84,6 +84,11 @@ jobs:
         if: matrix.os == 'windows-latest'
         run: choco install ffmpeg -y --version 9.0.0
 
+      # choco exits 0 when the feed is unavailable and nothing gets installed
+      - name: Verify ffmpeg (Windows)
+        if: matrix.os == 'windows-latest'
+        run: ffmpeg -version
+
       # Configure AWS credentials via OIDC for readonly video tests
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6.2.3
