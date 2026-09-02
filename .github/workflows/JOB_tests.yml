@@ -66,7 +66,13 @@ jobs:
       - name: Install ffmpeg (Windows)
         if: matrix.os == 'windows-latest'
         shell: pwsh
-        run: choco install ffmpeg -y
+        run: choco install ffmpeg -y --version 9.0.0
+
+      # choco exits 0 when the feed is unavailable and nothing gets installed
+      - name: Verify ffmpeg (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: ffmpeg -version
 
       - name: Run pytest
         shell: bash # Stops Windows hosts from using PowerShell
