@@ -957,6 +957,167 @@ class TestParseDarwinJson:
             == "skeleton"
         )
 
+    def test_imports_an_eye(self, tmp_path):
+        content = """
+        {
+        "version": "2.0",
+        "schema_ref": "https://darwin-public.s3.eu-west-1.amazonaws.com/darwin_json/2.0/schema.json",
+        "item": {
+            "name": "eye-exam.jpg",
+            "path": "/",
+            "source_info": {
+            "item_id": "018c4450-d91d-ff3e-b226-60d48b66f86e",
+            "team": {
+                "name": "V7 John",
+                "slug": "v7-john"
+            }
+            },
+            "slots": [
+            {
+                "type": "image",
+                "slot_name": "0",
+                "width": 640,
+                "height": 425,
+                "source_files": [
+                {
+                    "file_name": "eye-exam.jpg",
+                    "url": "https://darwin.v7labs.com/api/v2/teams/v7-john/uploads/3395d29a"
+                }
+                ]
+            }
+            ]
+        },
+        "annotations": [
+            {
+            "id": "782618fb-4c69-436e-80cb-71765d255dbf",
+            "name": "left-eye",
+            "properties": [],
+            "eye": {
+                "nodes": [
+                {
+                    "name": "pupil_centre",
+                    "occluded": false,
+                    "x": 264.7754,
+                    "y": 121.5445
+                },
+                {
+                    "name": "iris_left",
+                    "occluded": false,
+                    "x": 245.1335,
+                    "y": 107.3425
+                },
+                {
+                    "name": "iris_right",
+                    "occluded": true,
+                    "x": 240.4646,
+                    "y": 125.4178
+                }
+                ]
+            },
+            "slot_names": [
+                "0"
+            ]
+            }
+        ]
+        }
+            """
+
+        directory = tmp_path / "imports"
+        directory.mkdir()
+        import_file = directory / "darwin-file.json"
+        import_file.write_text(content)
+
+        annotation_file: dt.AnnotationFile = parse_darwin_json(import_file, None)
+
+        annotation = annotation_file.annotations[0]
+        assert annotation.annotation_class.annotation_type == "eye"
+        assert annotation.annotation_class.name == "left-eye"
+        assert [node["name"] for node in annotation.data["nodes"]] == [
+            "pupil_centre",
+            "iris_left",
+            "iris_right",
+        ]
+
+    def test_imports_an_eye_video_annotation(self, tmp_path):
+        content = """
+        {
+        "version": "2.0",
+        "schema_ref": "https://darwin-public.s3.eu-west-1.amazonaws.com/darwin_json/2.0/schema.json",
+        "item": {
+            "name": "eye-exam.mp4",
+            "path": "/",
+            "source_info": {
+            "item_id": "018c4450-d91d-ff3e-b226-60d48b66f86e",
+            "team": {
+                "name": "V7 John",
+                "slug": "v7-john"
+            }
+            },
+            "slots": [
+            {
+                "type": "video",
+                "slot_name": "0",
+                "width": 640,
+                "height": 425,
+                "frame_count": 2,
+                "source_files": [
+                {
+                    "file_name": "eye-exam.mp4",
+                    "url": "https://darwin.v7labs.com/api/v2/teams/v7-john/uploads/3395d29a"
+                }
+                ]
+            }
+            ]
+        },
+        "annotations": [
+            {
+            "id": "782618fb-4c69-436e-80cb-71765d255dbf",
+            "name": "left-eye",
+            "properties": [],
+            "only_keyframes": true,
+            "interpolated": true,
+            "interpolate_algorithm": "linear-1.1",
+            "ranges": [[0, 2]],
+            "frames": {
+                "0": {
+                "keyframe": true,
+                "eye": {
+                    "nodes": [
+                    {
+                        "name": "pupil_centre",
+                        "occluded": false,
+                        "x": 264.7754,
+                        "y": 121.5445
+                    }
+                    ]
+                }
+                },
+                "1": {
+                "keyframe": false
+                }
+            },
+            "slot_names": [
+                "0"
+            ]
+            }
+        ]
+        }
+            """
+
+        directory = tmp_path / "imports"
+        directory.mkdir()
+        import_file = directory / "darwin-file.json"
+        import_file.write_text(content)
+
+        annotation_file: dt.AnnotationFile = parse_darwin_json(import_file, None)
+
+        annotation = annotation_file.annotations[0]
+        assert annotation.annotation_class.annotation_type == "eye"
+        # The non-keyframe frame inherits its nodes from the preceding keyframe.
+        for frame in annotation.frames.values():
+            assert frame.annotation_class.annotation_type == "eye"
+            assert frame.data["nodes"][0]["name"] == "pupil_centre"
+
     def test_removes_class_name_whitespace(self, tmp_path):
         content = """
         {

@@ -79,6 +79,10 @@ except ImportError:
 # Classes missing import support on backend side
 UNSUPPORTED_CLASSES = ["string", "graph"]
 
+# Classes whose definition carries a node structure that the class creation endpoint
+# cannot express, so they must already exist on the team before importing into them
+UNCREATABLE_CLASS_TYPES = ["skeleton", "eye"]
+
 # Classes that are defined on team level automatically and available in all datasets
 GLOBAL_CLASSES = ["__raster_layer__"]
 
@@ -1663,13 +1667,17 @@ def import_annotations(  # noqa: C901
         style="info",
     )
 
-    missing_skeletons: List[dt.AnnotationClass] = list(
-        filter(_is_skeleton_class, local_classes_not_in_team)
+    missing_uncreatable_classes: List[dt.AnnotationClass] = list(
+        filter(_is_uncreatable_class, local_classes_not_in_team)
     )
-    missing_skeleton_names: str = ", ".join(map(_get_skeleton_name, missing_skeletons))
-    if missing_skeletons:
+    if missing_uncreatable_classes:
+        missing_class_names: str = ", ".join(
+            f"{_get_class_name(the_class)} ({the_class.annotation_internal_type or the_class.annotation_type})"
+            for the_class in missing_uncreatable_classes
+        )
         console.print(
-            f"Found missing skeleton classes: {missing_skeleton_names}. Missing Skeleton classes cannot be created. Exiting now.",
+            f"Found missing classes that cannot be created: {missing_class_names}. "
+            "Create them in the Darwin UI before importing. Exiting now.",
             style="error",
         )
         return
@@ -1900,14 +1908,14 @@ def _warn_unsupported_annotations(parsed_files: List[AnnotationFile]) -> None:
             )
 
 
-def _is_skeleton_class(the_class: dt.AnnotationClass) -> bool:
+def _is_uncreatable_class(the_class: dt.AnnotationClass) -> bool:
     return (
         the_class.annotation_internal_type or the_class.annotation_type
-    ) == "skeleton"
+    ) in UNCREATABLE_CLASS_TYPES
 
 
-def _get_skeleton_name(skeleton: dt.AnnotationClass) -> str:
-    return skeleton.name
+def _get_class_name(the_class: dt.AnnotationClass) -> str:
+    return the_class.name
 
 
 def _handle_subs(
