@@ -124,6 +124,7 @@ def _build_main_annotations_lookup_table(
         "link",
         "polygon",
         "skeleton",
+        "eye",
         "tag",
         "string",
         "table",
