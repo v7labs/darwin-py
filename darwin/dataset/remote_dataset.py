@@ -388,11 +388,12 @@ class RemoteDataset(ABC):
         lists_path.mkdir(exist_ok=True)
         for atype in supported_class_types:
             class_names = classes_by_type.get(atype)
+            class_list_path = lists_path / f"classes_{atype}.txt"
             if not class_names:
+                if class_list_path.exists():
+                    class_list_path.unlink()
                 continue
-            (lists_path / f"classes_{atype}.txt").write_text(
-                "\n".join(sorted(class_names))
-            )
+            class_list_path.write_text("\n".join(sorted(class_names)))
 
         if release.latest and is_unix_like_os():
             try:
