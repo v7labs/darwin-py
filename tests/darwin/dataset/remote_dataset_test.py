@@ -1287,6 +1287,14 @@ class TestPull:
             shutil.copy(zip, path)
             return path
 
+        subset_dir: Path = (
+            remote_dataset.local_path / "releases" / "release-name" / "my_subset"
+        )
+        lists_dir = subset_dir / "lists"
+        lists_dir.mkdir(parents=True)
+        stale_tag_list = lists_dir / "classes_tag.txt"
+        stale_tag_list.write_text("stale-class")
+
         with patch.object(
             RemoteDataset, "get_release", return_value=stub_release_response
         ):
@@ -1296,11 +1304,9 @@ class TestPull:
                     subset_folder_name="my_subset",
                 )
 
-        subset_dir: Path = (
-            remote_dataset.local_path / "releases" / "release-name" / "my_subset"
-        )
         assert (subset_dir / "annotations").is_dir()
-        assert (subset_dir / "lists").is_dir()
+        assert lists_dir.is_dir()
+        assert not stale_tag_list.exists()
         # The test fixture contains a single annotation with a "car" class
         # tagged as both polygon and bounding_box, so at least one
         # ``classes_*.txt`` file must have been written.

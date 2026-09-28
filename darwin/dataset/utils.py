@@ -119,14 +119,14 @@ def extract_classes(
     return classes, indices_to_classes
 
 
-def make_class_lists(release_path: Path) -> None:
+def make_class_lists(release_path: Optional[PathLike]) -> None:
     """
     Support function to extract classes and save the output to file.
 
     Parameters
     ----------
-    release_path : Path
-        Path to the location of the dataset on the file system.
+    release_path : Optional[PathLike]
+        Path to the location of the dataset on the file system, or ``None``.
 
     Notes
     -----
