@@ -82,6 +82,7 @@ def get_available_annotation_subtypes(annotation_type: str) -> List[str]:
             "directional_vector",
         ],
         "ellipse": ["ellipse", "text", "attributes", "instance_id"],
+        "eye": ["eye", "text", "attributes"],
         "keypoint": ["keypoint", "text", "attributes", "instance_id"],
         "line": ["line", "text", "attributes", "instance_id"],
         "mask": ["mask", "text", "attributes"],
@@ -259,6 +260,22 @@ def create_annotation_class(
             "nodes": [
                 {"name": "node", "x": 0.5, "y": 0.5},
                 {"name": "2", "x": 0.1, "y": 0.1},
+            ],
+        }
+    if annotation_type == "eye":
+        # Darwin requires eye classes to declare exactly these four nodes
+        metadata["eye"] = {  # type: ignore
+            "edges": [
+                {"from": "inner", "to": "upper"},
+                {"from": "upper", "to": "outer"},
+                {"from": "outer", "to": "lower"},
+                {"from": "lower", "to": "inner"},
+            ],
+            "nodes": [
+                {"name": "inner", "x": 0.1, "y": 0.5},
+                {"name": "outer", "x": 0.9, "y": 0.5},
+                {"name": "upper", "x": 0.5, "y": 0.1},
+                {"name": "lower", "x": 0.5, "y": 0.9},
             ],
         }
     response = api_call(
