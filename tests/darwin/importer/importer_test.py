@@ -34,7 +34,7 @@ from darwin.importer.importer import (
     _get_slot_names,
     _import_annotations,
     _import_properties,
-    _is_skeleton_class,
+    _is_uncreatable_class,
     _overwrite_warning,
     _parse_affine,
     _parse_empty_masks,
@@ -696,7 +696,7 @@ def test_import_annotations_retries_remote_file_lookup_with_smaller_chunks() -> 
     ] == [100, 92]
 
 
-def test__is_skeleton_class() -> None:
+def test__is_uncreatable_class() -> None:
     class1 = dt.AnnotationClass(name="class1", annotation_type="skeleton")
     class2 = dt.AnnotationClass(name="class2", annotation_type="polygon")
     class3 = dt.AnnotationClass(
@@ -705,15 +705,21 @@ def test__is_skeleton_class() -> None:
     class4 = dt.AnnotationClass(
         name="class4", annotation_type="polygon", annotation_internal_type="polygon"
     )
+    class5 = dt.AnnotationClass(name="class5", annotation_type="eye")
+    class6 = dt.AnnotationClass(
+        name="class6", annotation_type="eye", annotation_internal_type="eye"
+    )
 
-    assert _is_skeleton_class(class1) is True
-    assert _is_skeleton_class(class2) is False
-    assert _is_skeleton_class(class3) is True
-    assert _is_skeleton_class(class4) is False
+    assert _is_uncreatable_class(class1) is True
+    assert _is_uncreatable_class(class2) is False
+    assert _is_uncreatable_class(class3) is True
+    assert _is_uncreatable_class(class4) is False
+    assert _is_uncreatable_class(class5) is True
+    assert _is_uncreatable_class(class6) is True
 
 
-def test__get_skeleton_name() -> None:
-    from darwin.importer.importer import _get_skeleton_name
+def test__get_class_name() -> None:
+    from darwin.importer.importer import _get_class_name
 
     class MockAnnotationClass:
         name: str
@@ -721,8 +727,8 @@ def test__get_skeleton_name() -> None:
         def __init__(self, name: str):
             self.name = name
 
-    assert _get_skeleton_name(MockAnnotationClass("test")) == "test"  # type: ignore
-    assert _get_skeleton_name(MockAnnotationClass("test_skeleton")) == "test_skeleton"  # type: ignore
+    assert _get_class_name(MockAnnotationClass("test")) == "test"  # type: ignore
+    assert _get_class_name(MockAnnotationClass("test_skeleton")) == "test_skeleton"  # type: ignore
 
 
 def test_handle_subs() -> None:
