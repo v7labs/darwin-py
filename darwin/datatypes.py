@@ -118,6 +118,7 @@ AnnotationType = Literal[  # NB: Some of these are not supported yet
     "tag",
     "line",
     "skeleton",
+    "eye",
     "table",
     "string",
     "graph",
@@ -997,6 +998,49 @@ def make_skeleton(
     """
     return Annotation(
         AnnotationClass(class_name, "skeleton"),
+        {"nodes": nodes},
+        subs or [],
+        slot_names=slot_names or [],
+    )
+
+
+def make_eye(
+    class_name: str,
+    nodes: List[Node],
+    subs: Optional[List[SubAnnotation]] = None,
+    slot_names: Optional[List[str]] = None,
+) -> Annotation:
+    """
+    Creates and returns an eye annotation.
+
+    Parameters
+    ----------
+    class_name : str
+        The name of the class for this ``Annotation``.
+    nodes : List[Node]
+        List of ``Node``\\s that comprise the eye. Darwin requires exactly four, named
+        ``inner``, ``outer``, ``upper`` and ``lower``. Each Node will have a format
+        similar to:
+
+        .. code-block:: python
+
+            {
+                "name": "inner",
+                "occluded": false,
+                "x": 141.4359,
+                "y": 149.2308
+            }
+
+    subs : Optional[List[SubAnnotation]], default: None
+        List of ``SubAnnotation``\\s for this ``Annotation``.
+
+    Returns
+    -------
+    Annotation
+        An eye ``Annotation``.
+    """
+    return Annotation(
+        AnnotationClass(class_name, "eye"),
         {"nodes": nodes},
         subs or [],
         slot_names=slot_names or [],

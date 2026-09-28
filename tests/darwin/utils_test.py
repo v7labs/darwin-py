@@ -957,6 +957,186 @@ class TestParseDarwinJson:
             == "skeleton"
         )
 
+    def test_imports_an_eye(self, tmp_path):
+        content = """
+        {
+        "version": "2.0",
+        "schema_ref": "https://darwin-public.s3.eu-west-1.amazonaws.com/darwin_json/2.0/schema.json",
+        "item": {
+            "name": "9996.jpg",
+            "path": "/",
+            "source_info": {
+            "item_id": "01a0d8f1-ce04-2f7a-e3a6-b27b0e3b8cc5",
+            "team": {
+                "name": "V7 Caio",
+                "slug": "v7-caio"
+            }
+            },
+            "slots": [
+            {
+                "type": "image",
+                "slot_name": "0",
+                "width": 392,
+                "height": 420,
+                "source_files": [
+                {
+                    "file_name": "9996.jpg",
+                    "url": "https://darwin.v7labs.com/api/v2/teams/v7-caio/uploads/c496b020"
+                }
+                ]
+            }
+            ]
+        },
+        "annotations": [
+            {
+            "id": "462421e5-01f1-470d-b66d-fb080a3e30ac",
+            "name": "eye-test",
+            "properties": [],
+            "eye": {
+                "nodes": [
+                {
+                    "name": "inner",
+                    "occluded": false,
+                    "x": 141.4359,
+                    "y": 149.2308
+                },
+                {
+                    "name": "outer",
+                    "occluded": false,
+                    "x": 174.6667,
+                    "y": 149.2308
+                },
+                {
+                    "name": "upper",
+                    "occluded": false,
+                    "x": 158.0513,
+                    "y": 133.641
+                },
+                {
+                    "name": "lower",
+                    "occluded": true,
+                    "x": 158.0513,
+                    "y": 164.8205
+                }
+                ]
+            },
+            "text": {
+                "text": "OS"
+            },
+            "attributes": ["dilated"],
+            "slot_names": [
+                "0"
+            ]
+            }
+        ]
+        }
+            """
+
+        directory = tmp_path / "imports"
+        directory.mkdir()
+        import_file = directory / "darwin-file.json"
+        import_file.write_text(content)
+
+        annotation_file: dt.AnnotationFile = parse_darwin_json(import_file, None)
+
+        annotation = annotation_file.annotations[0]
+        assert annotation.annotation_class.annotation_type == "eye"
+        assert annotation.annotation_class.name == "eye-test"
+        assert annotation.data["nodes"] == [
+            {"name": "inner", "occluded": False, "x": 141.4359, "y": 149.2308},
+            {"name": "outer", "occluded": False, "x": 174.6667, "y": 149.2308},
+            {"name": "upper", "occluded": False, "x": 158.0513, "y": 133.641},
+            {"name": "lower", "occluded": True, "x": 158.0513, "y": 164.8205},
+        ]
+        # attributes and text are the sub-types an eye class can carry.
+        assert sorted(sub.annotation_type for sub in annotation.subs) == [
+            "attributes",
+            "text",
+        ]
+
+    def test_imports_an_eye_video_annotation(self, tmp_path):
+        content = """
+        {
+        "version": "2.0",
+        "schema_ref": "https://darwin-public.s3.eu-west-1.amazonaws.com/darwin_json/2.0/schema.json",
+        "item": {
+            "name": "eye-exam.mp4",
+            "path": "/",
+            "source_info": {
+            "item_id": "01a0d8f1-ce04-2f7a-e3a6-b27b0e3b8cc5",
+            "team": {
+                "name": "V7 Caio",
+                "slug": "v7-caio"
+            }
+            },
+            "slots": [
+            {
+                "type": "video",
+                "slot_name": "0",
+                "width": 392,
+                "height": 420,
+                "frame_count": 2,
+                "source_files": [
+                {
+                    "file_name": "eye-exam.mp4",
+                    "url": "https://darwin.v7labs.com/api/v2/teams/v7-caio/uploads/c496b020"
+                }
+                ]
+            }
+            ]
+        },
+        "annotations": [
+            {
+            "id": "462421e5-01f1-470d-b66d-fb080a3e30ac",
+            "name": "eye-test",
+            "properties": [],
+            "only_keyframes": true,
+            "interpolated": true,
+            "ranges": [[0, 2]],
+            "frames": {
+                "0": {
+                "keyframe": true,
+                "eye": {
+                    "nodes": [
+                    {
+                        "name": "inner",
+                        "occluded": false,
+                        "x": 141.4359,
+                        "y": 149.2308
+                    }
+                    ]
+                }
+                },
+                "1": {
+                "keyframe": false
+                }
+            },
+            "slot_names": [
+                "0"
+            ]
+            }
+        ]
+        }
+            """
+
+        directory = tmp_path / "imports"
+        directory.mkdir()
+        import_file = directory / "darwin-file.json"
+        import_file.write_text(content)
+
+        annotation_file: dt.AnnotationFile = parse_darwin_json(import_file, None)
+
+        annotation = annotation_file.annotations[0]
+        assert annotation.annotation_class.annotation_type == "eye"
+        # Frame 1 has no main annotation type, so it inherits the preceding keyframe's
+        # nodes rather than being dropped.
+        assert sorted(annotation.frames) == [0, 1]
+        for frame in annotation.frames.values():
+            assert frame.annotation_class.annotation_type == "eye"
+            assert frame.data["nodes"] == [
+                {"name": "inner", "occluded": False, "x": 141.4359, "y": 149.2308}
+            ]
+
     def test_removes_class_name_whitespace(self, tmp_path):
         content = """
         {

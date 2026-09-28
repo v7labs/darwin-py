@@ -866,6 +866,10 @@ def _parse_darwin_annotation(
         main_annotation = dt.make_skeleton(
             name, annotation["skeleton"]["nodes"], slot_names=slot_names
         )
+    elif "eye" in annotation:
+        main_annotation = dt.make_eye(
+            name, annotation["eye"]["nodes"], slot_names=slot_names
+        )
     elif "table" in annotation:
         main_annotation = dt.make_table(
             name,
@@ -949,6 +953,8 @@ def make_keyframe_annotation(
         return dt.make_cuboid(name, annotation_data)
     elif annotation_type == "skeleton":
         return dt.make_skeleton(name, annotation_data["nodes"])
+    elif annotation_type == "eye":
+        return dt.make_eye(name, annotation_data["nodes"])
     elif annotation_type == "table":
         return dt.make_table(
             name, annotation_data["bounding_box"], annotation_data["cells"]
@@ -1013,7 +1019,7 @@ def update_annotation_data(
             "back": main_annotation_data["back"],
             "front": main_annotation_data["front"],
         }
-    elif annotation_type == "skeleton":
+    elif annotation_type in ("skeleton", "eye"):
         annotation_data = {"nodes": main_annotation_data["nodes"]}
     elif annotation_type == "table":
         annotation_type = "table"
@@ -1142,6 +1148,9 @@ def get_annotation_type_and_data(
     elif "skeleton" in frame:
         annotation_type = "skeleton"
         annotation_data = {"nodes": frame["skeleton"]["nodes"]}
+    elif "eye" in frame:
+        annotation_type = "eye"
+        annotation_data = {"nodes": frame["eye"]["nodes"]}
     elif "table" in frame:
         annotation_type = "table"
         annotation_data = {
