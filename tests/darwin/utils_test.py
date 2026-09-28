@@ -1075,7 +1075,7 @@ class TestParseDarwinJson:
                 "slot_name": "0",
                 "width": 392,
                 "height": 420,
-                "frame_count": 2,
+                "frame_count": 4,
                 "source_files": [
                 {
                     "file_name": "eye-exam.mp4",
@@ -1092,7 +1092,7 @@ class TestParseDarwinJson:
             "properties": [],
             "only_keyframes": true,
             "interpolated": true,
-            "ranges": [[0, 2]],
+            "ranges": [[0, 4]],
             "frames": {
                 "0": {
                 "keyframe": true,
@@ -1108,6 +1108,22 @@ class TestParseDarwinJson:
                 }
                 },
                 "1": {
+                "keyframe": false
+                },
+                "2": {
+                "keyframe": true,
+                "eye": {
+                    "nodes": [
+                    {
+                        "name": "inner",
+                        "occluded": false,
+                        "x": 191.4359,
+                        "y": 149.2308
+                    }
+                    ]
+                }
+                },
+                "3": {
                 "keyframe": false
                 }
             },
@@ -1128,14 +1144,19 @@ class TestParseDarwinJson:
 
         annotation = annotation_file.annotations[0]
         assert annotation.annotation_class.annotation_type == "eye"
-        # Frame 1 has no main annotation type, so it inherits the preceding keyframe's
-        # nodes rather than being dropped.
-        assert sorted(annotation.frames) == [0, 1]
+        assert sorted(annotation.frames) == [0, 1, 2, 3]
         for frame in annotation.frames.values():
             assert frame.annotation_class.annotation_type == "eye"
-            assert frame.data["nodes"] == [
-                {"name": "inner", "occluded": False, "x": 141.4359, "y": 149.2308}
-            ]
+
+        first = [{"name": "inner", "occluded": False, "x": 141.4359, "y": 149.2308}]
+        second = [{"name": "inner", "occluded": False, "x": 191.4359, "y": 149.2308}]
+
+        assert annotation.frames[0].data["nodes"] == first
+        assert annotation.frames[2].data["nodes"] == second
+        # Frames 1 and 3 carry no main annotation type, so each inherits the nodes of
+        # the keyframe preceding it. Frame 3 must not fall back to frame 0.
+        assert annotation.frames[1].data["nodes"] == first
+        assert annotation.frames[3].data["nodes"] == second
 
     def test_removes_class_name_whitespace(self, tmp_path):
         content = """
