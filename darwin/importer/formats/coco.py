@@ -1,7 +1,9 @@
 from logging import getLogger
 from pathlib import Path
-from typing import Dict, Iterator, List, Optional
+from typing import Dict, Iterator, List, Optional, Tuple
+from uuid import uuid4
 
+import numpy as np
 import orjson as json
 from upolygon import find_contours, rle_decode
 
@@ -43,7 +45,9 @@ def parse_path(path: Path) -> Optional[List[dt.AnnotationFile]]:
 
 
 def parse_json(
-    path: Path, data: Dict[str, dt.UnknownType]
+    path: Path,
+    data: Dict[str, dt.UnknownType],
+    rle_as_masks: bool = False,
 ) -> Iterator[dt.AnnotationFile]:
     """
     Parses the given ``json`` structure into an ``Iterator[dt.AnnotationFile]``.
@@ -54,6 +58,10 @@ def parse_json(
         The ``Path`` where file containing the ``data`` is.
     data : Dict[str, Any]
         The ``json`` data to process.
+    rle_as_masks : bool, default: False
+        If ``True``, RLE segmentations are imported as Darwin raster ``mask``
+        annotations (plus one ``raster_layer`` per image) instead of being
+        converted to polygons.
 
     Returns
     -------
@@ -70,6 +78,7 @@ def parse_json(
         category["id"]: category for category in tag_categories
     }
     image_annotations: Dict[str, dt.UnknownType] = {}
+    image_rle_annotations: Dict[str, List[Dict[str, dt.UnknownType]]] = {}
 
     for image in data["images"]:
         image_id = image["id"]
@@ -88,8 +97,26 @@ def parse_json(
         annotation["segmentation"]
         if image_id not in image_annotations:
             image_annotations[image_id] = []
+        if (
+            rle_as_masks
+            and isinstance(annotation["segmentation"], dict)
+            and "counts" in annotation["segmentation"]
+        ):
+            image_rle_annotations.setdefault(image_id, []).append(annotation)
+        else:
+            image_annotations[image_id].extend(
+                parse_annotation(annotation, category_lookup_table)
+            )
+
+    for image_id, rle_annotations in image_rle_annotations.items():
+        image = image_lookup_table[int(image_id)]
         image_annotations[image_id].extend(
-            parse_annotation(annotation, category_lookup_table)
+            _build_mask_annotations(
+                rle_annotations,
+                category_lookup_table,
+                image_height=image.get("height"),
+                image_width=image.get("width"),
+            )
         )
 
     for image_id in image_annotations.keys():
@@ -184,6 +211,112 @@ def parse_annotation(
         return [dt.make_polygon(category["name"], point_paths)]
     else:
         return []
+
+
+def _encode_dense_rle(label_map: "np.ndarray") -> List[int]:
+    """Encodes a 2D label map into Darwin's row-major [value, count, ...] dense RLE."""
+    flat = label_map.flatten()
+    boundaries = np.flatnonzero(flat[1:] != flat[:-1]) + 1
+    starts = np.concatenate(([0], boundaries))
+    lengths = np.diff(np.concatenate((starts, [flat.size])))
+    dense_rle: List[int] = []
+    for value, length in zip(flat[starts], lengths):
+        dense_rle.extend((int(value), int(length)))
+    return dense_rle
+
+
+def _build_mask_annotations(
+    rle_annotations: List[Dict[str, dt.UnknownType]],
+    category_lookup_table: Dict[str, dt.UnknownType],
+    image_height: Optional[int] = None,
+    image_width: Optional[int] = None,
+) -> List[dt.Annotation]:
+    """
+    Converts one image's COCO RLE annotations into Darwin ``mask`` annotations
+    plus a single ``raster_layer`` annotation.
+
+    Overlaps are resolved by annotation order: later annotations paint over
+    earlier ones. Masks left without any visible pixel are dropped.
+
+    When ``image_height``/``image_width`` are both provided (the COCO image
+    record's authoritative dimensions), they set the canvas up front, and
+    every RLE's own ``segmentation["size"]`` is validated against them. This
+    prevents a malformed leading RLE (e.g. with the wrong ``size``) from
+    silently setting the wrong canvas and causing later, valid RLEs to be
+    skipped as "mismatched". When either dimension is ``None``, the first
+    RLE's ``size`` is used as the canvas, preserving prior behavior for
+    direct callers that don't pass image dimensions.
+    """
+    height: Optional[int] = image_height
+    width: Optional[int] = image_width
+    label_map: Optional[np.ndarray] = None
+    if height is not None and width is not None:
+        label_map = np.zeros((height, width), dtype=np.int32)
+    painted_masks: List[Tuple[dt.Annotation, int]] = []
+    next_label = 1
+
+    for annotation in rle_annotations:
+        try:
+            segmentation = annotation["segmentation"]
+            seg_height, seg_width = segmentation["size"]
+            if height is None or width is None or label_map is None:
+                height, width = seg_height, seg_width
+                label_map = np.zeros((height, width), dtype=np.int32)
+            elif (seg_height, seg_width) != (height, width):
+                logger.warning(
+                    f"Skipping RLE annotation {annotation.get('id')}: size "
+                    f"{segmentation['size']} does not match image size [{height}, {width}]"
+                )
+                continue
+            counts = segmentation["counts"]
+            if not isinstance(counts, list):
+                counts = decode_binary_rle(counts)
+            if sum(counts) != height * width:
+                logger.warning(
+                    f"Skipping RLE annotation {annotation.get('id')}: counts cover "
+                    f"{sum(counts)} pixels, expected {height * width}"
+                )
+                continue
+            binary = np.array(rle_decode(counts, [width, height])).reshape(
+                height, width
+            )
+            category = category_lookup_table[annotation["category_id"]]
+            mask = dt.make_mask(category["name"])
+            mask.id = str(uuid4())
+            label_map[binary > 0] = next_label
+            painted_masks.append((mask, next_label))
+            next_label += 1
+        except Exception as e:
+            logger.warning(f"Skipping RLE annotation {annotation.get('id')}: {e}")
+            continue
+
+    if label_map is None:
+        return []
+
+    visible_labels = set(np.unique(label_map))
+    mask_annotation_ids_mapping: Dict[str, int] = {}
+    visible_masks: List[dt.Annotation] = []
+    for mask, label in painted_masks:
+        if label not in visible_labels:
+            logger.warning(
+                f"Skipping mask '{mask.annotation_class.name}': fully occluded by "
+                "later annotations"
+            )
+            continue
+        mask_annotation_ids_mapping[mask.id] = label
+        visible_masks.append(mask)
+
+    if not visible_masks:
+        return []
+
+    raster_layer = dt.make_raster_layer(
+        "__raster_layer__",
+        mask_annotation_ids_mapping,
+        int(height * width),
+        _encode_dense_rle(label_map),
+    )
+    raster_layer.id = str(uuid4())
+    return visible_masks + [raster_layer]
 
 
 def _decode_file(current_encoding: str, path: Path):

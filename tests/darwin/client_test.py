@@ -20,7 +20,7 @@ from darwin.config import Config
 from darwin.dataset.remote_dataset import RemoteDataset
 from darwin.dataset.remote_dataset_v2 import RemoteDatasetV2
 from darwin.datatypes import Feature, JSONFreeForm, ObjectStore
-from darwin.exceptions import NameTaken, NotFound
+from darwin.exceptions import NameTaken, NotFound, RequestEntitySizeExceeded
 from darwin.future.data_objects.properties import FullProperty
 from darwin.future.tests.core.fixtures import *  # noqa: F401, F403
 from tests.fixtures import *  # noqa: F401, F403
@@ -38,6 +38,17 @@ def darwin_client(
         ["teams", team_slug_darwin_json_v2, "datasets_dir"], str(darwin_datasets_path)
     )
     return Client(config)
+
+
+@pytest.mark.usefixtures("file_read_write_test")
+def test__raise_if_known_error_maps_414_to_request_entity_size_exceeded(
+    darwin_client: Client,
+) -> None:
+    response = Response()
+    response.status_code = 414
+
+    with pytest.raises(RequestEntitySizeExceeded):
+        darwin_client._raise_if_known_error(response, "http://localhost/api/items")
 
 
 @pytest.mark.usefixtures("file_read_write_test")

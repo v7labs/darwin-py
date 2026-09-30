@@ -9,6 +9,12 @@ import numpy as np
 import pytest
 import requests
 from PIL import Image
+from tenacity import (
+    retry,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_exponential_jitter,
+)
 
 from e2e_tests.exceptions import DataAlreadyExists, E2EException
 from e2e_tests.objects import (
@@ -20,6 +26,14 @@ from e2e_tests.objects import (
 )
 
 
+# Transient resets against the E2E environment otherwise abort the whole run via
+# pytest.exit() in setup, which pytest-rerunfailures cannot retry.
+@retry(
+    reraise=True,
+    wait=wait_exponential_jitter(initial=1, max=10),
+    stop=stop_after_attempt(4),
+    retry=retry_if_exception_type(requests.exceptions.ConnectionError),
+)
 def api_call(
     verb: Literal["get", "post", "put", "delete"],
     url: str,
