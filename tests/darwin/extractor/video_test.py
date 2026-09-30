@@ -1,10 +1,9 @@
 import tempfile
 from pathlib import Path
-from unittest.mock import MagicMock, patch
 
 import pytest
 
-from darwin.extractor.video import _check_ffmpeg_version, extract_artifacts
+from darwin.extractor.video import extract_artifacts
 
 
 @pytest.fixture
@@ -16,23 +15,6 @@ def data_dir():
 def output_dir():
     with tempfile.TemporaryDirectory() as tmpdir:
         yield Path(tmpdir)
-
-
-@pytest.mark.parametrize(
-    ("version", "expected_option"),
-    [
-        ("5.0.3", "-vsync"),
-        ("5.1.0", "-fps_mode"),
-        ("8.0.1", "-fps_mode"),
-        ("9.0.1", "-fps_mode"),
-    ],
-)
-def test_selects_video_sync_option_for_ffmpeg_version(
-    version: str, expected_option: str
-):
-    version_result = MagicMock(stdout=f"ffmpeg version {version}\n")
-    with patch("darwin.extractor.video.subprocess.run", return_value=version_result):
-        assert _check_ffmpeg_version() == expected_option
 
 
 class TestVideoArtifactExtraction:

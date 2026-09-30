@@ -11,30 +11,24 @@ from rich.console import Console
 console = Console()
 
 
-def _check_ffmpeg_version() -> str:
+def _check_ffmpeg_version():
     """
     Check if FFmpeg version 5 or higher is installed.
-    Returns the supported video sync option for the installed version.
     Raises RuntimeError if FFmpeg is not found or version is lower.
     """
     try:
         result = subprocess.run(["ffmpeg", "-version"], capture_output=True, text=True)
         version_line = result.stdout.split("\n")[0]
-        version_match = re.search(r"ffmpeg version (\d+)(?:\.(\d+))?", version_line)
+        # Extract major version number (e.g., "ffmpeg version 5.1.2" -> "5")
+        version_match = re.search(r"ffmpeg version (\d+)", version_line)
         if not version_match:
             raise RuntimeError("Could not determine FFmpeg version")
 
         major_version = int(version_match.group(1))
-        minor_version = int(version_match.group(2) or 0)
         if major_version < 5:
             raise RuntimeError(
                 f"FFmpeg version 5 or higher required, found version {major_version}"
             )
-
-        # ``-fps_mode`` replaced ``-vsync`` in FFmpeg 5.1 and ``-vsync`` was
-        # removed in FFmpeg 9. Keep supporting FFmpeg 5.0 while using the
-        # current option everywhere it is available.
-        return "-vsync" if (major_version, minor_version) < (5, 1) else "-fps_mode"
 
     except FileNotFoundError:
         raise RuntimeError(
@@ -63,9 +57,7 @@ def _create_directories(base_dir: str) -> Dict[str, str]:
     return paths
 
 
-def _maybe_repair_video(
-    source_file: str, output_dir: str, video_sync_option: str
-) -> Tuple[bool, str]:
+def _maybe_repair_video(source_file: str, output_dir: str) -> Tuple[bool, str]:
     """
     Attempt to repair video if errors are detected.
 
@@ -83,9 +75,7 @@ def _maybe_repair_video(
         first_three = "\n".join(errors_list[:3])
         console.print(f"Video contains errors:\n{first_three}\n...")
         console.print("Attempting to repair video...")
-        repaired_file = _attempt_video_repair(
-            source_file, output_dir, video_sync_option
-        )
+        repaired_file = _attempt_video_repair(source_file, output_dir)
         console.print(f"Video repaired successfully: {repaired_file}")
         return (True, repaired_file)
     else:
@@ -124,9 +114,7 @@ def _check_video_for_errors(source_file: str) -> str:
         return e.stderr.strip()
 
 
-def _attempt_video_repair(
-    source_file: str, output_dir: str, video_sync_option: str
-) -> str:
+def _attempt_video_repair(source_file: str, output_dir: str) -> str:
     """
     Attempt to repair corrupted video by re-encoding it using hardware acceleration if available.
 
@@ -156,7 +144,7 @@ def _attempt_video_repair(
             "hevc_vaapi",
             "-c:a",
             "copy",
-            video_sync_option,
+            "-vsync",
             "cfr",
             output_file,
         ]
@@ -178,7 +166,7 @@ def _attempt_video_repair(
             "libx264",
             "-c:a",
             "copy",
-            video_sync_option,
+            "-vsync",
             "cfr",
             output_file,
         ]
@@ -279,9 +267,7 @@ def _calculate_avg_bitrate(index_data: str, segments: List[str]) -> Optional[flo
     return None
 
 
-def _extract_segments(
-    source_file: str, dirs: Dict, segment_length: int, video_sync_option: str
-) -> Dict:
+def _extract_segments(source_file: str, dirs: Dict, segment_length: int) -> Dict:
     """
     Extract HLS segments in high and low quality
     Returns segment info and frame counts per segment
@@ -326,7 +312,7 @@ def _extract_segments(
             "0",
             "-hls_segment_filename",
             segment_pattern,
-            video_sync_option,
+            "-vsync",
             "passthrough",
             "-max_muxing_queue_size",
             "1024",
@@ -373,7 +359,7 @@ def _extract_thumbnail(source_file: str, output_path: str, total_frames: int) ->
     return output_path
 
 
-def _get_frames_timestamps(source_file: str, video_sync_option: str) -> List[float]:
+def _get_frames_timestamps(source_file: str) -> List[float]:
     """Get frame timestamps using ffmpeg showinfo filter"""
     cmd = [
         "ffmpeg",
@@ -382,7 +368,7 @@ def _get_frames_timestamps(source_file: str, video_sync_option: str) -> List[flo
         "info",
         "-i",
         source_file,
-        video_sync_option,
+        "-vsync",
         "passthrough",
         "-vf",
         "showinfo",
@@ -408,7 +394,6 @@ def _extract_frames(
     output_dir: str,
     downsampling_step: float,
     quality: int,
-    video_sync_option: str,
 ):
     """Extract frames using ffmpeg with optional downsampling.
 
@@ -440,7 +425,7 @@ def _extract_frames(
         source_file,
         "-start_number",
         "0",
-        video_sync_option,
+        "-vsync",
         "passthrough",
         "-f",
         "image2",
@@ -472,17 +457,13 @@ def _get_segment_frame_counts(segments_dir: str) -> List[int]:
 
 
 def _create_frames_manifest(
-    source_file: str,
-    segments_dir: str,
-    downsampling_step: float,
-    manifest_path: str,
-    video_sync_option: str,
+    source_file: str, segments_dir: str, downsampling_step: float, manifest_path: str
 ) -> Dict:
     """
     Create frames manifest mapping frames to segments
     Format: FRAME_NO_IN_SEGMENT:SEGMENT_NO:VISIBILITY_FLAG:TIMESTAMP
     """
-    frames_timestamps = _get_frames_timestamps(source_file, video_sync_option)
+    frames_timestamps = _get_frames_timestamps(source_file)
     segment_frame_counts = _get_segment_frame_counts(segments_dir)
 
     file_lines = []
@@ -636,14 +617,12 @@ def extract_artifacts(
     if not os.path.exists(source_file):
         raise FileNotFoundError(f"Source video file not found: {source_file}")
 
-    video_sync_option = _check_ffmpeg_version()
+    _check_ffmpeg_version()
     dirs = _create_directories(output_dir)
 
     repaired = False
     if repair:
-        repaired, source_file = _maybe_repair_video(
-            source_file, dirs["base_dir"], video_sync_option
-        )
+        repaired, source_file = _maybe_repair_video(source_file, dirs["base_dir"])
 
     storage_key_prefix = storage_key_prefix.strip("/")
 
@@ -662,29 +641,16 @@ def extract_artifacts(
     console.print("\nExtracting video segments...")
 
     segments_metadata = _extract_segments(
-        source_file=source_file,
-        dirs=dirs,
-        segment_length=segment_length,
-        video_sync_option=video_sync_option,
+        source_file=source_file, dirs=dirs, segment_length=segment_length
     )
 
     console.print("\nExtracting frames...")
 
     _extract_frames(
-        source_file,
-        dirs["sections_high"],
-        downsampling_step,
-        primary_frames_quality,
-        video_sync_option,
+        source_file, dirs["sections_high"], downsampling_step, primary_frames_quality
     )
     if extract_preview_frames:
-        _extract_frames(
-            source_file,
-            dirs["sections_low"],
-            downsampling_step,
-            5,
-            video_sync_option,
-        )
+        _extract_frames(source_file, dirs["sections_low"], downsampling_step, 5)
 
     console.print("\nCreating frames manifest...")
 
@@ -693,7 +659,6 @@ def extract_artifacts(
         segments_dir=dirs["segments_high"],
         downsampling_step=downsampling_step,
         manifest_path=os.path.join(dirs["base_dir"], "frames_manifest.txt"),
-        video_sync_option=video_sync_option,
     )
 
     console.print("\nExtracting thumbnail...")
