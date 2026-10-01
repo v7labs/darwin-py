@@ -1677,7 +1677,8 @@ def import_annotations(  # noqa: C901
         )
         console.print(
             f"Found missing classes that cannot be created: {missing_class_names}. "
-            "Create them in the Darwin UI before importing. Exiting now.",
+            "Create them in the Darwin UI before importing, or check that the "
+            "annotation type is available for your team. Exiting now.",
             style="error",
         )
         return
