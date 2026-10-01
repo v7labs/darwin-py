@@ -640,9 +640,11 @@ def test_import_eye_annotations_to_videos(
     local_dataset: E2EDataset, config_values: ConfigValues
 ) -> None:
     """
-    Eye annotations share their shape with skeletons, so this covers the video-only
-    parsing paths: keyframe construction and the propagation of keyframe node data
-    onto intermediate frames.
+    Checks that eye video annotations import and survive a round trip.
+
+    As in the skeleton video fixtures, every frame carries its own payload and
+    `only_keyframes` is unset, so keyframe inheritance is not reached here. That
+    path is asserted by `test_imports_an_eye_video_annotation`.
     """
     run_import_test(
         local_dataset,
