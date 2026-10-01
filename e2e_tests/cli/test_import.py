@@ -636,6 +636,22 @@ def test_import_annotations_with_subtypes_to_videos(
     )
 
 
+def test_import_eye_annotations_to_videos(
+    local_dataset: E2EDataset, config_values: ConfigValues
+) -> None:
+    """
+    Eye annotations share their shape with skeletons, so this covers the video-only
+    parsing paths: keyframe construction and the propagation of keyframe node data
+    onto intermediate frames.
+    """
+    run_import_test(
+        local_dataset,
+        config_values,
+        item_type="single_slotted_video",
+        annotations_subdir="video_annotations_with_eye",
+    )
+
+
 def test_importing_coco_annotations(
     local_dataset: E2EDataset, config_values: ConfigValues
 ) -> None:
