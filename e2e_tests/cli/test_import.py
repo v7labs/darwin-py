@@ -636,6 +636,24 @@ def test_import_annotations_with_subtypes_to_videos(
     )
 
 
+def test_import_eye_annotations_to_videos(
+    local_dataset: E2EDataset, config_values: ConfigValues
+) -> None:
+    """
+    Checks that eye video annotations import and survive a round trip.
+
+    As in the skeleton video fixtures, every frame carries its own payload and
+    `only_keyframes` is unset, so keyframe inheritance is not reached here. That
+    path is asserted by `test_imports_an_eye_video_annotation`.
+    """
+    run_import_test(
+        local_dataset,
+        config_values,
+        item_type="single_slotted_video",
+        annotations_subdir="video_annotations_with_eye",
+    )
+
+
 def test_importing_coco_annotations(
     local_dataset: E2EDataset, config_values: ConfigValues
 ) -> None:

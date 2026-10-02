@@ -1,0 +1,124 @@
+{
+  "version": "2.0",
+  "schema_ref": "https://darwin-public.s3.eu-west-1.amazonaws.com/darwin_json/2.0/schema.json",
+  "item": {
+    "name": "image_1.jpg",
+    "path": "/",
+    "source_info": {
+      "dataset": {
+        "name": "eye_annotations_dataset",
+        "slug": "eye_annotations_dataset"
+      },
+      "team": {
+        "name": "E2E Testing",
+        "slug": "e2e-testing"
+      }
+    },
+    "slots": [
+      {
+        "type": "image",
+        "slot_name": "0",
+        "width": 1920,
+        "height": 1080,
+        "source_files": [
+          {
+            "file_name": "image_1.jpg",
+            "storage_key": "darwin-py/images/image_1.jpg"
+          }
+        ]
+      }
+    ]
+  },
+  "annotations": [
+    {
+      "eye": {
+        "nodes": [
+          {
+            "name": "inner",
+            "occluded": false,
+            "x": 280.4492,
+            "y": 200.1734
+          },
+          {
+            "name": "outer",
+            "occluded": false,
+            "x": 360.1423,
+            "y": 200.1734
+          },
+          {
+            "name": "upper",
+            "occluded": false,
+            "x": 320.2957,
+            "y": 180.8821
+          },
+          {
+            "name": "lower",
+            "occluded": false,
+            "x": 320.2957,
+            "y": 219.4647
+          }
+        ]
+      },
+      "id": "7c9e3a52-2d4b-4f18-9c61-1b0a5f3e7d10",
+      "name": "test_eye_basic",
+      "slot_names": ["0"]
+    },
+    {
+      "eye": {
+        "nodes": [
+          {
+            "name": "inner",
+            "occluded": false,
+            "x": 701.3690,
+            "y": 500.5217
+          },
+          {
+            "name": "outer",
+            "occluded": false,
+            "x": 781.4465,
+            "y": 500.5217
+          },
+          {
+            "name": "upper",
+            "occluded": false,
+            "x": 741.4077,
+            "y": 481.2866
+          },
+          {
+            "name": "lower",
+            "occluded": false,
+            "x": 741.4077,
+            "y": 519.7568
+          }
+        ]
+      },
+      "id": "a3f81d47-6b25-4e93-8a07-5c2e9f14b6d8",
+      "instance_id": {
+        "value": 9
+      },
+      "name": "test_eye_with_subtypes_and_properties",
+      "properties": [
+        {
+          "frame_index": 0,
+          "name": "multi_select-1",
+          "value": "2"
+        },
+        {
+          "frame_index": 0,
+          "name": "multi_select-1",
+          "value": "1"
+        },
+        {
+          "frame_index": "global",
+          "name": "annotation-text-1",
+          "value": "Annotation test"
+        }
+      ],
+      "slot_names": ["0"],
+      "text": {
+        "text": "test_text"
+      }
+    }
+  ],
+  "properties": []
+}
