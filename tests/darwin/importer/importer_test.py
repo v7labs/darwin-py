@@ -34,7 +34,7 @@ from darwin.importer.importer import (
     _get_slot_names,
     _import_annotations,
     _import_properties,
-    _is_skeleton_class,
+    _is_uncreatable_class,
     _overwrite_warning,
     _parse_affine,
     _parse_empty_masks,
@@ -191,6 +191,8 @@ def test__build_main_annotations_lookup_table() -> None:
         {"name": "class3", "id": 3, "annotation_types": ["mask", "raster_layer"]},
         {"name": "class4", "id": 4, "annotation_types": ["unsupported_type"]},
         {"name": "class5", "id": 5, "annotation_types": ["bounding_box", "polygon"]},
+        {"name": "class6", "id": 6, "annotation_types": ["skeleton"]},
+        {"name": "class7", "id": 7, "annotation_types": ["eye"]},
     ]
 
     expected_lookup = {
@@ -200,6 +202,8 @@ def test__build_main_annotations_lookup_table() -> None:
         "keypoint": {"class2": 2},
         "mask": {"class3": 3},
         "raster_layer": {"class3": 3},
+        "skeleton": {"class6": 6},
+        "eye": {"class7": 7},
     }
 
     result = _build_main_annotations_lookup_table(annotation_classes)
@@ -696,7 +700,7 @@ def test_import_annotations_retries_remote_file_lookup_with_smaller_chunks() -> 
     ] == [100, 92]
 
 
-def test__is_skeleton_class() -> None:
+def test__is_uncreatable_class() -> None:
     class1 = dt.AnnotationClass(name="class1", annotation_type="skeleton")
     class2 = dt.AnnotationClass(name="class2", annotation_type="polygon")
     class3 = dt.AnnotationClass(
@@ -705,15 +709,21 @@ def test__is_skeleton_class() -> None:
     class4 = dt.AnnotationClass(
         name="class4", annotation_type="polygon", annotation_internal_type="polygon"
     )
+    class5 = dt.AnnotationClass(name="class5", annotation_type="eye")
+    class6 = dt.AnnotationClass(
+        name="class6", annotation_type="eye", annotation_internal_type="eye"
+    )
 
-    assert _is_skeleton_class(class1) is True
-    assert _is_skeleton_class(class2) is False
-    assert _is_skeleton_class(class3) is True
-    assert _is_skeleton_class(class4) is False
+    assert _is_uncreatable_class(class1) is True
+    assert _is_uncreatable_class(class2) is False
+    assert _is_uncreatable_class(class3) is True
+    assert _is_uncreatable_class(class4) is False
+    assert _is_uncreatable_class(class5) is True
+    assert _is_uncreatable_class(class6) is True
 
 
-def test__get_skeleton_name() -> None:
-    from darwin.importer.importer import _get_skeleton_name
+def test__get_class_name() -> None:
+    from darwin.importer.importer import _get_class_name
 
     class MockAnnotationClass:
         name: str
@@ -721,8 +731,8 @@ def test__get_skeleton_name() -> None:
         def __init__(self, name: str):
             self.name = name
 
-    assert _get_skeleton_name(MockAnnotationClass("test")) == "test"  # type: ignore
-    assert _get_skeleton_name(MockAnnotationClass("test_skeleton")) == "test_skeleton"  # type: ignore
+    assert _get_class_name(MockAnnotationClass("test")) == "test"  # type: ignore
+    assert _get_class_name(MockAnnotationClass("test_skeleton")) == "test_skeleton"  # type: ignore
 
 
 def test_handle_subs() -> None:
@@ -1010,6 +1020,58 @@ def test__get_annotation_data_video_annotation_only_stores_updates_to_sub_annota
     assert result["frames"][1]["attributes"] == {"attributes": ["id_1", "id_2"]}
     assert 2 not in result["frames"]
     assert result["frames"][3].get("attributes") is None
+
+
+def test__get_annotation_data_eye_annotation() -> None:
+    from darwin.importer.importer import _get_annotation_data
+
+    nodes = [
+        {"name": "inner", "occluded": False, "x": 141.4359, "y": 149.2308},
+        {"name": "outer", "occluded": False, "x": 174.6667, "y": 149.2308},
+        {"name": "upper", "occluded": False, "x": 158.0513, "y": 133.641},
+        {"name": "lower", "occluded": True, "x": 158.0513, "y": 164.8205},
+    ]
+    annotation = dt.Annotation(
+        dt.AnnotationClass("eye-test", "eye"),
+        {"nodes": nodes},
+        [
+            dt.SubAnnotation(annotation_type="text", data="OS"),
+            dt.SubAnnotation(annotation_type="attributes", data=["dilated"]),
+            dt.SubAnnotation(annotation_type="instance_id", data=7),
+        ],
+        [],
+    )
+    attributes = {"eye_class_id": {"dilated": "attribute_id_1"}}
+
+    result = _get_annotation_data(annotation, "eye_class_id", attributes)
+
+    assert result["eye"] == {"nodes": nodes}
+    assert result["text"] == {"text": "OS"}
+    assert result["attributes"] == {"attributes": ["attribute_id_1"]}
+    assert result["instance_id"] == {"value": 7}
+
+
+def test__get_annotation_data_eye_video_annotation() -> None:
+    from darwin.importer.importer import _get_annotation_data
+
+    eye_class = dt.AnnotationClass("eye-test", "eye")
+    keyframe_nodes = [
+        {"name": "inner", "occluded": False, "x": 141.4359, "y": 149.2308},
+        {"name": "outer", "occluded": False, "x": 174.6667, "y": 149.2308},
+        {"name": "upper", "occluded": False, "x": 158.0513, "y": 133.641},
+        {"name": "lower", "occluded": False, "x": 158.0513, "y": 164.8205},
+    ]
+    video_annotation = dt.VideoAnnotation(eye_class, {}, {}, [], False)
+    video_annotation.keyframes = {0: True, 1: False}
+    video_annotation.frames = {
+        0: dt.Annotation(eye_class, {"nodes": keyframe_nodes}, [], []),
+        1: dt.Annotation(eye_class, {"nodes": keyframe_nodes}, [], []),
+    }
+
+    result = _get_annotation_data(video_annotation, "eye_class_id", {})
+
+    assert result["frames"][0]["eye"] == {"nodes": keyframe_nodes}
+    assert 1 not in result["frames"]
 
 
 def __expectation_factory(i: int, slot_names: List[str]) -> dt.Annotation:
