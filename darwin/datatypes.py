@@ -251,6 +251,9 @@ class Annotation:
     # Properties of this annotation.
     properties: Optional[list[SelectedProperty]] = None
 
+    # The annotation group ID
+    annotation_group_id: Optional[str] = None
+
     def get_sub(self, annotation_type: str) -> Optional[SubAnnotation]:
         """
         Returns the first SubAnnotation that matches the given type.
@@ -307,6 +310,9 @@ class VideoAnnotation:
 
     # Properties of this annotation.
     properties: Optional[list[SelectedProperty]] = None
+
+    # The annotation group ID
+    annotation_group_id: Optional[str] = None
 
     #: A list of ``HiddenArea``\'s.
     hidden_areas: List[HiddenArea] = field(default_factory=list)

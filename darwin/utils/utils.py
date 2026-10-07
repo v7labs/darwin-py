@@ -918,6 +918,8 @@ def _parse_darwin_annotation(
 
     if "id" in annotation:
         main_annotation.id = annotation["id"]
+    if "annotation_group_id" in annotation:
+        main_annotation.annotation_group_id = annotation["annotation_group_id"]
     _apply_sub_annotations(annotation, main_annotation)
 
     return main_annotation
@@ -1091,6 +1093,9 @@ def _parse_darwin_video_annotation(annotation: dict) -> Optional[dt.VideoAnnotat
     if "id" in annotation:
         main_annotation.id = annotation["id"]
 
+    if "annotation_group_id" in annotation:
+        main_annotation.annotation_group_id = annotation["annotation_group_id"]
+
     if "annotators" in annotation:
         main_annotation.annotators = _parse_annotators(annotation["annotators"])
 
@@ -1215,6 +1220,7 @@ def _parse_darwin_raster_annotation(annotation: dict) -> Optional[dt.Annotation]
         },
         slot_names=slot_names or [],
         id=id,
+        annotation_group_id=annotation.get("annotation_group_id"),
     )
     _apply_sub_annotations(annotation, new_annotation)
 
@@ -1238,6 +1244,7 @@ def _parse_darwin_mask_annotation(annotation: dict) -> Optional[dt.Annotation]:
         mask,
         slot_names=slot_names or [],
         id=id,
+        annotation_group_id=annotation.get("annotation_group_id"),
     )
     _apply_sub_annotations(annotation, new_annotation)
 
