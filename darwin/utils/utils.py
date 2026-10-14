@@ -541,26 +541,85 @@ def get_image_path_from_stream(
         Path to the image file.
     """
     try:
-        item_name_stem = Path(darwin_json["item"]["name"]).stem
-        source_name_suffix = Path(
-            darwin_json["item"]["slots"][0]["source_files"][0]["file_name"]
-        ).suffix
-        local_file_name = Path(item_name_stem + source_name_suffix)
-        if not with_folders:
-            return images_dir / local_file_name
-        else:
-            return (
-                images_dir
-                / (Path(darwin_json["item"]["path"].lstrip("/\\")))
-                / local_file_name
-            )
+        primary = _single_file_image_path(darwin_json, images_dir, with_folders)
     except OSError:
         # Load in the JSON as normal
-        darwin_json = parse_darwin_json(path=annotation_filepath)
+        parsed = parse_darwin_json(path=annotation_filepath)
+        assert parsed is not None
         if not with_folders:
-            return images_dir / Path(darwin_json.filename)
-        else:
-            return images_dir / Path(darwin_json.full_path.lstrip("/\\"))
+            return images_dir / Path(parsed.filename)
+        return images_dir / Path(parsed.full_path.lstrip("/\\"))
+
+    # images/ can contain directories even when this item was pulled as one file.
+    if primary.is_file():
+        return primary
+    alternate = _single_file_image_path(darwin_json, images_dir, not with_folders)
+    if alternate.is_file():
+        return alternate
+    for candidate in _pull_layout_image_files(darwin_json, images_dir, with_folders):
+        if candidate.is_file():
+            return candidate
+    return primary
+
+
+def _single_file_image_path(
+    darwin_json: PersistentStreamingJSONObject,
+    images_dir: Path,
+    with_folders: bool,
+) -> Path:
+    item_name_stem = Path(darwin_json["item"]["name"]).stem
+    source_name_suffix = Path(
+        darwin_json["item"]["slots"][0]["source_files"][0]["file_name"]
+    ).suffix
+    local_file_name = Path(item_name_stem + source_name_suffix)
+    if not with_folders:
+        return images_dir / local_file_name
+    return (
+        images_dir / Path(darwin_json["item"]["path"].lstrip("/\\")) / local_file_name
+    )
+
+
+def _pull_layout_image_files(
+    darwin_json: PersistentStreamingJSONObject,
+    images_dir: Path,
+    with_folders: bool,
+) -> Iterator[Path]:
+    """Image files pull writes for per-slot and multi-file downloads."""
+    item = darwin_json["item"]
+    name = item["name"]
+    stem = Path(name).stem
+    relative_path = Path(item["path"].lstrip("/\\"))
+    if not relative_path.parts:
+        bases = [images_dir]
+    elif with_folders:
+        bases = [images_dir / relative_path, images_dir]
+    else:
+        bases = [images_dir, images_dir / relative_path]
+
+    for slot in item["slots"]:
+        slot_name = slot["slot_name"]
+        for source in slot["source_files"]:
+            file_name = source["file_name"]
+            for base in bases:
+                yield base / name / slot_name / file_name
+
+    # _fetch_multiple_files strips the suffix and writes slices into that directory.
+    if not stem:
+        return
+    for base in bases:
+        series_dir = base / stem
+        if series_dir == base or not series_dir.is_dir():
+            continue
+        files = sorted(
+            (child for child in series_dir.iterdir() if child.is_file()),
+            key=lambda path: (
+                not is_extension_allowed_by_filename(path.name),
+                path.name,
+            ),
+        )
+        if files:
+            yield files[0]
+            return
 
 
 def is_stream_list_empty(json_list: PersistentStreamingJSONList) -> bool:

@@ -486,6 +486,7 @@ def get_annotations(
         images_paths,
         annotations_paths,
         invalid_annotation_paths,
+        missing_image_paths,
     ) = _map_annotations_to_images(
         annotation_filepaths, images_dir, ignore_inconsistent_examples
     )
@@ -495,10 +496,7 @@ def get_annotations(
         print(p)
 
     if len(images_paths) == 0:
-        raise ValueError(
-            f"Could not find any {SUPPORTED_EXTENSIONS} file"
-            f" in {dataset_path / 'images'}"
-        )
+        _raise_for_unmapped_images(images_dir, missing_image_paths)
 
     assert len(images_paths) == len(annotations_paths)
 
@@ -581,7 +579,7 @@ def _map_annotations_to_images(
     annotation_filepaths: Generator[str, None, None],
     images_dir: Path,
     ignore_inconsistent_examples: bool,
-) -> Tuple[List[Path], List[Path], List[Path]]:
+) -> Tuple[List[Path], List[Path], List[str], List[Path]]:
     """
     Maps annotations to their corresponding images based on the file stems.
 
@@ -592,7 +590,8 @@ def _map_annotations_to_images(
         ignore_inconsistent_examples (bool): Flag to determine if inconsistent examples should be ignored.
 
     Returns:
-        Tuple[List[Path], List[Path], List[Path]]: Lists of paths for images, annotations, and invalid annotations respectively.
+        Tuple[List[Path], List[Path], List[str], List[Path]]: Image paths, annotation
+        paths, invalid annotation paths, and image paths that were missing.
 
     Raises:
         ValueError: If there are inconsistencies with the annotations and images.
@@ -600,26 +599,54 @@ def _map_annotations_to_images(
     images_paths = []
     annotations_paths = []
     invalid_annotation_paths = []
+    missing_image_paths = []
     with_folders = any(item.is_dir() for item in images_dir.iterdir())
     for annotation_path in annotation_filepaths:
         darwin_json = stream_darwin_json(Path(annotation_path))
         image_path = get_image_path_from_stream(
             darwin_json, images_dir, Path(annotation_path), with_folders
         )
-        if image_path.exists():
+        if image_path.is_file():
             images_paths.append(image_path)
             annotations_paths.append(Path(annotation_path))
             continue
-        else:
-            if ignore_inconsistent_examples:
-                invalid_annotation_paths.append(annotation_path)
-                continue
-            else:
-                raise ValueError(
-                    f"Annotation ({annotation_path}) does not have a corresponding image"
-                )
+        missing_image_paths.append(image_path)
+        if ignore_inconsistent_examples:
+            invalid_annotation_paths.append(annotation_path)
+            continue
+        raise ValueError(
+            f"Annotation ({annotation_path}) does not have a corresponding image, "
+            f"looking for image path: {image_path}"
+        )
 
-    return images_paths, annotations_paths, invalid_annotation_paths
+    return (
+        images_paths,
+        annotations_paths,
+        invalid_annotation_paths,
+        missing_image_paths,
+    )
+
+
+def _raise_for_unmapped_images(
+    images_dir: Path, missing_image_paths: List[Path]
+) -> None:
+    children = list(images_dir.iterdir())
+    entries = sorted(
+        entry.name + ("/" if entry.is_dir() else "")
+        for entry in children
+        if not entry.name.startswith(".")
+    )
+    if not entries:
+        raise ValueError(
+            f"Could not find any {SUPPORTED_EXTENSIONS} file in {images_dir}"
+        )
+    with_folders = any(entry.is_dir() for entry in children)
+    raise ValueError(
+        f"Could not map annotations to image files in {images_dir}. "
+        f"with_folders={with_folders}. "
+        f"Sample expected paths: {[str(path) for path in missing_image_paths[:3]]}. "
+        f"Sample images/ entries: {entries[:5]}."
+    )
 
 
 def _load_and_format_annotations(
