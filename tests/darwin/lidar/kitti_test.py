@@ -110,10 +110,10 @@ def test_camera_to_velo_matches_kitti_devkit_corners(object_root):
     assert af.filename == "kitti_object_training_000001.lidar.zip"
     assert [a.annotation_class.name for a in af.annotations] == ["Car", "Pedestrian"]
     for row, track in zip(_rows(LABEL_2), af.annotations):
-        h, w, l, x, y, z, ry = map(float, row[8:15])
+        h, w, ln, x, y, z, ry = map(float, row[8:15])
         c, s = np.cos(ry), np.sin(ry)
         rot = np.array([[c, 0, s], [0, 1, 0], [-s, 0, c]])
-        xs = np.array([l, l, -l, -l, l, l, -l, -l]) / 2
+        xs = np.array([ln, ln, -ln, -ln, ln, ln, -ln, -ln]) / 2
         ys = np.array([0, 0, 0, 0, -h, -h, -h, -h])
         zs = np.array([w, -w, -w, w, w, -w, -w, w]) / 2
         cam = (rot @ np.stack([xs, ys, zs])).T + [x, y, z]

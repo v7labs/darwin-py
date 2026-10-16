@@ -91,7 +91,7 @@ def make_track(
         )
     annotation = dt.make_video_annotation(
         per_frame,
-        {f: True for f in per_frame},
+        dict.fromkeys(per_frame, True),
         segments_of(per_frame),
         (annotation_type != "point_mask_3d") if interpolated is None else interpolated,
         slot_names=[SLOT_NAME],
