@@ -256,3 +256,58 @@ def test_importer_creates_tracked_3d_classes_with_instance_ids():
     )
     af = make_lidar_file("s.lidar.zip", [tracked, untracked], 1)
     assert _lidar_classes_with_instance_ids([af]) == {tracked.annotation_class}
+
+
+# produced by the backend's ExportCommons.PointMaskRuns.pack/1
+BACKEND_PACKED = (
+    "eJxjYGRiOsz4YRFLxwMLRgAWxwQB",
+    [0, 1, 3, 2, 200, 70_000, 1_000_000, 1],
+)
+
+
+def test_packed_ranges_codec():
+    import base64
+    import zlib
+
+    import pytest
+
+    from darwin.lidar.darwin_json import pack_ranges, unpack_ranges
+
+    packed, ranges = BACKEND_PACKED
+    assert unpack_ranges(packed) == ranges
+    assert unpack_ranges(pack_ranges(ranges)) == ranges
+    assert unpack_ranges(pack_ranges([])) == []
+    with pytest.raises(ValueError):
+        unpack_ranges(base64.b64encode(zlib.compress(bytes([0x80]))).decode())
+
+
+def test_packed_point_masks_parse_to_ranges_and_pack_on_import(tmp_path):
+    packed, ranges = BACKEND_PACKED
+    data = copy.deepcopy(EXPORT)
+    mask = data["annotations"][4]["frames"]["0"]
+    mask["point_mask_3d"] = {"point_count": 1_000_001, "packed_ranges": packed}
+    f = _parse(tmp_path, data)
+    expected = {"point_count": 1_000_001, "ranges": ranges}
+    assert f.annotations[4].frames[0].data == expected
+    assert (
+        to_darwin_json(f)["annotations"][4]["frames"]["0"]["point_mask_3d"] == expected
+    )
+
+    # small masks are sent as ranges, large scattered ones as packed_ranges
+    assert (
+        "ranges"
+        in _get_annotation_data(f.annotations[4], "2", {})["frames"][0]["point_mask_3d"]
+    )
+    scattered = list(range(0, 4000, 2))
+    big = make_track(
+        "Road",
+        "point_mask_3d",
+        {0: {"point_count": 5000, "ranges": [v for s in scattered for v in (s, 1)]}},
+    )
+    sent = _get_annotation_data(big, "2", {})["frames"][0]["point_mask_3d"]
+    assert set(sent) == {"point_count", "packed_ranges"}
+    assert dt.make_point_mask_3d("Road", 5000, []).data["ranges"] == []
+    assert (
+        dt.make_lidar_annotation("Road", "point_mask_3d", sent).data
+        == big.frames[0].data
+    )

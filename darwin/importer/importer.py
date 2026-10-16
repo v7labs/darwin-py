@@ -2078,6 +2078,11 @@ def _get_annotation_data(
         data = _format_polygon_for_import(annotation, data)
         data = _handle_subs(annotation, data, annotation_class_id, attributes)
 
+    if annotation_class.annotation_type == "point_mask_3d":
+        from darwin.lidar.darwin_json import pack_point_mask
+
+        for frame in data["frames"].values() if "frames" in data else [data]:
+            frame["point_mask_3d"] = pack_point_mask(frame["point_mask_3d"])
     return data
 
 

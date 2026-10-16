@@ -3,8 +3,10 @@ Darwin JSON 2.0 for ``pointcloud`` items: building annotation files from dataset
 serializing them, and iterating their per-frame 3D geometry (for exporters).
 """
 
+import base64
 import json
 import uuid
+import zlib
 from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, NamedTuple, Optional, Sequence
@@ -50,6 +52,64 @@ def ranges_to_indices(ranges: Sequence[int]) -> np.ndarray:
     starts, lengths = r[:, 0], r[:, 1]
     offsets = np.repeat(np.cumsum(lengths) - lengths, lengths)
     return np.arange(lengths.sum()) - offsets + np.repeat(starts, lengths)
+
+
+def pack_ranges(ranges: Sequence[int]) -> str:
+    """
+    ``ranges`` -> ``packed_ranges``: base64 of zlib-compressed unsigned LEB128 varints
+    ``gap, length, ...``, each gap counted from the end of the previous run (the first from 0).
+    """
+    # ponytail: Python loops, ~1 s per million runs; vectorize if huge masks get common
+    out, end = bytearray(), 0
+    for start, length in zip(ranges[::2], ranges[1::2]):
+        for v in (int(start) - end, int(length)):
+            while v >= 0x80:
+                out.append(v & 0x7F | 0x80)
+                v >>= 7
+            out.append(v)
+        end = int(start) + int(length)
+    return base64.b64encode(zlib.compress(bytes(out))).decode("ascii")
+
+
+def unpack_ranges(packed: str) -> List[int]:
+    """``packed_ranges`` -> ``ranges`` (inverse of :func:`pack_ranges`)."""
+    values, value, shift = [], 0, 0
+    for byte in zlib.decompress(base64.b64decode(packed, validate=True)):
+        value |= (byte & 0x7F) << shift
+        if byte & 0x80:
+            shift += 7
+        else:
+            values.append(value)
+            value, shift = 0, 0
+    if shift or len(values) % 2:
+        raise ValueError("packed_ranges: truncated varints")
+    out, end = [], 0
+    for gap, length in zip(values[::2], values[1::2]):
+        out += [end + gap, length]
+        end += gap + length
+    return out
+
+
+def unpack_point_mask(data: Dict[str, Any]) -> Dict[str, Any]:
+    """A ``point_mask_3d`` with ``packed_ranges`` -> the same mask with plain ``ranges``."""
+    if "packed_ranges" not in data:
+        return data
+    out = {k: v for k, v in data.items() if k != "packed_ranges"}
+    out["ranges"] = unpack_ranges(data["packed_ranges"])
+    return out
+
+
+def pack_point_mask(data: Dict[str, Any], min_runs: int = 64) -> Dict[str, Any]:
+    """``packed_ranges`` form of a ``point_mask_3d`` when it has many runs and packs smaller."""
+    ranges = data.get("ranges")
+    if ranges is None or len(ranges) < 2 * min_runs:
+        return data
+    packed = pack_ranges(ranges)
+    if len(packed) >= len(json.dumps(ranges)):
+        return data
+    out = {k: v for k, v in data.items() if k != "ranges"}
+    out["packed_ranges"] = packed
+    return out
 
 
 def segments_of(frames: Iterable[int]) -> List[List[int]]:

@@ -1554,6 +1554,11 @@ def make_lidar_annotation(
     """
     if annotation_type not in LIDAR_ANNOTATION_TYPES:
         raise ValueError(f"Not a 3D annotation type: '{annotation_type}'")
+    if annotation_type == "point_mask_3d" and "packed_ranges" in data:
+        # lazy: darwin.lidar imports this module
+        from darwin.lidar.darwin_json import unpack_point_mask
+
+        data = unpack_point_mask(data)
     return Annotation(
         AnnotationClass(class_name, annotation_type),  # type: ignore[arg-type]
         data,
