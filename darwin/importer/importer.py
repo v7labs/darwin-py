@@ -1693,10 +1693,12 @@ def import_annotations(  # noqa: C901
             )
         if class_prompt and not secure_continue_request():
             return
+        tracked = _lidar_classes_with_instance_ids(local_files)
         for missing_class in local_classes_not_in_team:
             dataset.create_annotation_class(
                 missing_class.name,
                 missing_class.annotation_internal_type or missing_class.annotation_type,
+                ["instance_id"] if missing_class in tracked else [],
             )
     if local_classes_not_in_dataset:
         console.print(
@@ -1918,6 +1920,20 @@ def _is_uncreatable_class(the_class: dt.AnnotationClass) -> bool:
 
 def _get_class_name(the_class: dt.AnnotationClass) -> str:
     return the_class.name
+
+
+def _lidar_classes_with_instance_ids(
+    local_files: List[dt.AnnotationFile],
+) -> Set[dt.AnnotationClass]:
+    """3D classes whose tracks carry instance ids; without the Instance ID sub-type the backend drops them."""
+    return {
+        a.annotation_class
+        for f in local_files
+        for a in f.annotations
+        if isinstance(a, dt.VideoAnnotation)
+        and a.annotation_class.annotation_type in dt.LIDAR_ANNOTATION_TYPES
+        and any(frame.get_sub("instance_id") for frame in a.frames.values())
+    }
 
 
 def _handle_subs(

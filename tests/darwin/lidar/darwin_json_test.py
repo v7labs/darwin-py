@@ -245,3 +245,14 @@ def test_makers():
     assert (
         dt.make_polyline_3d("Lane", [(0, 0, 0), (1, 1, 1)]).data["path"][1]["z"] == 1.0
     )
+
+
+def test_importer_creates_tracked_3d_classes_with_instance_ids():
+    from darwin.importer.importer import _lidar_classes_with_instance_ids
+
+    tracked = make_track("Car", "cuboid_3d", {0: CUBOID}, instance_id=1)
+    untracked = make_track(
+        "Road", "point_mask_3d", {0: {"point_count": 1, "ranges": [0, 1]}}
+    )
+    af = make_lidar_file("s.lidar.zip", [tracked, untracked], 1)
+    assert _lidar_classes_with_instance_ids([af]) == {tracked.annotation_class}
