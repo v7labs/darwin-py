@@ -211,3 +211,11 @@ def test_write_scene_sensor_float_fallback(tmp_path):
     assert np.allclose(scene.points(0).xyz, far, equal_nan=True)
     with pytest.raises(ValueError):
         write_scene(tmp_path / "w.lidar.zip", [Frame(far)], coordinate_frame="world")
+
+
+def test_intensity_u8_scales():
+    from darwin.lidar.pointcloud import intensity_u8
+
+    assert intensity_u8(np.array([0, 0.5, 1.0])).tolist() == [0, 128, 255]
+    assert intensity_u8(np.array([0, 200, 255])).tolist() == [0, 200, 255]
+    assert intensity_u8(np.array([0, 257, 65535])).tolist() == [0, 1, 255]

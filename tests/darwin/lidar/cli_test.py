@@ -1,6 +1,10 @@
+import json
+from pathlib import Path
+from typing import Mapping, Optional, Union
+
 import numpy as np
 
-from darwin.lidar.__main__ import main
+from darwin.lidar.__main__ import _converter, main
 from darwin.lidar.scene import read_scene
 
 
@@ -31,16 +35,31 @@ def test_cli_build_labels_export(tmp_path, capsys):
     scene = read_scene(tmp_path / "pkg" / "velodyne.lidar.zip")
     assert scene.manifest["fps"] == 5 and len(scene) == 2
 
+    names = '{"10": "Car", "40": "Road"}'
     main(
-        ["labels", "semantic_kitti", str(seq / "labels"), "-o", str(tmp_path / "json")]
+        [
+            "labels",
+            "semantic_kitti",
+            str(seq / "labels"),
+            "--class-names",
+            names,
+            "-o",
+            str(tmp_path / "json"),
+        ]
     )
-    assert (tmp_path / "json" / "semantickitti_00.lidar.json").exists()
+    json_file = tmp_path / "json" / "semantickitti_00.lidar.json"
+    assert {a["name"] for a in json.loads(json_file.read_text())["annotations"]} == {
+        "Car",
+        "Road",
+    }
 
     main(
         [
             "export",
             "semantic_kitti",
             str(tmp_path / "json"),
+            "--class-ids",
+            '{"Car": 10, "Road": 40}',
             "-o",
             str(tmp_path / "out"),
         ]
@@ -51,3 +70,9 @@ def test_cli_build_labels_export(tmp_path, capsys):
         )
         assert (out == label).all()
     assert "out" in capsys.readouterr().out
+
+
+def test_cli_converters():
+    assert _converter(Optional[Union[str, Path, Mapping[str, str]]]) is str
+    assert _converter(Optional[dict[int, str]])('{"10": "car"}') == {10: "car"}
+    assert _converter(Optional[int])("3") == 3

@@ -64,7 +64,13 @@ They have not been run against the full public datasets.
   frame of each sweep. The `ego_pose` of each frame (4x4, `scene <- ego`) is stored in the
   package and comes back in exports as slot `metadata.frames[t].ego_pose`.
 - The ego frame is the dataset's own vehicle frame (KITTI: velodyne, nuScenes: ego, AV2:
-  egovehicle, PandaSet: lidar pose), not lowered to the ground.
+  egovehicle, PandaSet: lidar pose), not lowered to the ground, so ego-frame exports match the
+  dataset's own ego labels. The editor's first ground guess is the ego origin (velodyne 1.73 m
+  up, AV2 rear axle 0.34 m up); its ground fit corrects it.
+- Point clouds keep every point in file order. Intensity is stored as 0-255: `[0, 1]` values
+  are scaled by 255, values above 255 are treated as 16-bit and divided by 257.
+- Packages are plain (non-zip64) zips up to 4 GB and 65535 entries, which is what Darwin reads.
+  Longer sequences fail with `LargeZipFile`: build them in parts.
 - `cuboid_3d`: `position` = center, `dimensions` x/y/z = length/width/height, `rotation` x/y/z =
   roll/pitch/yaw with `R = Rz(yaw) Ry(pitch) Rx(roll)`. Importers keep full rotations, so round
   trips are exact; the Darwin editor draws and edits yaw only.
@@ -86,12 +92,20 @@ They have not been run against the full public datasets.
 - KITTI: truncation, occlusion and 2D boxes are not imported. On export, alpha and the 2D box
   are recomputed from the 3D box.
 - nuScenes uses key frames only (2 Hz, the labeled frames). Importing boxes and lidarseg onto
-  the same item needs `--append` for the second import.
+  the same item needs `--append` for the second import. Attributes (`vehicle.moving`, ...)
+  are imported only if they already exist on the Darwin class; otherwise the importer prints a
+  warning per frame and drops them.
 - PandaSet `.pkl.gz` files are pickles and can run code: use trusted data only. Cuboid
   attributes are not imported. Darwin yaw = PandaSet yaw + pi/2 and length = `dimensions.y`
   (from the devkit's geometry); the heading sign has not been checked against labeled data.
-- OpenLABEL: point masks are not exported; 2D geometry and non-geometric object data are ignored.
+  The ego pose is the Pandar64 pose; if that frame is y-forward, the editor's ego heading
+  (follow camera, one-click cuboids) is 90 degrees off. Boxes and points are unaffected.
+- OpenLABEL: transforms follow the VCD 6 reference library (`pose_wrt_parent` maps child to
+  parent points, `transform_src_to_dst` maps src to dst points, quaternions x y z w). Point
+  masks are not exported; 2D geometry and non-geometric object data are ignored.
 - Instance ids need the Instance ID sub-type on the class. Classes the importer creates get it
   when their tracks carry instance ids; for existing classes, add it in Darwin first. Darwin
   creates new annotation ids on import.
-- Large clouds: write aggregated maps in a spatial order so point masks stay compact.
+- Point masks: `packed_ranges` (backend API reads, workview edits) is decoded to `ranges` on
+  parse, and masks with many runs are sent packed on import. Long point-mask tracks over
+  thousands of frames are large; write aggregated maps in a spatial order so masks stay compact.

@@ -33,12 +33,18 @@ def missing_dependency(package: str, extra: str) -> ImportError:
 
 
 def intensity_u8(intensity: Optional[np.ndarray]) -> Optional[np.ndarray]:
-    """Intensity as 0-255 ``uint8``; clouds whose intensity is within ``[0, 1]`` are scaled by 255."""
+    """
+    Intensity as 0-255 ``uint8``: ``[0, 1]`` clouds are scaled by 255, clouds above 255 are taken
+    as 16-bit (LAS, Ouster) and divided by 257, others are kept.
+    """
     if intensity is None:
         return None
     i = np.nan_to_num(np.asarray(intensity, float))
-    if len(i) and i.max() <= 1.0:
+    peak = i.max() if len(i) else 0
+    if peak <= 1.0:
         i = i * 255
+    elif peak > 255:
+        i = i / 257
     return np.clip(np.round(i), 0, 255).astype(np.uint8)
 
 

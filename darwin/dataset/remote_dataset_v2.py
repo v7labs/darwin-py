@@ -53,7 +53,8 @@ from darwin.utils import (
     EXTRACT_VIEWS_KEY,
     NATIVE_VIDEO_EXTENSIONS,
     PRESERVE_FOLDERS_KEY,
-    SUPPORTED_EXTENSIONS,
+    SUPPORTED_IMAGE_EXTENSIONS,
+    SUPPORTED_VIDEO_EXTENSIONS,
     find_files,
     urljoin,
 )
@@ -869,7 +870,7 @@ class RemoteDatasetV2(RemoteDataset):
             file_type = get_external_file_type(storage_key)
             if not file_type:
                 raise TypeError(
-                    f"Unsupported file type for the following storage key: {storage_key}.\nPlease make sure your storage key ends with one of the supported extensions:\n{SUPPORTED_EXTENSIONS}"
+                    f"Unsupported file type for the following storage key: {storage_key}.\nPlease make sure your storage key ends with one of the supported extensions:\n{SUPPORTED_IMAGE_EXTENSIONS + SUPPORTED_VIDEO_EXTENSIONS}"
                 )
             item = {
                 "path": parse_external_file_path(storage_key, preserve_folders),
@@ -960,7 +961,7 @@ class RemoteDatasetV2(RemoteDataset):
                 file_type = get_external_file_type(storage_key)
                 if not file_type:
                     raise TypeError(
-                        f"Unsupported file type for the following storage key: {storage_key}.\nPlease make sure your storage key ends with one of the supported extensions:\n{SUPPORTED_EXTENSIONS}"
+                        f"Unsupported file type for the following storage key: {storage_key}.\nPlease make sure your storage key ends with one of the supported extensions:\n{SUPPORTED_IMAGE_EXTENSIONS + SUPPORTED_VIDEO_EXTENSIONS}"
                     )
                 slot = {
                     "slot_name": file_name,

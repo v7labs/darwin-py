@@ -75,8 +75,10 @@ def _converter(annotation: Any) -> Callable[[str], Any]:
         return int
     if members <= {int, float}:
         return float
-    if any(typing.get_origin(t) in (dict, collections.abc.Mapping) for t in members):
-        return json.loads
+    if all(typing.get_origin(t) in (dict, collections.abc.Mapping) for t in members):
+        key = (typing.get_args(next(iter(members))) or (str,))[0]
+        cast = key if key in (int, float) else str
+        return lambda text: {cast(k): v for k, v in json.loads(text).items()}
     return str
 
 

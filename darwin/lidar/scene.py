@@ -10,9 +10,10 @@ import io
 import json
 import tempfile
 import zipfile
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any, Dict, Iterable, Iterator, List, Optional
 
 import numpy as np
 
@@ -100,6 +101,21 @@ def bev_thumbnail(
     buf = io.BytesIO()
     Image.fromarray(img).save(buf, "JPEG", quality=88)
     return buf.getvalue()
+
+
+@contextmanager
+def _zip32() -> Iterator[None]:
+    """
+    Lets zipfile write 32-bit offsets up to 4 GiB (its default switches to zip64 above 2 GiB),
+    because the Darwin readers reject zip64. Larger packages raise ``zipfile.LargeZipFile``.
+    """
+    # ponytail: patches a module global (not thread-safe while a package is being written)
+    limit = zipfile.ZIP64_LIMIT
+    zipfile.ZIP64_LIMIT = (1 << 32) - 2
+    try:
+        yield
+    finally:
+        zipfile.ZIP64_LIMIT = limit
 
 
 def write_scene(
@@ -199,7 +215,7 @@ def write_scene(
                 entry.pop("offset")
         scene["cameras"] = list(cameras.values())
         scene["frames"] = manifest
-        with zipfile.ZipFile(path, "w", allowZip64=False) as z:
+        with _zip32(), zipfile.ZipFile(path, "w", allowZip64=False) as z:
             z.writestr(
                 "scene.json", json.dumps(scene), compress_type=zipfile.ZIP_STORED
             )
