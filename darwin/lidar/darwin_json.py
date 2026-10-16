@@ -7,7 +7,7 @@ import json
 import uuid
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, Iterable, Iterator, List, NamedTuple, Optional, Sequence
+from typing import Any, Dict, Iterable, List, NamedTuple, Optional, Sequence
 
 import numpy as np
 
@@ -18,6 +18,38 @@ SLOT_NAME = "0"
 SCHEMA_REF = (
     "https://darwin-public.s3.eu-west-1.amazonaws.com/darwin_json/2.0/schema.json"
 )
+
+
+def item_stem(name: str) -> str:
+    """``scene.lidar.zip`` -> ``scene``, ``cloud.pcd`` -> ``cloud``."""
+    name = Path(name).name
+    return (
+        name[: -len(".lidar.zip")] if name.endswith(".lidar.zip") else Path(name).stem
+    )
+
+
+def indices_to_ranges(indices: np.ndarray) -> List[int]:
+    """Sorted unique point indices -> ``point_mask_3d`` ``ranges`` (flat ``[start, length, ...]``)."""
+    idx = np.asarray(indices, np.int64)
+    if not len(idx):
+        return []
+    breaks = np.flatnonzero(np.diff(idx) != 1)
+    starts = idx[np.r_[0, breaks + 1]]
+    lengths = idx[np.r_[breaks, len(idx) - 1]] - starts + 1
+    return np.stack([starts, lengths], 1).ravel().tolist()
+
+
+def mask_to_ranges(mask: np.ndarray) -> List[int]:
+    """Boolean per-point mask -> ``point_mask_3d`` ``ranges``."""
+    return indices_to_ranges(np.flatnonzero(mask))
+
+
+def ranges_to_indices(ranges: Sequence[int]) -> np.ndarray:
+    """``point_mask_3d`` ``ranges`` -> point indices."""
+    r = np.asarray(ranges, np.int64).reshape(-1, 2)
+    starts, lengths = r[:, 0], r[:, 1]
+    offsets = np.repeat(np.cumsum(lengths) - lengths, lengths)
+    return np.arange(lengths.sum()) - offsets + np.repeat(starts, lengths)
 
 
 def segments_of(frames: Iterable[int]) -> List[List[int]]:
