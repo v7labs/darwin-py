@@ -92,6 +92,10 @@ storage_aws = [ "boto3",]
 storage_gcp = [ "google-cloud-storage",]
 storage_azure = [ "azure-storage-blob", "azure-identity",]
 storage_all = [ "boto3", "google-cloud-storage", "azure-storage-blob", "azure-identity",]
+lidar = [ "pyarrow", "laspy", "pandas",]
+lidar_av2 = [ "pyarrow",]
+lidar_las = [ "laspy",]
+lidar_pandaset = [ "pandas",]
 
 [tool.poetry.scripts]
 darwin = "darwin.cli:main"
@@ -187,6 +191,18 @@ version = "^1.19.0"
 [tool.poetry.dependencies.opencv-python-headless]
 optional = true
 version = "4.11.0.86"
+
+[tool.poetry.dependencies.pyarrow]
+optional = true
+version = ">=14.0.0"
+
+[tool.poetry.dependencies.laspy]
+optional = true
+version = "^2.5.0"
+
+[tool.poetry.dependencies.pandas]
+optional = true
+version = ">=2.0.0"
 
 [tool.poetry.dependencies.pytest-rerunfailures]
 optional = true
