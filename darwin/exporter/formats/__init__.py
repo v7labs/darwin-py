@@ -14,4 +14,11 @@ supported_formats: List[str] = [
     "yolo",
     "yolo_segmented",
     "nifti",
+    # LiDAR (darwin.lidar)
+    "argoverse2",
+    "kitti_3d",
+    "lidar_ego",
+    "nuscenes",
+    "openlabel",
+    "semantic_kitti",
 ]

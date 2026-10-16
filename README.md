@@ -162,6 +162,7 @@ Supported extensions:
 
 -   Video files: [`.mp4`, `.bpm`, `.mov`, `.avi`, `.mkv`, `.hevc`, `.pdf`, `.dcm`, `.nii`, `.nii.gz`, `.ndpi`, `.rvg` formats].
 -   Image files [`.jpg`, `.jpeg`, `.png`, `.jfif`, `.tif`, `.tiff`, `.qtiff`, `.bmp`, `.svs`, `.webp`, `.JPEG`, `.JPG`, `.BMP` formats].
+-   Point clouds: [`.pcd`, `.lidar.zip` (multi-frame LiDAR + cameras)]. See [LiDAR and multi-camera formats](docs/lidar.md) for converting KITTI, nuScenes, Argoverse 2, PandaSet, SemanticKITTI, OpenLABEL and generic clouds.
 
 ```
 $ darwin dataset push test /path/to/folder/with/images

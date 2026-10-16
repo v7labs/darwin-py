@@ -13,4 +13,12 @@ supported_formats: List[str] = [
     "pascal_voc",
     "superannotate",
     "nifti",
+    # LiDAR (darwin.lidar)
+    "argoverse2",
+    "kitti_3d",
+    "nuscenes",
+    "nuscenes_lidarseg",
+    "openlabel",
+    "pandaset",
+    "semantic_kitti",
 ]
