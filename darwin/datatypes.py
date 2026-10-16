@@ -122,7 +122,21 @@ AnnotationType = Literal[  # NB: Some of these are not supported yet
     "table",
     "string",
     "graph",
+    "cuboid_3d",
+    "polyline_3d",
+    "polygon_3d",
+    "keypoint_3d",
+    "point_mask_3d",
 ]
+
+#: Annotation types of ``pointcloud`` (LiDAR) slots. Their Darwin JSON data is stored as is.
+LIDAR_ANNOTATION_TYPES: Tuple[str, ...] = (
+    "cuboid_3d",
+    "polyline_3d",
+    "polygon_3d",
+    "keypoint_3d",
+    "point_mask_3d",
+)
 
 
 class SubAnnotationType(str, Enum):
@@ -310,6 +324,14 @@ class VideoAnnotation:
 
     #: A list of ``HiddenArea``\'s.
     hidden_areas: List[HiddenArea] = field(default_factory=list)
+
+    #: Darwin JSON ``interpolate_algorithm`` (e.g. ``"linear-1.1"``), kept for round-trips.
+    interpolate_algorithm: Optional[str] = field(default=None, compare=False)
+
+    #: Darwin JSON ``global_sub_types``, kept for round-trips.
+    global_sub_types: Optional[Dict[str, UnknownType]] = field(
+        default=None, compare=False
+    )
 
     def get_data(
         self,
@@ -1500,6 +1522,121 @@ def make_opaque_sub(type: str, data: UnknownType) -> SubAnnotation:
         A text ``SubAnnotation``.
     """
     return SubAnnotation(SubAnnotationType(type), data)
+
+
+def make_lidar_annotation(
+    class_name: str,
+    annotation_type: str,
+    data: Dict[str, UnknownType],
+    subs: Optional[List[SubAnnotation]] = None,
+    slot_names: Optional[List[str]] = None,
+) -> Annotation:
+    """
+    Creates a 3D (``pointcloud`` slot) ``Annotation`` whose data is the Darwin JSON 2.0 geometry.
+
+    Parameters
+    ----------
+    class_name : str
+        The name of the class for this ``Annotation``.
+    annotation_type : str
+        One of ``LIDAR_ANNOTATION_TYPES``.
+    data : Dict[str, Any]
+        The geometry, e.g. ``{"position": {...}, "dimensions": {...}, "rotation": {...}}``.
+    subs : Optional[List[SubAnnotation]], default: None
+        List of ``SubAnnotation``\\s for this ``Annotation``.
+    slot_names : Optional[List[str]], default: None
+        Slots this annotation belongs to.
+
+    Returns
+    -------
+    Annotation
+        The 3D ``Annotation``.
+    """
+    if annotation_type not in LIDAR_ANNOTATION_TYPES:
+        raise ValueError(f"Not a 3D annotation type: '{annotation_type}'")
+    return Annotation(
+        AnnotationClass(class_name, annotation_type),  # type: ignore[arg-type]
+        data,
+        subs or [],
+        slot_names=slot_names or [],
+    )
+
+
+def _xyz(p: Union[Dict[str, float], Sequence[float]]) -> Dict[str, float]:
+    if isinstance(p, dict):
+        return {"x": float(p["x"]), "y": float(p["y"]), "z": float(p["z"])}
+    return {"x": float(p[0]), "y": float(p[1]), "z": float(p[2])}
+
+
+def make_cuboid_3d(
+    class_name: str,
+    position: Union[Dict[str, float], Sequence[float]],
+    dimensions: Union[Dict[str, float], Sequence[float]],
+    rotation: Union[Dict[str, float], Sequence[float]] = (0.0, 0.0, 0.0),
+    subs: Optional[List[SubAnnotation]] = None,
+    slot_names: Optional[List[str]] = None,
+) -> Annotation:
+    """
+    Creates a ``cuboid_3d`` annotation: ``position`` is the box center, ``dimensions`` x/y/z are
+    length/width/height and ``rotation`` x/y/z are roll/pitch/yaw in radians
+    (``R = Rz(yaw) @ Ry(pitch) @ Rx(roll)``), all in the slot's scene frame.
+    """
+    data = {
+        "position": _xyz(position),
+        "dimensions": _xyz(dimensions),
+        "rotation": _xyz(rotation),
+    }
+    return make_lidar_annotation(class_name, "cuboid_3d", data, subs, slot_names)
+
+
+def make_polyline_3d(
+    class_name: str,
+    path: Sequence[Union[Dict[str, float], Sequence[float]]],
+    subs: Optional[List[SubAnnotation]] = None,
+    slot_names: Optional[List[str]] = None,
+) -> Annotation:
+    """Creates an open ``polyline_3d`` annotation from a list of 3D points."""
+    data = {"path": [_xyz(p) for p in path]}
+    return make_lidar_annotation(class_name, "polyline_3d", data, subs, slot_names)
+
+
+def make_polygon_3d(
+    class_name: str,
+    path: Sequence[Union[Dict[str, float], Sequence[float]]],
+    subs: Optional[List[SubAnnotation]] = None,
+    slot_names: Optional[List[str]] = None,
+) -> Annotation:
+    """Creates a closed ``polygon_3d`` annotation from a list of 3D points."""
+    data = {"path": [_xyz(p) for p in path]}
+    return make_lidar_annotation(class_name, "polygon_3d", data, subs, slot_names)
+
+
+def make_keypoint_3d(
+    class_name: str,
+    point: Union[Dict[str, float], Sequence[float]],
+    subs: Optional[List[SubAnnotation]] = None,
+    slot_names: Optional[List[str]] = None,
+) -> Annotation:
+    """Creates a ``keypoint_3d`` annotation."""
+    return make_lidar_annotation(
+        class_name, "keypoint_3d", _xyz(point), subs, slot_names
+    )
+
+
+def make_point_mask_3d(
+    class_name: str,
+    point_count: int,
+    ranges: List[int],
+    subs: Optional[List[SubAnnotation]] = None,
+    slot_names: Optional[List[str]] = None,
+) -> Annotation:
+    """
+    Creates a ``point_mask_3d`` annotation. ``ranges`` is a flat ``[start, length, ...]`` list of
+    sorted, non-overlapping runs of point indices into the frame's cloud (file order) and
+    ``point_count`` the number of points of that cloud.
+    """
+    data = {"point_count": int(point_count), "ranges": [int(r) for r in ranges]}
+    return make_lidar_annotation(class_name, "point_mask_3d", data, subs, slot_names)
 
 
 KeyFrame = Dict[str, Union[int, Annotation]]

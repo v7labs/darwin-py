@@ -136,6 +136,7 @@ def _build_main_annotations_lookup_table(
         "graph",
         "mask",
         "raster_layer",
+        *dt.LIDAR_ANNOTATION_TYPES,
     ]
     lookup: Dict[str, Unknown] = {}
     for cls in annotation_classes:

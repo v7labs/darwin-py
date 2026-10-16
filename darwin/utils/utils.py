@@ -84,7 +84,13 @@ NATIVE_VIDEO_EXTENSIONS = [
     ".hevc",
 ]
 
-SUPPORTED_EXTENSIONS = SUPPORTED_IMAGE_EXTENSIONS + SUPPORTED_VIDEO_EXTENSIONS
+# LiDAR: single clouds and darwin-lidar-scene packages (see darwin.lidar)
+SUPPORTED_POINT_CLOUD_EXTENSIONS = [".pcd", ".lidar.zip"]
+SUPPORTED_EXTENSIONS = (
+    SUPPORTED_IMAGE_EXTENSIONS
+    + SUPPORTED_VIDEO_EXTENSIONS
+    + SUPPORTED_POINT_CLOUD_EXTENSIONS
+)
 
 # Define incompatible `item_merge_mode` arguments
 PRESERVE_FOLDERS_KEY = "preserve_folders"
@@ -907,6 +913,11 @@ def _parse_darwin_annotation(
             raster_layer["dense_rle"],
             slot_names=slot_names,
         )
+    elif any(t in annotation for t in dt.LIDAR_ANNOTATION_TYPES):
+        lidar_type = next(t for t in dt.LIDAR_ANNOTATION_TYPES if t in annotation)
+        main_annotation = dt.make_lidar_annotation(
+            name, lidar_type, annotation[lidar_type], slot_names=slot_names
+        )
     elif only_keyframes:
         main_annotation = make_keyframe_annotation(
             annotation_type, annotation_data, name, slot_names
@@ -979,6 +990,10 @@ def make_keyframe_annotation(
             annotation_data["total_pixels"],
             annotation_data["dense_rle"],
         )
+    elif annotation_type in dt.LIDAR_ANNOTATION_TYPES:
+        return dt.make_lidar_annotation(
+            name, annotation_type, annotation_data, slot_names=slot_names
+        )
     else:
         raise ValueError(f"Unsupported annotation type: '{annotation_type}'")
 
@@ -1044,6 +1059,8 @@ def update_annotation_data(
             ],
             "total_pixels": main_annotation_data["total_pixels"],
         }
+    elif annotation_type in dt.LIDAR_ANNOTATION_TYPES:
+        annotation_data = main_annotation_data
 
     return annotation_data
 
@@ -1090,6 +1107,9 @@ def _parse_darwin_video_annotation(annotation: dict) -> Optional[dt.VideoAnnotat
 
     if "id" in annotation:
         main_annotation.id = annotation["id"]
+
+    main_annotation.interpolate_algorithm = annotation.get("interpolate_algorithm")
+    main_annotation.global_sub_types = annotation.get("global_sub_types")
 
     if "annotators" in annotation:
         main_annotation.annotators = _parse_annotators(annotation["annotators"])
@@ -1177,6 +1197,11 @@ def get_annotation_type_and_data(
             "mask_annotation_ids_mapping": raster_layer["mask_annotation_ids_mapping"],
             "total_pixels": raster_layer["total_pixels"],
         }
+    else:
+        for lidar_type in dt.LIDAR_ANNOTATION_TYPES:
+            if lidar_type in frame:
+                annotation_type, annotation_data = lidar_type, frame[lidar_type]
+                break
 
     return annotation_type, annotation_data
 
