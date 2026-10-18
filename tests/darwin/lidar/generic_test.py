@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 from darwin.lidar import geometry as g
 from darwin.lidar.generic import build_pointcloud, convert_cloud, load_poses
@@ -46,6 +47,7 @@ def test_sequence_with_kitti_style_poses(tmp_path):
     assert np.allclose(load_poses(poses_txt), world)
     scene = read_scene(build_pointcloud(d, tmp_path / "x.lidar.zip", poses=poses_txt))
     assert scene.manifest["coordinate_frame"] == "world"
+    assert scene.manifest["origin"] == pytest.approx([100, 50, 1])
     for i, c in enumerate(clouds):
         ego = scene.ego_pose(i)
         assert np.allclose(ego[:3, 3], world[i][:3, 3] - world[0][:3, 3], atol=1e-6)

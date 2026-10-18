@@ -215,8 +215,17 @@ def parse_openlabel(
         ts = props.get("timestamp")
         timestamps.append(float(ts) if isinstance(ts, (int, float)) else f / 10)
 
+    cameras = {
+        n for n, st in (root.get("streams") or {}).items() if st.get("type") == "camera"
+    }
     moving = next(
-        (t for f in range(frame_count) for t in poses.transforms(f).values()), None
+        (
+            t
+            for f in range(frame_count)
+            for t in poses.transforms(f).values()
+            if not {t.get("src"), t.get("dst")} & cameras
+        ),
+        None,
     )
     ego_poses = None
     if moving is not None:
@@ -278,8 +287,38 @@ def _geometry_json(
     return "point3d", {"name": "shape", "val": val, "coordinate_system": cs}
 
 
+def _camera_stream(cam: Dict[str, Any]) -> Dict[str, Any]:
+    """OpenLABEL camera stream: ``intrinsics_pinhole`` (pinhole / opencv) or ``intrinsics_fisheye``."""
+    k = g.intrinsics_matrix(cam)
+    dist = cam.get("distortion") or {"model": "pinhole"}
+    c = [float(v) for v in dist.get("coefficients") or []]
+    size = {"width_px": cam.get("width"), "height_px": cam.get("height")}
+    if dist["model"] == "fisheye":
+        props = {
+            "intrinsics_fisheye": {
+                **size,
+                "lens_coeffs_1x4": c,
+                "center_x": k[0, 2],
+                "center_y": k[1, 2],
+                "focal_length_x": k[0, 0],
+                "focal_length_y": k[1, 1],
+            }
+        }
+    else:
+        pinhole = {**size, "camera_matrix_3x4": np.c_[k, np.zeros(3)].ravel().tolist()}
+        if dist["model"] == "opencv":
+            pinhole["distortion_coeffs_1xN"] = c + [0.0] * (5 - len(c))
+        props = {"intrinsics_pinhole": pinhole}
+    return {"type": "camera", "stream_properties": props}
+
+
 def to_openlabel(annotation_file: dt.AnnotationFile) -> Dict[str, Any]:
-    """OpenLABEL JSON of one ``pointcloud`` item (point masks have no OpenLABEL type: skipped)."""
+    """
+    OpenLABEL JSON of one ``pointcloud`` item (point masks have no OpenLABEL type: skipped).
+    Calibrated cameras of the export become camera streams with a coordinate system each (child
+    of ``ego``, or of ``sensor`` for sensor-frame items) and a per-frame ``<camera>_to_<parent>``
+    transform.
+    """
     slot = pointcloud_slot(annotation_file)
     meta = (slot.metadata if slot else None) or {}
     meta_frames = meta.get("frames") or []
@@ -298,20 +337,48 @@ def to_openlabel(annotation_file: dt.AnnotationFile) -> Dict[str, Any]:
         if world
         else {"sensor": {"type": "sensor_cs", "parent": "", "children": []}}
     )
+    streams: Dict[str, Any] = {"lidar": {"type": "lidar"}}
+    parent = "ego" if world else "sensor"
+    cameras = {
+        n: c
+        for n, c in g.slot_cameras(meta).items()
+        if g.intrinsics_matrix(c) is not None
+    }
+    for name, cam in cameras.items():
+        streams[name] = _camera_stream(cam)
+        coordinate_systems[name] = {
+            "type": "sensor_cs",
+            "parent": parent,
+            "children": [],
+        }
+        coordinate_systems[parent]["children"].append(name)
     frames: Dict[str, Any] = {}
     for i in range(count):
         props: Dict[str, Any] = {}
         if i < len(meta_frames) and meta_frames[i].get("timestamp") is not None:
             props["timestamp"] = meta_frames[i]["timestamp"]
         pose = g.ego_pose_of(meta, i)
+        transforms = {}
         if pose is not None:
-            props["transforms"] = {
-                "ego_to_scene": {
-                    "src": "ego",
-                    "dst": "scene",
-                    "transform_src_to_dst": {"matrix4x4": pose.ravel().tolist()},
-                }
+            transforms["ego_to_scene"] = {
+                "src": "ego",
+                "dst": "scene",
+                "transform_src_to_dst": {"matrix4x4": pose.ravel().tolist()},
             }
+        for name in cameras:
+            cfw = g.camera_from_world_of(meta, i, name)
+            if cfw is not None:
+                transforms[f"{name}_to_{parent}"] = {
+                    "src": name,
+                    "dst": parent,
+                    "transform_src_to_dst": {
+                        "matrix4x4": g.invert(cfw if pose is None else cfw @ pose)
+                        .ravel()
+                        .tolist()
+                    },
+                }
+        if transforms:
+            props["transforms"] = transforms
         frames[str(i)] = {"objects": {}, "frame_properties": props}
 
     objects: Dict[str, Any] = {}
@@ -360,7 +427,7 @@ def to_openlabel(annotation_file: dt.AnnotationFile) -> Dict[str, Any]:
                 "tagged_file": annotation_file.filename,
             },
             "coordinate_systems": coordinate_systems,
-            "streams": {"lidar": {"type": "lidar"}},
+            "streams": streams,
             "objects": objects,
             "frames": frames,
             "frame_intervals": [{"frame_start": 0, "frame_end": count - 1}],

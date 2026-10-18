@@ -157,9 +157,13 @@ def build_nuscenes(
                     @ g.invert(t.pose("ego_pose", csd["ego_pose_token"]))
                     @ global_from_scene
                 )
+                # released nuScenes images are undistorted
                 images[cam] = CameraImage(
                     dataroot / csd["filename"],
-                    np.asarray(calib["camera_intrinsic"], float) @ cam_from_scene[:3],
+                    None,
+                    np.asarray(calib["camera_intrinsic"], float),
+                    cam_from_scene,
+                    {"model": "pinhole"},
                 )
             yield Frame(
                 g.transform_points(scene_from_lidar, cloud.xyz),
@@ -176,6 +180,7 @@ def build_nuscenes(
         fps=FPS,
         coordinate_frame="world",
         image_scale=image_scale,
+        origin=global_from_scene[:3, 3],
     )
 
 
@@ -292,6 +297,29 @@ def _token(*parts: Any) -> str:
     return uuid.uuid5(uuid.NAMESPACE_OID, ":".join(map(str, parts))).hex
 
 
+def _calibrated_sensors(
+    meta: Dict[str, Any], f: int, scene_from_ego: Optional[np.ndarray]
+) -> List[Dict[str, Any]]:
+    out = []
+    for name, cam in g.slot_cameras(meta).items():
+        k, cfw = g.intrinsics_matrix(cam), g.camera_from_world_of(meta, f, name)
+        if k is None or cfw is None:
+            continue
+        ego_from_cam = g.invert(cfw if scene_from_ego is None else cfw @ scene_from_ego)
+        rec = {
+            "channel": name,
+            "width": cam.get("width"),
+            "height": cam.get("height"),
+            "camera_intrinsic": k.tolist(),
+            "translation": ego_from_cam[:3, 3].tolist(),
+            "rotation": list(g.rot_to_quat(ego_from_cam)),
+        }
+        if cam.get("distortion"):
+            rec["distortion"] = cam["distortion"]
+        out.append(rec)
+    return out
+
+
 def export_nuscenes(
     annotation_files: Iterable[dt.AnnotationFile],
     output_dir: PathLike,
@@ -300,19 +328,25 @@ def export_nuscenes(
     """
     ``cuboid_3d`` annotations -> ``<output_dir>/<item stem>.json``:
     ``{"item", "coordinate_frame", "frames": [{"sample_index", "timestamp", "ego_pose"?,
-    "sample_annotation": [...]}]}`` with nuScenes ``sample_annotation`` fields (``size`` =
-    ``[width, length, height]``, ``rotation`` = ``[w, x, y, z]``) in the scene frame, or the
-    global frame when ``origin`` (the scene origin in global coordinates) is given.
+    "calibrated_sensor"?, "sample_annotation": [...]}]}`` with nuScenes ``sample_annotation``
+    fields (``size`` = ``[width, length, height]``, ``rotation`` = ``[w, x, y, z]``) in the global
+    frame when the scene origin in global coordinates is known (``origin``, else the export's
+    slot ``metadata.origin``), otherwise in the scene frame. ``calibrated_sensor``: one record per
+    calibrated camera of the export (``channel``, ``width``, ``height``, ``camera_intrinsic``,
+    ``distortion`` and ``translation`` / ``rotation`` = ``ego_from_camera`` at that frame's image;
+    with the frame's ``ego_pose`` it maps the image exactly).
     """
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
-    shift = np.asarray(origin if origin is not None else (0.0, 0.0, 0.0), float)
     paths = []
     for af in annotation_files:
         slot = pointcloud_slot(af)
         if slot is None:
             continue
         meta = slot.metadata or {}
+        shift = np.asarray(
+            origin if origin is not None else meta.get("origin", (0.0, 0.0, 0.0)), float
+        )
         meta_frames = meta.get("frames") or []
         objs = frame_objects(af, ("cuboid_3d",))
         count = max([slot.frame_count or 0, len(meta_frames), *[f + 1 for f in objs]])
@@ -325,13 +359,16 @@ def export_nuscenes(
             frame: Dict[str, Any] = {"sample_index": f}
             if f < len(meta_frames) and "timestamp" in meta_frames[f]:
                 frame["timestamp"] = meta_frames[f]["timestamp"]
-            pose = g.ego_pose_of(meta, f)
-            if pose is not None:
-                pose = g.translation(shift) @ pose
+            scene_from_ego = g.ego_pose_of(meta, f)
+            if scene_from_ego is not None:
+                pose = g.translation(shift) @ scene_from_ego
                 frame["ego_pose"] = {
                     "translation": pose[:3, 3].tolist(),
                     "rotation": list(g.rot_to_quat(pose)),
                 }
+            sensors = _calibrated_sensors(meta, f, scene_from_ego)
+            if sensors:
+                frame["calibrated_sensor"] = sensors
             records = []
             for o in objs.get(f, []):
                 a, d = o.annotation, o.data["dimensions"]

@@ -146,20 +146,27 @@ def build_av2(
                 [0, 0, 1],
             ]
         )
-        cam_from_ego = g.invert(ego_from_sensor[cam])[:3]
+        cam_from_ego = g.invert(ego_from_sensor[cam])
         its = np.array([int(p.stem) for p in files], np.int64)
         nearest = np.abs(its[None, :] - log.ts[:, None]).argmin(1)
-        cams.append((cam, files, its, nearest, k @ cam_from_ego))
+        cams.append((cam, files, its, nearest, k, cam_from_ego))
 
     def frames() -> Iterator[Frame]:
         for i, sweep in enumerate(log.sweeps):
             d = read_feather_table(sweep)
             xyz = np.stack([d["x"], d["y"], d["z"]], 1).astype(float)
             images = {}
-            for cam, files, its, nearest, p in cams:
+            for cam, files, its, nearest, k, cam_from_ego in cams:
                 j = nearest[i]
                 ego_from_city = g.invert(log.city_from_ego(its[j])[0])
-                images[cam] = CameraImage(files[j], p @ ego_from_city @ city_from_scene)
+                # released ring images are undistorted
+                images[cam] = CameraImage(
+                    files[j],
+                    None,
+                    k,
+                    cam_from_ego @ ego_from_city @ city_from_scene,
+                    {"model": "pinhole"},
+                )
             yield Frame(
                 g.transform_points(log.ego_poses[i], xyz),
                 d.get("intensity"),
@@ -175,6 +182,7 @@ def build_av2(
         fps=10,
         coordinate_frame="world",
         image_scale=image_scale,
+        origin=city_from_scene[:3, 3],
     )
 
 
@@ -219,6 +227,84 @@ def parse_av2(path: PathLike) -> List[dt.AnnotationFile]:
     ]
 
 
+def _write_calibration(meta: Dict[str, Any], out: Path) -> None:
+    """
+    ``calibration/intrinsics.feather`` + ``egovehicle_SE3_sensor.feather`` from the export's
+    cameras: pinhole or radial-only ``opencv`` ones (AV2's model), extrinsics of the first frame
+    that has the camera.
+    """
+    pa = _pyarrow()
+    intr: Dict[str, List[Any]] = {}
+    extr: Dict[str, List[Any]] = {}
+    frames = meta.get("frames") or []
+    for name, cam in g.slot_cameras(meta).items():
+        k = g.intrinsics_matrix(cam)
+        dist = cam.get("distortion") or {"model": "pinhole"}
+        c = list(dist.get("coefficients") or [])
+        if dist["model"] == "pinhole":
+            radial = [0.0, 0.0, 0.0]
+        elif dist["model"] == "opencv" and len(c) <= 5 and not any(c[2:4]):
+            radial = (c[:2] + c[4:5] + [0.0])[:3]
+        else:
+            print(
+                f"[WARNING] {name}: {dist['model']} distortion has no AV2 form, skipped"
+            )
+            continue
+        f = next(
+            (
+                i
+                for i in range(len(frames))
+                if g.camera_from_world_of(meta, i, name) is not None
+            ),
+            None,
+        )
+        if k is None or f is None:
+            continue
+        ego = g.ego_pose_of(meta, f)
+        cfw = g.camera_from_world_of(meta, f, name)
+        ego_from_cam = g.invert(cfw if ego is None else cfw @ ego)
+        qw, qx, qy, qz = g.rot_to_quat(ego_from_cam)
+        for col, v in zip(
+            (
+                "sensor_name",
+                "fx_px",
+                "fy_px",
+                "cx_px",
+                "cy_px",
+                "k1",
+                "k2",
+                "k3",
+                "height_px",
+                "width_px",
+            ),
+            (
+                name,
+                k[0, 0],
+                k[1, 1],
+                k[0, 2],
+                k[1, 2],
+                *radial,
+                cam["height"],
+                cam["width"],
+            ),
+        ):
+            intr.setdefault(col, []).append(v)
+        for col, v in zip(
+            ("sensor_name", "qw", "qx", "qy", "qz", "tx_m", "ty_m", "tz_m"),
+            (name, qw, qx, qy, qz, *ego_from_cam[:3, 3]),
+        ):
+            extr.setdefault(col, []).append(v)
+    if not intr:
+        return
+    (out / "calibration").mkdir(parents=True, exist_ok=True)
+    pa.feather.write_feather(
+        pa.table(intr), str(out / "calibration" / "intrinsics.feather")
+    )
+    pa.feather.write_feather(
+        pa.table(extr), str(out / "calibration" / "egovehicle_SE3_sensor.feather")
+    )
+
+
 def export_av2(
     annotation_files: Iterable[dt.AnnotationFile],
     output_dir: PathLike,
@@ -229,6 +315,8 @@ def export_av2(
     of its sweep. ``timestamp_ns`` is the slot's frame timestamp (nanoseconds since the first sweep),
     or the sweep's AV2 timestamp when ``log_dir`` is given. ``track_uuid`` is a UUID5 of the Darwin
     annotation id; ``num_interior_pts`` is ``-1``. Sensor-frame items are written as they are.
+    Calibrated cameras of the export go to ``<item stem>/calibration/intrinsics.feather`` and
+    ``egovehicle_SE3_sensor.feather`` (AV2 columns; extrinsics of the first frame with that camera).
     """
     pa = _pyarrow()
     sweep_ts = Log(log_dir).ts if log_dir is not None else None
@@ -291,3 +379,4 @@ def export_av2(
         )
         table = pa.table({c: pa.array(rows[c], types[c]) for c in COLUMNS})
         pa.feather.write_feather(table, str(out / "annotations.feather"))
+        _write_calibration(meta, out)

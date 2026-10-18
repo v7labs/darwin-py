@@ -38,6 +38,25 @@ EXPORT = {
                 "frame_count": 3,
                 "metadata": {
                     "coordinate_frame": "world",
+                    "origin": [-272.607, 2915.772, -21.1419],
+                    "cameras": [
+                        {
+                            "name": "front",
+                            "width": 516,
+                            "height": 682,
+                            "intrinsics": {
+                                "fx": 300.1,
+                                "fy": 300.1,
+                                "cx": 258,
+                                "cy": 341,
+                            },
+                            "distortion": {
+                                "model": "fisheye",
+                                "coefficients": [0.05, -0.01, 0.004, -0.001],
+                            },
+                        },
+                        {"name": "side", "width": 682, "height": 516},
+                    ],
                     "frames": [
                         {
                             "timestamp": t / 10,
@@ -47,6 +66,23 @@ EXPORT = {
                                 [0, 0, 1, 0],
                                 [0, 0, 0, 1],
                             ],
+                            "cameras": {
+                                "front": {
+                                    "camera_from_world": [
+                                        [0, -1, 0, 0],
+                                        [0, 0, -1, 1.5],
+                                        [1, 0, 0, -t],
+                                        [0, 0, 0, 1],
+                                    ]
+                                },
+                                "side": {
+                                    "world_to_image": [
+                                        [1, 0, 0, 0],
+                                        [0, 1, 0, 0],
+                                        [0, 0, 1, 0],
+                                    ]
+                                },
+                            },
                         }
                         for t in range(3)
                     ],

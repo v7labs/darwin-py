@@ -33,8 +33,15 @@ INT16_REACH = 32767 * SCALE
 class CameraImage:
     #: Image file, encoded bytes or a ``PIL.Image``.
     image: Any
-    #: 3x4 ``K @ camera_from_scene`` for this image, in the pixel coordinates of ``image``.
-    world_to_image: np.ndarray
+    #: 3x4 ``K @ camera_from_scene`` for this image, in the pixel coordinates of ``image``
+    #: (``intrinsics @ camera_from_world[:3]`` when omitted).
+    world_to_image: Optional[np.ndarray] = None
+    #: 3x3 ``K`` in the pixel coordinates of ``image`` (the camera's, taken from its first image).
+    intrinsics: Optional[np.ndarray] = None
+    #: 4x4 camera optical frame (x right, y down, z forward) <- scene (sensor) frame.
+    camera_from_world: Optional[np.ndarray] = None
+    #: ``{"model": "pinhole" | "opencv" | "fisheye", "coefficients": [...]}``.
+    distortion: Optional[Dict[str, Any]] = None
 
 
 @dataclass
@@ -127,9 +134,11 @@ def write_scene(
     image_scale: float = 0.5,
     jpeg_quality: int = 85,
     quantize: bool = True,
+    origin: Optional[Any] = None,
 ) -> Path:
     """
-    Writes a v2 ``.lidar.zip``. ``frames`` may be a generator: frames are spooled to a temporary
+    Writes a v2 ``.lidar.zip``. ``origin``: where the scene frame's origin is in the dataset's
+    global frame (axes parallel, ``global = scene + origin``), for world-frame scenes. ``frames`` may be a generator: frames are spooled to a temporary
     directory, so memory stays at about one frame.
 
     Points are stored as int16 with 1 cm resolution (``points.scale``) around a per-frame offset
@@ -180,13 +189,36 @@ def write_scene(
                 rel = f"cameras/{cam}/{i:06d}.jpg"
                 (tmp / rel).parent.mkdir(parents=True, exist_ok=True)
                 (tmp / rel).write_bytes(data)
-                m = np.diag([dst[0] / src[0], dst[1] / src[1], 1.0]) @ np.asarray(
-                    ci.world_to_image, float
+                s = np.diag([dst[0] / src[0], dst[1] / src[1], 1.0])
+                m = (
+                    ci.world_to_image
+                    if ci.world_to_image is not None
+                    else np.asarray(ci.intrinsics, float)
+                    @ np.asarray(ci.camera_from_world, float)[:3]
                 )
-                images[cam] = {"path": rel, "world_to_image": np.round(m, 6).tolist()}
-                cameras.setdefault(
-                    cam, {"name": cam, "width": dst[0], "height": dst[1]}
-                )
+                images[cam] = {
+                    "path": rel,
+                    "world_to_image": np.round(s @ np.asarray(m, float), 6).tolist(),
+                }
+                if ci.camera_from_world is not None:
+                    images[cam]["camera_from_world"] = np.round(
+                        np.asarray(ci.camera_from_world, float), 6
+                    ).tolist()
+                if cam not in cameras:
+                    cameras[cam] = {"name": cam, "width": dst[0], "height": dst[1]}
+                    if ci.intrinsics is not None:
+                        k = s @ np.asarray(ci.intrinsics, float)
+                        cameras[cam]["intrinsics"] = {
+                            n: round(float(k[r, c]), 6)
+                            for n, r, c in (
+                                ("fx", 0, 0),
+                                ("fy", 1, 1),
+                                ("cx", 0, 2),
+                                ("cy", 1, 2),
+                            )
+                        }
+                    if ci.distortion is not None:
+                        cameras[cam]["distortion"] = ci.distortion
             if images:
                 entry["images"] = images
             manifest.append(entry)
@@ -210,6 +242,8 @@ def write_scene(
         }
         if scale:
             scene["points"] = {"scale": scale}
+        if origin is not None:
+            scene["origin"] = np.round(np.asarray(origin, float), 6).tolist()
         else:
             for entry in manifest:
                 entry.pop("offset")

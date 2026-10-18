@@ -94,7 +94,7 @@ def build_pointcloud(
     if name is None:
         first = Path(source) if isinstance(source, (str, Path)) else files[0]
         name = first.name.split(".")[0]
-    ego = None
+    ego = world = None
     if poses is not None:
         world = load_poses(poses)
         if len(world) < len(files):
@@ -114,4 +114,5 @@ def build_pointcloud(
         name=name,
         fps=fps,
         coordinate_frame="sensor" if ego is None else "world",
+        origin=None if world is None else world[0, :3, 3],
     )

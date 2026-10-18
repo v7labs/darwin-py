@@ -277,3 +277,94 @@ def test_registered_importer_and_exporter(tmp_path):
     assert importer(tmp_path) is None
     get_exporter("openlabel")(iter(parse_openlabel(path)), tmp_path / "x")
     assert (tmp_path / "x" / "drive.openlabel.json").exists()
+
+
+CAMERAS = [
+    {
+        "name": "front",
+        "width": 64,
+        "height": 48,
+        "intrinsics": {"fx": 40.0, "fy": 41.0, "cx": 32.0, "cy": 24.0},
+        "distortion": {"model": "pinhole"},
+    },
+    {
+        "name": "wide",
+        "width": 64,
+        "height": 48,
+        "intrinsics": {"fx": 20.0, "fy": 20.0, "cx": 32.0, "cy": 24.0},
+        "distortion": {
+            "model": "fisheye",
+            "coefficients": [0.05, -0.01, 0.004, -0.001],
+        },
+    },
+    {
+        "name": "side",
+        "width": 64,
+        "height": 48,
+        "intrinsics": {"fx": 30.0, "fy": 30.0, "cx": 32.0, "cy": 24.0},
+        "distortion": {"model": "opencv", "coefficients": [-0.3, 0.1, 0.001, -0.002]},
+    },
+    {"name": "uncalibrated", "width": 64, "height": 48},
+]
+CAM_FROM_EGO = g.make_pose(
+    np.array([[0, -1, 0], [0, 0, -1], [1, 0, 0.0]]), (0, 1.5, -1.2)
+)
+
+
+@pytest.mark.parametrize("world", [True, False])
+def test_export_camera_streams_and_transforms(tmp_path, world):
+    (af,) = parse_openlabel(_openlabel(tmp_path))
+    meta = af.slots[0].metadata
+    if not world:
+        meta["coordinate_frame"] = "sensor"
+        for f in meta["frames"]:
+            del f["ego_pose"]
+    meta["cameras"] = CAMERAS
+    for i, f in enumerate(meta["frames"]):
+        ego = np.array(f["ego_pose"]) if world else np.eye(4)
+        cfw = g.translation((0.01 * i, 0, 0)) @ CAM_FROM_EGO @ g.invert(ego)
+        f["cameras"] = {
+            c["name"]: {"camera_from_world": cfw.tolist()} for c in CAMERAS[:3]
+        }
+    back = parse_darwin_json(write_darwin_json(af, tmp_path / "darwin"))
+    (out,) = export_openlabel([back], tmp_path / "ol")
+    ol = json.loads(out.read_text())["openlabel"]
+    parent = "ego" if world else "sensor"
+    assert sorted(ol["streams"]) == ["front", "lidar", "side", "wide"]
+    assert ol["streams"]["front"] == {
+        "type": "camera",
+        "stream_properties": {
+            "intrinsics_pinhole": {
+                "width_px": 64,
+                "height_px": 48,
+                "camera_matrix_3x4": [40, 0, 32, 0, 0, 41, 24, 0, 0, 0, 1, 0],
+            }
+        },
+    }
+    side = ol["streams"]["side"]["stream_properties"]["intrinsics_pinhole"]
+    assert side["distortion_coeffs_1xN"] == [-0.3, 0.1, 0.001, -0.002, 0.0]
+    wide = ol["streams"]["wide"]["stream_properties"]["intrinsics_fisheye"]
+    assert wide["lens_coeffs_1x4"] == CAMERAS[1]["distortion"]["coefficients"]
+    assert (wide["focal_length_x"], wide["center_y"]) == (20, 24)
+    assert ol["coordinate_systems"]["front"] == {
+        "type": "sensor_cs",
+        "parent": parent,
+        "children": [],
+    }
+    assert {"front", "side", "wide"} <= set(
+        ol["coordinate_systems"][parent]["children"]
+    )
+    for i in range(len(meta["frames"])):
+        t = ol["frames"][str(i)]["frame_properties"]["transforms"][f"front_to_{parent}"]
+        assert (t["src"], t["dst"]) == ("front", parent)
+        expected = g.invert(g.translation((0.01 * i, 0, 0)) @ CAM_FROM_EGO)
+        assert np.allclose(
+            np.reshape(t["transform_src_to_dst"]["matrix4x4"], (4, 4)), expected
+        )
+    # camera transforms do not change what the import reads as the ego
+    (again,) = parse_openlabel(out)
+    again_meta = again.slots[0].metadata
+    assert again_meta["coordinate_frame"] == meta["coordinate_frame"]
+    if world:
+        for m1, m2 in zip(meta["frames"], again_meta["frames"]):
+            assert np.allclose(m1["ego_pose"], m2["ego_pose"])

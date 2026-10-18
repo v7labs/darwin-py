@@ -4,7 +4,8 @@
 annotations, and converts Darwin exports back into dataset formats.
 
 - Darwin JSON 2.0 parsing and serialization keep `pointcloud` slots (their `metadata`:
-  `coordinate_frame` and per-frame `timestamp` / `ego_pose`) and the five 3D annotation types
+  `coordinate_frame`, `origin`, `cameras` and per-frame `timestamp` / `ego_pose` / `cameras`,
+  see [Cameras](#cameras)) and the five 3D annotation types
   `cuboid_3d`, `polyline_3d`, `polygon_3d`, `keypoint_3d` and `point_mask_3d`. A Darwin export
   parses and serializes back unchanged (`darwin.lidar.to_darwin_json`).
 - `darwin dataset push` accepts `.pcd` (one frame, sensor frame) and `.lidar.zip` (a
@@ -43,8 +44,8 @@ builder keeps every point in file order.
 |---|---|---|---|
 | Point clouds: `.pcd` (ascii, binary, binary_compressed), KITTI `.bin`, `.ply`, `.npy`, `.las`/`.laz`, AV2 `.feather` | `pcd` (one cloud -> `.pcd`), `pointcloud` (folder -> `.lidar.zip`, `--poses` file -> world frame) | | |
 | KITTI raw | `kitti_raw` (sensor frame, `--world` with OXTS) | `kitti_tracklets` (`tracklet_labels.xml`) / `kitti_3d` | `kitti` / `kitti_3d` |
-| KITTI tracking | `kitti_tracking` | `kitti_tracking` (`label_02`) / `kitti_3d` | `kitti --tracking --calib` |
-| KITTI object | `kitti_object` (one 1-frame package per frame) | `kitti` (`label_2`) / `kitti_3d` | `kitti --calib` |
+| KITTI tracking | `kitti_tracking` | `kitti_tracking` (`label_02`) / `kitti_3d` | `kitti --tracking` (`--calib`, else the export's cameras) |
+| KITTI object | `kitti_object` (one 1-frame package per frame) | `kitti` (`label_2`) / `kitti_3d` | `kitti --calib` or `kitti --camera NAME` |
 | SemanticKITTI / KITTI odometry | `kitti_odometry` (world frame from `poses.txt` + `calib.txt`) | `semantic_kitti` (`.label` -> point masks) | `semantic_kitti` |
 | nuScenes (no devkit) | `nuscenes` (LIDAR_TOP + 6 cameras, key frames at 2 Hz) | `nuscenes` (`sample_annotation`), `nuscenes_lidarseg` (lidarseg / `--panoptic`) | `nuscenes` (`sample_annotation`-like JSON) |
 | Argoverse 2 sensor | `av2` (sweeps + 7 ring cameras) | `av2` (`annotations.feather`) / `argoverse2` | `av2` / `argoverse2` (`annotations.feather`, ego frame) |
@@ -76,8 +77,37 @@ They have not been run against the full public datasets.
   trips are exact; the Darwin editor draws and edits yaw only.
 - `darwin.lidar.to_ego_frame(cuboid, ego_pose)` / `to_scene_frame` convert one frame's geometry,
   and `yaw_only` drops roll and pitch.
-- The scene origin is not stored, so exports are in the scene frame. Pass it back with
-  `export nuscenes --origin X Y Z` to get global coordinates.
+- Packages store the scene origin: `scene.json` `origin` `[x, y, z]` is where the scene frame's
+  origin sits in the dataset's global frame (axes parallel, `global = scene + origin`; for KITTI
+  the devkit's OXTS Mercator frame). Exports carry it as slot `metadata.origin`; `export
+  nuscenes` writes global coordinates with it (`--origin 0 0 0` keeps the scene frame).
+
+## Cameras
+
+- Packages carry the camera calibration of the shared Darwin contract: `cameras[]` `intrinsics`
+  `{fx, fy, cx, cy}` (pixels of the stored JPEG) and `distortion` `{model, coefficients}`
+  (`pinhole`, `opencv` `[k1, k2, p1, p2(, k3(, k4, k5, k6))]`, `fisheye` Kannala-Brandt
+  `[k1, k2, k3, k4]`), and per image `camera_from_world` (4x4, scene or sensor frame -> camera
+  optical frame: x right, y down, z forward) next to `world_to_image = K @ camera_from_world[:3]`.
+  `CameraImage(image, intrinsics=K, camera_from_world=M, distortion=...)` writes them; `K` is
+  scaled with `image_scale` like `world_to_image`.
+- Builders write them for KITTI (rectified `image_02` / `image_2`: pinhole, `K` and the stereo
+  baseline from `P_rect_02` / `P2`), KITTI odometry, nuScenes, Argoverse 2 and PandaSet (their
+  released images are undistorted: pinhole).
+- Darwin exports carry them in the slot metadata: `cameras[]` (`name, width, height, intrinsics?,
+  distortion?`) and `frames[t].cameras[<camera>]` = `{camera_from_world}` (or `{world_to_image}`
+  when the package had only that).
+- Exporters use them when present: `kitti --tracking` without `--calib`, or `kitti --camera NAME`,
+  writes `label_2` / `label_02` lines in that camera's frame of each image (`P2 = [K | 0]`, so
+  KITTI's rectified cam0 differs by the stereo baseline; the 2D boxes are the same) and skips
+  distorted cameras when picking one; `nuscenes` adds per-frame `calibrated_sensor` records
+  (`channel`, `camera_intrinsic`, `distortion`, `ego_from_camera` at the image, exact together
+  with the frame's `ego_pose`); `openlabel` adds camera streams (`intrinsics_pinhole` with
+  `distortion_coeffs_1xN`, or `intrinsics_fisheye` with the Kannala-Brandt `lens_coeffs_1x4`), a
+  coordinate system per camera and per-frame `<camera>_to_ego` transforms; `av2` writes
+  `calibration/intrinsics.feather` and `egovehicle_SE3_sensor.feather` (pinhole and radial
+  `opencv` cameras; extrinsics of the first frame with the camera). An explicit `--calib` /
+  `--origin` wins over the export.
 
 ## Known limitations
 

@@ -42,6 +42,8 @@ from darwin.lidar.pointcloud import PathLike, read_bin
 from darwin.lidar.scene import CameraImage, Frame, package_path, write_scene
 
 CAMERA = "front"
+#: KITTI images are rectified: undistorted pinhole
+PINHOLE = {"model": "pinhole"}
 
 
 class Calib(NamedTuple):
@@ -63,6 +65,12 @@ class Calib(NamedTuple):
     @property
     def velo_to_image(self) -> np.ndarray:
         return self.P2 @ self.velo_to_rect
+
+    @property
+    def camera(self) -> Tuple[np.ndarray, np.ndarray]:
+        """``(K, camera_from_velo)`` of the left color camera (``K @ camera_from_velo[:3] = velo_to_image``)."""
+        k, cam_from_rect = g.split_projection(self.P2)
+        return k, cam_from_rect @ self.velo_to_rect
 
 
 def _read_kv(path: PathLike) -> Dict[str, np.ndarray]:
@@ -149,11 +157,16 @@ def read_oxts(source: PathLike) -> np.ndarray:
     return np.array(rows, float)
 
 
-def ego_poses(oxts: np.ndarray, calib: Calib) -> np.ndarray:
-    """``scene_from_velo`` per frame: world from the OXTS poses, translated to the first frame."""
+def world_poses(oxts: np.ndarray, calib: Calib) -> np.ndarray:
+    """``world_from_velo`` per frame from the OXTS poses (KITTI devkit Mercator world)."""
     if calib.imu_to_velo is None:
         raise ValueError("World-frame KITTI needs the IMU -> velodyne calibration")
-    world_from_velo = oxts_poses(oxts) @ np.linalg.inv(calib.imu_to_velo)
+    return oxts_poses(oxts) @ np.linalg.inv(calib.imu_to_velo)
+
+
+def ego_poses(oxts: np.ndarray, calib: Calib) -> np.ndarray:
+    """``scene_from_velo`` per frame: world from the OXTS poses, translated to the first frame."""
+    world_from_velo = world_poses(oxts, calib)
     return world_to_scene(world_from_velo) @ world_from_velo
 
 
@@ -178,23 +191,30 @@ def _build(
     velo_files: Sequence[Path],
     image_dir: Optional[Path],
     calib: Calib,
-    ego: Optional[np.ndarray],
     timestamps: Optional[Sequence[float]],
     image_scale: float,
     fps: float = 10,
+    world: Optional[np.ndarray] = None,
 ) -> Path:
+    """``world``: ``world_from_velo`` per frame for a world-frame scene (sensor frame without)."""
+    ego = None if world is None else world_to_scene(world) @ world
     if ego is not None and len(ego) < len(velo_files):
         raise ValueError(f"{len(velo_files)} velodyne frames but {len(ego)} OXTS poses")
+    k, cam_from_velo = calib.camera
 
     def frames():
         for i, f in enumerate(velo_files):
             cloud = read_bin(f)
-            m = calib.velo_to_image
+            cfw = cam_from_velo
             xyz = cloud.xyz
             if ego is not None:
-                xyz, m = g.transform_points(ego[i], xyz), m @ g.invert(ego[i])
+                xyz, cfw = g.transform_points(ego[i], xyz), cfw @ g.invert(ego[i])
             image = None if image_dir is None else image_dir / f"{f.stem}.png"
-            images = {CAMERA: CameraImage(image, m)} if image and image.exists() else {}
+            images = (
+                {CAMERA: CameraImage(image, None, k, cfw, PINHOLE)}
+                if image and image.exists()
+                else {}
+            )
             ts = timestamps[i] if timestamps else i / fps
             yield Frame(
                 xyz, cloud.intensity, ts, None if ego is None else ego[i], images
@@ -207,6 +227,7 @@ def _build(
         fps=fps,
         coordinate_frame="sensor" if ego is None else "world",
         image_scale=image_scale,
+        origin=None if world is None else world[0, :3, 3],
     )
 
 
@@ -221,7 +242,7 @@ def build_kitti_raw(
     drive = Path(drive_dir)
     calib = load_calib(calib_dir or drive.parent)
     velo = sorted((drive / "velodyne_points" / "data").glob("*.bin"))
-    ego = ego_poses(read_oxts(drive / "oxts" / "data"), calib) if world else None
+    poses = world_poses(read_oxts(drive / "oxts" / "data"), calib) if world else None
     ts = _raw_timestamps(drive / "velodyne_points" / "timestamps.txt")
     return _build(
         package_path(output, drive.name),
@@ -229,9 +250,9 @@ def build_kitti_raw(
         velo,
         drive / "image_02" / "data",
         calib,
-        ego,
         ts,
         image_scale,
+        world=poses,
     )
 
 
@@ -256,7 +277,9 @@ def build_kitti_tracking(
     base, seq = _split_dir(root, split), _seq(sequence)
     calib = load_calib(base / "calib" / f"{seq}.txt")
     velo = sorted((base / "velodyne" / seq).glob("*.bin"))
-    ego = ego_poses(read_oxts(base / "oxts" / f"{seq}.txt"), calib) if world else None
+    poses = (
+        world_poses(read_oxts(base / "oxts" / f"{seq}.txt"), calib) if world else None
+    )
     name = f"kitti_tracking_{split}_{seq}"
     return _build(
         package_path(output, name),
@@ -264,9 +287,9 @@ def build_kitti_tracking(
         velo,
         base / "image_02" / seq,
         calib,
-        ego,
         None,
         image_scale,
+        world=poses,
     )
 
 
@@ -293,7 +316,6 @@ def build_kitti_object(
                 [base / "velodyne" / f"{i}.bin"],
                 base / "image_2",
                 load_calib(base / "calib" / f"{i}.txt"),
-                None,
                 None,
                 image_scale,
             )
@@ -502,6 +524,31 @@ def _calib_for(calib, name: str) -> Optional[Calib]:
     return load_calib(calib)
 
 
+def _export_camera(meta: Optional[Dict], camera: Optional[str]) -> Optional[str]:
+    """``camera``, else the first calibrated pinhole camera of the export (``front`` first)."""
+    cams = g.slot_cameras(meta)
+    if camera is not None:
+        return camera if g.intrinsics_matrix(cams.get(camera)) is not None else None
+    for name in sorted(cams, key=lambda n: n != CAMERA):
+        model = (cams[name].get("distortion") or PINHOLE)["model"]
+        if g.intrinsics_matrix(cams[name]) is not None and model == "pinhole":
+            return name
+    return None
+
+
+def _export_calib(meta: Optional[Dict], f: int, camera: str) -> Optional[Calib]:
+    """Calib of ``camera``'s image of frame ``f`` from the export: ``P2 = [K | 0]``, velodyne = ego frame."""
+    cam = g.slot_cameras(meta)[camera]
+    cfw = g.camera_from_world_of(meta, f, camera)
+    if cfw is None:
+        return None
+    ego = g.ego_pose_of(meta, f)
+    cam_from_ego = cfw if ego is None else cfw @ ego
+    k = g.intrinsics_matrix(cam)
+    size = (int(cam["width"]), int(cam["height"])) if "width" in cam else None
+    return Calib(np.c_[k, np.zeros(3)], np.eye(4), cam_from_ego, None, size)
+
+
 def export_kitti(
     annotation_files: Iterable[dt.AnnotationFile],
     output_dir: PathLike,
@@ -510,6 +557,7 @@ def export_kitti(
     ] = None,
     tracking: bool = False,
     image_size: Optional[Tuple[int, int]] = None,
+    camera: Optional[str] = None,
 ) -> None:
     """
     ``cuboid_3d`` annotations of pointcloud items -> KITTI-style text labels, in the lidar (ego)
@@ -519,8 +567,13 @@ def export_kitti(
     - ``calib`` (a calib file / raw calib dir / ``Calib``, or a mapping item name -> calib):
       KITTI ``label_2`` lines in the rectified camera frame, ``<output>/<item>.txt`` for
       single-frame items, ``<output>/<item>/<frame:06d>.txt`` otherwise;
-    - ``tracking=True`` (needs calib): ``<output>/<item>.txt`` in the ``label_02`` format,
+    - ``tracking=True``: ``<output>/<item>.txt`` in the ``label_02`` format,
       ``track_id = instance_id - 1`` (annotation index when there is no instance id).
+
+    Without ``calib``, ``tracking`` and ``camera`` (a camera name) use the camera calibration of
+    the export instead (slot ``metadata.cameras`` and per-frame ``camera_from_world``): the camera
+    frame of that frame's image with ``P2 = [K | 0]`` (``tracking`` alone picks the first
+    calibrated pinhole camera, ``front`` first). An explicit ``calib`` wins.
     """
     output_dir = Path(output_dir)
     for af in annotation_files:
@@ -528,10 +581,12 @@ def export_kitti(
         if slot is None:
             continue
         cal = _calib_for(calib, af.filename)
-        if (tracking or calib is not None) and cal is None:
+        cam = None
+        if calib is None and (tracking or camera is not None):
+            cam = _export_camera(slot.metadata, camera)
+        if (tracking or calib is not None or camera is not None) and not (cal or cam):
             print(f"[WARNING] no KITTI calib for '{af.filename}', skipped")
             continue
-        size = image_size or (cal.image_size if cal else None)
         objects = frame_objects(af, ("cuboid_3d",))
         n = slot.frame_count or (max(objects, default=-1) + 1)
         index = {id(a): k for k, a in enumerate(af.annotations)}
@@ -542,19 +597,26 @@ def export_kitti(
             if (slot.metadata or {}).get("coordinate_frame") == "world" and ego is None:
                 missing_pose = True
                 break
+            fcal = _export_calib(slot.metadata, f, cam) if cam else cal
+            if cam and fcal is None:
+                print(
+                    f"[WARNING] '{af.filename}' frame {f}: no '{cam}' calibration, skipped"
+                )
+                continue
+            size = image_size or (fcal.image_size if fcal else None)
             for o in objs:
                 box = o.data if ego is None else g.to_ego_frame(o.data, ego)
                 cls = o.annotation.annotation_class.name.replace(" ", "_")
-                if cal is None:
+                if fcal is None:
                     lines.setdefault(f, []).append(openpcdet_line(box, cls))
                 elif tracking:
                     iid = o.instance_id
                     tid = iid - 1 if iid is not None else index[id(o.annotation)]
                     lines.setdefault(f, []).append(
-                        f"{f} {tid} {kitti_line(box, cls, cal, size)}"
+                        f"{f} {tid} {kitti_line(box, cls, fcal, size)}"
                     )
                 else:
-                    lines.setdefault(f, []).append(kitti_line(box, cls, cal, size))
+                    lines.setdefault(f, []).append(kitti_line(box, cls, fcal, size))
         if missing_pose:
             print(
                 f"[WARNING] '{af.filename}' is in the world frame without ego poses, skipped"
@@ -565,7 +627,7 @@ def export_kitti(
             output_dir.mkdir(parents=True, exist_ok=True)
             body = [line for f in sorted(lines) for line in lines[f]]
             (output_dir / f"{stem}.txt").write_text("".join(f"{x}\n" for x in body))
-        elif cal is not None and n == 1:
+        elif (cal or cam) and n == 1:
             output_dir.mkdir(parents=True, exist_ok=True)
             (output_dir / f"{stem}.txt").write_text("".join(f"{x}\n" for x in lines[0]))
         else:

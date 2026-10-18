@@ -191,7 +191,7 @@ def nusc(tmp_path):
     return root, tables, truth
 
 
-def test_build_points_and_camera_projection(nusc, tmp_path):
+def test_build_points_and_camera_projection(nusc, tmp_path, check_calibration):
     root, tables, truth = nusc
     scene = read_scene(build_nuscenes(root, "scene-0061", tmp_path / "out"))
     assert scene.path.name == "scene-0061.lidar.zip"
@@ -200,6 +200,13 @@ def test_build_points_and_camera_projection(nusc, tmp_path):
     assert {c["name"] for c in m["cameras"]} == set(CAMS)
     assert [f["timestamp"] for f in m["frames"]] == pytest.approx([0, 0.5, 1.0])
     origin = truth["lidar_ego"][0][:3, 3]
+    assert m["origin"] == pytest.approx(origin.tolist())
+    for cam in check_calibration(m).values():
+        assert cam["distortion"] == {"model": "pinhole"}
+        sx, sy = cam["width"] / 160, cam["height"] / 90
+        assert cam["intrinsics"] == pytest.approx(
+            {"fx": 100 * sx, "fy": 100 * sy, "cx": 80 * sx, "cy": 45 * sy}
+        )
     lidar = g.make_pose(g.euler_to_rot(0, 0, -np.pi / 2), (0.94, 0, 1.84))
     for k in range(3):
         expected_ego = g.translation(-origin) @ truth["lidar_ego"][k]
@@ -334,3 +341,54 @@ def test_registered_formats(nusc, tmp_path):
     get_exporter("nuscenes")([af], tmp_path / "out")
     out = json.loads((tmp_path / "out" / "scene-0061.json").read_text())
     assert sum(len(f["sample_annotation"]) for f in out["frames"]) == 5
+
+
+def test_export_uses_export_origin_and_camera_calibration(
+    nusc, tmp_path, with_package_calibration
+):
+    root, tables, truth = nusc
+    manifest = read_scene(build_nuscenes(root, "scene-0061", tmp_path / "pkg")).manifest
+    [af] = parse_nuscenes(root / "v1.0-mini")
+    back = parse_darwin_json(
+        write_darwin_json(with_package_calibration(af, manifest), tmp_path / "json")
+    )
+    [path] = export_nuscenes([back], tmp_path / "export")
+    out = json.loads(path.read_text())
+    [scene_frame] = export_nuscenes([back], tmp_path / "scene", origin=(0, 0, 0))
+    scene_out = json.loads(scene_frame.read_text())
+    origin = truth["lidar_ego"][0][:3, 3]
+    for k, f in enumerate(out["frames"]):
+        assert f["ego_pose"]["translation"] == pytest.approx(
+            truth["lidar_ego"][k][:3, 3], abs=1e-5
+        )
+        assert scene_out["frames"][k]["ego_pose"]["translation"] == pytest.approx(
+            (truth["lidar_ego"][k][:3, 3] - origin).tolist(), abs=1e-5
+        )
+        front = next(c for c in f["calibrated_sensor"] if c["channel"] == "CAM_FRONT")
+        sy = front["height"] / 90
+        assert front["width"] == 80
+        assert np.allclose(
+            front["camera_intrinsic"], np.diag([0.5, sy, 1]) @ K, atol=1e-6
+        )
+        global_from_ego = g.make_pose(
+            g.quat_to_rot(*f["ego_pose"]["rotation"]), f["ego_pose"]["translation"]
+        )
+        ego_from_cam = g.make_pose(
+            g.quat_to_rot(*front["rotation"]), front["translation"]
+        )
+        # the sweep pose + the record give the image's true camera pose
+        expected = truth["cam_ego"][k] @ g.make_pose(CAMS["CAM_FRONT"], (1.7, 0, 1.5))
+        assert np.allclose(global_from_ego @ ego_from_cam, expected, atol=1e-5)
+    car = next(
+        r
+        for r in out["frames"][0]["sample_annotation"]
+        if r["category_name"] == "vehicle.car"
+    )
+    ref = next(
+        r
+        for r in scene_out["frames"][0]["sample_annotation"]
+        if r["category_name"] == "vehicle.car"
+    )
+    assert car["translation"] == pytest.approx(
+        (np.array(ref["translation"]) + origin).tolist()
+    )

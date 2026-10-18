@@ -106,11 +106,10 @@ def build_kitti_odometry(
     ego = sequence_ego_poses(seq, len(files)) if world else None
     times = sequence_timestamps(seq, len(files))
     calib = read_calib(seq / "calib.txt") if (seq / "calib.txt").exists() else {}
-    velo_to_image = (
-        calib["P2"].reshape(3, 4) @ _velo_to_cam(calib)
-        if "P2" in calib and "Tr" in calib and (seq / "image_2").is_dir()
-        else None
-    )
+    camera = None
+    if "P2" in calib and "Tr" in calib and (seq / "image_2").is_dir():
+        k, cam_from_cam0 = g.split_projection(calib["P2"].reshape(3, 4))
+        camera = k, cam_from_cam0 @ _velo_to_cam(calib)
 
     def frames():
         for i, f in enumerate(files):
@@ -119,9 +118,12 @@ def build_kitti_odometry(
             xyz = cloud.xyz if pose is None else g.transform_points(pose, cloud.xyz)
             images = {}
             image = seq / "image_2" / f"{f.stem}.png"
-            if velo_to_image is not None and image.exists():
-                m = velo_to_image if pose is None else velo_to_image @ g.invert(pose)
-                images["image_2"] = CameraImage(image, m)
+            if camera is not None and image.exists():
+                k, cfw = camera
+                cfw = cfw if pose is None else cfw @ g.invert(pose)
+                images["image_2"] = CameraImage(
+                    image, None, k, cfw, {"model": "pinhole"}
+                )
             yield Frame(xyz, cloud.intensity, times[i], pose, images)
 
     name = f"semantickitti_{seq.name}"

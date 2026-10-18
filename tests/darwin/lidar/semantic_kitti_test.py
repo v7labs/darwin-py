@@ -77,10 +77,11 @@ def test_build_sensor_frame(tmp_path):
     assert np.allclose(m["frames"][0]["images"]["image_2"]["world_to_image"], expected)
 
 
-def test_build_world_frame(tmp_path):
+def test_build_world_frame(tmp_path, check_calibration):
     seq, _ = _sequence(tmp_path)
     scene = read_scene(build_kitti_odometry(seq, tmp_path, image_scale=1))
     assert scene.manifest["coordinate_frame"] == "world"
+    check_calibration(scene.manifest)
     tr = np.vstack([TR, [0, 0, 0, 1]])
     for i in range(3):
         pose_cam = g.make_pose(g.euler_to_rot(0, 0.1 * i, 0), (0, 0, 2.0 * i))

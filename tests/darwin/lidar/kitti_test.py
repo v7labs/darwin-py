@@ -212,11 +212,24 @@ def test_tracking_world_frame_matches_built_scene(tracking_root, tmp_path):
     ).read_text().count("\n") == 1
 
 
-def test_tracking_sensor_build_and_projection(tracking_root, tmp_path):
+def test_tracking_sensor_build_and_projection(
+    tracking_root, tmp_path, check_calibration
+):
     scene = read_scene(build_kitti_tracking(tracking_root, "0000", tmp_path))
     assert scene.manifest["coordinate_frame"] == "sensor"
-    assert scene.manifest["cameras"] == [{"name": "front", "width": 20, "height": 6}]
     calib = load_calib(tracking_root / "calib" / "0000.txt")
+    [cam] = check_calibration(scene.manifest).values()
+    k = 0.5 * calib.P2[:2, :3]
+    assert cam == {
+        "name": "front",
+        "width": 20,
+        "height": 6,
+        "intrinsics": pytest.approx(
+            {"fx": k[0, 0], "fy": k[1, 1], "cx": k[0, 2], "cy": k[1, 2]}
+        ),
+        "distortion": {"model": "pinhole"},
+    }
+    assert "origin" not in scene.manifest
     m = np.array(scene.frames[0]["images"]["front"]["world_to_image"])
     assert np.allclose(
         m, np.diag([0.5, 0.5, 1]) @ calib.velo_to_image, rtol=1e-5, atol=1e-5
@@ -351,3 +364,55 @@ def test_registered_formats(object_root, tracking_root, tmp_path):
         (tmp_path / "out" / "kitti_object_training_000001" / "000000.txt").read_text()
     )
     assert [r[7] for r in lines] == ["Car", "Pedestrian"]
+
+
+def test_export_calibration_replaces_the_calib_file(
+    tracking_root, tmp_path, check_calibration, with_package_calibration
+):
+    from darwin.lidar.kitti import read_oxts, world_poses
+
+    calib_file = tracking_root / "calib" / "0000.txt"
+    calib = load_calib(calib_file)
+    path = build_kitti_tracking(
+        tracking_root.parent, 0, tmp_path / "pkg", world=True, image_scale=1
+    )
+    manifest = read_scene(path).manifest
+    check_calibration(manifest)
+    world = world_poses(read_oxts(tracking_root / "oxts" / "0000.txt"), calib)
+    assert manifest["origin"] == pytest.approx(world[0, :3, 3].tolist(), abs=1e-6)
+    labels = tracking_root / "label_02" / "0000.txt"
+    plain = parse_kitti_tracking(labels, world=True)[0]
+    calibrated = parse_darwin_json(
+        write_darwin_json(with_package_calibration(plain, manifest), tmp_path / "json")
+    )
+    big = (10_000, 10_000)
+
+    def rows(af, name, **kw):
+        export_kitti([af], tmp_path / name, tracking=True, image_size=big, **kw)
+        return _rows((tmp_path / name / "kitti_tracking_training_0000.txt").read_text())
+
+    reference = rows(plain, "ref", calib=calib_file)
+    assert rows(calibrated, "explicit", calib=calib_file) == reference  # calib wins
+    exported = rows(calibrated, "export")
+    export_kitti([plain], tmp_path / "none", tracking=True)
+    assert not (tmp_path / "none").exists()  # no calibration anywhere: skipped
+    baseline = np.linalg.solve(calib.P2[:, :3], calib.P2[:, 3])
+    assert len(exported) == len(reference) == 5
+    for e, r in zip(exported, reference):
+        assert e[:3] == r[:3]
+        nums = lambda row, a, b: np.array(row[a:b], float)  # noqa: E731
+        assert np.allclose(nums(e, 6, 13), nums(r, 6, 13), atol=1e-3)  # 2D box, h w l
+        # camera frame of image_02: KITTI's rectified cam0 frame + the P2 baseline
+        assert np.allclose(nums(e, 13, 16), nums(r, 13, 16) + baseline, atol=1e-4)
+        assert float(e[16]) == pytest.approx(float(r[16]), abs=1e-5)
+
+    export_kitti([calibrated], tmp_path / "front", camera="front", image_size=big)
+    front = _rows(
+        (tmp_path / "front" / "kitti_tracking_training_0000" / "000001.txt").read_text()
+    )
+    assert [r[:1] + r[4:8] for r in front] == [
+        [r[2]] + r[6:10] for r in exported if r[0] == "1"
+    ]
+    export_kitti([calibrated], tmp_path / "pcdet")  # no calib, no camera: lidar frame
+    lidar = tmp_path / "pcdet" / "kitti_tracking_training_0000" / "000001.txt"
+    assert [len(r) for r in _rows(lidar.read_text())] == [8, 8]

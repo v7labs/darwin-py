@@ -203,6 +203,45 @@ def test_write_scene_world_quantized_with_camera(tmp_path):
     assert b"TYPE I I I U" in scene.read("lidar/000000.pcd")[:300]
 
 
+def test_write_scene_camera_calibration_and_origin(tmp_path, check_calibration):
+    from PIL import Image
+
+    k = np.array([[50.0, 0, 30], [0, 52, 20], [0, 0, 1]])
+    fisheye = {"model": "fisheye", "coefficients": [0.05, -0.01, 0.004, -0.001]}
+    frames = []
+    for t in range(2):
+        pose = g.make_pose(g.euler_to_rot(0, 0, 0.1 * t), (5.0 * t, 0, 0))
+        cfw = g.make_pose(g.euler_to_rot(-np.pi / 2, 0, -np.pi / 2)) @ g.invert(pose)
+        img = Image.fromarray(RNG.integers(0, 255, (40, 60, 3), dtype=np.uint8))
+        image = CameraImage(
+            img, intrinsics=k, camera_from_world=cfw, distortion=fisheye
+        )
+        frames.append(
+            Frame(RNG.uniform(-50, 50, (50, 3)), None, t / 10, pose, {"cam": image})
+        )
+    origin = [-272.607, 2915.772, -21.1419]
+    out = write_scene(tmp_path / "c.lidar.zip", frames, image_scale=0.5, origin=origin)
+    m = read_scene(out).manifest
+    assert m["origin"] == origin
+    assert m["cameras"] == [
+        {
+            "name": "cam",
+            "width": 30,
+            "height": 20,
+            "intrinsics": {"fx": 25.0, "fy": 26.0, "cx": 15.0, "cy": 10.0},
+            "distortion": fisheye,
+        }
+    ]
+    check_calibration(m)
+    for t in range(2):
+        image = m["frames"][t]["images"]["cam"]
+        assert np.allclose(
+            image["camera_from_world"],
+            frames[t].images["cam"].camera_from_world,
+            atol=1e-6,
+        )
+
+
 def test_write_scene_sensor_float_fallback(tmp_path):
     far = np.array([[0, 0, 0], [1000.0, 0, 0], [np.nan, 0, 0]])
     out = write_scene(tmp_path / "f.lidar.zip", [Frame(far)], coordinate_frame="sensor")

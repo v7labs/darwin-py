@@ -91,9 +91,7 @@ def build_pandaset(
         k = np.array([[i["fx"], 0, i["cx"]], [0, i["fy"], i["cy"]], [0, 0, 1]])
         poses = [_pose(p) for p in json.loads((d / "poses.json").read_text())]
         files = natsorted(d.glob("*.jpg"), key=lambda p: p.name)
-        cams.append(
-            (cam, files, [k @ g.invert(p)[:3] @ world_from_scene for p in poses])
-        )
+        cams.append((cam, files, k, [g.invert(p) @ world_from_scene for p in poses]))
 
     def frames() -> Iterator[Frame]:
         for f, path in enumerate(_files(seq / "lidar")):
@@ -101,9 +99,9 @@ def build_pandaset(
             keep = _sensor_rows(df, sensor)
             xyz = np.stack([np.asarray(df[c], float) for c in "xyz"], 1)[keep]
             images = {
-                cam: CameraImage(files[f], m[f])
-                for cam, files, m in cams
-                if f < len(files) and f < len(m)
+                cam: CameraImage(files[f], None, k, cfw[f], {"model": "pinhole"})
+                for cam, files, k, cfw in cams
+                if f < len(files) and f < len(cfw)
             }
             yield Frame(
                 g.transform_points(scene_from_world, xyz),
@@ -120,6 +118,7 @@ def build_pandaset(
         fps=10,
         coordinate_frame="world",
         image_scale=image_scale,
+        origin=world_from_scene[:3, 3],
     )
 
 

@@ -102,7 +102,7 @@ def seq(tmp_path):
     return d, clouds, cam_poses
 
 
-def test_build_pandaset(seq, tmp_path):
+def test_build_pandaset(seq, tmp_path, check_calibration):
     from darwin.lidar.pandaset import build_pandaset
 
     d, clouds, cam_poses = seq
@@ -114,6 +114,8 @@ def test_build_pandaset(seq, tmp_path):
     )
     assert [f["timestamp"] for f in m["frames"]] == pytest.approx([0, 0.1])
     origin = _lidar_pose(0)[:3, 3]
+    assert m["origin"] == pytest.approx(origin.tolist())
+    assert check_calibration(m)["front_camera"]["distortion"] == {"model": "pinhole"}
     for f, df in enumerate(clouds):
         assert np.allclose(
             scene.ego_pose(f), g.translation(-origin) @ _lidar_pose(f), atol=1e-6

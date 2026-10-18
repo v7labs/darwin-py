@@ -118,13 +118,17 @@ def log(tmp_path):
     return d
 
 
-def test_build_av2(log, tmp_path):
+def test_build_av2(log, tmp_path, check_calibration):
     from darwin.lidar.av2 import build_av2
 
     scene = read_scene(build_av2(log, tmp_path / "out"))
     assert scene.path.name == "log-0001.lidar.zip"
     m = scene.manifest
     assert m["coordinate_frame"] == "world" and m["frame_count"] == 2
+    assert m["origin"] == pytest.approx(_city_from_ego(T0)[:3, 3].tolist())
+    cam = check_calibration(m)[CAM]
+    assert cam["distortion"] == {"model": "pinhole"}
+    assert cam["intrinsics"]["fx"] == pytest.approx(30 * cam["width"] / 40)
     assert m["cameras"][0]["name"] == CAM and m["cameras"][0]["width"] == 20
     assert [f["timestamp"] for f in m["frames"]] == pytest.approx([0, 0.1])
     origin = _city_from_ego(T0)[:3, 3]
@@ -205,3 +209,45 @@ def test_registered_importer(log, tmp_path):
     [af] = importer(log / "annotations.feather")
     assert af.slots[0].metadata["coordinate_frame"] == "world"
     assert len(af.slots[0].metadata["frames"]) == 2
+
+
+def test_export_writes_calibration_from_the_export(
+    log, tmp_path, with_package_calibration
+):
+    from darwin.lidar.av2 import build_av2, export_av2, parse_av2
+
+    manifest = read_scene(build_av2(log, tmp_path / "pkg")).manifest
+    [af] = parse_av2(log)
+    calibrated = parse_darwin_json(
+        write_darwin_json(with_package_calibration(af, manifest), tmp_path / "json")
+    )
+    export_av2([calibrated], tmp_path / "export")
+    out = tmp_path / "export" / "log-0001" / "calibration"
+    [intr] = _rows(out / "intrinsics.feather")
+    h = manifest["cameras"][0]["height"]
+    assert intr == pytest.approx(
+        {
+            "sensor_name": CAM,
+            "fx_px": 15.0,
+            "fy_px": 30 * h / 30,
+            "cx_px": 10.0,
+            "cy_px": 15 * h / 30,
+            "k1": 0.0,
+            "k2": 0.0,
+            "k3": 0.0,
+            "height_px": h,
+            "width_px": 20,
+        }
+    )
+    [extr] = _rows(out / "egovehicle_SE3_sensor.feather")
+    ego_from_cam = g.make_pose(
+        g.quat_to_rot(*(extr[k] for k in ("qw", "qx", "qy", "qz"))),
+        [extr[k] for k in ("tx_m", "ty_m", "tz_m")],
+    )
+    # the first image is 2 ms after the sweep: its camera pose in the sweep's ego frame
+    expected = (
+        g.invert(_city_from_ego(T0)) @ _city_from_ego(T0 + 2_000_000) @ EGO_FROM_CAM
+    )
+    assert np.allclose(ego_from_cam, expected, atol=1e-5)
+    export_av2([af], tmp_path / "plain")
+    assert not (tmp_path / "plain" / "log-0001" / "calibration").exists()

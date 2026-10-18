@@ -224,3 +224,42 @@ def ego_pose_of(slot_metadata: Optional[Dict[str, Any]], frame: int) -> Optional
         return None
     pose = frames[frame].get("ego_pose")
     return None if pose is None else np.asarray(pose, float)
+
+
+def split_projection(p: np.ndarray) -> Tuple[np.ndarray, Pose]:
+    """
+    ``(K, camera_from_reference)`` of a rectified 3x4 projection ``P = K @ [I | t]`` (KITTI
+    ``P_rect``: the reference is the rectified cam0 frame, ``t`` the stereo baseline).
+    """
+    p = np.asarray(p, float)
+    k = p[:, :3]
+    return k, translation(np.linalg.solve(k, p[:, 3]))
+
+
+def intrinsics_matrix(camera: Optional[Dict[str, Any]]) -> Optional[np.ndarray]:
+    """3x3 ``K`` of a slot metadata / package camera with ``intrinsics`` ``{fx, fy, cx, cy}``."""
+    i = (camera or {}).get("intrinsics")
+    if not i:
+        return None
+    return np.array([[i["fx"], 0, i["cx"]], [0, i["fy"], i["cy"]], [0, 0, 1]], float)
+
+
+def slot_cameras(slot_metadata: Optional[Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
+    """Static cameras of ``pointcloud`` slot metadata by name (``name, width, height, intrinsics?, distortion?``)."""
+    return {c["name"]: c for c in (slot_metadata or {}).get("cameras") or []}
+
+
+def camera_from_world_of(
+    slot_metadata: Optional[Dict[str, Any]], frame: int, camera: str
+) -> Optional[Pose]:
+    """
+    4x4 ``camera_from_world`` of one camera image of a frame (frame geometry -> camera optical
+    frame: x right, y down, z forward), or ``None`` when the export does not carry it.
+    """
+    frames = (slot_metadata or {}).get("frames") or []
+    if frame >= len(frames):
+        return None
+    m = ((frames[frame].get("cameras") or {}).get(camera) or {}).get(
+        "camera_from_world"
+    )
+    return None if m is None else np.asarray(m, float)
