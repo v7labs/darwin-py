@@ -242,11 +242,11 @@ def write_scene(
         }
         if scale:
             scene["points"] = {"scale": scale}
-        if origin is not None:
-            scene["origin"] = np.round(np.asarray(origin, float), 6).tolist()
         else:
             for entry in manifest:
                 entry.pop("offset")
+        if origin is not None:
+            scene["origin"] = np.round(np.asarray(origin, float), 6).tolist()
         scene["cameras"] = list(cameras.values())
         scene["frames"] = manifest
         with _zip32(), zipfile.ZipFile(path, "w", allowZip64=False) as z:

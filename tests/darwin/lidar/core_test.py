@@ -203,6 +203,15 @@ def test_write_scene_world_quantized_with_camera(tmp_path):
     assert b"TYPE I I I U" in scene.read("lidar/000000.pcd")[:300]
 
 
+def test_write_scene_quantizes_far_frames_around_their_offset(tmp_path):
+    pose = g.make_pose(np.eye(3), (1000.0, -2000.0, 0))
+    pts = RNG.uniform(-50, 50, (100, 3)) + pose[:3, 3]
+    out = write_scene(tmp_path / "far.lidar.zip", [Frame(pts, None, 0, pose)])
+    scene = read_scene(out)
+    assert scene.manifest["points"] == {"scale": 0.01}
+    assert np.abs(scene.points(0).xyz - pts).max() <= 0.005 + 1e-9
+
+
 def test_write_scene_camera_calibration_and_origin(tmp_path, check_calibration):
     from PIL import Image
 
