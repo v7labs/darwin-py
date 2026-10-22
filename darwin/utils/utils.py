@@ -551,11 +551,6 @@ def get_image_path_from_stream(
         return images_dir / Path(parsed.full_path.lstrip("/\\"))
 
     # images/ can contain directories even when this item was pulled as one file.
-    if primary.is_file():
-        return primary
-    alternate = _single_file_image_path(darwin_json, images_dir, not with_folders)
-    if alternate.is_file():
-        return alternate
     for candidate in _pull_layout_image_files(darwin_json, images_dir, with_folders):
         if candidate.is_file():
             return candidate
@@ -584,10 +579,19 @@ def _pull_layout_image_files(
     images_dir: Path,
     with_folders: bool,
 ) -> Iterator[Path]:
-    """Image files pull writes for per-slot and multi-file downloads."""
+    """Image files that pull may have written for this item, most specific first.
+
+    Every layout under the item's folder is tried before any root-level one, so
+    a same-named root item never shadows this item's own media. Layouts:
+    a single file, per-slot files, and a multi-file series directory.
+    """
+    # Imported here: darwin.dataset.utils imports this module.
+    from darwin.dataset.utils import sanitize_filename
+
     item = darwin_json["item"]
     name = item["name"]
     stem = Path(name).stem
+    slots = list(item["slots"])
     relative_path = Path(item["path"].lstrip("/\\"))
     if not relative_path.parts:
         bases = [images_dir]
@@ -596,30 +600,56 @@ def _pull_layout_image_files(
     else:
         bases = [images_dir, images_dir / relative_path]
 
-    for slot in item["slots"]:
-        slot_name = slot["slot_name"]
-        for source in slot["source_files"]:
-            file_name = source["file_name"]
-            for base in bases:
-                yield base / name / slot_name / file_name
-
-    # _fetch_multiple_files strips the suffix and writes slices into that directory.
-    if not stem:
-        return
     for base in bases:
-        series_dir = base / stem
-        if series_dir == base or not series_dir.is_dir():
-            continue
-        files = sorted(
-            (child for child in series_dir.iterdir() if child.is_file()),
-            key=lambda path: (
-                not is_extension_allowed_by_filename(path.name),
-                path.name,
-            ),
-        )
-        if files:
-            yield files[0]
-            return
+        yield _single_file_image_path(darwin_json, base, False)
+
+        # Per-slot files can't be told apart once annotations span slots, so
+        # only single-slot items use this layout.
+        if len(slots) == 1:
+            slot = slots[0]
+            slot_dir = (
+                base / sanitize_filename(name) / sanitize_filename(slot["slot_name"])
+            )
+            for source in slot["source_files"]:
+                yield slot_dir / sanitize_filename(source["file_name"])
+
+        # _fetch_multiple_files strips the suffix and writes slices into that directory.
+        series_file = _series_image_file(base, stem, slots)
+        if series_file is not None:
+            yield series_file
+
+
+def _series_image_file(base: Path, stem: str, slots: List[Any]) -> Optional[Path]:
+    """First supported file in the multi-file series directory for the first slot."""
+    if not stem or not slots:
+        return None
+    series_dir = base / stem
+    if series_dir == base or not series_dir.is_dir():
+        return None
+    slot = slots[0]
+    source_files = slot["source_files"]
+    source_suffix = (
+        Path(source_files[0]["file_name"]).suffix.lower() if source_files else ""
+    )
+    try:
+        is_image_slot = slot["type"] == "image"
+    except KeyError:
+        is_image_slot = True
+
+    def accepted(path: Path) -> bool:
+        if path.name.startswith(".") or not path.is_file():
+            return False
+        if not is_extension_allowed_by_filename(path.name):
+            return False
+        # Frames extracted from a video or other non-image slot land in the same
+        # directory as PNGs. Only accept files of the slot's own source type there.
+        return is_image_slot or path.suffix.lower() == source_suffix
+
+    files = sorted(
+        (child for child in series_dir.iterdir() if accepted(child)),
+        key=lambda path: path.name,
+    )
+    return files[0] if files else None
 
 
 def is_stream_list_empty(json_list: PersistentStreamingJSONList) -> bool:

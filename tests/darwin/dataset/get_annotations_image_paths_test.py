@@ -176,3 +176,94 @@ def test_empty_images_dir_still_reports_no_media(tmp_path: Path) -> None:
 
     with pytest.raises(ValueError, match="Could not find any"):
         _file_names(dataset)
+
+
+def _unmapped(dataset: Path) -> list[str]:
+    annotation_paths = sorted(
+        (dataset / "releases" / "latest" / "annotations").glob("*.json")
+    )
+    images, _, invalid, _ = _map_annotations_to_images(
+        (str(path) for path in annotation_paths),
+        dataset / "images",
+        True,
+    )
+    assert images == []
+    return [Path(path).name for path in invalid]
+
+
+def test_folder_series_wins_over_same_name_root_file(tmp_path: Path) -> None:
+    dataset = _dataset(
+        tmp_path, {"scan.json": _annotation("scan.dcm", "/studies", "scan.dcm")}
+    )
+    images = dataset / "images"
+    (images / "scan.dcm").write_bytes(b"root item")
+    series = images / "studies" / "scan"
+    series.mkdir(parents=True)
+    (series / "slice_001.dcm").write_bytes(b"1")
+
+    assert _mapped_images(dataset) == [series / "slice_001.dcm"]
+
+
+def test_folder_slot_file_wins_over_same_name_root_file(tmp_path: Path) -> None:
+    dataset = _dataset(
+        tmp_path, {"scan.json": _annotation("scan.jpg", "/studies", "source.jpg")}
+    )
+    images = dataset / "images"
+    (images / "scan.jpg").write_bytes(b"root item")
+    slot_file = images / "studies" / "scan.jpg" / "0" / "source.jpg"
+    slot_file.parent.mkdir(parents=True)
+    slot_file.write_bytes(b"slot")
+
+    assert _mapped_images(dataset) == [slot_file]
+
+
+def test_multi_slot_item_is_not_mapped_to_one_slot(tmp_path: Path) -> None:
+    payload = _annotation("pair.jpg", "/", "left.jpg")
+    second_slot = dict(payload["item"]["slots"][0])
+    second_slot.update(slot_name="1", source_files=[{"file_name": "right.jpg"}])
+    payload["item"]["slots"].append(second_slot)
+    dataset = _dataset(tmp_path, {"pair.json": payload})
+    for slot_name, file_name in (("0", "left.jpg"), ("1", "right.jpg")):
+        image = dataset / "images" / "pair.jpg" / slot_name / file_name
+        image.parent.mkdir(parents=True)
+        image.write_bytes(b"img")
+
+    assert _unmapped(dataset) == ["pair.json"]
+
+
+def test_extracted_video_frames_are_not_mapped(tmp_path: Path) -> None:
+    payload = _annotation("clip.mp4", "/", "clip.mp4")
+    payload["item"]["slots"][0]["type"] = "video"
+    dataset = _dataset(tmp_path, {"clip.json": payload})
+    frames = dataset / "images" / "clip"
+    frames.mkdir()
+    (frames / "0000000.png").write_bytes(b"frame")
+
+    assert _unmapped(dataset) == ["clip.json"]
+
+
+def test_slot_layout_uses_sanitized_names(tmp_path: Path) -> None:
+    dataset = _dataset(
+        tmp_path, {"series.json": _annotation("series.dcm", "/", "slice?001.dcm")}
+    )
+    image = dataset / "images" / "series.dcm" / "0" / "slice_001.dcm"
+    image.parent.mkdir(parents=True)
+    image.write_bytes(b"1")
+
+    assert _mapped_images(dataset) == [image]
+
+
+def test_series_directory_without_media_is_skipped(tmp_path: Path) -> None:
+    dataset = _dataset(
+        tmp_path, {"series.json": _annotation("series.dcm", "/studies", "series.dcm")}
+    )
+    images = dataset / "images"
+    folder_series = images / "studies" / "series"
+    folder_series.mkdir(parents=True)
+    (folder_series / "README").write_text("notes")
+    (folder_series / ".DS_Store").write_bytes(b"x")
+    root_series = images / "series"
+    root_series.mkdir()
+    (root_series / "slice_001.dcm").write_bytes(b"1")
+
+    assert _mapped_images(dataset) == [root_series / "slice_001.dcm"]
