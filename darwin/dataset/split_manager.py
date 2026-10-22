@@ -316,17 +316,34 @@ def _drop_unstratifiable(
     Ties break by class name. Dropped rows are not assigned here; images that
     then appear in no partition are placed by ``_stratified_split``.
     """
+    if len(labels) == 0:
+        return file_indices, labels, 0
+    # Count once, then walk the removal order (smallest class first, ties by
+    # name) with running totals instead of rescanning the rows per class.
+    classes, inverse, counts = np.unique(
+        labels, return_inverse=True, return_counts=True
+    )
+    order = sorted(range(len(classes)), key=lambda i: (counts[i], classes[i]))
+    n_classes = len(order)
+    n_rows = len(labels)
     removed = 0
-    while len(labels) and not _can_stratify(labels, test_size):
-        if _split_sizes(len(labels), test_size) is None:
-            return file_indices[:0], labels[:0], removed + len(np.unique(labels))
-        classes, counts = np.unique(labels, return_counts=True)
-        victim = sorted(zip(counts.tolist(), classes.tolist()))[0][1]
-        keep = labels != victim
-        file_indices = file_indices[keep]
-        labels = labels[keep]
+    while removed < n_classes:
+        sizes = _split_sizes(n_rows, test_size)
+        if sizes is None:
+            return file_indices[:0], labels[:0], n_classes
+        n_train, n_test = sizes
+        remaining = n_classes - removed
+        smallest = counts[order[removed]]
+        if smallest >= 2 and n_train >= remaining and n_test >= remaining:
+            break
+        n_rows -= smallest
         removed += 1
-    return file_indices, labels, removed
+    if removed == 0:
+        return file_indices, labels, 0
+    dropped = np.zeros(n_classes, dtype=bool)
+    dropped[order[:removed]] = True
+    keep = ~dropped[inverse.reshape(-1)]
+    return file_indices[keep], labels[keep], removed
 
 
 def _release_overflow(

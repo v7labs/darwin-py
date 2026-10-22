@@ -249,3 +249,59 @@ class TestStratifiedSplitLowSupport:
         _assert_partition(
             train, val, test, _GUST_TRAIN, _GUST_VAL, _GUST_TEST, f"seed {seed}"
         )
+
+
+def _reference_drop_unstratifiable(file_indices, labels, test_size):
+    """One-class-at-a-time removal, kept as the behavioural reference."""
+    from darwin.dataset.split_manager import _can_stratify, _split_sizes
+
+    removed = 0
+    while len(labels) and not _can_stratify(labels, test_size):
+        if _split_sizes(len(labels), test_size) is None:
+            return file_indices[:0], labels[:0], removed + len(np.unique(labels))
+        classes, counts = np.unique(labels, return_counts=True)
+        victim = sorted(zip(counts.tolist(), classes.tolist()))[0][1]
+        keep = labels != victim
+        file_indices = file_indices[keep]
+        labels = labels[keep]
+        removed += 1
+    return file_indices, labels, removed
+
+
+class TestDropUnstratifiable:
+    @pytest.mark.parametrize("seed", range(50))
+    def test_matches_one_class_at_a_time_removal(self, seed):
+        from darwin.dataset.split_manager import _drop_unstratifiable
+
+        rng = np.random.default_rng(seed)
+        n_rows = int(rng.integers(0, 120))
+        n_classes = int(rng.integers(1, 40))
+        labels = np.array([f"c{int(c)}" for c in rng.integers(0, n_classes, n_rows)])
+        file_indices = np.arange(n_rows)
+        test_size = float(rng.choice([0.1, 0.2, 0.3, 0.5, 0.7]))
+
+        expected = _reference_drop_unstratifiable(file_indices, labels, test_size)
+        actual = _drop_unstratifiable(file_indices, labels, test_size)
+
+        assert actual[2] == expected[2]
+        np.testing.assert_array_equal(actual[0], expected[0])
+        np.testing.assert_array_equal(actual[1], expected[1])
+
+    def test_counts_classes_once_for_many_rare_classes(self, monkeypatch):
+        from darwin.dataset import split_manager
+
+        calls = []
+        real_unique = np.unique
+
+        def counting_unique(*args, **kwargs):
+            calls.append(1)
+            return real_unique(*args, **kwargs)
+
+        monkeypatch.setattr(split_manager.np, "unique", counting_unique)
+        # Two images per class with a 30% holdout: nearly every class is dropped.
+        labels = np.array([f"c{i // 2}" for i in range(400)])
+        file_indices = np.arange(400)
+
+        split_manager._drop_unstratifiable(file_indices, labels, 0.3)
+
+        assert len(calls) <= 2
