@@ -1,9 +1,12 @@
+import logging
 import math
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Set, Tuple
 
 import numpy as np
+
+logger = logging.getLogger(__name__)
 
 from darwin.dataset.utils import extract_classes, get_release_path
 from darwin.datatypes import PathLike
@@ -278,6 +281,80 @@ def _stratified_split(
         )
 
 
+def _split_sizes(n_samples: int, test_size: float) -> Optional[Tuple[int, int]]:
+    """Return ``(n_train, n_test)`` or ``None`` when either side would be empty."""
+    if n_samples < 2:
+        return None
+    n_test = math.ceil(test_size * n_samples)
+    n_train = n_samples - n_test
+    if n_train < 1 or n_test < 1:
+        return None
+    return n_train, n_test
+
+
+def _can_stratify(labels: np.ndarray, test_size: float) -> bool:
+    """sklearn refuses a stratified split when a class has one row, or either side is smaller than the class count."""
+    sizes = _split_sizes(len(labels), test_size)
+    if sizes is None:
+        return False
+    n_train, n_test = sizes
+    _, class_counts = np.unique(labels, return_counts=True)
+    n_classes = len(class_counts)
+    return bool(
+        n_classes
+        and class_counts.min() >= 2
+        and n_train >= n_classes
+        and n_test >= n_classes
+    )
+
+
+def _drop_unstratifiable(
+    file_indices: np.ndarray, labels: np.ndarray, test_size: float
+) -> Tuple[np.ndarray, np.ndarray, int]:
+    """Drop the smallest classes until the remaining rows can be stratified.
+
+    Ties break by class name. Dropped rows are not assigned here; images that
+    then appear in no partition are placed by ``_stratified_split``.
+    """
+    removed = 0
+    while len(labels) and not _can_stratify(labels, test_size):
+        if _split_sizes(len(labels), test_size) is None:
+            return file_indices[:0], labels[:0], removed + len(np.unique(labels))
+        classes, counts = np.unique(labels, return_counts=True)
+        victim = sorted(zip(counts.tolist(), classes.tolist()))[0][1]
+        keep = labels != victim
+        file_indices = file_indices[keep]
+        labels = labels[keep]
+        removed += 1
+    return file_indices, labels, removed
+
+
+def _release_overflow(
+    train: List[int],
+    val: List[int],
+    test: List[int],
+    train_size: int,
+    val_size: int,
+    test_size: int,
+) -> Tuple[List[int], List[int], List[int]]:
+    """Keep each index in one partition, and no more than that partition's capacity.
+
+    ``_stratified_split`` only pads missing indices, so extras have to be
+    dropped here. Kept indices stay in their original order.
+    """
+    seen: Set[int] = set()
+    released: List[List[int]] = []
+    for indices, capacity in zip((train, val, test), (train_size, val_size, test_size)):
+        kept: List[int] = []
+        for index in indices:
+            if index in seen or len(kept) >= capacity:
+                continue
+            seen.add(index)
+            kept.append(index)
+        released.append(kept)
+    return released[0], released[1], released[2]
+
+
 def _stratify_samples(
     idx_to_classes: Dict[int, Set[str]],
     split_seed: int,
@@ -286,6 +363,9 @@ def _stratify_samples(
     test_size: int,
 ) -> Tuple[List[int], List[int], List[int]]:
     """Splits the list of indices into train, val and test according to their labels (stratified)
+
+    Classes that sklearn cannot stratify are held out of the stratified calls.
+    ``_stratified_split`` assigns those images while padding each partition.
 
     Parameters
     ----------
@@ -314,51 +394,64 @@ def _stratify_samples(
     # Stratify
     file_indices, labels = zip(*expanded_list)
     file_indices, labels = np.array(file_indices), np.array(labels)
-    # Extract entries whose support set is 1 (it would make sklearn crash) and append the to train later
-    unique_labels, count = np.unique(labels, return_counts=True)
-    single_files = []
-    for label in unique_labels[count == 1]:
-        index = np.where(labels == label)[0][0]
-        single_files.append(file_indices[index])
-        labels = np.delete(labels, index)
-        file_indices = np.delete(file_indices, index)
-    # If file_indices or labels are empty, the following train_test_split will crash (empty train set)
-    if len(file_indices) == 0 or len(labels) == 0:
-        return [], [], []
 
     dataset_size = train_size + val_size + test_size
+    holdout_ratio = (val_size + test_size) / dataset_size
+    file_indices, labels, removed = _drop_unstratifiable(
+        file_indices, labels, holdout_ratio
+    )
+    # Every class was too small to stratify. Let the caller assign every index.
+    if len(labels) == 0:
+        return [], [], []
+    if removed:
+        logger.warning(
+            "Held out %d class(es) that could not be stratified in the train vs val/test split.",
+            removed,
+        )
 
-    X_train, X_tmp, y_train, y_tmp = _remove_cross_contamination(
+    X_train, X_tmp, _, y_tmp = _remove_cross_contamination(
         *train_test_split(
             np.array(file_indices),
             np.array(labels),
-            test_size=(val_size + test_size) / dataset_size,
+            test_size=holdout_ratio,
             random_state=split_seed,
             stratify=labels,
         ),
         val_size + test_size,
     )
 
-    # Append files whose support set is 1 to train
-    X_train = np.concatenate((X_train, np.array(single_files)), axis=0)
-    X_val, X_test, y_val, y_test = _remove_cross_contamination(
-        *train_test_split(
-            X_tmp,
-            y_tmp,
-            test_size=(test_size / (val_size + test_size)),
-            random_state=split_seed,
-            stratify=y_tmp,
-        ),
-        test_size,
-    )
+    test_ratio = test_size / (val_size + test_size)
+    X_tmp, y_tmp, removed = _drop_unstratifiable(X_tmp, y_tmp, test_ratio)
+    if removed:
+        logger.warning(
+            "Held out %d class(es) that could not be stratified in the val vs test split.",
+            removed,
+        )
+    if len(y_tmp) == 0:
+        X_val = np.array([], dtype=int)
+        X_test = np.array([], dtype=int)
+    else:
+        X_val, X_test, _, _ = _remove_cross_contamination(
+            *train_test_split(
+                X_tmp,
+                y_tmp,
+                test_size=test_ratio,
+                random_state=split_seed,
+                stratify=y_tmp,
+            ),
+            test_size,
+        )
 
     # Remove duplicates within the same set
     # NOTE: doing that earlier (e.g. in _remove_cross_contamination()) would produce mathematical
     # mistakes in the class balancing between validation and test sets.
-    return (
+    return _release_overflow(
         list(set(X_train.astype(int))),
         list(set(X_val.astype(int))),
         list(set(X_test.astype(int))),
+        train_size,
+        val_size,
+        test_size,
     )
 
 
