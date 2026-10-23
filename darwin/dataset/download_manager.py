@@ -7,6 +7,7 @@ import os
 import time
 import urllib
 from collections import Counter
+from dataclasses import dataclass
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import (
@@ -27,6 +28,7 @@ from PIL import Image
 from rich.console import Console
 
 import darwin.datatypes as dt
+from darwin.dataset.json_formatter import PrettyPrintError, pretty_print_json
 from darwin.dataset.utils import (
     sanitize_filename,
     SUPPORTED_IMAGE_EXTENSIONS,
@@ -57,6 +59,7 @@ def download_all_images_from_annotations(
     video_frames: bool = False,
     force_slots: bool = False,
     ignore_slots: bool = False,
+    pretty_print: bool = False,
 ) -> Tuple[Callable[[], Iterable[Any]], int]:
     """
     Downloads all the images corresponding to a project.
@@ -82,13 +85,16 @@ def download_all_images_from_annotations(
     force_slots: bool, default: False
         Pulls all slots of items into deeper file structure ({prefix}/{item_name}/{slot_name}/{file_name})
         If False, all multi-slotted items and items with slots containing multiple source files will be downloaded as the deeper file structure
+    pretty_print: bool, default: False
+        Preserves JSON tokens when adding local media paths and indents the result.
 
     Returns
     -------
     generator : function
-        Generator for doing the actual downloads
+        Factory for download callables. With ``pretty_print=True``, returns at most
+        one callable that downloads all media sequentially.
     count : int
-        The files count
+        The number of media files, which can exceed the number of callables.
 
     Raises
     ------
@@ -112,6 +118,14 @@ def download_all_images_from_annotations(
         if annotation is None:
             continue
 
+        source_indices: Dict[Optional[str], List[Tuple[int, int]]] = {}
+        if pretty_print:
+            for slot_index, slot in enumerate(annotation.slots):
+                for source_index, source in enumerate(slot.source_files):
+                    source_indices.setdefault(source.url, []).append(
+                        (slot_index, source_index)
+                    )
+
         if not force_replace:
             # Check the planned path for the image against the existing images
             planned_image_paths = _get_planned_image_paths(
@@ -131,7 +145,9 @@ def download_all_images_from_annotations(
                 len(slot.source_files) > 1 for slot in annotation.slots
             )
 
-        annotations_to_download_path.append((annotation_path, force_slots_for_item))
+        annotations_to_download_path.append(
+            (annotation_path, force_slots_for_item, source_indices)
+        )
 
     if remove_extra:
         annotations = (
@@ -155,23 +171,100 @@ def download_all_images_from_annotations(
 
     # Create the generator with the partial functions
     download_functions: List = []
-    for annotation_path, force_slots in annotations_to_download_path:
-        file_download_functions = lazy_download_image_from_annotation(
-            client,
-            annotation_path,
-            images_path,
-            annotation_format,
-            use_folders,
-            video_frames,
-            force_slots,
-            ignore_slots,
+    grouped_functions: List = []
+    for annotation_path, force_slots, source_indices in annotations_to_download_path:
+        file_download_functions = list(
+            lazy_download_image_from_annotation(
+                client,
+                annotation_path,
+                images_path,
+                annotation_format,
+                use_folders,
+                video_frames,
+                force_slots,
+                ignore_slots,
+            )
         )
         download_functions.extend(file_download_functions)
+        if pretty_print:
+            trace_functions = []
+            for function in file_download_functions:
+                if (
+                    isinstance(function, functools.partial)
+                    and function.func is _download_image_with_trace
+                ):
+                    trace_functions.append(function)
+                else:
+                    grouped_functions.append(function)
+            if trace_functions:
+                grouped_functions.append(
+                    _DownloadAnnotationMedia(
+                        annotation_path, trace_functions, source_indices
+                    )
+                )
 
     if not use_folders:
         _check_for_duplicate_local_filepaths(download_functions)
 
-    return lambda: download_functions, len(download_functions)
+    if pretty_print and grouped_functions:
+        grouped_functions = [_DownloadMediaSequentially(grouped_functions)]
+
+    return (
+        lambda: grouped_functions if pretty_print else download_functions,
+        len(download_functions),
+    )
+
+
+def _raise_media_errors(errors: List[Exception]) -> None:
+    if not errors:
+        return
+    if len(errors) == 1:
+        raise errors[0]
+    message = "\n".join(str(error) for error in errors)
+    for error in errors:
+        if isinstance(error, PrettyPrintError):
+            raise PrettyPrintError(message) from error
+    raise RuntimeError(message) from errors[0]
+
+
+@dataclass
+class _DownloadMediaSequentially:
+    downloads: List[Callable[[], None]]
+
+    def __call__(self) -> None:
+        errors: List[Exception] = []
+        for download in self.downloads:
+            try:
+                download()
+            except Exception as error:
+                errors.append(error)
+        _raise_media_errors(errors)
+
+
+@dataclass
+class _DownloadAnnotationMedia:
+    annotation_path: Path
+    downloads: List[functools.partial]
+    source_indices: Dict[Optional[str], List[Tuple[int, int]]]
+
+    def __call__(self) -> None:
+        local_paths: Dict[Tuple[int, int], str] = {}
+        errors: List[Exception] = []
+        for download in self.downloads:
+            annotation, url, path, client = download.args
+            try:
+                _download_image(url, path, client)
+            except Exception as error:
+                errors.append(error)
+            else:
+                if annotation.version.major != 1:
+                    for index in self.source_indices.get(url, []):
+                        local_paths[index] = str(path)
+        try:
+            pretty_print_json(self.annotation_path, local_paths=local_paths)
+        except PrettyPrintError as error:
+            errors.append(error)
+        _raise_media_errors(errors)
 
 
 def lazy_download_image_from_annotation(

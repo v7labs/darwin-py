@@ -31,6 +31,7 @@ from darwin.client import Client
 from darwin.config import Config
 from darwin.dataset import RemoteDataset
 from darwin.dataset.identifier import DatasetIdentifier
+from darwin.dataset.json_formatter import PrettyPrintError
 from darwin.dataset.release import Release
 from darwin.dataset.split_manager import split_dataset
 from darwin.dataset.upload_manager import LocalFile
@@ -365,6 +366,7 @@ def pull_dataset(
     retry_interval: int = 10,
     team: Optional[str] = None,
     multi_processed: bool = True,
+    pretty_print: bool = False,
 ) -> None:
     """
     Downloads a remote dataset (images and annotations) in the datasets directory.
@@ -396,6 +398,8 @@ def pull_dataset(
     multi_processed: bool
         If True (default), uses multiprocessing to download files in parallel.
         If False, the dataset is downloaded on a single process.
+    pretty_print: bool
+        Indents downloaded annotation JSON locally. Defaults to False.
     """
     identifier: DatasetIdentifier = DatasetIdentifier.parse(dataset_slug)
     if team:
@@ -432,6 +436,7 @@ def pull_dataset(
             retry_timeout=retry_timeout,
             retry_interval=retry_interval,
             multi_processed=multi_processed,
+            pretty_print=pretty_print,
         )
         print_new_version_info(client)
     except NotFound:
@@ -444,6 +449,8 @@ def pull_dataset(
             f"Version '{dataset.identifier}:{version}' is of format '{uef.format}', "
             f"only the darwin formats ('json', 'darwin_json_2') are supported for `darwin dataset pull`"
         )
+    except PrettyPrintError as error:
+        _error(str(error))
     except MissingDependency as e:
         _error(str(e))
 

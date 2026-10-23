@@ -3031,3 +3031,146 @@ class TestRegisterLocallyPreprocessed:
             call_kwargs = mock_process.call_args[1]
             assert call_kwargs["extract_preview_frames"] is True
             assert call_kwargs["primary_frames_quality"] == 1
+
+
+@pytest.mark.usefixtures("file_read_write_test")
+class TestPrettyPrintPull:
+    @pytest.mark.parametrize("enabled", [False, True])
+    @pytest.mark.parametrize("subset", [None, "subset"])
+    @pytest.mark.parametrize("format_name", ["json", "darwin_json_2"])
+    @pytest.mark.parametrize("only_annotations", [False, True])
+    def test_formats_only_final_local_json_without_changing_release(
+        self, remote_dataset, enabled, subset, format_name, only_annotations
+    ):
+        import json as std_json
+
+        release = Release(
+            remote_dataset.slug,
+            remote_dataset.team,
+            "0.1.0",
+            "pretty-print-test",
+            ReleaseStatus("complete"),
+            "http://darwin-fake-url.com",
+            datetime.now(),
+            None,
+            None,
+            False,
+            True,
+            format_name,
+        )
+        original_archive = Path("tests/dataset_with_properties.zip").read_bytes()
+        with zipfile.ZipFile("tests/dataset_with_properties.zip") as archive:
+            originals = {
+                name: archive.read(name)
+                for name in archive.namelist()
+                if name.endswith(".json")
+            }
+        media = remote_dataset.local_images_path / "keep.jpg"
+        media.parent.mkdir(parents=True, exist_ok=True)
+        media.write_bytes(b"unchanged media\x00\xff")
+
+        def download_zip(path):
+            path.write_bytes(original_archive)
+            return path
+
+        options = {"pretty_print": True} if enabled else {}
+        with (
+            patch.object(Release, "download_zip", side_effect=download_zip) as download,
+            patch.object(remote_dataset, "get_release") as get_release,
+            patch(
+                "darwin.dataset.remote_dataset.download_all_images_from_annotations",
+                return_value=(None, 0),
+            ) as download_media,
+        ):
+            remote_dataset.pull(
+                release=release,
+                only_annotations=only_annotations,
+                subset_folder_name=subset,
+                **options,
+            )
+
+        get_release.assert_not_called()
+        download.assert_called_once()
+        if only_annotations:
+            download_media.assert_not_called()
+        else:
+            download_media.assert_called_once()
+        annotations = (
+            remote_dataset.local_releases_path
+            / release.name
+            / (subset or "")
+            / "annotations"
+        )
+        outputs = list(annotations.rglob("*.json"))
+        assert len(outputs) == len(originals)
+        for output in outputs:
+            original = next(
+                raw
+                for raw in originals.values()
+                if std_json.loads(raw) == std_json.loads(output.read_bytes())
+            )
+            if enabled:
+                assert b"\n  " in output.read_bytes()
+                assert output.read_bytes().endswith(b"\n")
+            else:
+                assert output.read_bytes() == original
+        assert (annotations / ".v7" / "metadata.json").exists()
+        assert media.read_bytes() == b"unchanged media\x00\xff"
+        assert (
+            Path("tests/dataset_with_properties.zip").read_bytes() == original_archive
+        )
+        class_lists = list((annotations.parent / "lists").glob("*.txt"))
+        assert class_lists
+        assert all(b"\n  " not in path.read_bytes() for path in class_lists)
+
+    def test_formatting_failure_retains_final_downloaded_file(self, remote_dataset):
+        from darwin.dataset.json_formatter import PrettyPrintError
+        from darwin.dataset.json_formatter import pretty_print_json
+
+        release = Release(
+            remote_dataset.slug,
+            remote_dataset.team,
+            "0.1.0",
+            "failed-format",
+            ReleaseStatus("complete"),
+            "http://darwin-fake-url.com",
+            datetime.now(),
+            None,
+            None,
+            False,
+            True,
+            "darwin_json_2",
+        )
+        with zipfile.ZipFile("tests/dataset_with_properties.zip") as archive:
+            original_metadata = archive.read(".v7/metadata.json")
+
+        def download_zip(path):
+            shutil.copy("tests/dataset_with_properties.zip", path)
+            return path
+
+        def fail_on_metadata(path):
+            if path.name == "metadata.json":
+                with patch(
+                    "darwin.dataset.json_formatter.os.replace",
+                    side_effect=OSError("disk full"),
+                ):
+                    pretty_print_json(path)
+            else:
+                pretty_print_json(path)
+
+        with (
+            patch.object(Release, "download_zip", side_effect=download_zip),
+            patch(
+                "darwin.dataset.remote_dataset.pretty_print_json",
+                side_effect=fail_on_metadata,
+            ),
+            pytest.raises(PrettyPrintError, match="disk full"),
+        ):
+            remote_dataset.pull(
+                release=release, only_annotations=True, pretty_print=True
+            )
+
+        annotations = remote_dataset.local_releases_path / release.name / "annotations"
+        assert (annotations / ".v7" / "metadata.json").read_bytes() == original_metadata
+        assert list(annotations.glob("*.json"))
+        assert not list(annotations.rglob("*.tmp"))
