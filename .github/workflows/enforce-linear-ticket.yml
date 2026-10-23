@@ -37,6 +37,9 @@ jobs:
           title = os.environ.get("PR_TITLE") or ""
           body = os.environ.get("PR_BODY") or ""
           branch = os.environ.get("HEAD_REF") or ""
+          # The pull request template is an HTML comment. A sample key left in
+          # that comment would otherwise satisfy this check for every new PR.
+          body = re.sub(r"<!--.*?-->", " ", body, flags=re.DOTALL)
           actor = (os.environ.get("ACTOR") or "").lower()
           author = (os.environ.get("PR_AUTHOR") or "").lower()
 

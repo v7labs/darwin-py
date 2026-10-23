@@ -1,4 +1,4 @@
-<!-- Include a Linear ticket key in the title, description, or branch (for example DAR-1234). The "Linear Ticket Reference" check requires it. Maintainers can add the key to a fork pull request. -->
+<!-- Include a Linear issue key in the title, description, or branch. The "Linear Ticket Reference" check requires one. Maintainers can add the key to a fork pull request. Do not leave a sample key in this comment: HTML comments are part of the pull request body. -->
 
 # Problem
 (describe the problem here)
