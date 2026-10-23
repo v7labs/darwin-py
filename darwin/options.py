@@ -273,6 +273,7 @@ class Options:
             help=(
                 "Indent downloaded annotation JSON locally, one file at a time. "
                 "Uses extra CPU and temporary disk space, with bounded formatter RAM. "
+                "Media downloads run sequentially with this option. "
                 "The remote export is unchanged."
             ),
         )

@@ -275,3 +275,52 @@ def _native_roundtrip(path, annotation_file):
         assert parsed is not None
         results.append((exported, parsed.annotations, parsed.slots))
     return results
+
+
+@pytest.mark.parametrize("chunk_size", [1, 2, 3, 31, 64 * 1024])
+def test_updates_only_indexed_local_paths_and_preserves_other_tokens(
+    tmp_path, monkeypatch, chunk_size
+):
+    monkeypatch.setattr(formatter, "_CHUNK_SIZE", chunk_size)
+    raw = (
+        b'{"local_path":1.0000,"noise":{"item":{"slots":[]}},'
+        b'"it\\u0065m":{"slots":[{"source_files":['
+        b'{"local_\\u0070ath":{"old":[1e+002]},"url":"u",'
+        b'"n":0.12345678901234567890123456789,"'
+        + b"x" * 1000
+        + b'":"\\u0061\\/"},{}]},'
+        b'{"source_files":[{"url":"v","local_path":false}]}]}}'
+    )
+    local_paths = {(0, 0): 'new/雪/"path', (0, 1): "", (1, 0): "last"}
+    expected = (
+        raw.replace(b'{"old":[1e+002]}', json.dumps(local_paths[(0, 0)]).encode())
+        .replace(b"{}", b'{"local_path":""}')
+        .replace(b'"local_path":false', b'"local_path":"last"')
+    )
+    path = tmp_path / "annotation.json"
+    path.write_bytes(raw)
+
+    pretty_print_json(path, local_paths=local_paths)
+
+    assert _tokens(path.read_bytes()) == _tokens(expected)
+    assert json.loads(path.read_bytes()) == json.loads(expected)
+    first_output = path.read_bytes()
+    pretty_print_json(path, local_paths=local_paths)
+    assert path.read_bytes() == first_output
+
+
+@pytest.mark.parametrize(
+    "invalid_path", [b"01", b'"bad\\uXYZW"', b'{"old":1,}', b"[false,]"]
+)
+def test_replaced_local_path_still_validates_original_json(tmp_path, invalid_path):
+    path = tmp_path / "annotation.json"
+    original = (
+        b'{"item":{"slots":[{"source_files":[{"local_path":' + invalid_path + b"}]}]}}"
+    )
+    path.write_bytes(original)
+
+    with pytest.raises(PrettyPrintError):
+        pretty_print_json(path, local_paths={(0, 0): "replacement"})
+
+    assert path.read_bytes() == original
+    assert not list(tmp_path.glob("*.tmp"))

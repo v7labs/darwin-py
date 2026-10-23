@@ -202,10 +202,12 @@ darwin dataset pull example-team/test:0.1 --only-annotations --pretty-print
 ```
 
 Local formatting uses extra CPU time and temporary disk space for one formatted
-file. The formatter processes one file at a time with bounded buffers. Other pull
-steps still parse annotation files and can use more RAM.
-If formatting fails, the affected file keeps its original downloaded bytes and
-the command reports an error.
+file. The formatter processes one file at a time with bounded buffers. Media
+downloads run sequentially with this option. They format affected annotations
+again when they record local file paths.
+Other pull steps still parse annotation files and can use more RAM.
+If a formatting step fails, the affected file keeps the bytes it had before that
+step. The command reports an error.
 
 ---
 
