@@ -1,0 +1,85 @@
+name: Enforce Linear Ticket Reference
+
+# darwin-py is public, so it cannot call the private reusable workflow used by
+# the Go repos:
+#   v7labs/internal-shared-actions/.github/workflows/enforce-linear-ticket.yml@63a0f42732af2b70d605365a323ca89be7ca9745
+# GitHub only allows a public caller to use reusable workflows from public
+# repositories (https://docs.github.com/en/actions/reference/workflows-and-actions/reusable-workflows).
+# This job inlines the same rules. It reads the pull request event only:
+# no checkout, no secrets, and no pull_request_target, so fork pull requests
+# can run the check without exposing credentials.
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  enforce-ticket:
+    name: Linear Ticket Reference
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require a Linear ticket reference
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          ACTOR: ${{ github.actor }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+        run: |
+          python3 - <<'PY'
+          import os
+          import re
+          import sys
+
+          title = os.environ.get("PR_TITLE") or ""
+          body = os.environ.get("PR_BODY") or ""
+          branch = os.environ.get("HEAD_REF") or ""
+          actor = (os.environ.get("ACTOR") or "").lower()
+          author = (os.environ.get("PR_AUTHOR") or "").lower()
+
+          # Bots that open pull requests which cannot carry a product ticket.
+          # Matched against both the event actor and the PR author, which is the
+          # fix from internal-shared-actions#74: a later push can change the actor
+          # while the author stays the bot.
+          exempt = {
+              "dependabot[bot]",
+              "github-actions[bot]",  # version_bump.yml release and test PRs
+              "v7-bot-runs-on[bot]",  # AMI bump bot exempted in the Go repos
+          }
+
+          # Aviator merge-queue branches are synthetic. go-backend skips them.
+          if branch.startswith("mq-"):
+              print(f"Aviator merge-queue branch {branch!r} does not need its own ticket.")
+              sys.exit(0)
+
+          if actor in exempt or author in exempt:
+              print(f"Exempt automation. actor={actor!r} author={author!r}")
+              sys.exit(0)
+
+          # Team key of at least two characters, then a number: DAR-1234, PY-118,
+          # DARFR-14, GO-13570, and the lowercase form Linear uses in branch names.
+          # A dot followed by a digit is a version (python-3.10, urllib3-2.8.0),
+          # not a ticket. A trailing period after a key still counts.
+          key = re.compile(
+              r"(?<![A-Za-z0-9])([A-Za-z][A-Za-z0-9]+-\d+)(?![A-Za-z0-9])(?!\.\d)"
+          )
+
+          for label, text in (("title", title), ("description", body), ("branch", branch)):
+              match = key.search(text)
+              if match:
+                  print(f"Linear ticket {match.group(1)} found in the {label}.")
+                  sys.exit(0)
+
+          message = (
+              "No Linear ticket reference found in the pull request title, description, or branch. "
+              "Add a key such as DAR-1234, or a https://linear.app/v7labs/issue/DAR-1234 link. "
+              "A branch copied from Linear (dar-1234-short-description) also counts. "
+              "On a fork pull request, a maintainer can add the key to the title."
+          )
+          print(message)
+          print(f"::error title=Linear ticket required::{message}")
+          sys.exit(1)
+          PY
