@@ -268,6 +268,15 @@ class Options:
             help="Download only annotations and no corresponding images.",
         )
         parser_pull.add_argument(
+            "--pretty-print",
+            action="store_true",
+            help=(
+                "Indent downloaded annotation JSON locally, one file at a time. "
+                "Uses extra CPU and temporary disk space, with bounded formatter RAM. "
+                "The remote export is unchanged."
+            ),
+        )
+        parser_pull.add_argument(
             "--folders",
             action="store_true",
             default=True,

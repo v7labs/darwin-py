@@ -25,6 +25,7 @@ from rich.console import Console
 
 from darwin.dataset.download_manager import download_all_images_from_annotations
 from darwin.dataset.identifier import DatasetIdentifier
+from darwin.dataset.json_formatter import pretty_print_json
 from darwin.dataset.release import Release
 from darwin.dataset.split_manager import split_dataset
 from darwin.dataset.upload_manager import (
@@ -213,6 +214,7 @@ class RemoteDataset(ABC):
         retry: bool = False,
         retry_timeout: int = 600,
         retry_interval: int = 10,
+        pretty_print: bool = False,
     ) -> Tuple[Optional[Callable[[], Iterator[Any]]], int]:
         """
         Downloads a remote dataset (images and annotations) to the datasets directory.
@@ -245,6 +247,10 @@ class RemoteDataset(ABC):
             Pulls all slots of items into deeper file structure ({prefix}/{item_name}/{slot_name}/{file_name})
         retry: bool
             If True, will repeatedly try to download the release if it is still processing up to a maximum of 5 minutes.
+
+        pretty_print: bool, default: False
+            Indents local annotation JSON after extraction. Uses extra CPU and temporary
+            disk space. Processes one file at a time with bounded formatter buffers.
 
         Returns
         -------
@@ -407,6 +413,10 @@ class RemoteDataset(ABC):
                 self.console.log(
                     f"Could not mark release {release.name} as latest. Continuing..."
                 )
+
+        if pretty_print:
+            for annotation_path in annotations_dir.rglob("*.json"):
+                pretty_print_json(annotation_path)
 
         if only_annotations:
             # No images will be downloaded
