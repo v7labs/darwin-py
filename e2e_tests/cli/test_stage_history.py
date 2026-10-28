@@ -45,14 +45,15 @@ def skip_unless_stage_history_supported(
         },
         headers=api_headers(config_values),
     )
-    if not (
-        response.status_code == 422
-        and "STAGE_HISTORY_REQUIRES_DARWIN_JSON" in response.text
-    ):
-        pytest.skip(
-            "The E2E backend doesn't support include_stage_history yet "
-            "(darwin-backend #6307 not deployed)"
-        )
+    if "STAGE_HISTORY_REQUIRES_DARWIN_JSON" in response.text:
+        return
+    # An older backend creates the export, or rejects an empty dataset with a 422
+    if response.status_code != 422:
+        response.raise_for_status()
+    pytest.skip(
+        "The E2E backend doesn't support include_stage_history yet "
+        "(darwin-backend #6307 not deployed)"
+    )
 
 
 def create_property(config_values: ConfigValues, payload: dict) -> dict:
