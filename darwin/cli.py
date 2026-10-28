@@ -155,6 +155,7 @@ def _run(args: Namespace, parser: ArgumentParser) -> None:
                 args.class_ids,
                 args.include_authorship,
                 args.version,
+                args.include_stage_history,
             )
         elif args.action == "files":
             f.list_files(

@@ -313,6 +313,7 @@ def export_dataset(
     annotation_class_ids: Optional[List[str]] = None,
     include_authorship: bool = False,
     version: Optional[str] = None,
+    include_stage_history: bool = False,
 ) -> None:
     """
     Create a new release for the dataset.
@@ -332,6 +333,8 @@ def export_dataset(
     version : Optional[str], default: None
         When used for V2 dataset, allows to force generation of either Darwin JSON 1.0 (Legacy) or newer 2.0.
         Ommit this option to get your team's default.
+    include_stage_history : bool, default: False
+        If ``True`` include every workflow stage visit of each item and its annotations at the end of each visit.
     """
     client: Client = _load_client()
     identifier: DatasetIdentifier = DatasetIdentifier.parse(dataset_slug)
@@ -344,7 +347,10 @@ def export_dataset(
             include_url_token=include_url_token,
             include_authorship=include_authorship,
             version=version,
+            include_stage_history=include_stage_history,
         )
+    except ValueError as e:
+        _error(str(e))
     except ValidationError:
         _error("Nothing to export")
     else:
