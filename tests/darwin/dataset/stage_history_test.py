@@ -135,8 +135,9 @@ class TestReadStageHistory:
 
 @pytest.mark.usefixtures("file_read_write_test")
 class TestPullKeepsStageHistory:
+    @pytest.mark.parametrize("pretty_print", [False, True])
     def test_moves_stage_history_beside_annotations(
-        self, remote_dataset: RemoteDatasetV2, tmp_path: Path
+        self, remote_dataset: RemoteDatasetV2, tmp_path: Path, pretty_print: bool
     ):
         release = Release(
             remote_dataset.slug,
@@ -173,7 +174,9 @@ class TestPullKeepsStageHistory:
         stale.write_text("{}")
 
         with patch.object(Release, "download_zip", side_effect=download_zip):
-            remote_dataset.pull(release=release, only_annotations=True)
+            remote_dataset.pull(
+                release=release, only_annotations=True, pretty_print=pretty_print
+            )
 
         assert [p.name for p in (release_dir / "annotations").glob("*.json")] == [
             "image.json"
@@ -182,6 +185,13 @@ class TestPullKeepsStageHistory:
         visits = read_stage_history(release_dir / "stage_history" / ITEM_ID)
         assert [v.stage_instance_id for v in visits] == [ANNOTATE_VISIT, COMPLETE_VISIT]
         assert visits[0].snapshot() is not None
+        for name, content in [
+            ("visits.json", visits_json()),
+            (f"{ANNOTATE_VISIT}.json", snapshot_json()),
+        ]:
+            raw = (release_dir / "stage_history" / ITEM_ID / name).read_text()
+            assert json.loads(raw) == content
+            assert ("\n  " in raw) is pretty_print
 
 
 @pytest.mark.usefixtures("file_read_write_test")
