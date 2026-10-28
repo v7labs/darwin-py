@@ -6,7 +6,7 @@ import uuid
 from pathlib import Path
 from subprocess import run
 from time import sleep
-from typing import Optional, Sequence, Union
+from typing import List, Optional, Sequence, Union
 
 try:
     import boto3
@@ -236,6 +236,7 @@ def export_release(
         "Authorization": f"ApiKey {api_key}",
     }
     response = requests.post(create_export_url, json=payload, headers=headers)
+    response.raise_for_status()
     list_export_url = (
         f"{base_url}/api/v2/teams/{team_slug}/datasets/{dataset_slug}/exports"
     )
@@ -267,6 +268,74 @@ def export_release(
         format=export_data.get("format", "json"),
     )
     return release
+
+
+def api_headers(config_values: ConfigValues) -> dict:
+    return {
+        "accept": "application/json",
+        "content-type": "application/json",
+        "Authorization": f"ApiKey {config_values.api_key}",
+    }
+
+
+def create_workflow(config_values: ConfigValues, name: str, stages: List[dict]) -> dict:
+    """
+    Creates a workflow from the given stages (each with its `id` and `edges`).
+    Link it to a dataset with a `dataset` stage whose config has the `dataset_id`.
+    """
+    response = requests.post(
+        f"{config_values.server}/api/v2/teams/{config_values.team_slug}/workflows",
+        json={"name": name, "stages": stages},
+        headers=api_headers(config_values),
+    )
+    assert response.ok, response.text
+    return response.json()
+
+
+def run_item_commands(
+    config_values: ConfigValues, item_id: str, commands: List[dict]
+) -> None:
+    """
+    Runs workflow commands (`{"type": ..., "data": {...}}`) on an item, as the API key's user.
+    """
+    response = requests.post(
+        f"{config_values.server}/api/v2/teams/{config_values.team_slug}/items/{item_id}/commands",
+        json={"commands": commands},
+        headers=api_headers(config_values),
+    )
+    assert response.ok, response.text
+
+
+def wait_for_item_stage(
+    config_values: ConfigValues,
+    dataset_id: int,
+    item_id: str,
+    stage_id: str,
+    timeout: int = 60,
+) -> None:
+    """
+    Waits until the item's current workflow stage is `stage_id`.
+    """
+    url = (
+        f"{config_values.server}/api/v2/teams/{config_values.team_slug}/items"
+        f"?dataset_ids={dataset_id}&include_workflow_data=true"
+    )
+    deadline = time.time() + timeout
+    while True:
+        response = requests.get(url, headers=api_headers(config_values))
+        response.raise_for_status()
+        item = next(i for i in response.json()["items"] if i["id"] == item_id)
+        stages = [
+            instance["stage_id"]
+            for instance in (item.get("workflow_data") or {}).get(
+                "current_stage_instances", []
+            )
+        ]
+        if stages == [stage_id]:
+            return
+        if time.time() > deadline:
+            raise TimeoutError(f"Item {item_id} is in {stages}, expected {stage_id}")
+        sleep(1)
 
 
 def delete_annotation_uuids(
