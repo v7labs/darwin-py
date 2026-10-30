@@ -343,6 +343,13 @@ class RemoteDataset(ABC):
                     metadata_dir.mkdir(parents=True, exist_ok=True)
                     shutil.move(str(metadata_file), str(metadata_dir / "metadata.json"))
 
+                # Kept beside annotations/, which holds one file per item
+                stage_history_dir = annotations_dir.parent / "stage_history"
+                if stage_history_dir.exists():
+                    shutil.rmtree(stage_history_dir)
+                if (tmp_dir / "stage_history").exists():
+                    shutil.move(str(tmp_dir / "stage_history"), str(stage_history_dir))
+
                 # Collect class names per annotation type as we walk the JSONs,
                 # so we don't have to re-parse every annotation file three more
                 # times (once per type) in a separate pass.
@@ -419,6 +426,8 @@ class RemoteDataset(ABC):
         if pretty_print:
             for annotation_path in annotations_dir.rglob("*.json"):
                 pretty_print_json(annotation_path)
+            for history_path in stage_history_dir.rglob("*.json"):
+                pretty_print_json(history_path)
 
         if only_annotations:
             # No images will be downloaded
@@ -752,6 +761,7 @@ class RemoteDataset(ABC):
         include_url_token: bool = False,
         include_authorship: bool = False,
         version: Optional[str] = None,
+        include_stage_history: bool = False,
     ) -> None:
         """
         Create a new release for this ``RemoteDataset``.
@@ -770,6 +780,10 @@ class RemoteDataset(ABC):
         version : Optional[str], default: None, enum: ["1.0", "2.0"]
             When used for V2 dataset, allows to force generation of either Darwin JSON 1.0 (Legacy) or newer 2.0.
             Omit this option to get your team's default.
+        include_stage_history : bool, default: False
+            If set, the export also contains ``stage_history/<item id>/``: every workflow stage
+            visit of each item and the item's annotations at the end of each visit.
+            Only valid for Darwin JSON 2.0.
         """
 
     @abstractmethod
