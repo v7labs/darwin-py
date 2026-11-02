@@ -1,0 +1,42 @@
+name: independent-approval
+
+# Fails a pull request that the Cortex coder opened until Copilot, or someone who did not ask Cortex for the
+# change, approves the latest commit. The person who asked is the implementer, so their approval alone does not
+# meet the change management control.
+#
+# pull_request_target runs this file from the default branch, so a pull request cannot change the check. The job
+# never checks out the pull request. It gets a 5-minute Anthropic token by workload identity federation: the
+# federation rule accepts only this file on the default branch in the cortex-requesters environment, which only
+# the default branch can deploy to. independent-approval-rerun.yml re-runs it when a review is submitted or
+# dismissed.
+on:
+  pull_request_target:
+    types: [opened, reopened, synchronize, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: read
+  id-token: write
+
+concurrency:
+  group: independent-approval-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Independent approval
+    # Only Cortex pull requests. A skipped job passes a required check, and people's pull requests cost nothing.
+    if: github.event.pull_request.user.login == 'github-v7labs'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: cortex-requesters
+    steps:
+      - uses: v7labs/internal-shared-actions/.github/actions/independent-approval@16b27758ab7be56f255c57c687a1b8d2b7e3dec5 # main
+        with:
+          github-token: ${{ github.token }}
+          pr-number: ${{ github.event.pull_request.number }}
+          # Org variables shared by the coder repos. They are ids, not secrets: only the federation rule grants a token.
+          federation-rule-id: ${{ vars.CORTEX_FEDERATION_RULE_ID }}
+          service-account-id: ${{ vars.CORTEX_SERVICE_ACCOUNT_ID }}
+          organization-id: ${{ vars.ANTHROPIC_ORGANIZATION_ID }}
+          workspace-id: ${{ vars.CORTEX_WORKSPACE_ID }}
