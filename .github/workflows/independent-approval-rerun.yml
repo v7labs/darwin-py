@@ -1,0 +1,30 @@
+name: independent-approval-rerun
+
+# Re-runs the independent-approval check of the pull request head when a review is submitted or dismissed.
+# This file runs from the pull request, so it holds no secrets: if a pull request breaks it, the check just
+# keeps its last result.
+on:
+  pull_request_review:
+    types: [submitted, dismissed]
+
+permissions:
+  actions: write
+
+jobs:
+  rerun:
+    if: github.event.pull_request.user.login == 'github-v7labs'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Re-run the check of the head commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          id=$(gh run list -R "$GITHUB_REPOSITORY" --workflow independent-approval.yml --event pull_request_target \
+            --commit "$HEAD_SHA" --limit 1 --json databaseId --jq '.[0].databaseId // empty')
+          if [ -z "$id" ]; then
+            echo "No independent-approval run for $HEAD_SHA yet"
+            exit 0
+          fi
+          gh run rerun "$id" -R "$GITHUB_REPOSITORY"
