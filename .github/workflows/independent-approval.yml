@@ -1,0 +1,68 @@
+name: independent-approval
+
+# Fails a pull request that the Cortex coder opened until Copilot, or 2 different people, approve the latest commit.
+# The person who asked Cortex for a change is its implementer, and the change management control needs a reviewer
+# other than the implementer. This repository is public, so it can't use the private independent-approval action
+# that the other Cortex repositories use to find out who asked. Requiring Copilot or 2 people means at least one
+# approver didn't ask.
+#
+# pull_request_target runs this file from master, so a pull request cannot change the check. The job never checks
+# out the pull request and holds no secrets. independent-approval-rerun.yml re-runs it when a review is submitted or
+# dismissed.
+on:
+  pull_request_target:
+    types: [opened, reopened, synchronize, ready_for_review]
+
+permissions:
+  pull-requests: read
+
+# One check at a time for each commit: a re-run for an earlier commit can't cancel the current commit's check.
+concurrency:
+  group: independent-approval-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Independent approval
+    # Only Cortex pull requests. A skipped job passes a required check, and people's pull requests cost nothing.
+    if: github.event.pull_request.user.login == 'github-v7labs'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check the approvals
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
+        with:
+          script: |
+            const bot = "github-v7labs";
+            const target = { ...context.repo, pull_number: context.payload.pull_request.number };
+            // Read the head now: a re-run keeps the event of the commit it first ran for.
+            const { data: pr } = await github.rest.pulls.get(target);
+            core.info(`#${pr.number} opened by ${pr.user.login}, head ${pr.head.sha.slice(0, 8)}`);
+
+            // The re-run workflow runs from the pull request, so editing it could stop re-runs and keep a stale pass.
+            const files = await github.paginate(github.rest.pulls.listFiles, { ...target, per_page: 100 });
+            if (files.some(f => /^\.github\/workflows\/independent-approval(-rerun)?\.ya?ml$/.test(f.filename))) {
+              core.setFailed("changes the independent-approval workflows: a person must open that pull request");
+              return;
+            }
+
+            // Each reviewer's latest decision. A comment does not undo an approval; a dismissal or a change request does.
+            const latest = new Map();
+            for (const r of await github.paginate(github.rest.pulls.listReviews, { ...target, per_page: 100 })) {
+              if (["APPROVED", "CHANGES_REQUESTED", "DISMISSED"].includes(r.state) && r.user) latest.set(r.user.login, r);
+            }
+            // An approval of an earlier commit does not cover what the bot pushed after it.
+            const approved = [...latest.values()].filter(r => r.state === "APPROVED" && r.commit_id === pr.head.sha);
+
+            if (approved.some(r => r.user.login.replace(/\[bot\]$/, "") === "copilot-pull-request-reviewer")) {
+              core.info("pass - Copilot approved the latest commit");
+              return;
+            }
+            const people = [...new Set(approved.filter(r => r.user.type === "User" && r.user.login !== bot)
+              .map(r => r.user.login))];
+            if (people.length >= 2) {
+              core.info(`pass - ${people.join(", ")} approved the latest commit`);
+              return;
+            }
+            core.setFailed("Cortex pull request: needs a Copilot approval or approvals from 2 different people on the "
+              + `latest commit (approved by: ${people.join(", ") || "nobody"})`);
