@@ -40,8 +40,10 @@ jobs:
             core.info(`#${pr.number} opened by ${pr.user.login}, head ${pr.head.sha.slice(0, 8)}`);
 
             // The re-run workflow runs from the pull request, so editing it could stop re-runs and keep a stale pass.
+            // A rename keeps the old path in previous_filename.
+            const own = /^\.github\/workflows\/independent-approval(-rerun)?\.ya?ml$/;
             const files = await github.paginate(github.rest.pulls.listFiles, { ...target, per_page: 100 });
-            if (files.some(f => /^\.github\/workflows\/independent-approval(-rerun)?\.ya?ml$/.test(f.filename))) {
+            if (files.some(f => own.test(f.filename) || own.test(f.previous_filename || ""))) {
               core.setFailed("changes the independent-approval workflows: a person must open that pull request");
               return;
             }
