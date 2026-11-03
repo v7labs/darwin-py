@@ -9,9 +9,12 @@ name: independent-approval
 # pull_request_target runs this file from master, so a pull request cannot change the check. The job never checks
 # out the pull request and holds no secrets. independent-approval-rerun.yml re-runs it when a review is submitted or
 # dismissed.
+run-name: independent-approval #${{ github.event.pull_request.number }}
+
 on:
   pull_request_target:
-    types: [opened, reopened, synchronize, ready_for_review]
+    # edited: a new base branch changes the diff. Don't skip title edits in the job: a skipped job passes the check.
+    types: [opened, reopened, synchronize, ready_for_review, edited]
 
 permissions:
   pull-requests: read
