@@ -10,6 +10,7 @@ from rich.console import Console
 from darwin import cli
 from darwin.cli_functions import (
     delete_files,
+    export_dataset,
     extract_video_artifacts,
     pull_dataset,
     set_file_status,
@@ -989,3 +990,33 @@ class TestPrettyPrintPull:
         assert "annotation.json" in message
         assert "disk full" in message
         assert "original file is unchanged" in message
+
+
+class TestExportStageHistory:
+    @pytest.mark.parametrize("enabled", [False, True])
+    def test_cli_flag_reaches_export(self, enabled):
+        from darwin.cli import _run
+        from darwin.options import Options
+
+        parser = Options().parser
+        arguments = ["dataset", "export", "team/dataset", "release"]
+        if enabled:
+            arguments.append("--include-stage-history")
+        args = parser.parse_args(arguments)
+
+        with patch("darwin.cli.f.export_dataset") as export:
+            _run(args, parser)
+
+        assert export.call_args.args[-1] is enabled
+
+    def test_passes_flag_to_dataset_export(self):
+        dataset = MagicMock()
+        client = MagicMock()
+        client.get_remote_dataset.return_value = dataset
+        with (
+            patch("darwin.cli_functions._load_client", return_value=client),
+            patch("darwin.cli_functions.print_new_version_info"),
+        ):
+            export_dataset("team/dataset", False, "release", include_stage_history=True)
+
+        assert dataset.export.call_args.kwargs["include_stage_history"] is True

@@ -462,6 +462,7 @@ class RemoteDatasetV2(RemoteDataset):
         include_url_token: bool = False,
         include_authorship: bool = False,
         version: Optional[str] = None,
+        include_stage_history: bool = False,
     ) -> None:
         """
         Create a new release for this ``RemoteDataset``.
@@ -480,6 +481,10 @@ class RemoteDatasetV2(RemoteDataset):
         version : Optional[str], default: None, enum: ["1.0", "2.0"]
             When used for V2 dataset, allows to force generation of either Darwin JSON 1.0 (Legacy) or newer 2.0.
             Omit this option to get your team's default.
+        include_stage_history : bool, default: False
+            If set, the export also contains ``stage_history/<item id>/``: every workflow stage
+            visit of each item and the item's annotations at the end of each visit.
+            Only valid for Darwin JSON 2.0.
         """
         str_version = str(version)
         if str_version == "2.0":
@@ -490,6 +495,10 @@ class RemoteDatasetV2(RemoteDataset):
             format = None
         else:
             raise UnknownExportVersion(version)
+        if include_stage_history and format == "json":
+            raise ValueError(
+                "The stage history can only be exported as Darwin JSON 2.0"
+            )
 
         filters = (
             None
@@ -506,6 +515,7 @@ class RemoteDatasetV2(RemoteDataset):
             filters=filters,
             dataset_slug=self.slug,
             team_slug=self.team,
+            include_stage_history=include_stage_history,
         )
 
     def workview_url_for_item(self, item: DatasetItem) -> str:

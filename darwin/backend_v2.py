@@ -176,6 +176,7 @@ class BackendV2:
         dataset_slug,
         filters,
         annotation_class_ids,
+        include_stage_history: bool = False,
         *,
         team_slug: Optional[str] = None,
     ):
@@ -187,6 +188,8 @@ class BackendV2:
         }
         if format:
             payload["format"] = format
+        if include_stage_history:
+            payload["include_stage_history"] = True
 
         if annotation_class_ids:
             payload["annotation_filters"] = {

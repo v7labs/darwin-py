@@ -240,6 +240,13 @@ class Options:
             help="When used for V2 dataset, allows to force generation of either Darwin JSON 1.0 (Legacy) or newer 2.0. "
             "Omit this option to get your team's default.",
         )
+        parser_export.add_argument(
+            "--include-stage-history",
+            default=False,
+            action="store_true",
+            help="Also export every workflow stage visit of each item and its annotations at the end of each visit "
+            "(stage_history/<item id>/). Darwin JSON 2.0 only.",
+        )
 
         # Releases
         parser_dataset_version = dataset_action.add_parser(
