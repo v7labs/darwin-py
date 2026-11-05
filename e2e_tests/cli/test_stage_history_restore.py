@@ -46,6 +46,17 @@ def restorable_state(darwin_json: dict) -> dict:
     }
 
 
+def annotation_property_values(darwin_json: dict) -> List[list]:
+    return sorted(
+        sorted((p["name"], p["value"]) for p in annotation.get("properties", []))
+        for annotation in darwin_json["annotations"]
+    )
+
+
+def item_property_values(darwin_json: dict) -> dict:
+    return {p["name"]: p["value"] for p in darwin_json.get("properties", [])}
+
+
 def export_and_pull_history(
     dataset: E2EDataset, config_values: ConfigValues, item_id: str, release_name: str
 ) -> List[StageVisit]:
@@ -295,8 +306,23 @@ def test_restore_item_from_stage_history(
     chosen = visits[1]
     snapshot = json.loads(chosen.snapshot_path.read_text())
     reworked = json.loads(visits[3].snapshot_path.read_text())
-    assert len(snapshot["annotations"]) == 2
-    assert restorable_state(snapshot) != restorable_state(reworked)
+    assert annotation_property_values(snapshot) == [
+        [("note", "first"), ("quality", "good")],
+        [("quality", "bad")],
+    ]
+    assert annotation_property_values(reworked) == [
+        [],
+        [("note", "moved"), ("quality", "bad")],
+    ]
+    assert item_property_values(snapshot) == {
+        verdict["name"]: "pass",
+        comment["name"]: "first pass",
+    }
+    assert item_property_values(reworked) == {
+        verdict["name"]: "fail",
+        comment["name"]: "second pass",
+        extra["name"]: "added later",
+    }
 
     result = run_cli_command(
         f"darwin dataset import {local_dataset.name} darwin {chosen.snapshot_path} --overwrite --yes"
