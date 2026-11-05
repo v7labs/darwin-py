@@ -155,6 +155,7 @@ def _run(args: Namespace, parser: ArgumentParser) -> None:
                 args.class_ids,
                 args.include_authorship,
                 args.version,
+                args.include_stage_history,
             )
         elif args.action == "files":
             f.list_files(
@@ -176,6 +177,7 @@ def _run(args: Namespace, parser: ArgumentParser) -> None:
                 args.retry_interval,
                 args.team,
                 multi_processed=not args.no_multi_processed,
+                pretty_print=args.pretty_print,
             )
         elif args.action == "import":
             f.dataset_import(

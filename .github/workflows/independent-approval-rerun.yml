@@ -1,0 +1,50 @@
+name: independent-approval-rerun
+
+# Re-runs the independent-approval check of the pull request head when a review is submitted or dismissed.
+# This file runs from the pull request, so it holds no secrets: if a pull request breaks it, the check just
+# keeps its last result. The check itself fails a Cortex pull request that changes this file.
+on:
+  pull_request_review:
+    types: [submitted, dismissed]
+
+permissions:
+  actions: write
+
+# One re-run job at a time for each pull request. A newer review replaces one that is still waiting.
+concurrency:
+  group: independent-approval-rerun-${{ github.event.pull_request.number }}
+
+jobs:
+  rerun:
+    if: github.event.pull_request.user.login == 'github-v7labs'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Re-run the check of the head commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          # Two pull requests can share a head commit; the check's run-name holds its pull request number.
+          id=$(gh run list -R "$GITHUB_REPOSITORY" --workflow independent-approval.yml --event pull_request_target \
+            --commit "$HEAD_SHA" --limit 20 --json databaseId,displayTitle \
+            --jq "[.[] | select(.displayTitle == \"independent-approval #$PR_NUMBER\")][0].databaseId // empty")
+          if [ -z "$id" ]; then
+            echo "No independent-approval run for $HEAD_SHA yet"
+            exit 0
+          fi
+          # GitHub rejects a re-run while the run is going, and that run may have read the reviews before this one.
+          # Wait for it, then re-run, so this review is always evaluated.
+          for attempt in 1 2 3; do
+            for _ in $(seq 60); do
+              status=$(gh run view "$id" -R "$GITHUB_REPOSITORY" --json status --jq .status)
+              [ "$status" = completed ] && break
+              sleep 10
+            done
+            if gh run rerun "$id" -R "$GITHUB_REPOSITORY"; then
+              exit 0
+            fi
+            echo "Re-run $attempt of run $id was rejected; waiting for it to finish again"
+          done
+          exit 1

@@ -25,6 +25,7 @@ from rich.console import Console
 
 from darwin.dataset.download_manager import download_all_images_from_annotations
 from darwin.dataset.identifier import DatasetIdentifier
+from darwin.dataset.json_formatter import PrettyPrintError, pretty_print_json
 from darwin.dataset.release import Release
 from darwin.dataset.split_manager import split_dataset
 from darwin.dataset.upload_manager import (
@@ -213,6 +214,7 @@ class RemoteDataset(ABC):
         retry: bool = False,
         retry_timeout: int = 600,
         retry_interval: int = 10,
+        pretty_print: bool = False,
     ) -> Tuple[Optional[Callable[[], Iterator[Any]]], int]:
         """
         Downloads a remote dataset (images and annotations) to the datasets directory.
@@ -246,12 +248,18 @@ class RemoteDataset(ABC):
         retry: bool
             If True, will repeatedly try to download the release if it is still processing up to a maximum of 5 minutes.
 
+        pretty_print: bool, default: False
+            Indents local annotation JSON after extraction. Uses extra CPU and temporary
+            disk space. Processes one file at a time with bounded formatter buffers.
+            Downloads media sequentially, including when ``multi_processed=True``.
+
         Returns
         -------
         generator : function
-            Generator for doing the actual downloads. This is None if blocking is ``True``.
+            Factory for download callables. This is None if blocking is ``True``.
+            With ``pretty_print=True``, returns one serial callable when media is needed.
         count : int
-            The number of files.
+            The number of media files, which can exceed the number of callables.
 
         Raises
         ------
@@ -335,6 +343,13 @@ class RemoteDataset(ABC):
                     metadata_dir.mkdir(parents=True, exist_ok=True)
                     shutil.move(str(metadata_file), str(metadata_dir / "metadata.json"))
 
+                # Kept beside annotations/, which holds one file per item
+                stage_history_dir = annotations_dir.parent / "stage_history"
+                if stage_history_dir.exists():
+                    shutil.rmtree(stage_history_dir)
+                if (tmp_dir / "stage_history").exists():
+                    shutil.move(str(tmp_dir / "stage_history"), str(stage_history_dir))
+
                 # Collect class names per annotation type as we walk the JSONs,
                 # so we don't have to re-parse every annotation file three more
                 # times (once per type) in a separate pass.
@@ -408,6 +423,12 @@ class RemoteDataset(ABC):
                     f"Could not mark release {release.name} as latest. Continuing..."
                 )
 
+        if pretty_print:
+            for annotation_path in annotations_dir.rglob("*.json"):
+                pretty_print_json(annotation_path)
+            for history_path in stage_history_dir.rglob("*.json"):
+                pretty_print_json(history_path)
+
         if only_annotations:
             # No images will be downloaded
             return None, 0
@@ -423,6 +444,7 @@ class RemoteDataset(ABC):
             video_frames=video_frames,
             force_slots=force_slots,
             ignore_slots=ignore_slots,
+            pretty_print=pretty_print,
         )
         if count == 0:
             return None, count
@@ -437,16 +459,30 @@ class RemoteDataset(ABC):
             console.print(
                 f"Going to download {str(count)} files to {self.local_images_path.as_posix()} ."
             )
+            tasks = progress()
+            task_count = count
+            if pretty_print:
+                grouped_tasks = list(tasks)
+                task_count = len(grouped_tasks)
+                tasks = grouped_tasks
             successes, errors = exhaust_generator(
-                progress=progress(),
-                count=count,
-                multi_processed=multi_processed,
+                progress=tasks,
+                count=task_count,
+                multi_processed=multi_processed and not pretty_print,
                 worker_count=max_workers,
             )
+            for error in errors:
+                if isinstance(error, PrettyPrintError):
+                    raise error
             if errors:
-                self.console.print(
-                    f"Encountered errors downloading {len(errors)} files"
-                )
+                if pretty_print:
+                    self.console.print(
+                        f"Encountered errors in {len(errors)} media download tasks"
+                    )
+                else:
+                    self.console.print(
+                        f"Encountered errors downloading {len(errors)} files"
+                    )
             for error in errors:
                 self.console.print(f"\t - {error}")
 
@@ -725,6 +761,7 @@ class RemoteDataset(ABC):
         include_url_token: bool = False,
         include_authorship: bool = False,
         version: Optional[str] = None,
+        include_stage_history: bool = False,
     ) -> None:
         """
         Create a new release for this ``RemoteDataset``.
@@ -743,6 +780,10 @@ class RemoteDataset(ABC):
         version : Optional[str], default: None, enum: ["1.0", "2.0"]
             When used for V2 dataset, allows to force generation of either Darwin JSON 1.0 (Legacy) or newer 2.0.
             Omit this option to get your team's default.
+        include_stage_history : bool, default: False
+            If set, the export also contains ``stage_history/<item id>/``: every workflow stage
+            visit of each item and the item's annotations at the end of each visit.
+            Only valid for Darwin JSON 2.0.
         """
 
     @abstractmethod

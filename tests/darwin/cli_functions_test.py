@@ -1,7 +1,7 @@
 import builtins
 import sys
 from datetime import datetime, timedelta, timezone
-from unittest.mock import ANY, call, patch
+from unittest.mock import ANY, MagicMock, call, patch
 
 import pytest
 import responses
@@ -10,6 +10,7 @@ from rich.console import Console
 from darwin import cli
 from darwin.cli_functions import (
     delete_files,
+    export_dataset,
     extract_video_artifacts,
     pull_dataset,
     set_file_status,
@@ -912,3 +913,110 @@ class TestReportAnnotators:
                 match="'bad-grouping-option' is not a valid AnnotatorReportGrouping",
             ):
                 cli._run(args, parser)
+
+
+class TestPrettyPrintPull:
+    @pytest.mark.parametrize("enabled", [False, True])
+    def test_cli_flag_reaches_pull_dispatch(self, enabled):
+        from darwin.cli import _run
+        from darwin.options import Options
+
+        parser = Options().parser
+        arguments = ["dataset", "pull", "team/dataset:release"]
+        if enabled:
+            arguments.append("--pretty-print")
+        args = parser.parse_args(arguments)
+
+        with patch("darwin.cli.f.pull_dataset") as pull:
+            _run(args, parser)
+
+        assert pull.call_args.args[0] == "team/dataset:release"
+        assert pull.call_args.kwargs["pretty_print"] is enabled
+
+    def test_cli_help_describes_local_cost(self, capsys):
+        from darwin.options import Options
+
+        with pytest.raises(SystemExit) as error:
+            Options().parser.parse_args(["dataset", "pull", "--help"])
+
+        assert error.value.code == 0
+        help_text = capsys.readouterr().out
+        assert "--pretty-print" in help_text
+        assert "locally" in help_text
+        assert "CPU" in help_text
+        assert "disk space" in help_text
+        assert "bounded formatter RAM" in help_text
+
+    @pytest.mark.parametrize("enabled", [False, True])
+    def test_local_option_preserves_release_selection(self, enabled):
+        client = MagicMock()
+        client.newer_darwin_version = None
+        dataset = client.get_remote_dataset.return_value
+        release = dataset.get_release.return_value
+        options = {"pretty_print": True} if enabled else {}
+
+        with patch(
+            "darwin.cli_functions._load_client_for_dataset_pull", return_value=client
+        ):
+            pull_dataset("team/dataset:release", **options)
+
+        dataset.get_release.assert_called_once_with("release", False)
+        assert dataset.pull.call_args.kwargs["release"] is release
+        assert dataset.pull.call_args.kwargs["pretty_print"] is enabled
+        assert (
+            client.get_remote_dataset.call_args.kwargs["dataset_identifier"].version
+            == "release"
+        )
+        assert not dataset.export.called
+        assert not dataset.create_release.called
+
+    def test_formatting_error_exits_with_clear_message(self, capsys):
+        from darwin.dataset.json_formatter import PrettyPrintError
+
+        client = MagicMock()
+        dataset = client.get_remote_dataset.return_value
+        dataset.pull.side_effect = PrettyPrintError(
+            "Could not pretty-print 'annotation.json': disk full. The original file is unchanged."
+        )
+
+        with patch(
+            "darwin.cli_functions._load_client_for_dataset_pull", return_value=client
+        ):
+            with pytest.raises(SystemExit) as error:
+                pull_dataset("team/dataset:release", pretty_print=True)
+
+        assert error.value.code == 1
+        message = " ".join(capsys.readouterr().out.split())
+        assert "annotation.json" in message
+        assert "disk full" in message
+        assert "original file is unchanged" in message
+
+
+class TestExportStageHistory:
+    @pytest.mark.parametrize("enabled", [False, True])
+    def test_cli_flag_reaches_export(self, enabled):
+        from darwin.cli import _run
+        from darwin.options import Options
+
+        parser = Options().parser
+        arguments = ["dataset", "export", "team/dataset", "release"]
+        if enabled:
+            arguments.append("--include-stage-history")
+        args = parser.parse_args(arguments)
+
+        with patch("darwin.cli.f.export_dataset") as export:
+            _run(args, parser)
+
+        assert export.call_args.args[-1] is enabled
+
+    def test_passes_flag_to_dataset_export(self):
+        dataset = MagicMock()
+        client = MagicMock()
+        client.get_remote_dataset.return_value = dataset
+        with (
+            patch("darwin.cli_functions._load_client", return_value=client),
+            patch("darwin.cli_functions.print_new_version_info"),
+        ):
+            export_dataset("team/dataset", False, "release", include_stage_history=True)
+
+        assert dataset.export.call_args.kwargs["include_stage_history"] is True
