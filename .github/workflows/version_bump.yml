@@ -143,11 +143,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Create release
-        uses: actions/create-release@0cb9c9b65d5d1901c1f53e5e66eaf4afd303e70e # v1.1.4
+        run: gh release create "${TAG_PREFIX}${NEW_VERSION}" --draft --title "${TAG_PREFIX}${NEW_VERSION}" --notes ""
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ env.TAG_PREFIX}}${{ env.NEW_VERSION }}
-          release_name: ${{ env.TAG_PREFIX}}${{ env.NEW_VERSION }}
-          draft: true
-          prerelease: false
