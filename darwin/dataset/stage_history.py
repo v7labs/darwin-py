@@ -37,9 +37,9 @@ class StageVisit:
         Path to the snapshot file, ``None`` if the visit has no exported snapshot.
     reason : Optional[Literal["current", "pass_through", "not_recorded"]]
         Why the visit has no exported snapshot: it is ``current``, its stage is a
-        ``pass_through`` one the workflow never snapshots (consensus entrypoint,
-        parallel blind, AI review), or the exit was ``not_recorded``. ``None`` if the visit has a snapshot
-        or the export predates this field.
+        ``pass_through`` one the workflow never snapshots (consensus entrypoint or
+        AI review), or the exit was ``not_recorded``. ``None`` if the visit has a snapshot or
+        the export predates this field.
     """
 
     stage_instance_id: str
