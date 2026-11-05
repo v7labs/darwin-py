@@ -35,7 +35,7 @@ def darwin_client(
 
 def visits_json() -> dict:
     return {
-        "version": "1.0",
+        "version": "1.1",
         "item_id": ITEM_ID,
         "visits": [
             {
@@ -59,7 +59,7 @@ def visits_json() -> dict:
                 "entered_at": "2026-10-01T11:00:00Z",
                 "exited_at": None,
                 "exited_by": None,
-                "exit_snapshot": {"status": "none", "file": None},
+                "exit_snapshot": {"status": "none", "file": None, "reason": "current"},
             },
         ],
     }
@@ -131,6 +131,20 @@ class TestReadStageHistory:
         assert complete.exited_by is None
         assert complete.snapshot_path is None
         assert complete.snapshot() is None
+        assert annotate.reason is None
+        assert complete.reason == "current"
+
+    def test_reason_is_none_in_exports_from_before_it_was_added(self, tmp_path: Path):
+        item_dir = write_history(tmp_path)
+        data = visits_json()
+        data["version"] = "1.0"
+        del data["visits"][1]["exit_snapshot"]["reason"]
+        (item_dir / "visits.json").write_text(json.dumps(data))
+
+        _annotate, complete = read_stage_history(item_dir)
+
+        assert complete.reason is None
+        assert complete.snapshot_path is None
 
 
 @pytest.mark.usefixtures("file_read_write_test")

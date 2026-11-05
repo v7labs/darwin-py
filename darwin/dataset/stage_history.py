@@ -35,6 +35,11 @@ class StageVisit:
         ``status`` (``exported`` or ``none``) and the snapshot ``file`` name.
     snapshot_path : Optional[Path]
         Path to the snapshot file, ``None`` if the visit has no exported snapshot.
+    reason : Optional[Literal["current", "pass_through", "not_recorded"]]
+        Why the visit has no exported snapshot: it is ``current``, its stage is a
+        ``pass_through`` one the workflow never snapshots (consensus entrypoint,
+        parallel blind, AI review), or the exit was ``not_recorded``. ``None`` if the visit has a snapshot
+        or the export predates this field.
     """
 
     stage_instance_id: str
@@ -46,6 +51,7 @@ class StageVisit:
     exited_by: Optional[Dict[str, Any]]
     exit_snapshot: Dict[str, Optional[str]]
     snapshot_path: Optional[Path]
+    reason: Optional[Literal["current", "pass_through", "not_recorded"]] = None
 
     def snapshot(self) -> Optional[dt.AnnotationFile]:
         """
@@ -92,6 +98,7 @@ def read_stage_history(item_dir: Path) -> List[StageVisit]:
                 if visit["exit_snapshot"]["status"] == "exported"
                 else None
             ),
+            reason=visit["exit_snapshot"].get("reason"),
         )
         for visit in data["visits"]
     ]
