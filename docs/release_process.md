@@ -36,13 +36,15 @@ Or, with the `gh` CLI:
 gh release create vX.Y.Z --repo v7labs/darwin-py --target master --generate-notes
 ```
 
-Publishing the release starts the `release` workflow. It rejects tags that are not `vX.Y.Z`, runs the tests and the e2e suite (about 90 minutes), then builds and publishes the package to PyPI. If a job fails on a flake, re-run the failed jobs. If the code needs a fix, delete the release and its tag (`gh release delete vX.Y.Z --cleanup-tag`), merge the fix and publish the release again.
+Publishing the release starts the `release` workflow. It rejects tags that are not `vX.Y.Z`, runs the tests and the e2e suite (about 90 minutes), then builds and publishes the package to PyPI. If a job fails on a flake, re-run the failed jobs. If the tests or e2e fail and the code needs a fix, nothing has reached PyPI yet: delete the release and its tag (`gh release delete vX.Y.Z --cleanup-tag`), merge the fix and publish the release again. If the `release` job failed while publishing, check [PyPI](https://pypi.org/project/darwin-py/#history) first. Once any file of a version is on PyPI, that version cannot be uploaded again, so release the next patch version instead.
 
 **Make sure you update the tickets to 'Done'**
 
 ## Release a hotfix
 
 Push a branch with the fix, then follow [Make a release](#make-a-release) with that branch as the target instead of `master` (`--target <branch>` with `gh`). Merge the fix into `master` afterwards.
+
+The branch must contain the tag-driven `.github/workflows/EVENT_release.yml`, because the release runs the workflow from the tagged commit. If it starts from a release made before that workflow existed (v3.7.0 or older), copy the current `EVENT_release.yml` from `master` onto the branch first. Otherwise the old workflow builds the version committed in `pyproject.toml` instead of the tag's version.
 
 ## Contact
 
