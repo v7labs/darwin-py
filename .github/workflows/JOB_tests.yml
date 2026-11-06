@@ -28,39 +28,38 @@ jobs:
         run: |
           sudo rm -rf /usr/local/lib/android  # will release about 10 GB if you don't need Android
           sudo rm -rf /usr/share/dotnet # will release about 20GB if you don't need .NET
-      # System packages are installed before Harden Runner starts and before
-      # any pull request code is checked out, so sudo can be disabled for the
-      # rest of the job on Ubuntu.
-      - name: Install ffmpeg (Ubuntu)
-        if: matrix.os == 'ubuntu-latest'
-        shell: bash
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y ffmpeg
-
       # Pull request code runs in this job, so egress is limited to GitHub,
-      # PyPI, Homebrew, Chocolatey and the public schema bucket the tests read.
-      # Harden Runner enforces the policy on Ubuntu, macOS and Windows.
+      # PyPI, the OS package sources and the public schema bucket the tests
+      # read. Harden Runner enforces the policy on Ubuntu, macOS and Windows.
+      # The runner user keeps sudo, which the install steps need, so on Ubuntu
+      # this contains dependency and accidental egress rather than code that
+      # sets out to lift it. The boundary for hostile pull request code is the
+      # read-only token and the absence of secrets in fork runs.
       - name: Harden Runner
         uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
         with:
           egress-policy: block
-          disable-sudo: true
           allowed-endpoints: >
             api.github.com:443
+            archive.ubuntu.com:80
+            azure.archive.ubuntu.com:80
             codeload.github.com:443
             community.chocolatey.org:443
             darwin-public.s3.eu-west-1.amazonaws.com:443
+            esm.ubuntu.com:443
             files.pythonhosted.org:443
             formulae.brew.sh:443
             ghcr.io:443
             github.com:443
+            motd.ubuntu.com:443
             objects.githubusercontent.com:443
             packages.chocolatey.org:443
+            packages.microsoft.com:443
             pkg-containers.githubusercontent.com:443
             pypi.org:443
             raw.githubusercontent.com:443
             release-assets.githubusercontent.com:443
+            security.ubuntu.com:80
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -83,6 +82,13 @@ jobs:
                      pip install wheel && \
                      pip install --upgrade setuptools && \
                      pip install --editable '.[test,ml,medical,dev,ocv,storage_aws,storage_gcp,storage_azure]'"
+
+      - name: Install ffmpeg (Ubuntu)
+        if: matrix.os == 'ubuntu-latest'
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
 
       - name: Install ffmpeg (macOS)
         if: matrix.os == 'macos-latest'
