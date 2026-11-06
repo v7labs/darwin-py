@@ -12,7 +12,7 @@ name: independent-approval
 run-name: "independent-approval #${{ github.event.pull_request.number }}"
 
 on:
-  pull_request_target: # zizmor: ignore[dangerous-triggers] no checkout, no secrets, read-only token, bot author only
+  pull_request_target:
     # edited: a new base branch changes the diff. Don't skip title edits in the job: a skipped job passes the check.
     types: [opened, reopened, synchronize, ready_for_review, edited]
 

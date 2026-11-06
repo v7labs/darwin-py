@@ -50,4 +50,4 @@ jobs:
         set -euo pipefail -f
         echo "Files: $FILES"
         # shellcheck disable=SC2086 # one argument per file on purpose
-        bash "$GITHUB_WORKSPACE/deploy/format_lint.sh" lint $FILES
+        bash -f "$GITHUB_WORKSPACE/deploy/format_lint.sh" lint $FILES
