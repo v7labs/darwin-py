@@ -1,0 +1,11 @@
+# Throwaway: exercises the workflow_security gate from a PR. Deleted with the PR.
+name: zz_probe
+on:
+  pull_request_target: # zizmor: ignore[dangerous-triggers]
+permissions:
+  contents: read
+jobs:
+  noop:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo probe
