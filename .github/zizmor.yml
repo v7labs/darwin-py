@@ -9,12 +9,17 @@ rules:
     ignore:
       - independent-approval.yml
       - EVENT_workflow_security.yml
-  # Existing findings tracked in DAR-8214. Remove entries as files are fixed.
+  # Existing findings tracked in DAR-8214. Entries are line-scoped on purpose:
+  # a new finding in the same file, or a moved line, fails the gate.
   template-injection:
     ignore:
-      - JOB_slack_message.yml
-      - JOB_typecheck.yml
-      - version_bump.yml
+      - JOB_slack_message.yml:58
+      - JOB_slack_message.yml:59
+      - JOB_slack_message.yml:68
+      - JOB_slack_message.yml:69
+      - JOB_typecheck.yml:34
+      - JOB_typecheck.yml:40
+      - version_bump.yml:65
   excessive-permissions:
     ignore:
-      - EVENT_merge_to_master.yml
+      - EVENT_merge_to_master.yml:12

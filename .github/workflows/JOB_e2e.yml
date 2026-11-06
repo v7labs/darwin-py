@@ -2,7 +2,6 @@ name: E2E Tests
 
 permissions:
   contents: read
-  id-token: write # Required for OIDC authentication with AWS
 
 on:
   schedule:

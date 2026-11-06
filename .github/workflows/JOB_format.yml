@@ -27,6 +27,8 @@ jobs:
           github.com:443
           objects.githubusercontent.com:443
           pypi.org:443
+          raw.githubusercontent.com:443
+          release-assets.githubusercontent.com:443
 
     - name: Check out source repository
       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -46,7 +48,6 @@ jobs:
         FILES: ${{ inputs.files }}
       run: |
         set -euo pipefail -f
-        echo "Files: $FILES"
         # shellcheck disable=SC2086 # one argument per file on purpose
         bash -f "$GITHUB_WORKSPACE/deploy/format_lint.sh" format $FILES
 
