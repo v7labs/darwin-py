@@ -20,20 +20,33 @@ jobs:
     - name: Harden Runner
       uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
       with:
-        egress-policy: audit
+        egress-policy: block
+        allowed-endpoints: >
+          api.github.com:443
+          files.pythonhosted.org:443
+          github.com:443
+          objects.githubusercontent.com:443
+          pypi.org:443
 
     - name: Check out source repository
       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
 
     - name: Set up Python environment
       uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
       with:
         python-version: "3.12"
 
-    - name: Show filenames
-      run: echo ${{ inputs.files }}
-
+    # The file list comes from the pull request and is untrusted, so it reaches
+    # the shell through an environment variable, never through ${{ }} in run:.
     - name: Black check
       shell: bash
-      run: bash ${{ github.workspace }}/deploy/format_lint.sh format ${{ inputs.files }}
+      env:
+        FILES: ${{ inputs.files }}
+      run: |
+        set -euo pipefail -f
+        echo "Files: $FILES"
+        # shellcheck disable=SC2086 # one argument per file on purpose
+        bash "$GITHUB_WORKSPACE/deploy/format_lint.sh" format $FILES
 
