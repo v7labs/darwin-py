@@ -1,14 +1,12 @@
 # zizmor policy. EVENT_workflow_security.yml reads this file from the base
-# branch and fails pull requests on high-severity findings. Inline
+# commit and fails pull requests on high-severity findings. Inline
 # "zizmor: ignore" comments are not honored; every exception lives here.
 rules:
-  # pull_request_target is the safe pattern in both files: the job definition
-  # comes from the base branch, nothing from the pull request is executed, the
-  # token is read-only and no secrets are available.
+  # independent-approval.yml never checks out the pull request, holds no
+  # secrets and has a read-only token, which is the safe use of that trigger.
   dangerous-triggers:
     ignore:
       - independent-approval.yml
-      - EVENT_workflow_security.yml
   # Existing findings tracked in DAR-8214. Entries are line-scoped on purpose:
   # a new finding in the same file, or a moved line, fails the gate.
   template-injection:
