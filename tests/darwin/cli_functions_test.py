@@ -341,14 +341,62 @@ class TestDeleteFiles:
     def dataset_identifier(self, team_slug_darwin_json_v2: str, dataset_slug: str):
         return f"{team_slug_darwin_json_v2}/{dataset_slug}"
 
+    @pytest.fixture
+    def remote_files(self):
+        return [MagicMock(filename="one.jpg"), MagicMock(filename="two.jpg")]
+
+    @pytest.mark.parametrize("skip_user_confirmation", [False, True])
+    def test_no_matching_files_skips_deletion(
+        self, dataset_identifier, remote_dataset, skip_user_confirmation, capsys
+    ):
+        with (
+            patch.object(Client, "get_remote_dataset", return_value=remote_dataset),
+            patch.object(RemoteDatasetV2, "fetch_remote_files", return_value=iter(())),
+            patch.object(RemoteDatasetV2, "delete_items") as delete_items,
+            patch.object(builtins, "input", return_value="y"),
+        ):
+            delete_files(
+                dataset_identifier, ["one.jpg", "two.jpg"], skip_user_confirmation
+            )
+
+        delete_items.assert_not_called()
+        output = capsys.readouterr().err
+        assert "File not found: one.jpg" in output
+        assert "File not found: two.jpg" in output
+        assert "No files were deleted." in output
+        assert "Operation successfully completed!" not in output
+
+    def test_partial_match_deletes_only_found_files(
+        self, dataset_identifier, remote_dataset, capsys
+    ):
+        found_item = MagicMock(filename="one.jpg")
+        deleted_items = []
+        with (
+            patch.object(Client, "get_remote_dataset", return_value=remote_dataset),
+            patch.object(
+                RemoteDatasetV2, "fetch_remote_files", return_value=iter([found_item])
+            ),
+            patch.object(
+                RemoteDatasetV2, "delete_items", side_effect=deleted_items.extend
+            ),
+        ):
+            delete_files(dataset_identifier, ["one.jpg", "two.jpg"], True)
+
+        assert deleted_items == [found_item]
+        output = capsys.readouterr().err
+        assert "File not found: two.jpg" in output
+        assert "File not found: one.jpg" not in output
+        assert "Operation successfully completed!" in output
+        assert "No files were deleted." not in output
+
     def test_bypasses_user_prompt_if_yes_flag_is_true(
-        self, dataset_identifier: str, remote_dataset: RemoteDataset
+        self, dataset_identifier: str, remote_dataset: RemoteDataset, remote_files
     ):
         with patch.object(
             Client, "get_remote_dataset", return_value=remote_dataset
         ) as get_remote_dataset_mock:
             with patch.object(
-                RemoteDatasetV2, "fetch_remote_files"
+                RemoteDatasetV2, "fetch_remote_files", return_value=remote_files
             ) as fetch_remote_files_mock:
                 with patch.object(RemoteDatasetV2, "delete_items") as mock:
                     delete_files(dataset_identifier, ["one.jpg", "two.jpg"], True)
@@ -361,13 +409,13 @@ class TestDeleteFiles:
                     mock.assert_called_once()
 
     def test_deletes_items_if_user_accepts_prompt(
-        self, dataset_identifier: str, remote_dataset: RemoteDataset
+        self, dataset_identifier: str, remote_dataset: RemoteDataset, remote_files
     ):
         with patch.object(
             Client, "get_remote_dataset", return_value=remote_dataset
         ) as get_remote_dataset_mock:
             with patch.object(
-                RemoteDatasetV2, "fetch_remote_files"
+                RemoteDatasetV2, "fetch_remote_files", return_value=remote_files
             ) as fetch_remote_files_mock:
                 with patch.object(builtins, "input", lambda _: "y"):
                     with patch.object(RemoteDatasetV2, "delete_items") as mock:
@@ -381,13 +429,13 @@ class TestDeleteFiles:
                         mock.assert_called_once()
 
     def test_does_not_delete_items_if_user_refuses_prompt(
-        self, dataset_identifier: str, remote_dataset: RemoteDataset
+        self, dataset_identifier: str, remote_dataset: RemoteDataset, remote_files
     ):
         with patch.object(
             Client, "get_remote_dataset", return_value=remote_dataset
         ) as get_remote_dataset_mock:
             with patch.object(
-                RemoteDatasetV2, "fetch_remote_files"
+                RemoteDatasetV2, "fetch_remote_files", return_value=remote_files
             ) as fetch_remote_files_mock:
                 with patch.object(builtins, "input", lambda _: "n"):
                     with patch.object(RemoteDatasetV2, "delete_items") as mock:
@@ -401,7 +449,7 @@ class TestDeleteFiles:
                         mock.assert_not_called()
 
     def test_exits_if_error_occurs(
-        self, dataset_identifier: str, remote_dataset: RemoteDataset
+        self, dataset_identifier: str, remote_dataset: RemoteDataset, remote_files
     ):
         def error_mock():
             raise ValueError("Something went Wrong")
@@ -411,7 +459,7 @@ class TestDeleteFiles:
                 Client, "get_remote_dataset", return_value=remote_dataset
             ) as get_remote_dataset_mock:
                 with patch.object(
-                    RemoteDatasetV2, "fetch_remote_files"
+                    RemoteDatasetV2, "fetch_remote_files", return_value=remote_files
                 ) as fetch_remote_files_mock:
                     with patch.object(
                         RemoteDatasetV2, "delete_items", side_effect=error_mock
