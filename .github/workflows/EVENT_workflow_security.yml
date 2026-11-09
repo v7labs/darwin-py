@@ -1,0 +1,92 @@
+name: workflow_security
+run-name: Workflow security audit
+
+# Audits the pull request's workflows with zizmor.
+#
+# The policy comes from the base commit, not from the pull request: the
+# base-branch tree is checked out at github.event.pull_request.base.sha and
+# its .github/zizmor.yml is passed to zizmor, inline ignore comments in the
+# pull request tree are rejected, and a second workflow that reuses this
+# workflow's name is rejected. The pull request tree is checked out as files
+# only; zizmor is installed from PyPI and only parses YAML.
+#
+# This runs on pull_request, so the job definition itself is the merge
+# commit's copy. Changes to this file and to .github/zizmor.yml therefore
+# rely on the code-owner review that .github/CODEOWNERS requires, on this
+# check being required, and on "require approval of the most recent push"
+# in branch protection. The token is read-only and the job holds no secrets.
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  zizmor:
+    name: zizmor
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
+        with:
+          egress-policy: block
+          allowed-endpoints: >
+            api.github.com:443
+            files.pythonhosted.org:443
+            github.com:443
+            pypi.org:443
+
+      - name: Check out the base commit (policy)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.base.sha || github.sha }}
+          path: base
+          persist-credentials: false
+
+      - name: Check out the pull request tree (scan input only)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: pr
+          persist-credentials: false
+
+      - name: Install zizmor
+        run: python3 -m pip install --quiet --disable-pip-version-check "zizmor==1.32.0"
+
+      - name: Reject policy changes carried by the pull request
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -rnE '#[[:space:]]*zizmor:[[:space:]]*ignore\[' pr/.github/workflows; then
+            echo "::error::Inline zizmor ignore comments are not accepted. Add the exception to .github/zizmor.yml instead."
+            exit 1
+          fi
+          dupes=$(grep -rlE '^name:[[:space:]]*["'"'"']?workflow_security["'"'"']?[[:space:]]*$' pr/.github/workflows \
+            | grep -v '/EVENT_workflow_security.yml$' || true)
+          if [ -n "$dupes" ]; then
+            echo "::error::Another workflow reuses the name 'workflow_security': $dupes"
+            exit 1
+          fi
+
+      - name: Run zizmor
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          # The policy is the base commit's copy. Only a base without any policy
+          # file, which is the case for the pull request that introduces it,
+          # falls back to the pull request's own copy.
+          config=base/.github/zizmor.yml
+          if [ ! -f "$config" ]; then
+            echo "::warning::No .github/zizmor.yml on the base commit; using the pull request's copy"
+            config=pr/.github/zizmor.yml
+          fi
+          zizmor --persona regular --min-severity high --format github --config "$config" pr/.github/workflows
