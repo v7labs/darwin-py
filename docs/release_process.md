@@ -36,7 +36,14 @@ Or, with the `gh` CLI:
 gh release create vX.Y.Z --repo v7labs/darwin-py --target master --generate-notes
 ```
 
-Publishing the release starts the `release` workflow. It rejects tags that are not `vX.Y.Z`, runs the tests and the e2e suite (about 90 minutes), then builds and publishes the package to PyPI. If a job fails on a flake, re-run the failed jobs. If the tests or e2e fail and the code needs a fix, nothing has reached PyPI yet: delete the release and its tag (`gh release delete vX.Y.Z --cleanup-tag`), merge the fix and publish the release again. If the `release` job failed while publishing, check [PyPI](https://pypi.org/project/darwin-py/#history) first. Once any file of a version is on PyPI, that version cannot be uploaded again, so release the next patch version instead.
+Publishing the release starts the `release` workflow. It rejects tags that are not `vX.Y.Z`, runs the tests and the e2e suite (70 to 90 minutes), then builds and publishes the package to PyPI. If a job fails on a flake, re-run the failed jobs. If the tests or e2e fail and the code needs a fix, nothing has reached PyPI yet: delete the release and its tag (`gh release delete vX.Y.Z --cleanup-tag`), merge the fix and publish the release again. If the `release` job failed while publishing, check [PyPI](https://pypi.org/project/darwin-py/#history) first. Once any file of a version is on PyPI, that version cannot be uploaded again, so release the next patch version instead.
+
+When the run is green, check that PyPI serves the version and that the wheel carries it:
+
+```sh
+curl -s https://pypi.org/pypi/darwin-py/X.Y.Z/json | python3 -c 'import json,sys; print(json.load(sys.stdin)["info"]["version"])'
+pip download darwin-py==X.Y.Z --no-deps -d /tmp/darwin-py-check
+```
 
 **Make sure you update the tickets to 'Done'**
 
