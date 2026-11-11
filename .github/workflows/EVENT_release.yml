@@ -30,6 +30,16 @@ jobs:
           fi
           echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
 
+      - name: Require the tagged commit to be on master
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          status=$(gh api "repos/$GITHUB_REPOSITORY/compare/master...$GITHUB_SHA" --jq .status)
+          if [[ "$status" != behind && "$status" != identical ]]; then
+            echo "::error::Release commit $GITHUB_SHA is not on master ($status). Merge to master first, then release."
+            exit 1
+          fi
+
   run_tests:
     needs: validate_tag
     uses: ./.github/workflows/JOB_tests.yml
@@ -51,9 +61,10 @@ jobs:
   release:
     needs: [validate_tag, run_tests, run_e2e]
     runs-on: ubuntu-latest
+    environment: pypi
     permissions:
       id-token: write
-      contents: write
+      contents: read
     steps:
       - name: Free Disk space
         shell: bash
