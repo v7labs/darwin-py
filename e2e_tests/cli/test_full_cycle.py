@@ -750,8 +750,8 @@ def test_full_cycle_keypoint_3d(
 
     # Check that all downloaded annotations are as expected
     compare_annotations_export(
-        Path(f"{pull_dir}/releases/{first_release_name}/annotations"),
         Path(f"{pull_dir}/releases/{second_release_name}/annotations"),
+        Path(f"{pull_dir}/releases/{first_release_name}/annotations"),
         item_type,
         unzip=False,
     )
