@@ -84,6 +84,7 @@ def get_available_annotation_subtypes(annotation_type: str) -> List[str]:
         "ellipse": ["ellipse", "text", "attributes", "instance_id"],
         "eye": ["eye", "text", "attributes", "instance_id"],
         "keypoint": ["keypoint", "text", "attributes", "instance_id"],
+        "keypoint_3d": ["keypoint_3d", "text", "attributes", "instance_id"],
         "line": ["line", "text", "attributes", "instance_id"],
         "mask": ["mask", "text", "attributes"],
         "polygon": [
@@ -601,6 +602,7 @@ def setup_annotation_classes(config: ConfigValues) -> List[E2EAnnotationClass]:
         "ellipse",
         "eye",
         "keypoint",
+        "keypoint_3d",
         "line",
         "mask",
         "skeleton",

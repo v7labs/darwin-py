@@ -1,0 +1,163 @@
+{
+  "version": "2.0",
+  "schema_ref": "https://darwin-public.s3.eu-west-1.amazonaws.com/darwin_json/2.0/schema.json",
+  "item": {
+    "name": "sagittal_LPI_pixdim_0.1_0.2_0.5.dcm",
+    "path": "/",
+    "source_info": {
+      "item_id": "0197ee1d-5920-c9f8-017f-987b38e38f5f",
+      "dataset": {
+        "name": "dicom_test_data_new",
+        "slug": "dicom_test_data_new",
+        "dataset_management_url": "https://darwin.v7labs.com/datasets/1856922/dataset-management"
+      },
+      "team": {
+        "name": "V7 John",
+        "slug": "v7-john"
+      },
+      "workview_url": "https://darwin.v7labs.com/workview?dataset=1856922&item=0197ee1d-5920-c9f8-017f-987b38e38f5f"
+    },
+    "slots": [
+      {
+        "type": "dicom",
+        "slot_name": "0",
+        "width": 128,
+        "height": 128,
+        "fps": null,
+        "thumbnail_url": "https://darwin.v7labs.com/api/v2/teams/v7-john/files/c160652a-9d74-4a27-91f5-158bd68eab2c/thumbnail?token=4ca42b77-ad16-42ce-82e1-e9c762085012",
+        "source_files": [
+          {
+            "file_name": "sagittal_LPI_pixdim_0.1_0.2_0.5.dcm",
+            "url": "https://darwin.v7labs.com/api/v2/teams/v7-john/uploads/54adbf48-0129-44ea-978c-313aeb35627b?token=4ca42b77-ad16-42ce-82e1-e9c762085012"
+          }
+        ],
+        "frame_count": 16,
+        "frame_urls": [
+          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/c160652a-9d74-4a27-91f5-158bd68eab2c/sections/0?token=4ca42b77-ad16-42ce-82e1-e9c762085012",
+          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/c160652a-9d74-4a27-91f5-158bd68eab2c/sections/1?token=4ca42b77-ad16-42ce-82e1-e9c762085012",
+          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/c160652a-9d74-4a27-91f5-158bd68eab2c/sections/2?token=4ca42b77-ad16-42ce-82e1-e9c762085012",
+          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/c160652a-9d74-4a27-91f5-158bd68eab2c/sections/3?token=4ca42b77-ad16-42ce-82e1-e9c762085012",
+          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/c160652a-9d74-4a27-91f5-158bd68eab2c/sections/4?token=4ca42b77-ad16-42ce-82e1-e9c762085012",
+          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/c160652a-9d74-4a27-91f5-158bd68eab2c/sections/5?token=4ca42b77-ad16-42ce-82e1-e9c762085012",
+          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/c160652a-9d74-4a27-91f5-158bd68eab2c/sections/6?token=4ca42b77-ad16-42ce-82e1-e9c762085012",
+          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/c160652a-9d74-4a27-91f5-158bd68eab2c/sections/7?token=4ca42b77-ad16-42ce-82e1-e9c762085012",
+          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/c160652a-9d74-4a27-91f5-158bd68eab2c/sections/8?token=4ca42b77-ad16-42ce-82e1-e9c762085012",
+          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/c160652a-9d74-4a27-91f5-158bd68eab2c/sections/9?token=4ca42b77-ad16-42ce-82e1-e9c762085012",
+          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/c160652a-9d74-4a27-91f5-158bd68eab2c/sections/10?token=4ca42b77-ad16-42ce-82e1-e9c762085012",
+          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/c160652a-9d74-4a27-91f5-158bd68eab2c/sections/11?token=4ca42b77-ad16-42ce-82e1-e9c762085012",
+          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/c160652a-9d74-4a27-91f5-158bd68eab2c/sections/12?token=4ca42b77-ad16-42ce-82e1-e9c762085012",
+          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/c160652a-9d74-4a27-91f5-158bd68eab2c/sections/13?token=4ca42b77-ad16-42ce-82e1-e9c762085012",
+          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/c160652a-9d74-4a27-91f5-158bd68eab2c/sections/14?token=4ca42b77-ad16-42ce-82e1-e9c762085012",
+          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/c160652a-9d74-4a27-91f5-158bd68eab2c/sections/15?token=4ca42b77-ad16-42ce-82e1-e9c762085012"
+        ],
+        "metadata": {
+          "handler": "MONAI",
+          "shape": [
+            1,
+            16,
+            128,
+            128
+          ],
+          "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.16951377570626244557338024182864652772",
+          "affine": "[[-1.0, 0.0, 0.0, 15.0], [0.0, -0.1, 0.0, 0.0], [0.0, 0.0, -0.25, 0.0], [0.0, 0.0, 0.0, 1.0]]",
+          "colorspace": "RG16",
+          "original_affine": [
+            [
+              "0.0",
+              "0.0",
+              "1.0",
+              "0.0"
+            ],
+            [
+              "-0.1",
+              "0.0",
+              "0.0",
+              "0.0"
+            ],
+            [
+              "0.0",
+              "-0.25",
+              "0.0",
+              "0.0"
+            ],
+            [
+              "0.0",
+              "0.0",
+              "0.0",
+              "1.0"
+            ]
+          ],
+          "pixdim": "(1.0, 0.1, 0.25)",
+          "plane_map": {
+            "0": "SAGITTAL"
+          },
+          "primary_plane": "SAGITTAL"
+        }
+      }
+    ]
+  },
+  "annotations": [
+    {
+      "id": "3c9f1a7e-5d2b-4a6c-b8e0-7a4d2f6c1b85",
+      "keypoint_3d": {
+        "x": 5.0,
+        "y": 77.5,
+        "z": 20.0
+      },
+      "name": "test_keypoint_3d_basic",
+      "properties": [],
+      "slot_names": [
+        "0"
+      ]
+    },
+    {
+      "id": "e6b2d8f4-1a3c-4e9d-a7f5-9c0b5e3d7a21",
+      "keypoint_3d": {
+        "x": 12.5,
+        "y": 10.0,
+        "z": 110.0
+      },
+      "name": "test_keypoint_3d_basic",
+      "properties": [],
+      "slot_names": [
+        "0"
+      ]
+    },
+    {
+      "id": "0d4e6c2a-9f8b-4c1e-b3a7-1e5d8f0c4b76",
+      "instance_id": {
+        "value": 9
+      },
+      "keypoint_3d": {
+        "x": 8.0,
+        "y": 64.0,
+        "z": 64.5
+      },
+      "name": "test_keypoint_3d_with_subtypes_and_properties",
+      "properties": [
+        {
+          "frame_index": 0,
+          "name": "multi_select-1",
+          "value": "2"
+        },
+        {
+          "frame_index": 0,
+          "name": "multi_select-1",
+          "value": "1"
+        },
+        {
+          "frame_index": "global",
+          "name": "annotation-text-1",
+          "value": "Annotation test"
+        }
+      ],
+      "slot_names": [
+        "0"
+      ],
+      "text": {
+        "text": "test_text"
+      }
+    }
+  ],
+  "properties": []
+}
