@@ -17,9 +17,6 @@ on:
         description: "Changed json files"
         value: ${{ jobs.get_changed_files.outputs.json_changed_files }}
 
-env:
-  GH_TOKEN: ${{ github.token }}
-
 permissions:
   contents: read
 
@@ -36,34 +33,84 @@ jobs:
       - name: Harden Runner
         uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
         with:
-          egress-policy: audit
+          egress-policy: block
+          allowed-endpoints: >
+            api.github.com:443
+            github.com:443
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # File names come from the pull request and are untrusted. They reach the
+      # shell only through environment variables, never through ${{ }} expansion
+      # inside a run: block. The list is space separated, so a name that
+      # contains a space is not supported; it is split and skipped downstream.
+      # Outputs use a random heredoc delimiter so a file name cannot end the
+      # value early. The token is only present in the step that calls the API.
       - name: Get changed files
         id: changed_files
         shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.number }}
         run: |
-          changed_files=`gh pr diff ${{ github.event.number }} --name-only | xargs`
+          set -euo pipefail
+          changed_files=$(gh api "repos/$REPO/pulls/$PR_NUMBER/files" --paginate --jq '.[].filename' | tr '\n' ' ')
+          changed_files=${changed_files% }
           echo "Changed files: $changed_files"
-          echo "changed_files=$changed_files" >> $GITHUB_OUTPUT
+          delim="EOF_$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')"
+          {
+            echo "changed_files<<$delim"
+            echo "$changed_files"
+            echo "$delim"
+          } >> "$GITHUB_OUTPUT"
       - name: Get changed python files
         id: changed_python_files
         shell: bash
+        env:
+          CHANGED_FILES: ${{ steps.changed_files.outputs.changed_files }}
         run: |
-          changed_files=`python3 ${{ github.workspace }}/deploy/_filter_files.py py ${{ steps.changed_files.outputs.changed_files }}`
+          set -euo pipefail -f
+          # shellcheck disable=SC2086 # the list is split into one argument per file on purpose
+          changed_files=$(python3 "$GITHUB_WORKSPACE/deploy/_filter_files.py" py $CHANGED_FILES)
           echo "Changed python files: $changed_files"
-          echo "python_changed_files=$changed_files" >> $GITHUB_OUTPUT
+          delim="EOF_$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')"
+          {
+            echo "python_changed_files<<$delim"
+            echo "$changed_files"
+            echo "$delim"
+          } >> "$GITHUB_OUTPUT"
       - name: Get changed yaml files
         id: changed_yaml_files
         shell: bash
+        env:
+          CHANGED_FILES: ${{ steps.changed_files.outputs.changed_files }}
         run: |
-          changed_files=`python3 ${{ github.workspace }}/deploy/_filter_files.py yml ${{ steps.changed_files.outputs.changed_files }}`
+          set -euo pipefail -f
+          # shellcheck disable=SC2086 # the list is split into one argument per file on purpose
+          changed_files=$(python3 "$GITHUB_WORKSPACE/deploy/_filter_files.py" yml $CHANGED_FILES)
           echo "Changed yaml files: $changed_files"
-          echo "yaml_changed_files=$changed_files" >> $GITHUB_OUTPUT
+          delim="EOF_$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')"
+          {
+            echo "yaml_changed_files<<$delim"
+            echo "$changed_files"
+            echo "$delim"
+          } >> "$GITHUB_OUTPUT"
       - name: Get changed json files
         id: changed_json_files
         shell: bash
+        env:
+          CHANGED_FILES: ${{ steps.changed_files.outputs.changed_files }}
         run: |
-          cjf=`python3 ${{ github.workspace }}/deploy/_filter_files.py json ${{ steps.changed_files.outputs.changed_files }}`
-          echo "Changed json files: $cjf"
-          echo "json_changed_files=$cjf" >> $GITHUB_OUTPUT
+          set -euo pipefail -f
+          # shellcheck disable=SC2086 # the list is split into one argument per file on purpose
+          changed_files=$(python3 "$GITHUB_WORKSPACE/deploy/_filter_files.py" json $CHANGED_FILES)
+          echo "Changed json files: $changed_files"
+          delim="EOF_$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')"
+          {
+            echo "json_changed_files<<$delim"
+            echo "$changed_files"
+            echo "$delim"
+          } >> "$GITHUB_OUTPUT"
