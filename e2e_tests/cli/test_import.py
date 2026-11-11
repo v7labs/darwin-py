@@ -654,6 +654,20 @@ def test_import_eye_annotations_to_videos(
     )
 
 
+def test_import_keypoint_3d_annotations_to_dicom_volumes(
+    local_dataset: E2EDataset, config_values: ConfigValues
+) -> None:
+    """
+    Checks that 3D keypoints keep their voxel position through import and export.
+    """
+    run_import_test(
+        local_dataset,
+        config_values,
+        item_type="multi_segment_nifti",
+        annotations_subdir="keypoint_3d",
+    )
+
+
 def test_importing_coco_annotations(
     local_dataset: E2EDataset, config_values: ConfigValues
 ) -> None:
