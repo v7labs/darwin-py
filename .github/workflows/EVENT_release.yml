@@ -1,65 +1,66 @@
 name: release
-run-name: Release
+run-name: Publish ${{ inputs.tag }}
 
+# PyPI trusts this filename in the pypi environment, which only master can deploy to.
 on:
-  release:
-    types: [released]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Published release tag, vX.Y.Z"
+        required: true
+        type: string
+      sha:
+        description: "Commit the release checks passed on"
+        required: true
+        type: string
 
 permissions:
   contents: read
 
 jobs:
-  validate_tag:
+  validate:
     runs-on: ubuntu-latest
     outputs:
-      version: ${{ steps.version.outputs.version }}
+      version: ${{ steps.validate.outputs.version }}
     steps:
       - name: Harden Runner
         uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
         with:
           egress-policy: audit
 
-      - name: Derive the version from the release tag
-        id: version
+      - name: Require a published vX.Y.Z release on the checked master commit
+        id: validate
         env:
-          TAG: ${{ github.event.release.tag_name }}
+          TAG: ${{ inputs.tag }}
+          SHA: ${{ inputs.sha }}
+          GH_TOKEN: ${{ github.token }}
         run: |
+          if [[ "$GITHUB_REF" != refs/heads/master ]]; then
+            echo "::error::Publish runs from master only (got $GITHUB_REF)"
+            exit 1
+          fi
           if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "::error::Release tag '$TAG' must look like vX.Y.Z"
+            echo "::error::Tag '$TAG' must look like vX.Y.Z"
+            exit 1
+          fi
+          if [[ "$(gh release view "$TAG" -R "$GITHUB_REPOSITORY" --json isDraft --jq .isDraft)" != false ]]; then
+            echo "::error::$TAG is not a published release"
+            exit 1
+          fi
+          tag_sha=$(gh api "repos/$GITHUB_REPOSITORY/commits/$TAG" --jq .sha)
+          if [[ "$tag_sha" != "$SHA" ]]; then
+            echo "::error::$TAG points at $tag_sha, but the release checks ran on $SHA"
+            exit 1
+          fi
+          status=$(gh api "repos/$GITHUB_REPOSITORY/compare/master...$SHA" --jq .status)
+          if [[ "$status" != behind && "$status" != identical ]]; then
+            echo "::error::$SHA is not on master ($status)"
             exit 1
           fi
           echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
 
-      - name: Require the tagged commit to be on master
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          status=$(gh api "repos/$GITHUB_REPOSITORY/compare/master...$GITHUB_SHA" --jq .status)
-          if [[ "$status" != behind && "$status" != identical ]]; then
-            echo "::error::Release commit $GITHUB_SHA is not on master ($status). Merge to master first, then release."
-            exit 1
-          fi
-
-  run_tests:
-    needs: validate_tag
-    uses: ./.github/workflows/JOB_tests.yml
-
-  run_e2e:
-    needs: validate_tag
-    permissions:
-      id-token: write
-      contents: read
-    uses: ./.github/workflows/JOB_e2e.yml
-    secrets:
-      E2E_API_KEY: ${{ secrets.E2E_API_KEY }}
-      E2E_ENVIRONMENT: ${{ secrets.E2E_ENVIRONMENT }}
-      E2E_TEAM: ${{ secrets.E2E_TEAM }}
-      E2E_VIDEO_AWS_ROLE: ${{ secrets.E2E_VIDEO_AWS_ROLE }}
-      E2E_STORAGE_NAME: ${{ secrets.E2E_STORAGE_NAME }}
-      E2E_STORAGE_REGION: ${{ secrets.E2E_STORAGE_REGION }}
-
   release:
-    needs: [validate_tag, run_tests, run_e2e]
+    needs: validate
     runs-on: ubuntu-latest
     environment: pypi
     permissions:
@@ -74,7 +75,8 @@ jobs:
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.ref }}
+          ref: ${{ inputs.sha }}
+          persist-credentials: false
 
       - name: Set up Python
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
@@ -89,7 +91,7 @@ jobs:
 
       - name: Write the release version
         env:
-          VERSION: ${{ needs.validate_tag.outputs.version }}
+          VERSION: ${{ needs.validate.outputs.version }}
         run: |
           poetry version "$VERSION"
           printf '__version__ = "%s"\n' "$VERSION" > darwin/version/__init__.py
@@ -109,10 +111,10 @@ jobs:
       icon: ":rocket:"
       at_team: true
       message: |
-        :tada: *${{ github.event.release.tag_name }}* has been released!
+        :tada: *${{ inputs.tag }}* has been released!
         :link:
           - https://pypi.org/project/darwin-py
-          - ${{ github.event.release.html_url }}
+          - ${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ inputs.tag }}
 
   notify_failed_release:
     needs: [release]
@@ -123,9 +125,9 @@ jobs:
       icon: ":warning:"
       at_team: true
       message: |
-        :warning: *${{ github.event.release.tag_name }}* Release has failed to be released!
+        :warning: *${{ inputs.tag }}* Release has failed to be released!
 
         *An error occurred performing release, and you may need to release manually.*
 
         :link:
-          - ${{ github.event.release.html_url }}
+          - ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
