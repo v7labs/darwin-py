@@ -193,6 +193,7 @@ def test__build_main_annotations_lookup_table() -> None:
         {"name": "class5", "id": 5, "annotation_types": ["bounding_box", "polygon"]},
         {"name": "class6", "id": 6, "annotation_types": ["skeleton"]},
         {"name": "class7", "id": 7, "annotation_types": ["eye"]},
+        {"name": "class8", "id": 8, "annotation_types": ["keypoint_3d"]},
     ]
 
     expected_lookup = {
@@ -204,6 +205,7 @@ def test__build_main_annotations_lookup_table() -> None:
         "raster_layer": {"class3": 3},
         "skeleton": {"class6": 6},
         "eye": {"class7": 7},
+        "keypoint_3d": {"class8": 8},
     }
 
     result = _build_main_annotations_lookup_table(annotation_classes)
@@ -1072,6 +1074,33 @@ def test__get_annotation_data_eye_video_annotation() -> None:
 
     assert result["frames"][0]["eye"] == {"nodes": keyframe_nodes}
     assert 1 not in result["frames"]
+
+
+def test__get_annotation_data_keypoint_3d_annotation() -> None:
+    from darwin.importer.importer import _get_annotation_data
+
+    annotation = dt.make_keypoint_3d(
+        "Landmark",
+        73.1,
+        69.0,
+        26.4,
+        subs=[
+            dt.SubAnnotation(annotation_type="text", data="apex"),
+            dt.SubAnnotation(annotation_type="attributes", data=["visible"]),
+            dt.SubAnnotation(annotation_type="instance_id", data=3),
+        ],
+        slot_names=["0"],
+    )
+    attributes = {"keypoint_3d_class_id": {"visible": "attribute_id_1"}}
+
+    result = _get_annotation_data(annotation, "keypoint_3d_class_id", attributes)
+
+    assert result == {
+        "keypoint_3d": {"x": 73.1, "y": 69.0, "z": 26.4},
+        "text": {"text": "apex"},
+        "attributes": {"attributes": ["attribute_id_1"]},
+        "instance_id": {"value": 3},
+    }
 
 
 def __expectation_factory(i: int, slot_names: List[str]) -> dt.Annotation:
@@ -3776,6 +3805,29 @@ def test_no_instance_id_warning_with_no_video_annotations():
             annotations=[],
             filename="file2",
             annotation_classes={bounding_box_class},
+        ),
+    ]
+    console = MagicMock()
+    _warn_for_annotations_with_multiple_instance_ids(local_files, console)
+    console.print.assert_not_called()
+
+
+def test_no_instance_id_warning_for_keypoint_3d_in_video_file():
+    keypoint_3d = dt.make_keypoint_3d(
+        "Landmark",
+        73.1,
+        69.0,
+        26.4,
+        subs=[dt.SubAnnotation(annotation_type="instance_id", data=3)],
+        slot_names=["0"],
+    )
+    local_files = [
+        dt.AnnotationFile(
+            path=Path("volume.json"),
+            is_video=True,
+            annotations=[keypoint_3d],
+            filename="volume.nii.gz",
+            annotation_classes={keypoint_3d.annotation_class},
         ),
     ]
     console = MagicMock()
