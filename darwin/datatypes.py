@@ -115,6 +115,7 @@ AnnotationType = Literal[  # NB: Some of these are not supported yet
     "raster_layer",
     "mask",
     "keypoint",
+    "keypoint_3d",
     "tag",
     "line",
     "skeleton",
@@ -919,6 +920,46 @@ def make_keypoint(
     return Annotation(
         AnnotationClass(class_name, "keypoint"),
         {"x": x, "y": y},
+        subs or [],
+        slot_names=slot_names or [],
+    )
+
+
+def make_keypoint_3d(
+    class_name: str,
+    x: float,
+    y: float,
+    z: float,
+    subs: Optional[List[SubAnnotation]] = None,
+    slot_names: Optional[List[str]] = None,
+) -> Annotation:
+    """
+    Creates and returns a 3D keypoint annotation. A 3D keypoint has one position in a
+    volume (DICOM or NIfTI) and no frames.
+
+    Parameters
+    ----------
+    class_name : str
+        The name of the class for this ``Annotation``.
+    x : float
+        The ``x`` voxel index of the point.
+    y : float
+        The ``y`` voxel index of the point.
+    z : float
+        The ``z`` voxel index of the point.
+    subs : Optional[List[SubAnnotation]], default: None
+        List of ``SubAnnotation``s for this ``Annotation``.
+    slot_names : Optional[List[str]], default: None
+        Slot names associated with this ``Annotation``.
+
+    Returns
+    -------
+    Annotation
+        A 3D keypoint ``Annotation``.
+    """
+    return Annotation(
+        AnnotationClass(class_name, "keypoint_3d"),
+        {"x": x, "y": y, "z": z},
         subs or [],
         slot_names=slot_names or [],
     )

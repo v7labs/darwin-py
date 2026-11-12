@@ -1,0 +1,163 @@
+{
+  "version": "2.0",
+  "schema_ref": "https://darwin-public.s3.eu-west-1.amazonaws.com/darwin_json/2.0/schema.json",
+  "item": {
+    "name": "axial_RPI_pixdim_1.0_1.0_1.0.dcm",
+    "path": "/",
+    "source_info": {
+      "item_id": "0197ee1d-591e-a61b-82e2-e6f1e5c30cf2",
+      "dataset": {
+        "name": "dicom_test_data_new",
+        "slug": "dicom_test_data_new",
+        "dataset_management_url": "https://darwin.v7labs.com/datasets/1856922/dataset-management"
+      },
+      "team": {
+        "name": "V7 John",
+        "slug": "v7-john"
+      },
+      "workview_url": "https://darwin.v7labs.com/workview?dataset=1856922&item=0197ee1d-591e-a61b-82e2-e6f1e5c30cf2"
+    },
+    "slots": [
+      {
+        "type": "dicom",
+        "slot_name": "0",
+        "width": 128,
+        "height": 128,
+        "fps": null,
+        "thumbnail_url": "https://darwin.v7labs.com/api/v2/teams/v7-john/files/243d7c36-d767-4e3c-adb0-44324ebd14fe/thumbnail?token=590de404-3490-4dde-90f9-d13136b0d14f",
+        "source_files": [
+          {
+            "file_name": "axial_RPI_pixdim_1.0_1.0_1.0.dcm",
+            "url": "https://darwin.v7labs.com/api/v2/teams/v7-john/uploads/d4f4e7cd-e8a8-407f-9ff3-0a1f3298c84c?token=590de404-3490-4dde-90f9-d13136b0d14f"
+          }
+        ],
+        "frame_count": 16,
+        "frame_urls": [
+          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/243d7c36-d767-4e3c-adb0-44324ebd14fe/sections/0?token=590de404-3490-4dde-90f9-d13136b0d14f",
+          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/243d7c36-d767-4e3c-adb0-44324ebd14fe/sections/1?token=590de404-3490-4dde-90f9-d13136b0d14f",
+          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/243d7c36-d767-4e3c-adb0-44324ebd14fe/sections/2?token=590de404-3490-4dde-90f9-d13136b0d14f",
+          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/243d7c36-d767-4e3c-adb0-44324ebd14fe/sections/3?token=590de404-3490-4dde-90f9-d13136b0d14f",
+          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/243d7c36-d767-4e3c-adb0-44324ebd14fe/sections/4?token=590de404-3490-4dde-90f9-d13136b0d14f",
+          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/243d7c36-d767-4e3c-adb0-44324ebd14fe/sections/5?token=590de404-3490-4dde-90f9-d13136b0d14f",
+          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/243d7c36-d767-4e3c-adb0-44324ebd14fe/sections/6?token=590de404-3490-4dde-90f9-d13136b0d14f",
+          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/243d7c36-d767-4e3c-adb0-44324ebd14fe/sections/7?token=590de404-3490-4dde-90f9-d13136b0d14f",
+          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/243d7c36-d767-4e3c-adb0-44324ebd14fe/sections/8?token=590de404-3490-4dde-90f9-d13136b0d14f",
+          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/243d7c36-d767-4e3c-adb0-44324ebd14fe/sections/9?token=590de404-3490-4dde-90f9-d13136b0d14f",
+          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/243d7c36-d767-4e3c-adb0-44324ebd14fe/sections/10?token=590de404-3490-4dde-90f9-d13136b0d14f",
+          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/243d7c36-d767-4e3c-adb0-44324ebd14fe/sections/11?token=590de404-3490-4dde-90f9-d13136b0d14f",
+          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/243d7c36-d767-4e3c-adb0-44324ebd14fe/sections/12?token=590de404-3490-4dde-90f9-d13136b0d14f",
+          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/243d7c36-d767-4e3c-adb0-44324ebd14fe/sections/13?token=590de404-3490-4dde-90f9-d13136b0d14f",
+          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/243d7c36-d767-4e3c-adb0-44324ebd14fe/sections/14?token=590de404-3490-4dde-90f9-d13136b0d14f",
+          "https://darwin.v7labs.com/api/v2/teams/v7-john/files/243d7c36-d767-4e3c-adb0-44324ebd14fe/sections/15?token=590de404-3490-4dde-90f9-d13136b0d14f"
+        ],
+        "metadata": {
+          "handler": "MONAI",
+          "shape": [
+            1,
+            128,
+            128,
+            16
+          ],
+          "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.37180825650614764423282910493086149224",
+          "affine": "[[-1.0, 0.0, 0.0, 127.0], [0.0, -1.0, 0.0, 0.0], [0.0, 0.0, -1.0, 15.0], [0.0, 0.0, 0.0, 1.0]]",
+          "colorspace": "RG16",
+          "original_affine": [
+            [
+              "1.0",
+              "0.0",
+              "0.0",
+              "0.0"
+            ],
+            [
+              "0.0",
+              "-1.0",
+              "0.0",
+              "0.0"
+            ],
+            [
+              "0.0",
+              "0.0",
+              "1.0",
+              "0.0"
+            ],
+            [
+              "0.0",
+              "0.0",
+              "0.0",
+              "1.0"
+            ]
+          ],
+          "pixdim": "(1.0, 1.0, 1.0)",
+          "plane_map": {
+            "0": "AXIAL"
+          },
+          "primary_plane": "AXIAL"
+        }
+      }
+    ]
+  },
+  "annotations": [
+    {
+      "id": "5b0c2f4e-8a3d-4c1b-9e7f-2d6a1c3b4e50",
+      "keypoint_3d": {
+        "x": 40.5,
+        "y": 60.25,
+        "z": 7.0
+      },
+      "name": "test_keypoint_3d_basic",
+      "properties": [],
+      "slot_names": [
+        "0"
+      ]
+    },
+    {
+      "id": "9d1e7a62-3f4b-4a8c-b5d0-6e2f8c1a7b93",
+      "keypoint_3d": {
+        "x": 100.0,
+        "y": 20.0,
+        "z": 15.0
+      },
+      "name": "test_keypoint_3d_basic",
+      "properties": [],
+      "slot_names": [
+        "0"
+      ]
+    },
+    {
+      "id": "c4a8e1d3-7b26-4f59-8d0a-3e5b9f2c6a17",
+      "instance_id": {
+        "value": 9
+      },
+      "keypoint_3d": {
+        "x": 64.0,
+        "y": 64.0,
+        "z": 3.5
+      },
+      "name": "test_keypoint_3d_with_subtypes_and_properties",
+      "properties": [
+        {
+          "frame_index": 0,
+          "name": "multi_select-1",
+          "value": "2"
+        },
+        {
+          "frame_index": 0,
+          "name": "multi_select-1",
+          "value": "1"
+        },
+        {
+          "frame_index": "global",
+          "name": "annotation-text-1",
+          "value": "Annotation test"
+        }
+      ],
+      "slot_names": [
+        "0"
+      ],
+      "text": {
+        "text": "test_text"
+      }
+    }
+  ],
+  "properties": []
+}

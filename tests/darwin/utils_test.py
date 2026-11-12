@@ -1158,6 +1158,110 @@ class TestParseDarwinJson:
         assert annotation.frames[1].data["nodes"] == first
         assert annotation.frames[3].data["nodes"] == second
 
+    @pytest.mark.parametrize("version", ["2.0", "2.1"])
+    def test_imports_a_keypoint_3d(self, tmp_path, version):
+        content = """
+        {
+        "version": "VERSION",
+        "schema_ref": "https://darwin-public.s3.eu-west-1.amazonaws.com/darwin_json/VERSION/schema.json",
+        "item": {
+            "name": "volume.nii.gz",
+            "path": "/",
+            "source_info": {
+            "item_id": "01a0d8f1-ce04-2f7a-e3a6-b27b0e3b8cc5",
+            "team": {
+                "name": "V7 Team",
+                "slug": "v7-team"
+            }
+            },
+            "slots": [
+            {
+                "type": "dicom",
+                "slot_name": "0",
+                "width": 128,
+                "height": 128,
+                "frame_count": 2,
+                "frame_urls": [
+                "https://darwin.v7labs.com/api/v2/teams/v7-team/files/243d7c36/sections/0",
+                "https://darwin.v7labs.com/api/v2/teams/v7-team/files/243d7c36/sections/1"
+                ],
+                "source_files": [
+                {
+                    "file_name": "volume.nii.gz",
+                    "url": "https://darwin.v7labs.com/api/v2/teams/v7-team/uploads/c496b020"
+                }
+                ]
+            }
+            ]
+        },
+        "annotations": [
+            {
+            "id": "462421e5-01f1-470d-b66d-fb080a3e30ac",
+            "name": "Landmark",
+            "slot_names": [
+                "0"
+            ],
+            "keypoint_3d": {
+                "x": 73.1,
+                "y": 69.0,
+                "z": 26.4
+            },
+            "instance_id": {
+                "value": 3
+            },
+            "text": {
+                "text": "apex"
+            },
+            "properties": []
+            },
+            {
+            "id": "8c4b3f0e-6c1d-4d0e-9a61-0f6f6a1f1c55",
+            "name": "Lesion",
+            "slot_names": [
+                "0"
+            ],
+            "ranges": [[0, 2]],
+            "frames": {
+                "0": {
+                "keyframe": true,
+                "bounding_box": {
+                    "x": 10.0,
+                    "y": 20.0,
+                    "w": 30.0,
+                    "h": 40.0
+                }
+                }
+            },
+            "properties": []
+            }
+        ]
+        }
+            """
+
+        directory = tmp_path / "imports"
+        directory.mkdir()
+        import_file = directory / "darwin-file.json"
+        import_file.write_text(content.replace("VERSION", version))
+
+        annotation_file: dt.AnnotationFile = parse_darwin_json(import_file, None)
+
+        assert annotation_file.is_video
+        assert len(annotation_file.annotations) == 2
+
+        annotation = annotation_file.annotations[0]
+        assert isinstance(annotation, dt.Annotation)
+        assert annotation.id == "462421e5-01f1-470d-b66d-fb080a3e30ac"
+        assert annotation.annotation_class.annotation_type == "keypoint_3d"
+        assert annotation.annotation_class.name == "Landmark"
+        assert annotation.slot_names == ["0"]
+        assert annotation.data == {"x": 73.1, "y": 69.0, "z": 26.4}
+        assert sorted(sub.annotation_type for sub in annotation.subs) == [
+            "instance_id",
+            "text",
+        ]
+
+        assert isinstance(annotation_file.annotations[1], dt.VideoAnnotation)
+
     def test_removes_class_name_whitespace(self, tmp_path):
         content = """
         {

@@ -124,6 +124,7 @@ def _build_main_annotations_lookup_table(
         "cuboid",
         "ellipse",
         "keypoint",
+        "keypoint_3d",
         "line",
         "link",
         "polygon",
@@ -2577,9 +2578,11 @@ def _warn_for_annotations_with_multiple_instance_ids(
     ]
     for file in files_with_video_annotations:
         for annotation in file.annotations:
+            if not isinstance(annotation, dt.VideoAnnotation):
+                continue
             unique_instance_ids = []
-            for frame_idx in annotation.frames:  # type: ignore
-                for subannotation in annotation.frames[frame_idx].subs:  # type: ignore
+            for frame_idx in annotation.frames:
+                for subannotation in annotation.frames[frame_idx].subs:
                     if subannotation.annotation_type == "instance_id":
                         instance_id = subannotation.data
                         if instance_id not in unique_instance_ids:
