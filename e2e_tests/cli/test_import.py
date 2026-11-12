@@ -302,21 +302,27 @@ def compare_annotations_export(
         expected_by_actual[actual_filename].append(expected_filename)
 
     for actual_filename, expected_filenames in expected_by_actual.items():
-        actual_annotation_data = parse_annotation_file(
-            actual_annotation_files[actual_filename], annotation_format
-        )
-        expected_annotation_data_per_file = [
-            parse_annotation_file(
-                expected_annotation_files[expected_filename], annotation_format
+        # A file can hold several items (COCO), so the items are paired by file name
+        actual_file_by_item = {
+            annotation_file.filename: annotation_file
+            for annotation_file in parse_annotation_file(
+                actual_annotation_files[actual_filename], annotation_format
             )
-            for expected_filename in expected_filenames
-        ]
-        for idx, actual_annotation_file in enumerate(actual_annotation_data):
-            expected_annotation_files_of_item = [
-                expected_annotation_data[idx]
-                for expected_annotation_data in expected_annotation_data_per_file
-                if idx < len(expected_annotation_data)
-            ]
+        }
+        expected_files_by_item: Dict[str, List[dt.AnnotationFile]] = defaultdict(list)
+        for expected_filename in expected_filenames:
+            for annotation_file in parse_annotation_file(
+                expected_annotation_files[expected_filename], annotation_format
+            ):
+                expected_files_by_item[annotation_file.filename].append(annotation_file)
+        for (
+            item_name,
+            expected_annotation_files_of_item,
+        ) in expected_files_by_item.items():
+            assert (
+                item_name in actual_file_by_item
+            ), f"{actual_filename} has no item '{item_name}'"
+            actual_annotation_file = actual_file_by_item[item_name]
             actual_annotations = actual_annotation_file.annotations
             expected_annotations = [
                 annotation
