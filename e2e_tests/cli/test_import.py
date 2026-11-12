@@ -315,6 +315,15 @@ def compare_annotations_export(
                 expected_annotation_files[expected_filename], annotation_format
             ):
                 expected_files_by_item[annotation_file.filename].append(annotation_file)
+        unexpected_annotated_items = [
+            item_name
+            for item_name, annotation_file in actual_file_by_item.items()
+            if item_name not in expected_files_by_item and annotation_file.annotations
+        ]
+        assert not unexpected_annotated_items, (
+            f"{actual_filename} has annotations on items that are not expected: "
+            + ", ".join(unexpected_annotated_items)
+        )
         for (
             item_name,
             expected_annotation_files_of_item,
