@@ -379,10 +379,15 @@ def assert_all_expected_mask_instances_present(
     actual_masks = [
         a for a in actual_annotations if a.annotation_class.annotation_type == "mask"
     ]
-    assert Counter(
-        (mask.annotation_class.name, *mask.slot_names) for mask in actual_masks
-    ) == Counter(
-        (mask.annotation_class.name, *mask.slot_names) for mask in expected_masks
+
+    def mask_instance(mask: Union[dt.Annotation, dt.VideoAnnotation]) -> str:
+        # The class, the sub-annotations and, for videos, the frames, with the slots
+        return json.dumps(
+            [comparable_annotation(mask), mask.slot_names], sort_keys=True, default=str
+        )
+
+    assert Counter(mask_instance(mask) for mask in actual_masks) == Counter(
+        mask_instance(mask) for mask in expected_masks
     )
     for expected_mask in expected_masks:
         if expected_mask.properties:
