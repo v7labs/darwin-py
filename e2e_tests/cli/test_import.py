@@ -1,10 +1,16 @@
-import importlib
+import dataclasses
+import difflib
+import json
 import tempfile
 import zipfile
+from collections import Counter, defaultdict
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, List, Optional, Sequence, Union
+
+import pytest
 
 import darwin.datatypes as dt
+from darwin.importer import get_importer
 from e2e_tests.helpers import (
     assert_cli,
     delete_annotation_uuids,
@@ -12,6 +18,7 @@ from e2e_tests.helpers import (
     list_items,
     exclude_annotations_of_type,
     run_cli_command,
+    wait_until_items_processed,
 )
 from e2e_tests.objects import ConfigValues, E2EDataset
 
@@ -68,61 +75,106 @@ def get_actual_annotation_filename(
     return expected_filename
 
 
-def find_matching_actual_annotation(
+def sorted_sub_annotations(subs: Sequence[dt.SubAnnotation]) -> List[Dict[str, Any]]:
+    """
+    Returns the given sub-annotations as plain dictionaries in a stable order, so that
+    a comparison ignores the order of the sub-annotations
+    """
+    return sorted(
+        (dataclasses.asdict(sub) for sub in subs),
+        key=lambda sub: json.dumps(sub, sort_keys=True, default=str),
+    )
+
+
+def comparable_annotation(
+    annotation: Union[dt.Annotation, dt.VideoAnnotation],
+) -> Dict[str, Any]:
+    """
+    Returns the parts of an annotation that must be the same after an import and an export:
+    - `dt.Annotation`: the annotation type, `data` and the sub-annotations
+    - `dt.VideoAnnotation`: the annotation type and each frame, with its sub-annotations
+    """
+    annotation_type = annotation.annotation_class.annotation_type
+    if isinstance(annotation, dt.VideoAnnotation):
+        frames = {}
+        for frame_index, frame in annotation.frames.items():
+            frames[frame_index] = dataclasses.asdict(frame)
+            frames[frame_index]["subs"] = sorted_sub_annotations(frame.subs)
+        return {"annotation_type": annotation_type, "frames": frames}
+    return {
+        "annotation_type": annotation_type,
+        "data": annotation.data,
+        "subs": sorted_sub_annotations(annotation.subs),
+    }
+
+
+def describe_annotation(annotation: Union[dt.Annotation, dt.VideoAnnotation]) -> str:
+    annotation_class = annotation.annotation_class
+    return f"'{annotation_class.name}' ({annotation_class.annotation_type})"
+
+
+def closest_annotation_diff(
     expected_annotation: Union[dt.Annotation, dt.VideoAnnotation],
-    actual_annotations: Sequence[Union[dt.Annotation, dt.VideoAnnotation]],
+    unmatched_actual_annotations: Sequence[Union[dt.Annotation, dt.VideoAnnotation]],
+) -> str:
+    """
+    Returns a diff of the expected annotation and the most similar unmatched actual
+    annotation. Actual annotations of the same class are preferred, then of the same type
+    """
+    if not unmatched_actual_annotations:
+        return "There are no unmatched actual annotations to compare with"
+
+    def as_text(annotation: Union[dt.Annotation, dt.VideoAnnotation]) -> str:
+        return json.dumps(
+            comparable_annotation(annotation), indent=2, sort_keys=True, default=str
+        )
+
+    expected_class = expected_annotation.annotation_class
+    expected_text = as_text(expected_annotation)
+
+    def similarity(annotation: Union[dt.Annotation, dt.VideoAnnotation]):
+        annotation_class = annotation.annotation_class
+        same_type = annotation_class.annotation_type == expected_class.annotation_type
+        return (
+            same_type and annotation_class.name == expected_class.name,
+            same_type,
+            difflib.SequenceMatcher(
+                None, expected_text, as_text(annotation)
+            ).quick_ratio(),
+        )
+
+    closest = max(unmatched_actual_annotations, key=similarity)
+    return "\n".join(
+        difflib.unified_diff(
+            expected_text.splitlines(),
+            as_text(closest).splitlines(),
+            fromfile=f"expected {describe_annotation(expected_annotation)}",
+            tofile=f"closest actual {describe_annotation(closest)}",
+            lineterm="",
+        )
+    )
+
+
+def pop_matching_actual_annotation(
+    expected_annotation: Union[dt.Annotation, dt.VideoAnnotation],
+    unmatched_actual_annotations: List[Union[dt.Annotation, dt.VideoAnnotation]],
 ) -> Union[dt.Annotation, dt.VideoAnnotation]:
     """
-    For a given expected annotation, finds the corresponding actual annotation
-    """
-    if isinstance(expected_annotation, dt.Annotation):
-        expected_annotation_data = expected_annotation.data
-        expected_annotation_type = expected_annotation.annotation_class.annotation_type
-        actual_annotation = next(
-            (
-                annotation
-                for annotation in actual_annotations
-                if annotation.data == expected_annotation_data
-                and annotation.annotation_class.annotation_type
-                == expected_annotation_type
-            ),
-            None,
-        )
-    elif isinstance(expected_annotation, dt.VideoAnnotation):
-        expected_annotation_frame_data = expected_annotation.frames
-        expected_annotation_type = expected_annotation.annotation_class.annotation_type
-        actual_annotation = next(
-            (
-                annotation
-                for annotation in actual_annotations
-                if annotation.frames == expected_annotation_frame_data
-                and annotation.annotation_class.annotation_type
-                == expected_annotation_type
-            )
-        )
-    assert actual_annotation is not None, "Annotation not found in actual annotations"
-    return actual_annotation
+    Removes and returns the actual annotation that has the same type, `data` / `frames`
+    and sub-annotations as the given expected annotation, so that the actual annotations
+    that remain after all expected annotations are matched are extra annotations.
 
-
-def assert_same_annotation_data(
-    expected_annotation: Union[dt.Annotation, dt.VideoAnnotation],
-    actual_annotation: Union[dt.Annotation, dt.VideoAnnotation],
-) -> None:
+    Fails with a diff of the expected and the closest actual annotation if there is no match
     """
-    For `dt.Annotation` objects:
-        Ensures that `expected_annotation.data` is equivalent to `actual_annotation.data`
-
-    For `dt.VideoAnnotation` objects:
-        Ensures that `expected_annotation.frames` is equivalent to `actual_annotation.frames`
-    """
-    if isinstance(expected_annotation, dt.Annotation) and isinstance(
-        actual_annotation, dt.Annotation
-    ):
-        assert expected_annotation.data == actual_annotation.data
-    elif isinstance(expected_annotation, dt.VideoAnnotation) and isinstance(
-        actual_annotation, dt.VideoAnnotation
-    ):
-        assert expected_annotation.frames == actual_annotation.frames
+    expected_comparable = comparable_annotation(expected_annotation)
+    for index, actual_annotation in enumerate(unmatched_actual_annotations):
+        if comparable_annotation(actual_annotation) == expected_comparable:
+            return unmatched_actual_annotations.pop(index)
+    pytest.fail(
+        f"No actual annotation matches the expected annotation "
+        f"{describe_annotation(expected_annotation)}:\n"
+        + closest_annotation_diff(expected_annotation, unmatched_actual_annotations)
+    )
 
 
 def assert_same_annotation_properties(
@@ -158,32 +210,16 @@ def get_base_slot_name_of_item(
             return item["slots"][0]["slot_name"]
 
 
-def parse_expected_and_actual_annotations(
-    expected_annotation_files,
-    actual_annotation_files,
-    expected_filename: str = "",
-    actual_filename: str = "",
-    annotation_format: str = "",
-) -> Tuple[List[dt.AnnotationFile], List[dt.AnnotationFile]]:
+def parse_annotation_file(
+    annotation_file: str, annotation_format: str
+) -> List[dt.AnnotationFile]:
     """
-    Parses and returns exported & actual annotation files in a given format.
+    Parses and returns the annotation file(s) in the file at the given path.
     """
-    importer_module = importlib.import_module(
-        f"darwin.importer.formats.{annotation_format}"
-    )
-    expected_annotation_data = importer_module.parse_path(
-        Path(expected_annotation_files[expected_filename])
-    )
-    actual_annotation_data = importer_module.parse_path(
-        Path(actual_annotation_files[actual_filename])
-    )
-
-    if not isinstance(expected_annotation_data, list):
-        expected_annotation_data = [expected_annotation_data]
-    if not isinstance(actual_annotation_data, list):
-        actual_annotation_data = [actual_annotation_data]
-
-    return expected_annotation_data, actual_annotation_data
+    annotation_data = get_importer(annotation_format)(Path(annotation_file))
+    if not isinstance(annotation_data, list):
+        annotation_data = [annotation_data]
+    return annotation_data
 
 
 def assert_same_annotation_slot_name(
@@ -250,27 +286,37 @@ def compare_annotations_export(
         if file.is_file()
         and not any(file.name.startswith(prefix) for prefix in file_prefixes_to_ignore)
     }
+    # When annotations are appended, several expected files are imported to 1 item, so
+    # they are compared together with the 1 actual file of that item
+    expected_by_actual: Dict[str, List[str]] = defaultdict(list)
     for expected_filename in expected_annotation_files:
         actual_filename = get_actual_annotation_filename(
             expected_filename, actual_annotation_files
         )
-        (
-            expected_annotation_data,
-            actual_annotation_data,
-        ) = parse_expected_and_actual_annotations(
-            expected_annotation_files,
-            actual_annotation_files,
-            expected_filename,
-            actual_filename,
-            annotation_format,
+        expected_by_actual[actual_filename].append(expected_filename)
+
+    for actual_filename, expected_filenames in expected_by_actual.items():
+        actual_annotation_data = parse_annotation_file(
+            actual_annotation_files[actual_filename], annotation_format
         )
-        for idx, expected_annotation_file in enumerate(expected_annotation_data):
-            actual_annotation_file = actual_annotation_data[idx]
-            expected_annotations = expected_annotation_file.annotations
-            actual_annotations = actual_annotation_file.annotations
-            expected_item_level_properties = (
-                expected_annotation_file.item_properties or []
+        expected_annotation_data_per_file = [
+            parse_annotation_file(
+                expected_annotation_files[expected_filename], annotation_format
             )
+            for expected_filename in expected_filenames
+        ]
+        for idx, actual_annotation_file in enumerate(actual_annotation_data):
+            expected_annotation_files_of_item = [
+                expected_annotation_data[idx]
+                for expected_annotation_data in expected_annotation_data_per_file
+                if idx < len(expected_annotation_data)
+            ]
+            actual_annotations = actual_annotation_file.annotations
+            expected_annotations = [
+                annotation
+                for expected_annotation_file in expected_annotation_files_of_item
+                for annotation in expected_annotation_file.annotations
+            ]
             actual_item_level_properties = actual_annotation_file.item_properties or []
 
             delete_annotation_uuids(expected_annotations)
@@ -285,52 +331,47 @@ def compare_annotations_export(
                 "mask", expected_annotations
             )
 
-            assert_same_item_level_properties(
-                expected_item_level_properties, actual_item_level_properties
-            )
-            for expected_annotation in expected_annotations:
-                actual_annotation = find_matching_actual_annotation(
-                    expected_annotation, actual_annotations
+            for expected_annotation_file in expected_annotation_files_of_item:
+                assert_same_item_level_properties(
+                    expected_annotation_file.item_properties or [],
+                    actual_item_level_properties,
                 )
-                assert_same_annotation_data(expected_annotation, actual_annotation)
+            unmatched_actual_annotations = list(actual_annotations)
+            for expected_annotation in expected_annotations:
+                actual_annotation = pop_matching_actual_annotation(
+                    expected_annotation, unmatched_actual_annotations
+                )
                 assert_same_annotation_properties(
                     expected_annotation, actual_annotation
                 )
                 assert_same_annotation_slot_name(
                     expected_annotation, actual_annotation, item_type, base_slot
                 )
+            assert not unmatched_actual_annotations, (
+                f"{actual_filename} has {len(unmatched_actual_annotations)} annotation(s) "
+                "that are not expected: "
+                + ", ".join(
+                    describe_annotation(annotation)
+                    for annotation in unmatched_actual_annotations
+                )
+            )
 
 
 def assert_all_expected_mask_instances_present(
     actual_annotations: Sequence[Union[dt.Annotation, dt.VideoAnnotation]],
     expected_annotations: Sequence[Union[dt.Annotation, dt.VideoAnnotation]],
 ) -> None:
-    mask_instances_to_match = [
-        (
-            annotation.annotation_class.name,
-            *annotation.slot_names,
-        )
-        for annotation in expected_annotations
-        if annotation.annotation_class.annotation_type == "mask"
-    ]
-
-    for annotation in actual_annotations:
-        if annotation.annotation_class.annotation_type == "mask":
-            mask_instance = (
-                annotation.annotation_class.name,
-                *annotation.slot_names,
-            )
-            if mask_instance in mask_instances_to_match:
-                mask_instances_to_match.remove(mask_instance)
-
-    assert not mask_instances_to_match
-
     expected_masks = [
         a for a in expected_annotations if a.annotation_class.annotation_type == "mask"
     ]
     actual_masks = [
         a for a in actual_annotations if a.annotation_class.annotation_type == "mask"
     ]
+    assert Counter(
+        (mask.annotation_class.name, *mask.slot_names) for mask in actual_masks
+    ) == Counter(
+        (mask.annotation_class.name, *mask.slot_names) for mask in expected_masks
+    )
     for expected_mask in expected_masks:
         if expected_mask.properties:
             matching_actual = next(
@@ -366,6 +407,9 @@ def run_import_test(
     local_dataset.register_read_only_items(
         config_values, item_type, files_in_flat_structure
     )
+    # The import rejects items that are still processing. The wait is 1 request for
+    # items that are already processed, so it is done for all item types
+    wait_until_items_processed(config_values, local_dataset.id, timeout=60)
     expected_annotations_dir = (
         Path(__file__).parents[1] / "data" / "import" / annotations_subdir
     )
