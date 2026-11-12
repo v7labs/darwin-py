@@ -1,0 +1,86 @@
+name: release-checks
+run-name: Release checks
+
+# Runs from the tagged commit, so publishing is left to EVENT_release.yml on master.
+on:
+  release:
+    types: [released]
+
+permissions:
+  contents: read
+
+jobs:
+  validate_tag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
+        with:
+          egress-policy: audit
+
+      - name: Require a vX.Y.Z tag on a master commit
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Release tag '$TAG' must look like vX.Y.Z"
+            exit 1
+          fi
+          status=$(gh api "repos/$GITHUB_REPOSITORY/compare/master...$GITHUB_SHA" --jq .status)
+          if [[ "$status" != behind && "$status" != identical ]]; then
+            echo "::error::Release commit $GITHUB_SHA is not on master ($status). Merge to master first, then release."
+            exit 1
+          fi
+
+  run_tests:
+    needs: validate_tag
+    uses: ./.github/workflows/JOB_tests.yml
+
+  run_e2e:
+    needs: validate_tag
+    permissions:
+      id-token: write
+      contents: read
+    uses: ./.github/workflows/JOB_e2e.yml
+    secrets:
+      E2E_API_KEY: ${{ secrets.E2E_API_KEY }}
+      E2E_ENVIRONMENT: ${{ secrets.E2E_ENVIRONMENT }}
+      E2E_TEAM: ${{ secrets.E2E_TEAM }}
+      E2E_VIDEO_AWS_ROLE: ${{ secrets.E2E_VIDEO_AWS_ROLE }}
+      E2E_STORAGE_NAME: ${{ secrets.E2E_STORAGE_NAME }}
+      E2E_STORAGE_REGION: ${{ secrets.E2E_STORAGE_REGION }}
+
+  start_publish:
+    needs: [run_tests, run_e2e]
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: read
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
+        with:
+          egress-policy: audit
+
+      - name: Start the publish workflow on master
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run EVENT_release.yml -R "$GITHUB_REPOSITORY" --ref master -f tag="$TAG" -f sha="$GITHUB_SHA"
+
+  notify_failed_checks:
+    needs: [start_publish]
+    if: failure()
+    uses: ./.github/workflows/JOB_slack_message.yml
+    secrets: inherit
+    with:
+      icon: ":warning:"
+      at_team: true
+      message: |
+        :warning: *${{ github.event.release.tag_name }}* Release has failed to be released!
+
+        *The release checks failed, nothing was published.*
+
+        :link:
+          - ${{ github.event.release.html_url }}

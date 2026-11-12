@@ -1,87 +1,71 @@
 name: release
-run-name: Release
+run-name: Publish ${{ inputs.tag }}
 
+# PyPI trusts this filename in the pypi environment, which only master can deploy to.
 on:
-  release:
-    types: [released]
-
-  workflow_call:
+  workflow_dispatch:
     inputs:
-      release_id:
+      tag:
+        description: "Published release tag, vX.Y.Z"
+        required: true
         type: string
-        description: "The id of the release"
-        required: false
-
-      release_tag:
+      sha:
+        description: "Commit the release checks passed on"
+        required: true
         type: string
-        description: "The tag of the release"
-        required: false
-
-      is_draft:
-        type: boolean
-        description: "Is the release a draft"
-        required: false
 
 permissions:
   contents: read
 
-env:
-  release_id: ${{ inputs.release_id || github.event.release.id }}
-  release_tag: ${{ inputs.release_tag || github.event.release.tag_name }}
-  is_draft: ${{ inputs.is_draft || github.event.release.draft }}
-  is_scheduled: ${{ github.event_name == 'schedule' }}
-
 jobs:
-  validate_tag:
+  validate:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
+    outputs:
+      version: ${{ steps.validate.outputs.version }}
     steps:
       - name: Harden Runner
         uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
         with:
           egress-policy: audit
 
-      - name: Harden Runner
-        uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
-        with:
-          egress-policy: audit
-
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ github.ref }}
-
-      - name: Fail early if tag schema is invalid
+      - name: Require a published vX.Y.Z release on the checked master commit
+        id: validate
+        env:
+          TAG: ${{ inputs.tag }}
+          SHA: ${{ inputs.sha }}
+          GH_TOKEN: ${{ github.token }}
         run: |
-          if [[ ! ${{ env.release_tag }} =~ ^refs/tags/(v[0-9]+\.[0-9]+\.[0-9]+)$ && ${{ env.release_tag }} =~ ^refs/tags/test-.*$ ]]; then
-            echo "Tag ${{ env.release_tag }} is not a valid semver tag"
+          if [[ "$GITHUB_REF" != refs/heads/master ]]; then
+            echo "::error::Publish runs from master only (got $GITHUB_REF)"
             exit 1
           fi
+          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Tag '$TAG' must look like vX.Y.Z"
+            exit 1
+          fi
+          if [[ "$(gh release view "$TAG" -R "$GITHUB_REPOSITORY" --json isDraft --jq .isDraft)" != false ]]; then
+            echo "::error::$TAG is not a published release"
+            exit 1
+          fi
+          tag_sha=$(gh api "repos/$GITHUB_REPOSITORY/commits/$TAG" --jq .sha)
+          if [[ "$tag_sha" != "$SHA" ]]; then
+            echo "::error::$TAG points at $tag_sha, but the release checks ran on $SHA"
+            exit 1
+          fi
+          status=$(gh api "repos/$GITHUB_REPOSITORY/compare/master...$SHA" --jq .status)
+          if [[ "$status" != behind && "$status" != identical ]]; then
+            echo "::error::$SHA is not on master ($status)"
+            exit 1
+          fi
+          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
 
-  run_tests:
-    needs: validate_tag
-    uses: ./.github/workflows/JOB_tests.yml
-
-  run_e2e:
+  release:
+    needs: validate
+    runs-on: ubuntu-latest
+    environment: pypi
     permissions:
       id-token: write
       contents: read
-    uses: ./.github/workflows/JOB_e2e.yml
-    secrets:
-      E2E_API_KEY: ${{ secrets.E2E_API_KEY }}
-      E2E_ENVIRONMENT: ${{ secrets.E2E_ENVIRONMENT }}
-      E2E_TEAM: ${{ secrets.E2E_TEAM }}
-      E2E_VIDEO_AWS_ROLE: ${{ secrets.E2E_VIDEO_AWS_ROLE }}
-      E2E_STORAGE_NAME: ${{ secrets.E2E_STORAGE_NAME }}
-      E2E_STORAGE_REGION: ${{ secrets.E2E_STORAGE_REGION }}
-
-  release:
-    needs: [run_tests, run_e2e]
-    if: startsWith(github.ref, 'refs/tags/v')
-    runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-      contents: write
     steps:
       - name: Free Disk space
         shell: bash
@@ -91,7 +75,8 @@ jobs:
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.ref }}
+          ref: ${{ inputs.sha }}
+          persist-credentials: false
 
       - name: Set up Python
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
@@ -103,53 +88,19 @@ jobs:
         uses: abatilo/actions-poetry@0dd19c9498c3dc8728967849d0d2eae428a8a3d8
         with:
           poetry-version: "2.3.3"
+
+      - name: Write the release version
+        env:
+          VERSION: ${{ needs.validate.outputs.version }}
+        run: |
+          poetry version "$VERSION"
+          printf '__version__ = "%s"\n' "$VERSION" > darwin/version/__init__.py
 
       - name: Build package
         run: poetry build
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
-
-  test_release:
-    needs: [run_tests, run_e2e]
-    if: startsWith(github.ref, 'refs/tags/test-')
-    runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-      contents: write
-    steps:
-      - name: Free Disk space
-        shell: bash
-        run: |
-          sudo rm -rf /usr/local/lib/android  # will release about 10 GB if you don't need Android
-          sudo rm -rf /usr/share/dotnet # will release about 20GB if you don't need .NET
-
-      - name: Harden Runner
-        uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
-        with:
-          egress-policy: audit
-
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ github.ref }}
-
-      - name: Set up Python
-        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
-        with:
-          python-version: "3.10"
-      - run: pip install pip --upgrade
-      - name: Setup Poetry
-        uses: abatilo/actions-poetry@0dd19c9498c3dc8728967849d0d2eae428a8a3d8
-        with:
-          poetry-version: "2.3.3"
-      - name: Build package
-        run: |
-          poetry build
-
-      - name: Publish to Test PyPI
-        uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
-        with:
-          repository-url: https://test.pypi.org/legacy/
 
   notify_release:
     needs: [release]
@@ -160,10 +111,10 @@ jobs:
       icon: ":rocket:"
       at_team: true
       message: |
-        :tada: *${{ inputs.release_tag || github.event.release.tag_name }}* has been released!
+        :tada: *${{ inputs.tag }}* has been released!
         :link:
           - https://pypi.org/project/darwin-py
-          - ${{ github.event.release.html_url }}
+          - ${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ inputs.tag }}
 
   notify_failed_release:
     needs: [release]
@@ -174,9 +125,9 @@ jobs:
       icon: ":warning:"
       at_team: true
       message: |
-        :warning: *${{ inputs.release_tag || github.event.release.tag_name }}* Release has failed to be released!
+        :warning: *${{ inputs.tag }}* Release has failed to be released!
 
         *An error occurred performing release, and you may need to release manually.*
 
         :link:
-          - ${{ github.event.release.html_url }}
+          - ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
