@@ -1169,6 +1169,10 @@ def delete_files(
         for filename in not_found_filenames:
             console.print(f"File not found: {filename}", style="warning")
 
+        if not found_filenames:
+            console.print("No files were deleted.", style="warning")
+            return
+
         with console.status("[bold red]Deleting files..."):
             dataset.delete_items(items)
             console.print("Operation successfully completed!", style="success")
