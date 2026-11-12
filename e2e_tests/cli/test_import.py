@@ -91,18 +91,24 @@ def comparable_annotation(
 ) -> Dict[str, Any]:
     """
     Returns the parts of an annotation that must be the same after an import and an export:
-    - `dt.Annotation`: the annotation type, `data` and the sub-annotations
-    - `dt.VideoAnnotation`: the annotation type and each frame, with its sub-annotations
+    - `dt.Annotation`: the class name, the annotation type, `data` and the sub-annotations
+    - `dt.VideoAnnotation`: the class name, the annotation type and each frame, with its
+      sub-annotations
     """
-    annotation_type = annotation.annotation_class.annotation_type
+    annotation_class = annotation.annotation_class
     if isinstance(annotation, dt.VideoAnnotation):
         frames = {}
         for frame_index, frame in annotation.frames.items():
             frames[frame_index] = dataclasses.asdict(frame)
             frames[frame_index]["subs"] = sorted_sub_annotations(frame.subs)
-        return {"annotation_type": annotation_type, "frames": frames}
+        return {
+            "class_name": annotation_class.name,
+            "annotation_type": annotation_class.annotation_type,
+            "frames": frames,
+        }
     return {
-        "annotation_type": annotation_type,
+        "class_name": annotation_class.name,
+        "annotation_type": annotation_class.annotation_type,
         "data": annotation.data,
         "subs": sorted_sub_annotations(annotation.subs),
     }
@@ -160,8 +166,8 @@ def pop_matching_actual_annotation(
     unmatched_actual_annotations: List[Union[dt.Annotation, dt.VideoAnnotation]],
 ) -> Union[dt.Annotation, dt.VideoAnnotation]:
     """
-    Removes and returns the actual annotation that has the same type, `data` / `frames`
-    and sub-annotations as the given expected annotation, so that the actual annotations
+    Removes and returns the actual annotation that has the same class, type,
+    `data` / `frames` and sub-annotations as the given expected annotation, so that the actual annotations
     that remain after all expected annotations are matched are extra annotations.
 
     Fails with a diff of the expected and the closest actual annotation if there is no match
