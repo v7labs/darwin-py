@@ -70,7 +70,7 @@ numpy = ">=1.26.4,<3"
 orjson = "^3.8.5"
 pillow = "^12.1.1"
 pydantic = "^2.0.0"
-python = ">=3.10,<3.14"
+python = ">=3.10,<3.15"
 pyyaml = "^6.0.1"
 requests = "^2.28.1"
 rich = "^13.0.1"
@@ -81,6 +81,12 @@ types-requests = "^2.28.11.8"
 upolygon = "^0.2.2"
 tenacity = "^8.5.0"
 natsort = "^8.4.0"
+# filelock >=4.2.1 fixes the advisories through 4.2.0, and it requires Python >=3.11.
+# 3.10 stays on 3.25.2, which master already locks. 4.1.0 is the newest 3.10 build and is still vulnerable.
+filelock = [
+    { version = "3.25.2", python = "<3.11" },
+    { version = ">=4.2.1", python = ">=3.11" },
+]
 
 [tool.poetry.extras]
 dev = [ "black", "isort", "flake8", "mypy", "debugpy", "responses", "pytest", "flake8-pyproject", "pytest-rerunfailures", "ruff", "validate-pyproject", "python-dotenv",]
@@ -135,7 +141,7 @@ version = "^2.8.0"
 
 [tool.poetry.dependencies.torchvision]
 optional = true
-version = "^0.23.0"
+version = "^0.24.0"
 
 [tool.poetry.dependencies.black]
 optional = true

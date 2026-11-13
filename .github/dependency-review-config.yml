@@ -8,4 +8,7 @@ allow-ghsas:
   # urllib3 1.26.x redirect issue - boto3 with python 3.9 compatibility requirement
   - GHSA-2xpw-w6gg-jr37
   - GHSA-gm62-xv2j-4w53
-  - GHSA-pq67-6m6q-mj2v 
+  - GHSA-pq67-6m6q-mj2v
+  # torch < 2.10.0 weights_only checkpoint RCE. torchvision 0.24.1 requires torch==2.9.1.
+  # The fix is torch 2.10.0, which the Python 3.15 follow-up selects.
+  - GHSA-63cw-57p8-fm3p
