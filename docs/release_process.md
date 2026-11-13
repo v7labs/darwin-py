@@ -5,14 +5,13 @@ How to create releases of `darwin-py`.
 ## Contents <!-- omit in toc -->
 
 - [Introduction](#introduction)
-- [Make a standard release](#make-a-standard-release)
-  - [Steps](#steps)
-- [Make a non-standard release](#make-a-non-standard-release)
+- [Make a release](#make-a-release)
+- [Release a hotfix](#release-a-hotfix)
 - [Contact](#contact)
 
 ## Introduction
 
-`darwin-py` is released on [pypi.org](https://pypi.org/project/darwin-py/). 
+`darwin-py` is released on [pypi.org](https://pypi.org/project/darwin-py/).
 
 It uses [Poetry's](https://python-poetry.org/) "Mason" engine, which builds both [SDIST](https://docs.python.org/3/distutils/sourcedist.html) and [Wheel](https://pythonwheels.com/) artifacts. The package is then uploaded to PyPI using GitHub Actions with OIDC-based authentication.
 
@@ -22,47 +21,42 @@ These instructions are only applicable to those with permissions to release on t
 
 You can request we make a new release with contributions you have made by emailing [info@v7labs.com](mailto:info@v7labs.com).
 
-## Make a standard release
+## Make a release
 
-These are the steps for releasing a passing `master` branch.
+The release tag is the version. Nothing is committed to bump it: the publish workflow (`.github/workflows/EVENT_release.yml`) writes the tag's version into `pyproject.toml` and `darwin/version/__init__.py` before it builds the package. The version committed on `master` is not updated by releases.
 
-If you are releasing a hotfix or other selective build, you need to follow the instructions for a [non-standard release](#make-a-non-standard-release).
+1. Make sure the latest "Merge to master" workflow run on `master` is green.
+2. On GitHub, open [Releases → Draft a new release](https://github.com/v7labs/darwin-py/releases/new).
+3. Under "Choose a tag", type the new tag `vX.Y.Z` (the leading `v` is required) and create it on `master`. Bump the minor version if the release contains a feature, otherwise the patch version.
+4. Click "Generate release notes", then "Publish release".
 
-### Steps
+Or, with the `gh` CLI:
 
-**Pre-release**
+```sh
+gh release create vX.Y.Z --repo v7labs/darwin-py --target master --generate-notes
+```
 
-1. Ensure all tickets to be included are QA'd and to be included in a release. Speak to PM's and code owners if unsure.
-2. Once passed on QA, merge all PRs to be included into `master`
+Publishing the release starts two workflows, one after the other:
 
-**Release**
+1. `release-checks` (`.github/workflows/EVENT_release_checks.yml`) rejects tags that are not `vX.Y.Z` or whose commit is not on `master`, runs the tests and the e2e suite (70 to 90 minutes), then starts the publish workflow on `master`.
+2. `release` (`.github/workflows/EVENT_release.yml`, run name "Publish vX.Y.Z") runs from `master`, checks the tag again, builds the package and publishes it to PyPI.
 
-This is the process for making a simple semver _patch_ release. If you need to make a _minor_ or _major_ version release, follow the instructions for [Making a non-standard release](#make-a-non-standard-release)
+Only `master` can publish: the PyPI trusted publisher trusts `EVENT_release.yml` in the `pypi` environment, and only `master` can deploy to that environment. A branch with an edited copy of the workflow cannot publish.
 
-1. Run the script `deploy/create_release.sh` - follow the prompts, and the script will:
-   * Increment the version in all places it exists
-   * Commit this, and push these changes, along with a tag for the version
-   * Check the script didn't throw any errors, if it didn't, the script will prompt you to look at the Actions dialog, to see when the tests and quality checks all pass.
-   **NB: If checks fail, the release will fail**
-2. A draft release will be created in Github. You can release this with the UI or the `gh` CLI.
-3. Once the release is published, the GitHub Actions workflow will automatically build and publish the package to PyPI using OIDC-based authentication.
+If a job fails on a flake, re-run the failed jobs. If the tests or e2e fail and the code needs a fix, nothing has reached PyPI yet: delete the release and its tag (`gh release delete vX.Y.Z --cleanup-tag`), merge the fix and publish the release again. If the publish run failed, check [PyPI](https://pypi.org/project/darwin-py/#history) first. Once any file of a version is on PyPI, that version cannot be uploaded again, so release the next patch version instead. If nothing reached PyPI, re-run the failed publish jobs, or start the publish again with `gh workflow run EVENT_release.yml --repo v7labs/darwin-py --ref master -f tag=vX.Y.Z -f sha=<tagged commit>`.
 
-**Done!**
+When the publish run is green, check that PyPI serves the version and that the wheel carries it:
 
-**Make sure you update the tickets to 'Done'**
-
-## Make a non-standard release
-
-Making a non-standard release (like a hotfix) is _broadly_ the same as the process for [making a normal release](#make-a-standard-release), but with a few more steps:
-
-1. Run the script `python deploy/increase_version.py` and use `--patch`, `--minor`, or `--major` to set the version change you want to make. If you need to make a more complex version change (changing more than one aspect of the version), you can pass `--new-version` followed by a valid semver version.
-2. Commit and push the changes to master
-3. Add a tag using `git tag v0.0.0`, substituting the right version number (**NB: the preceding 'v' is necessary for release**)
-4. Push the tag `git push origin v0.0.0`, again substituting the right version number
-5. A draft release will be created in Github. You can release this with the UI or the `gh` CLI.
-6. Once the release is published, the GitHub Actions workflow will automatically build and publish the package to PyPI using OIDC-based authentication.
+```sh
+curl -s https://pypi.org/pypi/darwin-py/X.Y.Z/json | python3 -c 'import json,sys; print(json.load(sys.stdin)["info"]["version"])'
+pip download darwin-py==X.Y.Z --no-deps -d /tmp/darwin-py-check
+```
 
 **Make sure you update the tickets to 'Done'**
+
+## Release a hotfix
+
+Merge the fix into `master`, then follow [Make a release](#make-a-release). Releases from other branches are refused.
 
 ## Contact
 
