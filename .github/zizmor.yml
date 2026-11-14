@@ -17,7 +17,6 @@ rules:
       - JOB_slack_message.yml:69
       - JOB_typecheck.yml:34
       - JOB_typecheck.yml:40
-      - version_bump.yml:65
   excessive-permissions:
     ignore:
       - EVENT_merge_to_master.yml:12
