@@ -1,5 +1,6 @@
 import json
 import tempfile
+from functools import partial
 from pathlib import Path
 from typing import (
     TYPE_CHECKING,
@@ -9,6 +10,7 @@ from typing import (
     Iterator,
     List,
     Optional,
+    Protocol,
     Sequence,
     Tuple,
     Union,
@@ -45,12 +47,14 @@ from darwin.datatypes import (
 )
 from darwin.exceptions import NotFound, UnknownExportVersion
 from darwin.exporter.formats.darwin import build_image_annotation
+from darwin.extractor.image import extract_artifacts as extract_image_artifacts
 from darwin.extractor.video import extract_artifacts
 from darwin.item import DatasetItem
 from darwin.item_sorter import ItemSorter
 from darwin.utils import (
     AS_FRAMES_KEY,
     EXTRACT_VIEWS_KEY,
+    NATIVE_IMAGE_EXTENSIONS,
     NATIVE_VIDEO_EXTENSIONS,
     PRESERVE_FOLDERS_KEY,
     SUPPORTED_EXTENSIONS,
@@ -60,6 +64,19 @@ from darwin.utils import (
 
 if TYPE_CHECKING:
     from darwin.client import Client
+
+
+class _ReadonlyArtifactsExtractor(Protocol):
+    """Signature shared by the video and image `extract_artifacts` functions."""
+
+    def __call__(
+        self,
+        source_file: str,
+        output_dir: str,
+        storage_key_prefix: str,
+        *,
+        save_metadata: bool = False,
+    ) -> Dict: ...
 
 
 class RemoteDatasetV2(RemoteDataset):
@@ -689,6 +706,12 @@ class RemoteDatasetV2(RemoteDataset):
         uploads them to the configured external storage, and registers them with Darwin.
         Files are preprocessed locally rather than on Darwin's servers.
 
+        Videos (``NATIVE_VIDEO_EXTENSIONS``) and images (``NATIVE_IMAGE_EXTENSIONS``)
+        are supported, and one call can contain both. For each image, the width,
+        height and a JPEG thumbnail are generated locally. The video-only parameters
+        (``fps``, ``segment_length``, ``repair``, ``extract_preview_frames`` and
+        ``primary_frames_quality``) are ignored for images.
+
         Parameters
         ----------
         object_store : ObjectStore
@@ -696,9 +719,10 @@ class RemoteDatasetV2(RemoteDataset):
             Get via: client.get_external_storage() with appropriate provider credentials.
         files : List[Union[str, Path]] | Dict[str, List[Union[str, Path]]]
             Either:
-            - Single-slotted items: A list of video file paths (one item per video)
+            - Single-slotted items: A list of video or image file paths
+              (one item per file)
             - Multi-slotted items: A dictionary with keys as item names and values
-              as lists of video file paths (multiple slots per item)
+              as lists of video or image file paths (multiple slots per item)
         path : str, default: "/"
             Path in dataset where items will be stored.
         fps : float, default: 0.0
@@ -769,6 +793,13 @@ class RemoteDatasetV2(RemoteDataset):
             extract_preview_frames=False,
             primary_frames_quality=5  # High quality JPEG
         )
+
+        # Images, and items that mix videos and images
+        results = dataset.register_locally_processed(
+            object_store=storage,
+            files={"scene_1": ["front.mp4", "map.png"]},
+            multi_slotted=True,
+        )
         ```
         """
         if multi_slotted:
@@ -779,6 +810,13 @@ class RemoteDatasetV2(RemoteDataset):
                 )
             for file_list in files.values():
                 self._validate_supported_file_extensions(file_list)
+            if all(_is_native_image(f) for fl in files.values() for f in fl):
+                return self.register_multi_slotted_readonly_images(
+                    object_store=object_store,
+                    image_files=files,
+                    path=path,
+                )
+            # Also registers the images of items that mix videos and images
             results = self.register_multi_slotted_readonly_videos(
                 object_store=object_store,
                 video_files=files,  # type: ignore
@@ -796,6 +834,13 @@ class RemoteDatasetV2(RemoteDataset):
                     "Example: ['video1.mp4', 'video2.mp4']"
                 )
             self._validate_supported_file_extensions(files)
+            if all(_is_native_image(f) for f in files):
+                return self.register_single_slotted_readonly_images(
+                    object_store=object_store,
+                    image_files=files,
+                    path=path,
+                )
+            # Also registers the images of lists that mix videos and images
             results = self.register_single_slotted_readonly_videos(
                 object_store=object_store,
                 video_files=files,  # type: ignore
@@ -816,8 +861,9 @@ class RemoteDatasetV2(RemoteDataset):
         """
         Validate that all provided files have supported file extensions.
 
-        Currently only native video files are supported for local preprocessing.
-        In the future, this method will be extended to support other file types.
+        Native video files (``NATIVE_VIDEO_EXTENSIONS``) and native image files
+        (``NATIVE_IMAGE_EXTENSIONS``) are supported for local preprocessing.
+        The check is case-insensitive.
 
         Parameters
         ----------
@@ -831,13 +877,14 @@ class RemoteDatasetV2(RemoteDataset):
         """
         for file_path in files:
             filename = str(file_path).lower()
-            is_supported = any(
+            is_supported = _is_native_image(file_path) or any(
                 filename.endswith(ext.lower()) for ext in NATIVE_VIDEO_EXTENSIONS
             )
             if not is_supported:
                 raise ValueError(
                     f"The file '{file_path}' is not supported. "
-                    f"Supported extensions: {', '.join(NATIVE_VIDEO_EXTENSIONS)}"
+                    f"Supported video extensions: {', '.join(NATIVE_VIDEO_EXTENSIONS)}. "
+                    f"Supported image extensions: {', '.join(NATIVE_IMAGE_EXTENSIONS)}"
                 )
 
     def register_single_slotted(
@@ -1041,6 +1088,10 @@ class RemoteDatasetV2(RemoteDataset):
         Register videos as single-slotted items from readonly storage.
         Creates one item per video file.
 
+        Files with an extension from ``NATIVE_IMAGE_EXTENSIONS`` are processed as
+        images (see ``register_single_slotted_readonly_images``), so one list can
+        mix videos and images.
+
         Parameters
         ----------
         object_store : ObjectStore
@@ -1088,57 +1139,15 @@ class RemoteDatasetV2(RemoteDataset):
         )
         ```
         """
-        # Validation
-        self._validate_object_store_provider(object_store)
-
-        # Convert to Path objects and validate existence
-        video_paths = [Path(vf) for vf in video_files]
-        for video_path in video_paths:
-            if not video_path.exists():
-                raise FileNotFoundError(f"Video file not found: {video_path}")
-
-        items_to_register = []
-
-        # Process each video as a separate item
-        for video_path in video_paths:
-            # Generate new UUIDs for each video
-            item_uuid = str(uuid4())
-            slot_uuid = str(uuid4())
-            storage_key_prefix = self._build_storage_key_prefix(
-                object_store, item_uuid, slot_uuid
-            )
-
-            # Extract, upload, and get metadata
-            slot_metadata = self._process_video_file_for_readonly(
-                video_path=video_path,
-                object_store=object_store,
-                storage_key_prefix=storage_key_prefix,
-                fps=fps,
-                segment_length=segment_length,
-                repair=repair,
-                extract_preview_frames=extract_preview_frames,
-                primary_frames_quality=primary_frames_quality,
-            )
-
-            # Build item payload
-            slot_dict = {
-                "slot_name": video_path.name,
-                "storage_key": f"{storage_key_prefix}/{video_path.name}",
-                "file_name": video_path.name,
-                **slot_metadata,
-            }
-
-            item_dict = {
-                "name": video_path.name,
-                "path": path,
-                "slots": [slot_dict],
-            }
-            items_to_register.append(item_dict)
-
-        # Submit registration
-        return self._submit_readonly_registration(
-            items_to_register=items_to_register,
+        return self._register_single_slotted_readonly_files(
             object_store=object_store,
+            files=video_files,
+            path=path,
+            fps=fps,
+            segment_length=segment_length,
+            repair=repair,
+            extract_preview_frames=extract_preview_frames,
+            primary_frames_quality=primary_frames_quality,
         )
 
     def register_multi_slotted_readonly_videos(
@@ -1158,6 +1167,10 @@ class RemoteDatasetV2(RemoteDataset):
         Slot names are derived from filenames. If the same filename appears
         multiple times in an item, number suffixes are added (e.g., video.mp4,
         video.mp4_1, video.mp4_2).
+
+        Files with an extension from ``NATIVE_IMAGE_EXTENSIONS`` are processed as
+        images (see ``register_multi_slotted_readonly_images``), so one item can
+        mix video and image slots.
 
         Parameters
         ----------
@@ -1207,28 +1220,236 @@ class RemoteDatasetV2(RemoteDataset):
         )
         ```
         """
+        return self._register_multi_slotted_readonly_files(
+            object_store=object_store,
+            files=video_files,
+            path=path,
+            fps=fps,
+            segment_length=segment_length,
+            repair=repair,
+            extract_preview_frames=extract_preview_frames,
+            primary_frames_quality=primary_frames_quality,
+        )
+
+    def register_single_slotted_readonly_images(
+        self,
+        object_store: ObjectStore,
+        image_files: List[Union[str, Path]],
+        path: str = "/",
+    ) -> Dict[str, List[str]]:
+        """
+        Register images as single-slotted items from readonly storage.
+        Creates one item per image file.
+
+        For each image, the width, height and a JPEG thumbnail are generated
+        locally. The image and the thumbnail are uploaded to the external storage.
+
+        Parameters
+        ----------
+        object_store : ObjectStore
+            Readonly external storage configuration.
+            Get via: client.get_external_storage()
+        image_files : List[Union[str, Path]]
+            List of image file paths to register. Each file must have an
+            extension from ``NATIVE_IMAGE_EXTENSIONS``.
+        path : str
+            Path in dataset where items will be stored (default "/")
+
+        Returns
+        -------
+        Dict[str, List[str]]
+            {
+                "registered": ["Item image1.jpg registered with ID 123", ...],
+                "blocked": ["Item image2.jpg blocked: duplicate", ...]
+            }
+
+        Raises
+        ------
+        ValueError
+            If a file is not a supported image.
+
+        Example
+        -------
+        ```python
+        storage = client.get_external_storage(
+            team_slug="my-team",
+            name="my-readonly-storage",
+        )
+
+        results = dataset.register_single_slotted_readonly_images(
+            object_store=storage,
+            image_files=["image1.jpg", "image2.png"],
+            path="/photos",
+        )
+        ```
+        """
+        _validate_native_images(image_files)
+        return self._register_single_slotted_readonly_files(
+            object_store=object_store, files=image_files, path=path
+        )
+
+    def register_multi_slotted_readonly_images(
+        self,
+        object_store: ObjectStore,
+        image_files: Dict[str, List[Union[str, Path]]],
+        path: str = "/",
+    ) -> Dict[str, List[str]]:
+        """
+        Register images as multi-slotted items from readonly storage.
+        Creates one item per dictionary key, with multiple slots per item.
+        Slot names are derived from filenames. If the same filename appears
+        multiple times in an item, number suffixes are added (e.g., image.png,
+        image.png_1, image.png_2).
+
+        To register items that mix videos and images, use
+        ``register_locally_processed`` or ``register_multi_slotted_readonly_videos``.
+
+        Parameters
+        ----------
+        object_store : ObjectStore
+            Readonly external storage configuration
+        image_files : Dict[str, List[Union[str, Path]]]
+            Dictionary mapping item_name to list of image file paths.
+            Each item gets multiple slots (one per image).
+        path : str
+            Path in dataset where items will be stored (default "/")
+
+        Returns
+        -------
+        Dict[str, List[str]]
+            Registration results
+
+        Raises
+        ------
+        ValueError
+            If a file is not a supported image.
+
+        Example
+        -------
+        ```python
+        storage = client.get_external_storage(allow_readonly=True)
+
+        results = dataset.register_multi_slotted_readonly_images(
+            object_store=storage,
+            image_files={"scene_1": ["images/left.png", "images/right.png"]},
+            path="/scenes",
+        )
+        ```
+        """
+        for file_list in image_files.values():
+            _validate_native_images(file_list)
+        return self._register_multi_slotted_readonly_files(
+            object_store=object_store, files=image_files, path=path
+        )
+
+    def _register_single_slotted_readonly_files(
+        self,
+        object_store: ObjectStore,
+        files: List[Union[str, Path]],
+        path: str = "/",
+        fps: float = 0.0,
+        segment_length: int = 2,
+        repair: bool = False,
+        extract_preview_frames: bool = True,
+        primary_frames_quality: int = 1,
+    ) -> Dict[str, List[str]]:
+        """
+        Register videos and images as single-slotted readonly items.
+        Each file is processed by its type (see ``_process_file_for_readonly``).
+        """
         # Validation
         self._validate_object_store_provider(object_store)
 
         # Convert to Path objects and validate existence
-        video_paths_by_item = {}
-        for item_name, video_list in video_files.items():
-            video_paths_by_item[item_name] = [Path(vf) for vf in video_list]
-            for video_path in video_paths_by_item[item_name]:
-                if not video_path.exists():
+        file_paths = [Path(f) for f in files]
+        for file_path in file_paths:
+            if not file_path.exists():
+                raise FileNotFoundError(
+                    f"{_readonly_file_kind(file_path)} file not found: {file_path}"
+                )
+
+        items_to_register = []
+
+        # Process each file as a separate item
+        for file_path in file_paths:
+            # Generate new UUIDs for each file
+            item_uuid = str(uuid4())
+            slot_uuid = str(uuid4())
+            storage_key_prefix = self._build_storage_key_prefix(
+                object_store, item_uuid, slot_uuid
+            )
+
+            # Extract, upload, and get metadata
+            slot_metadata = self._process_file_for_readonly(
+                file_path=file_path,
+                object_store=object_store,
+                storage_key_prefix=storage_key_prefix,
+                fps=fps,
+                segment_length=segment_length,
+                repair=repair,
+                extract_preview_frames=extract_preview_frames,
+                primary_frames_quality=primary_frames_quality,
+            )
+
+            # Build item payload
+            slot_dict = {
+                "slot_name": file_path.name,
+                "storage_key": f"{storage_key_prefix}/{file_path.name}",
+                "file_name": file_path.name,
+                **slot_metadata,
+            }
+
+            item_dict = {
+                "name": file_path.name,
+                "path": path,
+                "slots": [slot_dict],
+            }
+            items_to_register.append(item_dict)
+
+        # Submit registration
+        return self._submit_readonly_registration(
+            items_to_register=items_to_register,
+            object_store=object_store,
+        )
+
+    def _register_multi_slotted_readonly_files(
+        self,
+        object_store: ObjectStore,
+        files: Dict[str, List[Union[str, Path]]],
+        path: str = "/",
+        fps: float = 0.0,
+        segment_length: int = 2,
+        repair: bool = False,
+        extract_preview_frames: bool = True,
+        primary_frames_quality: int = 1,
+    ) -> Dict[str, List[str]]:
+        """
+        Register videos and images as multi-slotted readonly items.
+        Each file is processed by its type (see ``_process_file_for_readonly``).
+        """
+        # Validation
+        self._validate_object_store_provider(object_store)
+
+        # Convert to Path objects and validate existence
+        file_paths_by_item = {}
+        for item_name, file_list in files.items():
+            file_paths_by_item[item_name] = [Path(f) for f in file_list]
+            for file_path in file_paths_by_item[item_name]:
+                if not file_path.exists():
                     raise FileNotFoundError(
-                        f"Video file not found for item {item_name}: {video_path}"
+                        f"{_readonly_file_kind(file_path)} file not found for item "
+                        f"{item_name}: {file_path}"
                     )
 
         items_to_register = []
 
-        for item_name, video_paths in video_paths_by_item.items():
+        for item_name, file_paths in file_paths_by_item.items():
             # Build slot name mapping with deduplication suffixes
             slot_name_counts = {}  # Track filename occurrences
-            slot_info_list = []  # [(video_path, slot_name)]
+            slot_info_list = []  # [(file_path, slot_name)]
 
-            for video_path in video_paths:
-                base_slot_name = video_path.name
+            for file_path in file_paths:
+                base_slot_name = file_path.name
                 if base_slot_name not in slot_name_counts:
                     slot_name_counts[base_slot_name] = 0
                     slot_name = base_slot_name
@@ -1236,29 +1457,29 @@ class RemoteDatasetV2(RemoteDataset):
                     slot_name_counts[base_slot_name] += 1
                     slot_name = f"{base_slot_name}_{slot_name_counts[base_slot_name]}"
 
-                slot_info_list.append((video_path, slot_name))
+                slot_info_list.append((file_path, slot_name))
 
             # Generate new item_uuid
             item_uuid = str(uuid4())
 
             # Build unique files map with slot UUIDs using absolute path as key
-            unique_files = {}  # {absolute_path: (video_path, slot_uuid)}
+            unique_files = {}  # {absolute_path: (file_path, slot_uuid)}
             path_to_metadata = {}  # {absolute_path: metadata}
 
-            for video_path, slot_name in slot_info_list:
-                abs_path = str(video_path.absolute())
+            for file_path, slot_name in slot_info_list:
+                abs_path = str(file_path.absolute())
 
                 if abs_path not in unique_files:
                     slot_uuid = str(uuid4())
-                    unique_files[abs_path] = (video_path, slot_uuid)
+                    unique_files[abs_path] = (file_path, slot_uuid)
 
             # Process each unique file
-            for abs_path, (video_path, slot_uuid) in unique_files.items():
+            for abs_path, (file_path, slot_uuid) in unique_files.items():
                 storage_key_prefix = self._build_storage_key_prefix(
                     object_store, item_uuid, slot_uuid
                 )
-                slot_metadata = self._process_video_file_for_readonly(
-                    video_path=video_path,
+                slot_metadata = self._process_file_for_readonly(
+                    file_path=file_path,
                     object_store=object_store,
                     storage_key_prefix=storage_key_prefix,
                     fps=fps,
@@ -1271,8 +1492,8 @@ class RemoteDatasetV2(RemoteDataset):
 
             # Build slots for this item
             slots = []
-            for video_path, slot_name in slot_info_list:
-                abs_path = str(video_path.absolute())
+            for file_path, slot_name in slot_info_list:
+                abs_path = str(file_path.absolute())
                 _, slot_uuid = unique_files[abs_path]
                 storage_key_prefix = self._build_storage_key_prefix(
                     object_store, item_uuid, slot_uuid
@@ -1280,8 +1501,8 @@ class RemoteDatasetV2(RemoteDataset):
 
                 slot_dict = {
                     "slot_name": slot_name,
-                    "storage_key": f"{storage_key_prefix}/{video_path.name}",
-                    "file_name": video_path.name,
+                    "storage_key": f"{storage_key_prefix}/{file_path.name}",
+                    "file_name": file_path.name,
                     **path_to_metadata[abs_path],
                 }
                 slots.append(slot_dict)
@@ -1297,7 +1518,7 @@ class RemoteDatasetV2(RemoteDataset):
 
     def _validate_object_store_provider(self, object_store: ObjectStore) -> None:
         """
-        Validate object store provider for readonly video registration.
+        Validate object store provider for readonly registration.
 
         Parameters
         ----------
@@ -1404,29 +1625,136 @@ class RemoteDatasetV2(RemoteDataset):
         Dict
             Slot metadata from registration payload
         """
-        with tempfile.TemporaryDirectory(prefix="darwin_video_") as tmp_dir:
-            artifacts_dir = Path(tmp_dir)
-
-            # Extract artifacts
-            print(f"\nExtracting artifacts for {video_path.name}...")
-            extract_artifacts(
-                source_file=str(video_path),
-                output_dir=str(artifacts_dir),
-                storage_key_prefix=storage_key_prefix,
+        return self._extract_and_upload_for_readonly(
+            source_path=video_path,
+            object_store=object_store,
+            storage_key_prefix=storage_key_prefix,
+            extract=partial(
+                extract_artifacts,
                 fps=fps,
                 segment_length=segment_length,
                 repair=repair,
-                save_metadata=True,
                 extract_preview_frames=extract_preview_frames,
                 primary_frames_quality=primary_frames_quality,
+            ),
+        )
+
+    def _process_image_file_for_readonly(
+        self,
+        image_path: Path,
+        object_store: ObjectStore,
+        storage_key_prefix: str,
+    ) -> Dict:
+        """
+        Process a single image file: extract dimensions and thumbnail, upload to storage.
+
+        Parameters
+        ----------
+        image_path : Path
+            Path to image file
+        object_store : ObjectStore
+            Storage configuration
+        storage_key_prefix : str
+            Storage key prefix for the artifacts
+
+        Returns
+        -------
+        Dict
+            Slot metadata from registration payload
+        """
+        return self._extract_and_upload_for_readonly(
+            source_path=image_path,
+            object_store=object_store,
+            storage_key_prefix=storage_key_prefix,
+            extract=extract_image_artifacts,
+        )
+
+    def _process_file_for_readonly(
+        self,
+        file_path: Path,
+        object_store: ObjectStore,
+        storage_key_prefix: str,
+        fps: float,
+        segment_length: int,
+        repair: bool,
+        extract_preview_frames: bool,
+        primary_frames_quality: int,
+    ) -> Dict:
+        """
+        Process a single file for readonly registration by its type.
+
+        Files with an extension from ``NATIVE_IMAGE_EXTENSIONS`` are processed as
+        images, and the video-only parameters are ignored. All other files are
+        processed as videos.
+
+        Returns
+        -------
+        Dict
+            Slot metadata from registration payload
+        """
+        if _is_native_image(file_path):
+            return self._process_image_file_for_readonly(
+                image_path=file_path,
+                object_store=object_store,
+                storage_key_prefix=storage_key_prefix,
+            )
+        return self._process_video_file_for_readonly(
+            video_path=file_path,
+            object_store=object_store,
+            storage_key_prefix=storage_key_prefix,
+            fps=fps,
+            segment_length=segment_length,
+            repair=repair,
+            extract_preview_frames=extract_preview_frames,
+            primary_frames_quality=primary_frames_quality,
+        )
+
+    def _extract_and_upload_for_readonly(
+        self,
+        source_path: Path,
+        object_store: ObjectStore,
+        storage_key_prefix: str,
+        extract: "_ReadonlyArtifactsExtractor",
+    ) -> Dict:
+        """
+        Extract artifacts of a source file, upload the file and the artifacts to
+        storage, and return the slot metadata.
+
+        Parameters
+        ----------
+        source_path : Path
+            Path to the source file
+        object_store : ObjectStore
+            Storage configuration
+        storage_key_prefix : str
+            Storage key prefix for the artifacts
+        extract : _ReadonlyArtifactsExtractor
+            Extractor that writes the artifacts and ``metadata.json`` to its
+            ``output_dir``, for example ``darwin.extractor.image.extract_artifacts``
+
+        Returns
+        -------
+        Dict
+            Slot metadata from registration payload
+        """
+        with tempfile.TemporaryDirectory(prefix="darwin_readonly_") as tmp_dir:
+            artifacts_dir = Path(tmp_dir)
+
+            # Extract artifacts
+            print(f"\nExtracting artifacts for {source_path.name}...")
+            extract(
+                source_file=str(source_path),
+                output_dir=str(artifacts_dir),
+                storage_key_prefix=storage_key_prefix,
+                save_metadata=True,
             )
 
             # Upload to storage
-            print(f"\nUploading artifacts for {video_path.name}...")
+            print(f"\nUploading artifacts for {source_path.name}...")
             upload_artifacts(
                 object_store=object_store,
                 local_artifacts_dir=str(artifacts_dir),
-                source_file=str(video_path),
+                source_file=str(source_path),
                 storage_key_prefix=storage_key_prefix,
             )
 
@@ -1503,8 +1831,9 @@ class RemoteDatasetV2(RemoteDataset):
         """
         Extract slot-specific metadata from registration payload.
 
-        Transforms the payload from `darwin/extractor/video.py` into the format
-        expected by the Darwin backend's `register_existing_readonly` endpoint.
+        Transforms the payload from `darwin/extractor/video.py` or
+        `darwin/extractor/image.py` into the format expected by the Darwin
+        backend's `register_existing_readonly` endpoint.
 
         Parameters
         ----------
@@ -1653,6 +1982,25 @@ class RemoteDatasetV2(RemoteDataset):
                 slot_payload[key_to_write] = v
 
         return slot_payload
+
+
+def _is_native_image(file_path: Union[str, Path]) -> bool:
+    """Whether a file is an image that can be processed for readonly registration."""
+    filename = str(file_path).lower()
+    return any(filename.endswith(ext) for ext in NATIVE_IMAGE_EXTENSIONS)
+
+
+def _readonly_file_kind(file_path: Union[str, Path]) -> str:
+    return "Image" if _is_native_image(file_path) else "Video"
+
+
+def _validate_native_images(files: List[Union[str, Path]]) -> None:
+    for file_path in files:
+        if not _is_native_image(file_path):
+            raise ValueError(
+                f"The file '{file_path}' is not a supported image. "
+                f"Supported image extensions: {', '.join(NATIVE_IMAGE_EXTENSIONS)}"
+            )
 
 
 def _find_files_to_upload_as_multi_file_items(
