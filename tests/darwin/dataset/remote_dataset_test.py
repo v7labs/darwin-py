@@ -1,3 +1,4 @@
+import re
 import shutil
 import tempfile
 import types
@@ -2690,10 +2691,10 @@ class TestRegisterLocallyPreprocessed:
         with pytest.raises(ValueError) as exc_info:
             remote_dataset.register_locally_processed(
                 object_store=readonly_object_store,
-                files=["image.png", "video.mp4"],
+                files=["slide.svs", "video.mp4"],
                 multi_slotted=False,
             )
-        assert "image.png" in str(exc_info.value)
+        assert "slide.svs" in str(exc_info.value)
         assert "not supported" in str(exc_info.value)
 
     def test_raises_for_unsupported_extension_multi_slotted(
@@ -2704,11 +2705,11 @@ class TestRegisterLocallyPreprocessed:
             remote_dataset.register_locally_processed(
                 object_store=readonly_object_store,
                 files={
-                    "item1": ["video.mp4", "image.jpg"],
+                    "item1": ["video.mp4", "scan.dcm"],
                 },
                 multi_slotted=True,
             )
-        assert "image.jpg" in str(exc_info.value)
+        assert "scan.dcm" in str(exc_info.value)
         assert "not supported" in str(exc_info.value)
 
     def test_accepts_valid_video_extensions(
@@ -3031,6 +3032,481 @@ class TestRegisterLocallyPreprocessed:
             call_kwargs = mock_process.call_args[1]
             assert call_kwargs["extract_preview_frames"] is True
             assert call_kwargs["primary_frames_quality"] == 1
+
+
+READONLY_IMAGE_SLOT_FIELDS = {
+    "type",
+    "slot_name",
+    "file_name",
+    "storage_key",
+    "width",
+    "height",
+    "storage_thumbnail_key",
+    "size_bytes",
+}
+UUID_PATTERN = r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+
+
+def _make_image(path: Path, size=(64, 48), mode: str = "RGB") -> Path:
+    from PIL import Image
+
+    Image.new(mode, size).save(path)
+    return path
+
+
+def _readonly_object_store() -> ObjectStore:
+    return ObjectStore(
+        name="readonly-storage",
+        prefix="test_prefix",
+        readonly=True,
+        provider="aws",
+        default=False,
+        bucket="test-bucket",
+        region="us-east-1",
+    )
+
+
+def _capture_register_payloads(mock_register) -> list:
+    payloads = []
+
+    def capture(payload, **kwargs):
+        payloads.append(payload)
+        return {
+            "items": [
+                {"id": str(index), "name": item["name"]}
+                for index, item in enumerate(payload["items"])
+            ],
+            "blocked_items": [],
+        }
+
+    mock_register.side_effect = capture
+    return payloads
+
+
+VIDEO_SLOT_METADATA = {
+    "type": "video",
+    "width": 1920,
+    "height": 1080,
+    "native_fps": 30.0,
+    "visible_frames": 2,
+    "total_frames": 2,
+}
+
+
+@pytest.mark.usefixtures("file_read_write_test")
+class TestReadonlyImageExtensionValidation:
+    """Tests for which files register_locally_processed accepts."""
+
+    def test_native_image_extensions_exclude_whole_slide_formats(self):
+        from darwin.utils import NATIVE_IMAGE_EXTENSIONS
+
+        assert set(NATIVE_IMAGE_EXTENSIONS) == {
+            ".png",
+            ".jpg",
+            ".jpeg",
+            ".jfif",
+            ".bmp",
+            ".webp",
+            ".tif",
+            ".tiff",
+        }
+
+    def test_accepts_all_native_image_extensions(self, remote_dataset: RemoteDatasetV2):
+        from darwin.utils import NATIVE_IMAGE_EXTENSIONS
+
+        remote_dataset._validate_supported_file_extensions(
+            [f"image{ext}" for ext in NATIVE_IMAGE_EXTENSIONS]
+        )
+
+    def test_image_extension_validation_is_case_insensitive(
+        self, remote_dataset: RemoteDatasetV2
+    ):
+        remote_dataset._validate_supported_file_extensions(
+            ["a.PNG", "b.Jpeg", "c.JPG", "d.TIFF", "e.WebP", "f.BMP", "g.JFIF"]
+        )
+
+    def test_accepts_mixed_videos_and_images(self, remote_dataset: RemoteDatasetV2):
+        remote_dataset._validate_supported_file_extensions(
+            ["video.mp4", "image.png", "clip.MOV", "photo.jpg"]
+        )
+
+    @pytest.mark.parametrize(
+        "file_name",
+        ["slide.svs", "slide.qtiff", "scan.dcm", "notes.txt", "volume.nii.gz"],
+    )
+    def test_rejects_unsupported_files_with_message(
+        self, remote_dataset: RemoteDatasetV2, file_name: str
+    ):
+        with pytest.raises(ValueError) as exc_info:
+            remote_dataset._validate_supported_file_extensions(["image.png", file_name])
+        message = str(exc_info.value)
+        assert f"The file '{file_name}' is not supported" in message
+        assert "Supported video extensions: .avi, .mov, .mp4, .mkv, .hevc" in message
+        assert (
+            "Supported image extensions: .png, .jpg, .jpeg, .jfif, .bmp, .webp, "
+            ".tif, .tiff" in message
+        )
+
+    def test_register_locally_processed_rejects_svs_before_processing(
+        self, remote_dataset: RemoteDatasetV2
+    ):
+        with pytest.raises(ValueError, match="slide.svs"):
+            remote_dataset.register_locally_processed(
+                object_store=_readonly_object_store(),
+                files=["image.png", "slide.svs"],
+            )
+
+
+@pytest.mark.usefixtures("file_read_write_test")
+class TestRegisterReadonlyImages:
+    """Tests for readonly registration of locally processed images."""
+
+    @patch("darwin.dataset.remote_dataset_v2.upload_artifacts")
+    @patch("darwin.backend_v2.BackendV2.register_readonly_items")
+    def test_single_slotted_image_payload(
+        self, mock_register, mock_upload, remote_dataset: RemoteDatasetV2, tmp_path
+    ):
+        image = _make_image(tmp_path / "image.png", size=(640, 480))
+        payloads = _capture_register_payloads(mock_register)
+
+        result = remote_dataset.register_locally_processed(
+            object_store=_readonly_object_store(),
+            files=[str(image)],
+            path="/images",
+        )
+
+        assert len(result["registered"]) == 1
+        assert payloads[0]["dataset_slug"] == remote_dataset.slug
+        assert payloads[0]["storage_slug"] == "readonly-storage"
+        [item] = payloads[0]["items"]
+        assert item["name"] == "image.png"
+        assert item["path"] == "/images"
+        [slot] = item["slots"]
+        assert set(slot) == READONLY_IMAGE_SLOT_FIELDS
+        assert slot["type"] == "image"
+        assert slot["slot_name"] == "image.png"
+        assert slot["file_name"] == "image.png"
+        assert slot["width"] == 640
+        assert slot["height"] == 480
+        assert slot["size_bytes"] == image.stat().st_size
+        prefix_pattern = rf"test_prefix/{UUID_PATTERN}/files/{UUID_PATTERN}"
+        assert re.fullmatch(rf"{prefix_pattern}/image\.png", slot["storage_key"])
+        prefix = slot["storage_key"].rsplit("/", 1)[0]
+        assert slot["storage_thumbnail_key"] == f"{prefix}/thumbnail.jpg"
+
+        upload_kwargs = mock_upload.call_args.kwargs
+        assert upload_kwargs["source_file"] == str(image)
+        assert upload_kwargs["storage_key_prefix"] == prefix
+
+    @patch("darwin.dataset.remote_dataset_v2.upload_artifacts")
+    @patch("darwin.backend_v2.BackendV2.register_readonly_items")
+    def test_single_slotted_images_get_separate_items_and_prefixes(
+        self, mock_register, mock_upload, remote_dataset: RemoteDatasetV2, tmp_path
+    ):
+        png = _make_image(tmp_path / "a.png")
+        jpg = _make_image(tmp_path / "b.JPG")
+        payloads = _capture_register_payloads(mock_register)
+
+        remote_dataset.register_locally_processed(
+            object_store=_readonly_object_store(), files=[png, str(jpg)]
+        )
+
+        items = payloads[0]["items"]
+        assert [item["name"] for item in items] == ["a.png", "b.JPG"]
+        prefixes = {item["slots"][0]["storage_key"].rsplit("/", 1)[0] for item in items}
+        assert len(prefixes) == 2
+        assert mock_upload.call_count == 2
+
+    @patch("darwin.dataset.remote_dataset_v2.upload_artifacts")
+    @patch("darwin.backend_v2.BackendV2.register_readonly_items")
+    def test_video_only_arguments_are_ignored_for_images(
+        self, mock_register, mock_upload, remote_dataset: RemoteDatasetV2, tmp_path
+    ):
+        image = _make_image(tmp_path / "image.webp")
+        payloads = _capture_register_payloads(mock_register)
+
+        with patch.object(
+            remote_dataset, "_process_video_file_for_readonly"
+        ) as mock_process_video:
+            result = remote_dataset.register_locally_processed(
+                object_store=_readonly_object_store(),
+                files=[str(image)],
+                fps=5.0,
+                segment_length=7,
+                repair=True,
+                extract_preview_frames=False,
+                primary_frames_quality=5,
+            )
+
+        mock_process_video.assert_not_called()
+        assert len(result["registered"]) == 1
+        assert set(payloads[0]["items"][0]["slots"][0]) == READONLY_IMAGE_SLOT_FIELDS
+
+    @patch("darwin.dataset.remote_dataset_v2.upload_artifacts")
+    @patch("darwin.backend_v2.BackendV2.register_readonly_items")
+    def test_single_slotted_mixed_videos_and_images(
+        self, mock_register, mock_upload, remote_dataset: RemoteDatasetV2, tmp_path
+    ):
+        video = tmp_path / "clip.mp4"
+        video.write_text("video content")
+        image = _make_image(tmp_path / "photo.jpg", size=(30, 20))
+        payloads = _capture_register_payloads(mock_register)
+
+        with patch.object(
+            remote_dataset,
+            "_process_video_file_for_readonly",
+            return_value=dict(VIDEO_SLOT_METADATA),
+        ) as mock_process_video:
+            result = remote_dataset.register_locally_processed(
+                object_store=_readonly_object_store(),
+                files=[str(video), str(image)],
+                fps=2.0,
+                extract_preview_frames=False,
+            )
+
+        assert len(result["registered"]) == 2
+        mock_process_video.assert_called_once()
+        video_call = mock_process_video.call_args.kwargs
+        assert video_call["video_path"] == video
+        assert video_call["fps"] == 2.0
+        assert video_call["extract_preview_frames"] is False
+
+        video_item, image_item = payloads[0]["items"]
+        assert video_item["name"] == "clip.mp4"
+        assert video_item["slots"][0]["type"] == "video"
+        assert image_item["name"] == "photo.jpg"
+        image_slot = image_item["slots"][0]
+        assert set(image_slot) == READONLY_IMAGE_SLOT_FIELDS
+        assert (image_slot["width"], image_slot["height"]) == (30, 20)
+
+    @patch("darwin.dataset.remote_dataset_v2.upload_artifacts")
+    @patch("darwin.backend_v2.BackendV2.register_readonly_items")
+    def test_multi_slotted_images_payload(
+        self, mock_register, mock_upload, remote_dataset: RemoteDatasetV2, tmp_path
+    ):
+        front = _make_image(tmp_path / "front.png", size=(100, 50))
+        back = _make_image(tmp_path / "back.tif", size=(60, 80))
+        payloads = _capture_register_payloads(mock_register)
+
+        result = remote_dataset.register_locally_processed(
+            object_store=_readonly_object_store(),
+            files={"scene": [str(front), str(back)]},
+            path="/scenes",
+            multi_slotted=True,
+        )
+
+        assert len(result["registered"]) == 1
+        [item] = payloads[0]["items"]
+        assert item["name"] == "scene"
+        assert item["path"] == "/scenes"
+        front_slot, back_slot = item["slots"]
+        for slot, name, size in [
+            (front_slot, "front.png", (100, 50)),
+            (back_slot, "back.tif", (60, 80)),
+        ]:
+            assert set(slot) == READONLY_IMAGE_SLOT_FIELDS
+            assert slot["type"] == "image"
+            assert slot["slot_name"] == name
+            assert slot["file_name"] == name
+            assert (slot["width"], slot["height"]) == size
+            match = re.fullmatch(
+                rf"test_prefix/({UUID_PATTERN})/files/({UUID_PATTERN})/{re.escape(name)}",
+                slot["storage_key"],
+            )
+            assert match
+            prefix = slot["storage_key"].rsplit("/", 1)[0]
+            assert slot["storage_thumbnail_key"] == f"{prefix}/thumbnail.jpg"
+
+        front_prefix = front_slot["storage_key"].split("/")
+        back_prefix = back_slot["storage_key"].split("/")
+        assert front_prefix[1] == back_prefix[1], "slots share the item UUID"
+        assert front_prefix[3] != back_prefix[3], "slots have their own slot UUID"
+
+    @patch("darwin.dataset.remote_dataset_v2.upload_artifacts")
+    @patch("darwin.backend_v2.BackendV2.register_readonly_items")
+    def test_multi_slotted_mixed_videos_and_images(
+        self, mock_register, mock_upload, remote_dataset: RemoteDatasetV2, tmp_path
+    ):
+        video = tmp_path / "front.mp4"
+        video.write_text("video content")
+        image = _make_image(tmp_path / "left.png")
+        payloads = _capture_register_payloads(mock_register)
+
+        with patch.object(
+            remote_dataset,
+            "_process_video_file_for_readonly",
+            return_value=dict(VIDEO_SLOT_METADATA),
+        ) as mock_process_video:
+            remote_dataset.register_locally_processed(
+                object_store=_readonly_object_store(),
+                files={"scene": [str(video), str(image)]},
+                multi_slotted=True,
+                primary_frames_quality=5,
+            )
+
+        mock_process_video.assert_called_once()
+        assert mock_process_video.call_args.kwargs["primary_frames_quality"] == 5
+        video_slot, image_slot = payloads[0]["items"][0]["slots"]
+        assert video_slot["type"] == "video"
+        assert video_slot["slot_name"] == "front.mp4"
+        assert set(image_slot) == READONLY_IMAGE_SLOT_FIELDS
+        assert image_slot["slot_name"] == "left.png"
+
+    @patch("darwin.dataset.remote_dataset_v2.upload_artifacts")
+    @patch("darwin.backend_v2.BackendV2.register_readonly_items")
+    def test_multi_slotted_duplicate_image_names_get_suffixes(
+        self, mock_register, mock_upload, remote_dataset: RemoteDatasetV2, tmp_path
+    ):
+        (tmp_path / "a").mkdir()
+        (tmp_path / "b").mkdir()
+        first = _make_image(tmp_path / "a" / "view.png")
+        second = _make_image(tmp_path / "b" / "view.png")
+        payloads = _capture_register_payloads(mock_register)
+
+        remote_dataset.register_multi_slotted_readonly_images(
+            object_store=_readonly_object_store(),
+            image_files={"item": [first, second]},
+        )
+
+        slots = payloads[0]["items"][0]["slots"]
+        assert [slot["slot_name"] for slot in slots] == ["view.png", "view.png_1"]
+        assert [slot["file_name"] for slot in slots] == ["view.png", "view.png"]
+
+    @patch("darwin.dataset.remote_dataset_v2.upload_artifacts")
+    @patch("darwin.backend_v2.BackendV2.register_readonly_items")
+    def test_register_single_slotted_readonly_images(
+        self, mock_register, mock_upload, remote_dataset: RemoteDatasetV2, tmp_path
+    ):
+        image = _make_image(tmp_path / "photo.jpeg")
+        payloads = _capture_register_payloads(mock_register)
+
+        result = remote_dataset.register_single_slotted_readonly_images(
+            object_store=_readonly_object_store(),
+            image_files=[image],
+            path="/photos",
+        )
+
+        assert len(result["registered"]) == 1
+        [item] = payloads[0]["items"]
+        assert item["path"] == "/photos"
+        assert set(item["slots"][0]) == READONLY_IMAGE_SLOT_FIELDS
+
+    def test_readonly_image_methods_reject_non_images(
+        self, remote_dataset: RemoteDatasetV2, tmp_path
+    ):
+        video = tmp_path / "clip.mp4"
+        video.write_text("video content")
+
+        with pytest.raises(ValueError, match="clip.mp4"):
+            remote_dataset.register_single_slotted_readonly_images(
+                object_store=_readonly_object_store(), image_files=[video]
+            )
+        with pytest.raises(ValueError, match="clip.mp4"):
+            remote_dataset.register_multi_slotted_readonly_images(
+                object_store=_readonly_object_store(),
+                image_files={"item": [video]},
+            )
+
+    def test_raises_for_nonexistent_image(self, remote_dataset: RemoteDatasetV2):
+        with pytest.raises(FileNotFoundError, match="Image file not found"):
+            remote_dataset.register_locally_processed(
+                object_store=_readonly_object_store(),
+                files=["missing.png"],
+            )
+
+    @patch("darwin.dataset.remote_dataset_v2.upload_artifacts")
+    @patch("darwin.backend_v2.BackendV2.register_readonly_items")
+    def test_corrupt_image_raises_before_registration(
+        self, mock_register, mock_upload, remote_dataset: RemoteDatasetV2, tmp_path
+    ):
+        corrupt = tmp_path / "corrupt.png"
+        corrupt.write_bytes(b"not an image")
+
+        with pytest.raises(ValueError, match="Cannot read image file"):
+            remote_dataset.register_locally_processed(
+                object_store=_readonly_object_store(), files=[corrupt]
+            )
+
+        mock_upload.assert_not_called()
+        mock_register.assert_not_called()
+
+
+class _LocalDirectoryStorageClient:
+    """Fake storage client that writes uploads to a local directory."""
+
+    def __init__(self, root: Path):
+        self.root = root
+        self.uploaded_keys: list = []
+
+    def upload_file(self, local_path: str, storage_key: str) -> None:
+        destination = self.root / storage_key
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(local_path, destination)
+        self.uploaded_keys.append(storage_key)
+
+
+@pytest.mark.usefixtures("file_read_write_test")
+class TestReadonlyImageRegistrationLocalEndToEnd:
+    """
+    Runs the real image extractor and the real `upload_artifacts` against a
+    local directory storage client. Only the cloud SDK client and the Darwin
+    API call are replaced; no network access is needed.
+    """
+
+    @patch("darwin.backend_v2.BackendV2.register_readonly_items")
+    def test_registers_images_and_mixed_multi_slot_item(
+        self, mock_register, remote_dataset: RemoteDatasetV2, tmp_path
+    ):
+        from PIL import Image
+
+        bucket = tmp_path / "bucket"
+        storage_client = _LocalDirectoryStorageClient(bucket)
+        sources = tmp_path / "sources"
+        sources.mkdir()
+        png = _make_image(sources / "scene.png", size=(1200, 900), mode="RGBA")
+        jpg = _make_image(sources / "photo.jpg", size=(90, 160))
+        payloads = _capture_register_payloads(mock_register)
+
+        with patch(
+            "darwin.dataset.storage_uploader.create_storage_client",
+            return_value=storage_client,
+        ):
+            single = remote_dataset.register_locally_processed(
+                object_store=_readonly_object_store(),
+                files=[png, jpg],
+                path="/local-e2e",
+            )
+            multi = remote_dataset.register_locally_processed(
+                object_store=_readonly_object_store(),
+                files={"pair": [png, jpg]},
+                multi_slotted=True,
+            )
+
+        assert len(single["registered"]) == 2
+        assert len(multi["registered"]) == 1
+        slots = [
+            slot
+            for payload in payloads
+            for item in payload["items"]
+            for slot in item["slots"]
+        ]
+        assert len(slots) == 4
+        for slot in slots:
+            assert set(slot) == READONLY_IMAGE_SLOT_FIELDS
+            source = sources / slot["file_name"]
+            uploaded_source = bucket / slot["storage_key"]
+            assert uploaded_source.read_bytes() == source.read_bytes()
+            assert slot["size_bytes"] == source.stat().st_size
+            with Image.open(source) as original:
+                assert (slot["width"], slot["height"]) == original.size
+            with Image.open(bucket / slot["storage_thumbnail_key"]) as thumbnail:
+                assert thumbnail.format == "JPEG"
+                assert thumbnail.width <= 356 and thumbnail.height <= 200
+            prefix = slot["storage_key"].rsplit("/", 1)[0]
+            assert (bucket / prefix / "metadata.json").exists()
+            assert sorted(p.name for p in (bucket / prefix).iterdir()) == sorted(
+                [slot["file_name"], "metadata.json", "thumbnail.jpg"]
+            )
 
 
 @pytest.mark.usefixtures("file_read_write_test")
