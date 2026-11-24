@@ -885,14 +885,6 @@ def _parse_darwin_annotation(
             annotation["table"]["cells"],
             slot_names=slot_names,
         )
-    elif "simple_table" in annotation:
-        main_annotation = dt.make_simple_table(
-            name,
-            annotation["simple_table"]["bounding_box"],
-            annotation["simple_table"]["col_offsets"],
-            annotation["simple_table"]["row_offsets"],
-            slot_names=slot_names,
-        )
     elif "string" in annotation:
         main_annotation = dt.make_string(
             name, annotation["string"]["sources"], slot_names=slot_names
@@ -915,7 +907,7 @@ def _parse_darwin_annotation(
             raster_layer["dense_rle"],
             slot_names=slot_names,
         )
-    elif only_keyframes:
+    elif only_keyframes and annotation_type:
         main_annotation = make_keyframe_annotation(
             annotation_type, annotation_data, name, slot_names
         )
@@ -966,13 +958,6 @@ def make_keyframe_annotation(
     elif annotation_type == "table":
         return dt.make_table(
             name, annotation_data["bounding_box"], annotation_data["cells"]
-        )
-    elif annotation_type == "simple_table":
-        return dt.make_simple_table(
-            name,
-            annotation_data["bounding_box"],
-            annotation_data["col_offsets"],
-            annotation_data["row_offsets"],
         )
     elif annotation_type == "string":
         return dt.make_string(name, annotation_data["sources"])
@@ -1077,6 +1062,8 @@ def _parse_darwin_video_annotation(annotation: dict) -> Optional[dt.VideoAnnotat
             annotation_type,
             annotation_data,
         )
+        if frame_annotations[int(f)] is None:
+            return None
         # If we hit a keyframe, we need to update annotation_data for frames later on that may be missing a main type
         if only_keyframes:
             annotation_data = update_annotation_data(

@@ -1158,6 +1158,75 @@ class TestParseDarwinJson:
         assert annotation.frames[1].data["nodes"] == first
         assert annotation.frames[3].data["nodes"] == second
 
+    def test_skips_removed_simple_table_annotations(self, tmp_path, capsys):
+        content = """
+        {
+        "version": "2.0",
+        "schema_ref": "https://darwin-public.s3.eu-west-1.amazonaws.com/darwin_json/2.0/schema.json",
+        "item": {
+            "name": "old-export.mp4",
+            "path": "/",
+            "slots": [
+            {
+                "type": "video",
+                "slot_name": "0",
+                "width": 100,
+                "height": 100,
+                "frame_count": 2,
+                "source_files": [{"file_name": "old-export.mp4", "url": "https://example.com/f"}]
+            }
+            ]
+        },
+        "annotations": [
+            {
+            "id": "a1",
+            "name": "table-image",
+            "simple_table": {
+                "bounding_box": {"x": 1, "y": 2, "w": 3, "h": 4},
+                "col_offsets": [0, 0.5, 1],
+                "row_offsets": [0, 1]
+            },
+            "slot_names": ["0"]
+            },
+            {
+            "id": "a2",
+            "name": "table-video",
+            "only_keyframes": true,
+            "interpolated": true,
+            "ranges": [[0, 2]],
+            "frames": {
+                "0": {
+                "keyframe": true,
+                "simple_table": {
+                    "bounding_box": {"x": 1, "y": 2, "w": 3, "h": 4},
+                    "col_offsets": [0, 1],
+                    "row_offsets": [0, 1]
+                }
+                },
+                "1": {"keyframe": false}
+            },
+            "slot_names": ["0"]
+            },
+            {
+            "id": "a3",
+            "name": "kept",
+            "tag": {},
+            "slot_names": ["0"]
+            }
+        ]
+        }
+            """
+
+        import_file = tmp_path / "darwin-file.json"
+        import_file.write_text(content)
+
+        annotation_file: dt.AnnotationFile = parse_darwin_json(import_file, None)
+
+        assert [a.annotation_class.name for a in annotation_file.annotations] == [
+            "kept"
+        ]
+        assert "Unsupported annotation type" in capsys.readouterr().out
+
     @pytest.mark.parametrize("version", ["2.0", "2.1"])
     def test_imports_a_keypoint_3d(self, tmp_path, version):
         content = """

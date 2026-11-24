@@ -133,7 +133,6 @@ def _build_main_annotations_lookup_table(
         "tag",
         "string",
         "table",
-        "simple_table",
         "graph",
         "mask",
         "raster_layer",
