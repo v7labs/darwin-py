@@ -466,13 +466,14 @@ def test_download_image_waits_retry_after_for_frame_being_prepared(
         status=503,
         headers={"Retry-After": "Wed, 21 Oct 2015 07:28:00 GMT"},
     )
+    responses.add(responses.GET, FRAME_URL, status=503, headers={"Retry-After": "0"})
     responses.add(responses.GET, FRAME_URL, status=200, body=b"frame")
     path = tmp_path / "0000000.png"
 
     dm._download_image(FRAME_URL, path, darwin_client)
 
     assert path.read_bytes() == b"frame"
-    assert sleeps == [7, 0]
+    assert sleeps == [7, 1, 1]
     assert (
         f"Waiting for {FRAME_URL} to be prepared, retry in 7s"
         in capsys.readouterr().out

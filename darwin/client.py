@@ -131,14 +131,17 @@ def _retry_after_seconds(retry_state: RetryCallState) -> Optional[float]:
         return None
     value = (exception.response.headers.get("Retry-After") or "").strip()
     if value.isdigit():
-        return float(value)
-    try:
-        date = parsedate_to_datetime(value)
-    except (TypeError, ValueError):
-        return None
-    if date.tzinfo is None:
-        date = date.replace(tzinfo=timezone.utc)
-    return max(0.0, (date - datetime.now(timezone.utc)).total_seconds())
+        seconds = float(value)
+    else:
+        try:
+            date = parsedate_to_datetime(value)
+        except (TypeError, ValueError):
+            return None
+        if date.tzinfo is None:
+            date = date.replace(tzinfo=timezone.utc)
+        seconds = (date - datetime.now(timezone.utc)).total_seconds()
+    # Floor keeps a 0 or past value from looping without ever spending the budget.
+    return max(1.0, seconds)
 
 
 def _retry_if_status_code_429_or_5xx_without_retry_after(
