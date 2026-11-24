@@ -2,7 +2,8 @@ import json
 import logging
 import os
 import zlib
-from datetime import datetime
+from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
 from logging import Logger
 from pathlib import Path
 from typing import Dict, Iterator, List, Optional, Union, cast
@@ -67,6 +68,7 @@ from darwin.utils.get_item_count import get_item_count
 INITIAL_WAIT = int(os.getenv("DARWIN_RETRY_INITIAL_WAIT", "60"))
 MAX_WAIT = int(os.getenv("DARWIN_RETRY_MAX_WAIT", "300"))
 MAX_RETRIES = int(os.getenv("DARWIN_RETRY_MAX_ATTEMPTS", "10"))
+RETRY_AFTER_BUDGET = int(os.getenv("DARWIN_RETRY_AFTER_BUDGET", str(30 * 60)))
 
 HOUR = 60 * 60
 
@@ -117,6 +119,53 @@ def retry_if_status_code_429_or_5xx(retry_state: RetryCallState) -> bool:
             504,
         }
     return False
+
+
+def _retry_after_seconds(retry_state: RetryCallState) -> Optional[float]:
+    """Seconds asked by a 503 ``Retry-After`` header (delta-seconds or HTTP date), else None."""
+    exception = retry_state.outcome.exception() if retry_state.outcome else None
+    if not isinstance(exception, HTTPError) or exception.response is None:
+        return None
+    if exception.response.status_code != 503:
+        return None
+    value = (exception.response.headers.get("Retry-After") or "").strip()
+    if value.isdigit():
+        return float(value)
+    try:
+        date = parsedate_to_datetime(value)
+    except (TypeError, ValueError):
+        return None
+    if date.tzinfo is None:
+        date = date.replace(tzinfo=timezone.utc)
+    return max(0.0, (date - datetime.now(timezone.utc)).total_seconds())
+
+
+def _retry_if_status_code_429_or_5xx_without_retry_after(
+    retry_state: RetryCallState,
+) -> bool:
+    return (
+        retry_if_status_code_429_or_5xx(retry_state)
+        and _retry_after_seconds(retry_state) is None
+    )
+
+
+def _retry_after_budget_exhausted(retry_state: RetryCallState) -> bool:
+    wait = _retry_after_seconds(retry_state) or 0.0
+    return retry_state.idle_for + wait > RETRY_AFTER_BUDGET
+
+
+def _log_retry_after(retry_state: RetryCallState) -> None:
+    url = retry_state.outcome.exception().response.url  # type: ignore[union-attr]
+    wait = retry_state.next_action.sleep  # type: ignore[union-attr]
+    print(f"Waiting for {url} to be prepared, retry in {wait:.0f}s")
+
+
+def _raise_retry_after_timeout(retry_state: RetryCallState) -> None:
+    exception = cast(HTTPError, retry_state.outcome.exception())  # type: ignore[union-attr]
+    raise TimeoutError(
+        f"{exception.response.url} still being prepared after {RETRY_AFTER_BUDGET}s "
+        "(raise DARWIN_RETRY_AFTER_BUDGET to wait longer)"
+    ) from exception
 
 
 def log_retry_error(retry_state: RetryCallState) -> None:
@@ -898,9 +947,16 @@ class Client:
         return headers
 
     @retry(
+        wait=lambda retry_state: _retry_after_seconds(retry_state) or 0.0,
+        stop=_retry_after_budget_exhausted,
+        retry=lambda retry_state: _retry_after_seconds(retry_state) is not None,
+        before_sleep=_log_retry_after,
+        retry_error_callback=_raise_retry_after_timeout,
+    )
+    @retry(
         wait=wait_exponential_jitter(initial=INITIAL_WAIT, max=MAX_WAIT),
         stop=stop_after_attempt(MAX_RETRIES),
-        retry=retry_if_status_code_429_or_5xx,
+        retry=_retry_if_status_code_429_or_5xx_without_retry_after,
         before_sleep=log_retry_error,
     )
     def _get_raw_from_full_url(

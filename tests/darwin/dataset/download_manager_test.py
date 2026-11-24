@@ -442,3 +442,79 @@ def test__check_for_duplicate_local_filepaths_multiple_duplicates(capsys):
     )
     assert "path/to/file1.jpg is duplicated 2 times" in captured.out
     assert "path/to/file3.jpg is duplicated 3 times" in captured.out
+
+
+FRAME_URL = "http://localhost/api/v2/teams/t/files/f/sections/0"
+
+
+@pytest.fixture
+def sleeps(monkeypatch) -> List[float]:
+    slept: List[float] = []
+    monkeypatch.setattr("time.sleep", slept.append)
+    return slept
+
+
+@pytest.mark.usefixtures("file_read_write_test")
+@responses.activate
+def test_download_image_waits_retry_after_for_frame_being_prepared(
+    darwin_client: Client, tmp_path: Path, sleeps: List[float], capsys
+) -> None:
+    responses.add(responses.GET, FRAME_URL, status=503, headers={"Retry-After": "7"})
+    responses.add(
+        responses.GET,
+        FRAME_URL,
+        status=503,
+        headers={"Retry-After": "Wed, 21 Oct 2015 07:28:00 GMT"},
+    )
+    responses.add(responses.GET, FRAME_URL, status=200, body=b"frame")
+    path = tmp_path / "0000000.png"
+
+    dm._download_image(FRAME_URL, path, darwin_client)
+
+    assert path.read_bytes() == b"frame"
+    assert sleeps == [7, 0]
+    assert (
+        f"Waiting for {FRAME_URL} to be prepared, retry in 7s"
+        in capsys.readouterr().out
+    )
+
+
+@pytest.mark.usefixtures("file_read_write_test")
+@responses.activate
+def test_download_image_fails_clearly_when_retry_after_budget_exhausted(
+    darwin_client: Client, tmp_path: Path, sleeps: List[float]
+) -> None:
+    responses.add(responses.GET, FRAME_URL, status=503, headers={"Retry-After": "600"})
+
+    with pytest.raises(Exception, match="still being prepared after 1800s"):
+        dm._download_image(FRAME_URL, tmp_path / "0000000.png", darwin_client)
+
+    assert sleeps == [600, 600, 600]
+    assert len(responses.calls) == 4
+
+
+@pytest.mark.usefixtures("file_read_write_test")
+@responses.activate
+def test_download_image_4xx_is_fatal_even_with_retry_after(
+    darwin_client: Client, tmp_path: Path, sleeps: List[float]
+) -> None:
+    responses.add(responses.GET, FRAME_URL, status=403, headers={"Retry-After": "1"})
+
+    with pytest.raises(Exception):
+        dm._download_image(FRAME_URL, tmp_path / "0000000.png", darwin_client)
+
+    assert sleeps == []
+    assert len(responses.calls) == 1
+
+
+@pytest.mark.usefixtures("file_read_write_test")
+@responses.activate
+def test_download_image_other_5xx_keep_exponential_backoff(
+    darwin_client: Client, tmp_path: Path, sleeps: List[float]
+) -> None:
+    responses.add(responses.GET, FRAME_URL, status=502, headers={"Retry-After": "1"})
+    responses.add(responses.GET, FRAME_URL, status=200, body=b"frame")
+
+    dm._download_image(FRAME_URL, tmp_path / "0000000.png", darwin_client)
+
+    assert len(sleeps) == 1 and sleeps[0] >= 60
