@@ -117,6 +117,12 @@ class MissingDependency(Exception):
     """
 
 
+class MediaNotReady(Exception):
+    """
+    Used when V7 was still preparing a file (503 + Retry-After) after the wait budget ran out.
+    """
+
+
 class UnrecognizableFileEncoding(Exception):
     """
     Used when a we try to decode a file and all decoding algorithms fail.

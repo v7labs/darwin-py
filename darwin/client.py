@@ -39,6 +39,7 @@ from darwin.datatypes import (
 from darwin.exceptions import (
     InsufficientStorage,
     InvalidLogin,
+    MediaNotReady,
     MissingConfig,
     NameTaken,
     NotFound,
@@ -162,7 +163,7 @@ def _log_retry_after(retry_state: RetryCallState) -> None:
 
 def _raise_retry_after_timeout(retry_state: RetryCallState) -> None:
     exception = cast(HTTPError, retry_state.outcome.exception())  # type: ignore[union-attr]
-    raise TimeoutError(
+    raise MediaNotReady(
         f"{exception.response.url} still being prepared after {RETRY_AFTER_BUDGET}s "
         "(raise DARWIN_RETRY_AFTER_BUDGET to wait longer)"
     ) from exception

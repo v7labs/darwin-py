@@ -518,3 +518,54 @@ def test_download_image_other_5xx_keep_exponential_backoff(
     dm._download_image(FRAME_URL, tmp_path / "0000000.png", darwin_client)
 
     assert len(sleeps) == 1 and sleeps[0] >= 60
+
+
+def _video_annotation(slot_names: List[str]) -> AnnotationFile:
+    return AnnotationFile(
+        path=Path("/local/annotations/video.json"),
+        filename="video.mp4",
+        annotation_classes=set(),
+        annotations=[],
+        slots=[
+            Slot(name=name, type="video", source_files=[], frame_urls=[FRAME_URL])
+            for name in slot_names
+        ],
+        remote_path="/",
+    )
+
+
+@pytest.mark.usefixtures("file_read_write_test")
+@pytest.mark.parametrize(
+    "build",
+    [
+        lambda client, path: dm._download_single_slot_from_json_annotation(
+            _video_annotation(["0"]), client, path, path / "video.json", True
+        ),
+        lambda client, path: dm._download_all_slots_from_json_annotation(
+            _video_annotation(["0", "1"]), client, path, True
+        ),
+    ],
+    ids=["single_slot", "multi_slot"],
+)
+@responses.activate
+def test_frame_downloads_wait_retry_after_on_every_slot_path(
+    darwin_client: Client, tmp_path: Path, sleeps: List[float], build
+) -> None:
+    responses.add(responses.GET, FRAME_URL, status=503, headers={"Retry-After": "5"})
+    responses.add(responses.GET, FRAME_URL, status=200, body=b"frame")
+
+    downloads = build(darwin_client, tmp_path)
+    for download in downloads:
+        download()
+
+    assert sleeps == [5]
+    assert [p.read_bytes() for p in tmp_path.rglob("*.png")] == [b"frame"] * len(
+        downloads
+    )
+
+
+def test_raise_media_errors_keeps_media_not_ready() -> None:
+    from darwin.exceptions import MediaNotReady
+
+    with pytest.raises(MediaNotReady, match="frame 1"):
+        dm._raise_media_errors([Exception("other"), MediaNotReady("frame 1")])

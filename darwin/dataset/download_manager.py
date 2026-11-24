@@ -4,7 +4,6 @@ Holds helper functions that deal with downloading videos and images.
 
 import functools
 import os
-import time
 import urllib
 from collections import Counter
 from dataclasses import dataclass
@@ -35,7 +34,7 @@ from darwin.dataset.utils import (
     SUPPORTED_VIDEO_EXTENSIONS,
 )
 from darwin.datatypes import AnnotationFile
-from darwin.exceptions import MissingDependency
+from darwin.exceptions import MediaNotReady, MissingDependency
 from darwin.utils import (
     attempt_decode,
     get_response_content,
@@ -224,6 +223,9 @@ def _raise_media_errors(errors: List[Exception]) -> None:
     for error in errors:
         if isinstance(error, PrettyPrintError):
             raise PrettyPrintError(message) from error
+    for error in errors:
+        if isinstance(error, MediaNotReady):
+            raise MediaNotReady(message) from error
     raise RuntimeError(message) from errors[0]
 
 
@@ -515,37 +517,17 @@ def _download_image(
 ) -> None:
     if path.exists():
         return
-    TIMEOUT: int = 60
-    start: float = time.time()
-
     transform_file_function = None
     if slot and slot.metadata and slot.metadata.get("colorspace") == "RG16":
         transform_file_function = _rg16_to_grayscale
-    while True:
-        if "token" in url:
-            response: requests.Response = client._get_raw_from_full_url(
-                url, stream=True
-            )
-        else:
-            response = client._get_raw_from_full_url(url, stream=True)
-        # Correct status: download image
-        if response.ok and has_json_content_type(response):
-            # this branch is a workaround for edge case in V1 when video file from external storage could be registered
-            # with multiple keys (so that one file consist of several other)
-            _fetch_multiple_files(path, response, transform_file_function)
-            return
-        elif response.ok:
-            _write_file(path, response, transform_file_function)
-            return
-        # Fatal-error status: fail
-        if 400 <= response.status_code <= 499:
-            raise Exception(
-                f"Request to ({url}) failed. Status code: {response.status_code}, content:\n{get_response_content(response)}."
-            )
-        # Timeout
-        if time.time() - start > TIMEOUT:
-            raise Exception(f"Timeout url request ({url}) after {TIMEOUT} seconds.")
-        time.sleep(1)
+    # The client raises on non-2xx and owns retries (5xx backoff, 503 Retry-After).
+    response = client._get_raw_from_full_url(url, stream=True)
+    if has_json_content_type(response):
+        # this branch is a workaround for edge case in V1 when video file from external storage could be registered
+        # with multiple keys (so that one file consist of several other)
+        _fetch_multiple_files(path, response, transform_file_function)
+    else:
+        _write_file(path, response, transform_file_function)
 
 
 def _download_image_with_trace(annotation, image_url, image_path, client):
