@@ -84,6 +84,20 @@ NATIVE_VIDEO_EXTENSIONS = [
     ".hevc",
 ]
 
+# Images that can be processed locally for read-only registration: Pillow can
+# decode them and the platform renders them without server-side processing.
+# Whole-slide and pyramidal formats such as .svs and .qtiff are excluded.
+NATIVE_IMAGE_EXTENSIONS = [
+    ".png",
+    ".jpg",
+    ".jpeg",
+    ".jfif",
+    ".bmp",
+    ".webp",
+    ".tif",
+    ".tiff",
+]
+
 SUPPORTED_EXTENSIONS = SUPPORTED_IMAGE_EXTENSIONS + SUPPORTED_VIDEO_EXTENSIONS
 
 # Define incompatible `item_merge_mode` arguments

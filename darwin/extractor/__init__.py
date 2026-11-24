@@ -1,1 +1,1 @@
-"""Video extraction functionality for Darwin."""
+"""Video and image extraction functionality for Darwin."""
