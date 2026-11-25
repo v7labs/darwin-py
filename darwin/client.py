@@ -155,7 +155,7 @@ def _retry_if_status_code_429_or_5xx_without_retry_after(
 
 def _retry_after_budget_exhausted(retry_state: RetryCallState) -> bool:
     wait = _retry_after_seconds(retry_state) or 0.0
-    return retry_state.idle_for + wait > RETRY_AFTER_BUDGET
+    return (retry_state.seconds_since_start or 0.0) + wait > RETRY_AFTER_BUDGET
 
 
 def _log_retry_after(retry_state: RetryCallState) -> None:

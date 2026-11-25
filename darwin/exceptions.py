@@ -332,8 +332,7 @@ class UnknownAnnotationFileSchema(Exception):
         self.supported_versions = list(map(str, supported_versions))
 
     def __str__(self) -> str:
-        return dedent(
-            f"""\
+        return dedent(f"""\
             Unable to find JSON schema for annotation file: '{self.file_path}'
 
             Given annotation file should have either:
@@ -341,8 +340,7 @@ class UnknownAnnotationFileSchema(Exception):
                 * `version` field set to one of supported natively versions: {self.supported_versions}
 
             Detected annotation file version is: '{self.detected_version}'.
-            """
-        )
+            """)
 
 
 class UnknownExportVersion(Exception):

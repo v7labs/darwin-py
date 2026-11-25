@@ -503,10 +503,9 @@ class RemoteDataset(ABC):
                 f"Total file count after download completed {str(downloaded_file_count)}."
             )
 
-            not_ready = [e for e in errors if isinstance(e, MediaNotReady)]
-            if not_ready:
+            if any(isinstance(e, MediaNotReady) for e in errors):
                 raise MediaNotReady(
-                    f"{len(not_ready)} file(s) were still being prepared by V7. "
+                    "Some files were still being prepared by V7. "
                     "Re-run the pull to download them; files already downloaded are skipped."
                 )
 

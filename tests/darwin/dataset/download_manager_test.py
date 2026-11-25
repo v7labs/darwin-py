@@ -451,6 +451,7 @@ FRAME_URL = "http://localhost/api/v2/teams/t/files/f/sections/0"
 def sleeps(monkeypatch) -> List[float]:
     slept: List[float] = []
     monkeypatch.setattr("time.sleep", slept.append)
+    monkeypatch.setattr("time.monotonic", lambda: sum(slept))
     return slept
 
 
@@ -492,6 +493,20 @@ def test_download_image_fails_clearly_when_retry_after_budget_exhausted(
 
     assert sleeps == [600, 600, 600]
     assert len(responses.calls) == 4
+
+
+@pytest.mark.usefixtures("file_read_write_test")
+@responses.activate
+def test_retry_after_budget_counts_time_spent_in_5xx_backoff(
+    darwin_client: Client, tmp_path: Path, sleeps: List[float]
+) -> None:
+    responses.add(responses.GET, FRAME_URL, status=502)
+    responses.add(responses.GET, FRAME_URL, status=503, headers={"Retry-After": "600"})
+
+    with pytest.raises(Exception, match="still being prepared after 1800s"):
+        dm._download_image(FRAME_URL, tmp_path / "0000000.png", darwin_client)
+
+    assert sleeps[0] >= 60 and sleeps[1:] == [600, 600]
 
 
 @pytest.mark.usefixtures("file_read_write_test")

@@ -3223,7 +3223,9 @@ class TestPullMediaNotReady:
             ),
         ):
             if raises:
-                with pytest.raises(MediaNotReady, match="1 file.*Re-run the pull"):
+                with pytest.raises(
+                    MediaNotReady, match="still being prepared.*Re-run the pull"
+                ):
                     remote_dataset.pull(release=release, multi_processed=False)
             else:
                 remote_dataset.pull(release=release, multi_processed=False)
