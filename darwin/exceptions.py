@@ -117,6 +117,12 @@ class MissingDependency(Exception):
     """
 
 
+class MediaNotReady(Exception):
+    """
+    Used when V7 was still preparing a file (503 + Retry-After) after the wait budget ran out.
+    """
+
+
 class UnrecognizableFileEncoding(Exception):
     """
     Used when a we try to decode a file and all decoding algorithms fail.
@@ -326,8 +332,7 @@ class UnknownAnnotationFileSchema(Exception):
         self.supported_versions = list(map(str, supported_versions))
 
     def __str__(self) -> str:
-        return dedent(
-            f"""\
+        return dedent(f"""\
             Unable to find JSON schema for annotation file: '{self.file_path}'
 
             Given annotation file should have either:
@@ -335,8 +340,7 @@ class UnknownAnnotationFileSchema(Exception):
                 * `version` field set to one of supported natively versions: {self.supported_versions}
 
             Detected annotation file version is: '{self.detected_version}'.
-            """
-        )
+            """)
 
 
 class UnknownExportVersion(Exception):

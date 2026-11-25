@@ -9,6 +9,7 @@ from darwin.dataset import download_manager as dm
 from darwin.datatypes import AnnotationClass, AnnotationFile, Slot, SourceFile
 from tests.fixtures import *
 from darwin.client import Client
+from darwin.exceptions import MediaNotReady
 from darwin.config import Config
 
 
@@ -442,3 +443,165 @@ def test__check_for_duplicate_local_filepaths_multiple_duplicates(capsys):
     )
     assert "path/to/file1.jpg is duplicated 2 times" in captured.out
     assert "path/to/file3.jpg is duplicated 3 times" in captured.out
+
+
+FRAME_URL = "http://localhost/api/v2/teams/t/files/f/sections/0"
+
+
+@pytest.fixture
+def sleeps(monkeypatch) -> List[float]:
+    slept: List[float] = []
+    monkeypatch.setattr("time.sleep", slept.append)
+    monkeypatch.setattr("time.monotonic", lambda: sum(slept))
+    return slept
+
+
+@pytest.mark.usefixtures("file_read_write_test")
+@responses.activate
+def test_download_image_waits_retry_after_for_frame_being_prepared(
+    darwin_client: Client, tmp_path: Path, sleeps: List[float], capsys
+) -> None:
+    responses.add(responses.GET, FRAME_URL, status=503, headers={"Retry-After": "7"})
+    responses.add(
+        responses.GET,
+        FRAME_URL,
+        status=503,
+        headers={"Retry-After": "Wed, 21 Oct 2015 07:28:00 GMT"},
+    )
+    responses.add(responses.GET, FRAME_URL, status=503, headers={"Retry-After": "0"})
+    responses.add(responses.GET, FRAME_URL, status=200, body=b"frame")
+    path = tmp_path / "0000000.png"
+
+    dm._download_image(FRAME_URL, path, darwin_client)
+
+    assert path.read_bytes() == b"frame"
+    assert sleeps == [7, 1, 1]
+    assert (
+        f"Waiting for {FRAME_URL} to be prepared, retry in 7s"
+        in capsys.readouterr().out
+    )
+
+
+@pytest.mark.usefixtures("file_read_write_test")
+@responses.activate
+def test_download_image_fails_clearly_when_retry_after_budget_exhausted(
+    darwin_client: Client, tmp_path: Path, sleeps: List[float]
+) -> None:
+    responses.add(responses.GET, FRAME_URL, status=503, headers={"Retry-After": "600"})
+
+    with pytest.raises(
+        Exception,
+        match="still being prepared after 1800s, next retry would pass the 1800s budget",
+    ):
+        dm._download_image(FRAME_URL, tmp_path / "0000000.png", darwin_client)
+
+    assert sleeps == [600, 600, 600]
+    assert len(responses.calls) == 4
+
+
+@pytest.mark.usefixtures("file_read_write_test")
+@responses.activate
+def test_retry_after_budget_counts_time_spent_in_5xx_backoff(
+    darwin_client: Client, tmp_path: Path, sleeps: List[float]
+) -> None:
+    responses.add(responses.GET, FRAME_URL, status=502)
+    responses.add(responses.GET, FRAME_URL, status=503, headers={"Retry-After": "600"})
+
+    with pytest.raises(Exception, match="next retry would pass the 1800s budget"):
+        dm._download_image(FRAME_URL, tmp_path / "0000000.png", darwin_client)
+
+    assert sleeps[0] >= 60 and sleeps[1:] == [600, 600]
+
+
+@pytest.mark.usefixtures("file_read_write_test")
+@responses.activate
+def test_5xx_after_retry_after_shares_the_budget_and_hides_the_token(
+    darwin_client: Client, tmp_path: Path, sleeps: List[float], capsys
+) -> None:
+    url = f"{FRAME_URL}?token=secret"
+    responses.add(responses.GET, url, status=503, headers={"Retry-After": "600"})
+    responses.add(responses.GET, url, status=502)
+
+    with pytest.raises(MediaNotReady, match="still being prepared") as error:
+        dm._download_image(url, tmp_path / "0000000.png", darwin_client)
+
+    assert sleeps[0] == 600 and sum(sleeps) <= 1800
+    assert "secret" not in str(error.value) + capsys.readouterr().out
+
+
+@pytest.mark.usefixtures("file_read_write_test")
+@responses.activate
+def test_download_image_4xx_is_fatal_even_with_retry_after(
+    darwin_client: Client, tmp_path: Path, sleeps: List[float]
+) -> None:
+    responses.add(responses.GET, FRAME_URL, status=403, headers={"Retry-After": "1"})
+
+    with pytest.raises(Exception):
+        dm._download_image(FRAME_URL, tmp_path / "0000000.png", darwin_client)
+
+    assert sleeps == []
+    assert len(responses.calls) == 1
+
+
+@pytest.mark.usefixtures("file_read_write_test")
+@responses.activate
+def test_download_image_other_5xx_keep_exponential_backoff(
+    darwin_client: Client, tmp_path: Path, sleeps: List[float]
+) -> None:
+    responses.add(responses.GET, FRAME_URL, status=502, headers={"Retry-After": "1"})
+    responses.add(responses.GET, FRAME_URL, status=200, body=b"frame")
+
+    dm._download_image(FRAME_URL, tmp_path / "0000000.png", darwin_client)
+
+    assert len(sleeps) == 1 and sleeps[0] >= 60
+
+
+def _video_annotation(slot_names: List[str]) -> AnnotationFile:
+    return AnnotationFile(
+        path=Path("/local/annotations/video.json"),
+        filename="video.mp4",
+        annotation_classes=set(),
+        annotations=[],
+        slots=[
+            Slot(name=name, type="video", source_files=[], frame_urls=[FRAME_URL])
+            for name in slot_names
+        ],
+        remote_path="/",
+    )
+
+
+@pytest.mark.usefixtures("file_read_write_test")
+@pytest.mark.parametrize(
+    "build",
+    [
+        lambda client, path: dm._download_single_slot_from_json_annotation(
+            _video_annotation(["0"]), client, path, path / "video.json", True
+        ),
+        lambda client, path: dm._download_all_slots_from_json_annotation(
+            _video_annotation(["0", "1"]), client, path, True
+        ),
+    ],
+    ids=["single_slot", "multi_slot"],
+)
+@responses.activate
+def test_frame_downloads_wait_retry_after_on_every_slot_path(
+    darwin_client: Client, tmp_path: Path, sleeps: List[float], build
+) -> None:
+    responses.add(responses.GET, FRAME_URL, status=503, headers={"Retry-After": "5"})
+    responses.add(responses.GET, FRAME_URL, status=200, body=b"frame")
+
+    downloads = build(darwin_client, tmp_path)
+    for download in downloads:
+        download()
+
+    assert sleeps == [5]
+    assert [p.read_bytes() for p in tmp_path.rglob("*.png")] == [b"frame"] * len(
+        downloads
+    )
+
+
+def test_raise_media_errors_keeps_media_not_ready() -> None:
+    from darwin.exceptions import MediaNotReady
+
+    with pytest.raises(MediaNotReady, match="frame 1"):
+        dm._raise_media_errors([Exception("other"), MediaNotReady("frame 1")])

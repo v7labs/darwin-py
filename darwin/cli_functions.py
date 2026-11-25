@@ -49,6 +49,7 @@ from darwin.exceptions import (
     AnnotationFileValidationError,
     IncompatibleOptions,
     InvalidLogin,
+    MediaNotReady,
     MissingConfig,
     MissingDependency,
     MissingSchema,
@@ -457,7 +458,7 @@ def pull_dataset(
         )
     except PrettyPrintError as error:
         _error(str(error))
-    except MissingDependency as e:
+    except (MissingDependency, MediaNotReady) as e:
         _error(str(e))
 
     print(f"Dataset {release.identifier} downloaded at {dataset.local_path} .")

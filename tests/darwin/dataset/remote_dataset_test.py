@@ -3174,3 +3174,58 @@ class TestPrettyPrintPull:
         assert (annotations / ".v7" / "metadata.json").read_bytes() == original_metadata
         assert list(annotations.glob("*.json"))
         assert not list(annotations.rglob("*.tmp"))
+
+
+@pytest.mark.usefixtures("file_read_write_test")
+class TestPullMediaNotReady:
+    @pytest.mark.parametrize(
+        "failures, raises",
+        [(["not_ready", "other"], True), (["other"], False)],
+    )
+    def test_raises_only_when_media_still_being_prepared(
+        self, remote_dataset, failures, raises
+    ):
+        from darwin.exceptions import MediaNotReady
+
+        release = Release(
+            remote_dataset.slug,
+            remote_dataset.team,
+            "0.1.0",
+            "media-not-ready",
+            ReleaseStatus("complete"),
+            "http://darwin-fake-url.com",
+            datetime.now(),
+            None,
+            None,
+            False,
+            True,
+            "darwin_json_2",
+        )
+
+        def download_zip(path):
+            shutil.copy("tests/dataset_with_properties.zip", path)
+            return path
+
+        def fail(kind):
+            def download():
+                if kind == "not_ready":
+                    raise MediaNotReady("frame still being prepared")
+                raise Exception("other failure")
+
+            return download
+
+        downloads = [fail(kind) for kind in failures] + [lambda: None]
+        with (
+            patch.object(Release, "download_zip", side_effect=download_zip),
+            patch(
+                "darwin.dataset.remote_dataset.download_all_images_from_annotations",
+                return_value=(lambda: downloads, len(downloads)),
+            ),
+        ):
+            if raises:
+                with pytest.raises(
+                    MediaNotReady, match="still being prepared.*Re-run the pull"
+                ):
+                    remote_dataset.pull(release=release, multi_processed=False)
+            else:
+                remote_dataset.pull(release=release, multi_processed=False)

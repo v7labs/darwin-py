@@ -42,7 +42,12 @@ from darwin.dataset.utils import (
     make_class_lists,
 )
 from darwin.datatypes import AnnotationClass, AnnotationFile, ItemId, PathLike
-from darwin.exceptions import MissingDependency, NotFound, UnsupportedExportFormat
+from darwin.exceptions import (
+    MediaNotReady,
+    MissingDependency,
+    NotFound,
+    UnsupportedExportFormat,
+)
 from darwin.exporter.formats.darwin import build_image_annotation
 from darwin.item import DatasetItem
 from darwin.item_sorter import ItemSorter
@@ -497,6 +502,12 @@ class RemoteDataset(ABC):
             console.print(
                 f"Total file count after download completed {str(downloaded_file_count)}."
             )
+
+            if any(isinstance(e, MediaNotReady) for e in errors):
+                raise MediaNotReady(
+                    "Some files were still being prepared by V7. "
+                    "Re-run the pull to download them; files already downloaded are skipped."
+                )
 
             return None, count
         else:

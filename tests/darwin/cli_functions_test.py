@@ -712,6 +712,30 @@ class TestPullDataset:
 
             assert pull_mock.call_args.kwargs["multi_processed"] is False
 
+    def test_exits_non_zero_when_media_still_being_prepared(
+        self, remote_dataset: RemoteDataset
+    ):
+        from darwin.exceptions import MediaNotReady
+
+        with (
+            patch("darwin.cli_functions.os.getenv", return_value=None),
+            patch("darwin.cli_functions.Config") as config_cls_mock,
+            patch("darwin.cli_functions.Client.from_config") as from_config_mock,
+        ):
+            config_cls_mock.return_value.get.return_value = "team_specific_key"
+            client_mock = from_config_mock.return_value
+            client_mock.get_remote_dataset.return_value = remote_dataset
+            client_mock.newer_darwin_version = None
+
+            with patch.object(remote_dataset, "get_release"):
+                with patch.object(
+                    remote_dataset, "pull", side_effect=MediaNotReady("not ready")
+                ):
+                    with pytest.raises(SystemExit) as exit_info:
+                        pull_dataset("old-team/test-dataset:xyz")
+
+            assert exit_info.value.code == 1
+
 
 class TestPullDatasetTeamAuthSelection:
     def test_prefers_config_over_env_when_team_specified(
