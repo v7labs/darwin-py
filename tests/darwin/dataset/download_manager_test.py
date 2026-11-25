@@ -489,7 +489,10 @@ def test_download_image_fails_clearly_when_retry_after_budget_exhausted(
 ) -> None:
     responses.add(responses.GET, FRAME_URL, status=503, headers={"Retry-After": "600"})
 
-    with pytest.raises(Exception, match="still being prepared after 1800s"):
+    with pytest.raises(
+        Exception,
+        match="still being prepared after 1800s, next retry would pass the 1800s budget",
+    ):
         dm._download_image(FRAME_URL, tmp_path / "0000000.png", darwin_client)
 
     assert sleeps == [600, 600, 600]
@@ -504,7 +507,7 @@ def test_retry_after_budget_counts_time_spent_in_5xx_backoff(
     responses.add(responses.GET, FRAME_URL, status=502)
     responses.add(responses.GET, FRAME_URL, status=503, headers={"Retry-After": "600"})
 
-    with pytest.raises(Exception, match="still being prepared after 1800s"):
+    with pytest.raises(Exception, match="next retry would pass the 1800s budget"):
         dm._download_image(FRAME_URL, tmp_path / "0000000.png", darwin_client)
 
     assert sleeps[0] >= 60 and sleeps[1:] == [600, 600]

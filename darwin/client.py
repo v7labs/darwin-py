@@ -189,8 +189,9 @@ def _raise_retries_exhausted(retry_state: RetryCallState) -> None:
     if not _saw_retry_after(retry_state):
         raise RetryError(outcome) from outcome.exception()
     raise MediaNotReady(
-        f"{_url_without_query(retry_state)} still being prepared after {RETRY_AFTER_BUDGET}s "
-        "(raise DARWIN_RETRY_AFTER_BUDGET to wait longer)"
+        f"{_url_without_query(retry_state)} still being prepared after "
+        f"{retry_state.seconds_since_start or 0.0:.0f}s, next retry would pass the "
+        f"{RETRY_AFTER_BUDGET}s budget (raise DARWIN_RETRY_AFTER_BUDGET to wait longer)"
     ) from outcome.exception()
 
 
