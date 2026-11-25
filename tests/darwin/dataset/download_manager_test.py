@@ -9,6 +9,7 @@ from darwin.dataset import download_manager as dm
 from darwin.datatypes import AnnotationClass, AnnotationFile, Slot, SourceFile
 from tests.fixtures import *
 from darwin.client import Client
+from darwin.exceptions import MediaNotReady
 from darwin.config import Config
 
 
@@ -507,6 +508,22 @@ def test_retry_after_budget_counts_time_spent_in_5xx_backoff(
         dm._download_image(FRAME_URL, tmp_path / "0000000.png", darwin_client)
 
     assert sleeps[0] >= 60 and sleeps[1:] == [600, 600]
+
+
+@pytest.mark.usefixtures("file_read_write_test")
+@responses.activate
+def test_5xx_after_retry_after_shares_the_budget_and_hides_the_token(
+    darwin_client: Client, tmp_path: Path, sleeps: List[float], capsys
+) -> None:
+    url = f"{FRAME_URL}?token=secret"
+    responses.add(responses.GET, url, status=503, headers={"Retry-After": "600"})
+    responses.add(responses.GET, url, status=502)
+
+    with pytest.raises(MediaNotReady, match="still being prepared") as error:
+        dm._download_image(url, tmp_path / "0000000.png", darwin_client)
+
+    assert sleeps[0] == 600 and sum(sleeps) <= 1800
+    assert "secret" not in str(error.value) + capsys.readouterr().out
 
 
 @pytest.mark.usefixtures("file_read_write_test")
